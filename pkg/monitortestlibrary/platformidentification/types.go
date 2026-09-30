@@ -297,13 +297,13 @@ func GetJobType(ctx context.Context, clientConfig *rest.Config) (*JobType, error
 	topology := ""
 	switch infrastructure.Status.ControlPlaneTopology {
 	case configv1.HighlyAvailableTopologyMode:
-		topology = "ha"
+		topology = TopologyHighlyAvailable
 	case configv1.SingleReplicaTopologyMode:
-		topology = "single"
+		topology = TopologySingleReplica
 	case configv1.ExternalTopologyMode:
-		topology = "external"
+		topology = TopologyExternal
 	case configv1.DualReplicaTopologyMode:
-		topology = "dual"
+		topology = TopologyDualReplica
 	}
 
 	return &JobType{
