@@ -9,6 +9,7 @@ import (
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/apis"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -136,6 +137,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			return !nodeutil.IsNodeReady(nodeObj)
 		}, kubeletDisruptionTimeout, utils.FiveSecondPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s is not in state Ready after kubelet resource ban is applied", targetNode.Name))
 
+		g.By("Waiting for PacemakerHealthCheckDegraded to become True")
+		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "node is unhealthy", kubeletDisruptionTimeout)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True after kubelet disruption")
+
 		g.By("Validating etcd cluster remains healthy with surviving node")
 		o.Consistently(func() error {
 			return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, survivingNode.Name)
@@ -165,6 +170,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Eventually(func() error {
 			return utils.ValidateEssentialOperatorsAvailable(oc)
 		}, kubeletRestoreTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), "Essential operators should be available")
+
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, kubeletRestoreTimeout)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after kubelet recovery")
 	})
 
 	g.It("should properly stop kubelet service and verify automatic restart on target node", func() {
@@ -202,6 +211,41 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		err = utils.StopKubeletService(oc, targetNode.Name)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to stop kubelet service on node %s without errors", targetNode.Name))
 
+		// Assert degradation before waiting on recovery. This is racy by nature:
+		// Pacemaker auto-restarts kubelet, which clears the degraded condition once
+		// healthy again. The PacemakerCluster CR backing this condition is only
+		// refreshed by a once-per-minute CronJob, and Pacemaker's own out-of-band
+		// failure detection plus recovery for the kubelet resource can complete in
+		// less than one CronJob interval — so a single stop can be fully recovered
+		// within a gap between snapshots and never be observed as degraded.
+		//
+		// To observe the condition reliably, poll it directly and, whenever we find
+		// that Pacemaker has already restarted kubelet before degradation was seen,
+		// stop kubelet again. This keeps the resource failing across at least one
+		// status snapshot without suppressing Pacemaker's real recovery behavior.
+		g.By("Waiting for PacemakerHealthCheckDegraded=True after kubelet stop (re-stopping kubelet as needed)")
+		o.Eventually(func() (bool, error) {
+			degraded, msg, err := apis.IsPacemakerHealthCheckDegraded(oc)
+			if err != nil {
+				framework.Logf("Error checking PacemakerHealthCheckDegraded: %v", err)
+				return false, nil
+			}
+			if degraded {
+				framework.Logf("PacemakerHealthCheckDegraded=True observed (message: %q)", msg)
+				return true, nil
+			}
+
+			// Not degraded yet. If Pacemaker has already restarted kubelet, re-stop
+			// it so the failure persists until the next status snapshot catches it.
+			if utils.IsServiceRunning(oc, survivingNode.Name, targetNode.Name, "kubelet") {
+				framework.Logf("Kubelet was restarted by Pacemaker before degradation was observed; stopping it again on %s", targetNode.Name)
+				if stopErr := utils.StopKubeletService(oc, targetNode.Name); stopErr != nil {
+					framework.Logf("Warning: failed to re-stop kubelet on %s: %v", targetNode.Name, stopErr)
+				}
+			}
+			return false, nil
+		}, kubeletDisruptionTimeout, utils.FiveSecondPollInterval).Should(o.BeTrue(), "PacemakerHealthCheckDegraded should become True after kubelet stop")
+
 		g.By("Waiting for Pacemaker to auto-recover and restart kubelet-clone service")
 		o.Eventually(func() bool {
 			isRunning := utils.IsServiceRunning(oc, survivingNode.Name, targetNode.Name, "kubelet")
@@ -237,6 +281,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Eventually(func() error {
 			return utils.ValidateEssentialOperatorsAvailable(oc)
 		}, kubeletRestoreTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), "Essential operators should be available")
-	})
 
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, kubeletRestoreTimeout)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after kubelet recovery")
+	})
 })
