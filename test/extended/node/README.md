@@ -6,13 +6,31 @@ This directory contains OpenShift end-to-end tests for node-related features.
 
 ### Suite: openshift/disruptive-longrunning
 
-- **kubeletconfig_features.go** - Tests applying KubeletConfig to custom machine config pools, requires node reboots
-- **kubelet_secret_pulled_images.go** - Tests kubelet credential verification for image pulls (`KubeletEnsureSecretPulledImages` feature gate). Covers multi-tenancy isolation, credential rotation, ImagePullPolicy behavior, credential verification policy (NeverVerify/AlwaysVerify), and registry availability scenarios. Requires `TechPreviewNoUpgrade` or `CustomNoUpgrade` FeatureSet.
-- **node_e2e/container_runtime_config.go** - ContainerRuntimeConfig pidsLimit (OCP-45351) and overlaySize (OCP-46313) - Verifies CTRCFG settings are applied via MCO rollout and reflected on nodes \[Disruptive\]
+Cluster-wide disruptive tests that trigger full worker/master MCP rollouts.
+Runs serially (Parallelism: 1).
+
 - **node_e2e/image_registry_config.go** - Container registry config change (OCP-44820) - Verifies search registry update triggers MCO rollout and lands on nodes \[Disruptive\]
+- **node_e2e/image_mirror_set.go** - ImageTagMirrorSet and ImageDigestMirrorSet (OCP-57401, OCP-70203) - Verifies IDMS/ITMS coexist with ICSP, tests registries.conf rollout via custom MCP \[Disruptive\]
+- **criocredentialprovider.go** - CRI-O credential provider config tests (`CRIOCredentialProviderConfig` feature gate) - Verifies credential provider configuration on worker nodes \[TechPreview\]
 - **node_e2e/netns_cleanup.go** - Network namespace cleanup - Verifies kubelet/CRI-O properly deletes network namespace when a pod is deleted \[OTP\]
-- **node_e2e/pdb_drain.go** - PodDisruptionBudget drain blocking (OCP-67564) - Tests that node drain is blocked when PDB has minAvailable=100% with empty selector \[Disruptive\] \[Lifecycle:informing\]
-- **additional_storage_e2e.go** - Additional Storage configuration and functional tests - Verifies ContainerRuntimeConfig with additionalImageStores, additionalLayerStores, and additionalArtifactStores. Tests configuration in storage.conf and CRI-O config, image store pre-population and registry fallback [Disruptive]
+
+### Suite: openshift/nodes/isolated
+
+Single-node isolated tests that require exclusive access to a dedicated worker node.
+A 3-node worker pool is provisioned at suite start; tests run in parallel via the
+NodeResource scheduler (Parallelism: 3).
+
+- **kubeletconfig_features.go** - Tests applying KubeletConfig to custom machine config pools, requires node reboots
+- **kubeletconfig_tls.go** - Kubelet TLS configuration upgrade from 1.2 to 1.3 on a custom pool
+- **kubelet_secret_pulled_images.go** - Tests kubelet credential verification for image pulls (`KubeletEnsureSecretPulledImages` feature gate). Covers multi-tenancy isolation, credential rotation, ImagePullPolicy behavior, credential verification policy, and registry availability scenarios. Requires `TechPreviewNoUpgrade` or `CustomNoUpgrade` FeatureSet.
+- **node_e2e/container_runtime_config.go** - ContainerRuntimeConfig pidsLimit (OCP-45351) and overlaySize (OCP-46313) - Verifies CTRCFG settings are applied via MCO rollout and reflected on nodes \[Disruptive\]
+- **node_sizing.go** - Node sizing auto-sizing reserved CPU configuration
+- **additional_storage_e2e.go** - Additional Storage configuration and functional tests - Verifies ContainerRuntimeConfig with additionalImageStores, additionalLayerStores, and additionalArtifactStores \[Disruptive\]
+- **system_compressible.go** - System compressible CPU enforcement and configuration
+- **node_swap_cnv.go** - Kubelet LimitedSwap drop-in configuration for CNV (12 test cases)
+- **node_e2e/probe_termination.go** - Probe-level terminationGracePeriodSeconds (OCP-44493) - 3 test cases
+- **node_e2e/pdb_drain.go** - PodDisruptionBudget drain blocking (OCP-67564) \[Disruptive\] \[Lifecycle:informing\]
+- **runc_upgrade_cases.go** - runc RHCOS 10 upgrade guard tests (OSStreams feature gate) - 3 test cases
 
 ### Suite: openshift/conformance/parallel
 
@@ -65,7 +83,7 @@ This directory contains OpenShift end-to-end tests for node-related features.
 - **image_volume.go** - Tests mounting container images as volumes in pods, including subPath and error handling
 - **node_swap.go** - Tests default kubelet swap settings (failSwapOn and swapBehavior) and rejection of user overrides
 - **zstd_chunked.go** - Tests building and running images with zstd:chunked compression format
-- **node_e2e/probe_termination.go** - Probe-level terminationGracePeriodSeconds (OCP-44493) - Tests configurable termination grace period for liveness and startup probes. Includes 3 test cases: probe-level config for liveness probe, probe-level config for startup probe, and fallback to pod-level config when probe-level is not set [Lifecycle:informing]
+- **node_e2e/probe_termination.go** - (Moved to `openshift/nodes/isolated` suite)
 
 ## Directory Structure
 
@@ -86,19 +104,19 @@ Test fixtures are referenced via `exutil.FixturePath` from:
 
 ### Running Long-Running Disruptive Tests
 
-The `openshift/disruptive-longrunning` suite is a general-purpose suite for long-running disruptive tests
-across all teams. Node team tests are tagged with `[sig-node]` to identify them.
-
-To run the entire long-running disruptive test suite on a cluster manually:
+The `openshift/disruptive-longrunning` suite runs cluster-wide disruptive tests (serial).
 
 ```bash
 ./openshift-tests run "openshift/disruptive-longrunning" --cluster-stability=Disruptive
 ```
 
-To run only node-specific long-running disruptive tests:
+### Running Node Isolated Tests
+
+The `openshift/nodes/isolated` suite provisions a dedicated 3-node worker pool and runs
+single-node tests in parallel via the NodeResource scheduler.
 
 ```bash
-./openshift-tests run "openshift/disruptive-longrunning" --dry-run | grep "\[sig-node\]" | ./openshift-tests run -f - --cluster-stability=Disruptive
+./openshift-tests run "openshift/nodes/isolated" --cluster-stability=Disruptive
 ```
 
 ### Running User Namespace Tests
@@ -114,9 +132,12 @@ To run only node-specific long-running disruptive tests:
 
 ## Submitting PRs
 
-### Adding Tests to `openshift/disruptive-longrunning`
+### Adding Tests
 
-Before submitting a PR that adds a test to the `openshift/disruptive-longrunning` suite, run the following payload job and include the results in your PR:
+- **Cluster-wide disruptive tests** (full worker/master MCP rollouts): tag with `[Suite:openshift/disruptive-longrunning]`.
+- **Single-node isolated tests** (custom MCP on one node): tag with `[Suite:openshift/nodes/isolated]` and `[NodeResource:numNodes=1,label=<your_label>]`.
+
+Before submitting a PR, run the relevant payload job and include the results:
 
 ```
 /payload-job periodic-ci-openshift-release-main-nightly-4.22-e2e-aws-disruptive-longrunning
