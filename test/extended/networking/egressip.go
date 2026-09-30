@@ -691,19 +691,16 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			o.Expect(err).NotTo(o.HaveOccurred(), "should list packet sniffer pods")
 			o.Expect(len(packetSnifferPods.Items)).Should(o.BeNumerically(">", 0), "should have at least one packet sniffer pod")
 
-			// Find a packet sniffer pod that is NOT on the node where EgressIP is assigned
-			// ARP requests from the same node as the EgressIP may not get responses
-			var snifferPod corev1.Pod
-			var snifferPodFound bool
-			for _, pod := range packetSnifferPods.Items {
-				if pod.Spec.NodeName != egressNode1Name {
-					snifferPod = pod
-					snifferPodFound = true
-					framework.Logf("Using packet sniffer pod: %s on node %s for MAC discovery (avoiding EgressIP node %s)", snifferPod.Name, snifferPod.Spec.NodeName, egressNode1Name)
-					break
-				}
+			snifferPod, macDiscoveryInterface, snifferOK, err := selectPacketSnifferPodForMACDiscovery(
+				clientset, packetSnifferPods.Items, egressNode1Name, egressIP1)
+			o.Expect(err).NotTo(o.HaveOccurred(), "should select a packet sniffer pod for MAC discovery")
+			if !snifferOK {
+				skipper.Skipf(
+					"No packet sniffer host in egress subnet %s can probe EgressIP %s with %s",
+					egressNode1Subnet, egressIP1, macDiscoveryInterface)
 			}
-			o.Expect(snifferPodFound).To(o.BeTrue(), "should find at least one packet sniffer pod on a different node than the EgressIP node")
+			framework.Logf("Using packet sniffer pod %s on node %s with interface %s for MAC discovery",
+				snifferPod.Name, snifferPod.Spec.NodeName, macDiscoveryInterface)
 
 			g.By("Step-6. Verifying baseline - EgressIP resolves to Node 1 MAC")
 			isIPv6 := strings.Contains(egressIP1, ":")
@@ -711,10 +708,10 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			var macRegex *regexp.Regexp
 
 			if isIPv6 {
-				discoveryCmd = fmt.Sprintf("ndisc6 -1 -w 1000 %s %s 2>&1", egressIP1, packetSnifferInterface)
+				discoveryCmd = fmt.Sprintf("ndisc6 -1 -w 1000 %s %s 2>&1", egressIP1, macDiscoveryInterface)
 				macRegex = regexp.MustCompile(`Target link-layer address:\s+([0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2})`)
 			} else {
-				discoveryCmd = fmt.Sprintf("arping -c 1 -I %s %s 2>&1", packetSnifferInterface, egressIP1)
+				discoveryCmd = fmt.Sprintf("arping -c 1 -I %s %s 2>&1", macDiscoveryInterface, egressIP1)
 				macRegex = regexp.MustCompile(`\[([0-9a-fA-F:]+)\]`)
 			}
 
@@ -813,8 +810,18 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			framework.Logf("✓ Egress IP successfully migrated to node %s", egressNode2Name)
 
 			g.By("Step-12. CRITICAL: Checking for duplicate MAC responses (20 iterations)")
+			// Re-select sniffer on a node other than the current EgressIP holder. Probing from the
+			// same host that owns the EgressIP makes arping use the local address and returns no replies.
+			postMigrationSnifferPod, _, postMigrationSnifferOK, err := selectPacketSnifferPodForMACDiscovery(
+				clientset, packetSnifferPods.Items, egressNode2Name, egressIP1)
+			o.Expect(err).NotTo(o.HaveOccurred(), "should select a packet sniffer pod for post-migration MAC discovery")
+			o.Expect(postMigrationSnifferOK).To(o.BeTrue(),
+				"need a packet sniffer on a node other than post-migration EgressIP node %s", egressNode2Name)
+			framework.Logf("Using packet sniffer pod %s on node %s for post-migration MAC checks (EgressIP on %s)",
+				postMigrationSnifferPod.Name, postMigrationSnifferPod.Spec.NodeName, egressNode2Name)
+
 			expectedMAC2 := strings.ToLower(egressNode2MAC)
-			err = checkForDuplicateMAC(oc, externalNamespace, snifferPod.Name, packetSnifferInterface, egressIP1,
+			err = checkForDuplicateMAC(oc, externalNamespace, postMigrationSnifferPod.Name, macDiscoveryInterface, egressIP1,
 				expectedMAC1, expectedMAC2, isIPv6, 20, 500*time.Millisecond)
 			o.Expect(err).NotTo(o.HaveOccurred(),
 				"duplicate MAC detection check failed - old node should NOT respond due to nftables rules")
