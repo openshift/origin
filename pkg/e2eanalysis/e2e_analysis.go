@@ -31,7 +31,8 @@ import (
 )
 
 type Options struct {
-	JUnitDir string
+	JUnitDir            string
+	SkipReadinessChecks bool
 }
 
 // Known dependency mapping
@@ -57,6 +58,29 @@ var operatorDependencies = map[string][]string{
 	"authentication":               {"ingress"},
 	"console":                      {"authentication", "ingress"},
 	"monitoring":                   {"storage"},
+}
+
+const operatorConditionsTestCaseNamePrefix = "verify operator conditions"
+
+type clusterOperator struct {
+	Name string
+	Op   objx.Map
+}
+
+var listClusterOperators = func() (*unstructured.UnstructuredList, error) {
+	cfg, err := e2e.LoadConfig()
+	if err != nil {
+		return nil, err
+	}
+	dc, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return dc.Resource(schema.GroupVersionResource{
+		Group:    "config.openshift.io",
+		Resource: "clusteroperators",
+		Version:  "v1",
+	}).List(context.Background(), metav1.ListOptions{})
 }
 
 type TestManager struct {
@@ -138,9 +162,47 @@ func (tm *TestManager) GenerateReport(opt *Options) error {
 	return nil
 }
 
+// Run performs cluster readiness analysis and writes the JUnit report.
 func (opt *Options) Run() error {
 	tm := NewTestManager()
 	defer tm.GenerateReport(opt)
+
+	// Check if readiness checks should be skipped (CLI flag or env var)
+	if opt.SkipReadinessChecks || os.Getenv("SKIP_READINESS_CHECKS") == "true" {
+		skipMsg := "Skipped: cluster is running in degraded mode (SKIP_READINESS_CHECKS is set)"
+		logrus.Infof("Skipping all cluster readiness checks: %s", skipMsg)
+
+		skippedTests := []string{
+			"verify the cluster readiness and stability",
+			"verify all machines should be in Running state",
+			"verify all nodes should be ready",
+			"verify node count should match or exceed machine count",
+			"ensure 1 worker node at least gets ready",
+		}
+		clusterOperators, err := listClusterOperators()
+		if err != nil {
+			logrus.WithError(err).Warn("Failed to list clusteroperators while generating skipped JUnit test cases")
+		}
+		finalOperators, err := finalClusterOperators(clusterOperators)
+		if err != nil {
+			logrus.WithError(err).Warn("Failed to construct cluster operator list while generating skipped JUnit test cases")
+			finalOperators, _ = finalClusterOperators(nil)
+		}
+		operatorNames := make([]string, 0, len(finalOperators))
+		for _, operator := range finalOperators {
+			operatorNames = append(operatorNames, operator.Name)
+		}
+		sort.Strings(operatorNames)
+		for _, operatorName := range operatorNames {
+			skippedTests = append(skippedTests, fmt.Sprintf("%s %s", operatorConditionsTestCaseNamePrefix, operatorName))
+		}
+		for _, name := range skippedTests {
+			tc := NewTestCase(name)
+			tm.AddTestCase(tc, "", skipMsg)
+		}
+
+		return nil
+	}
 
 	tcName := "verify the cluster readiness and stability"
 	tc := NewTestCase(tcName)
@@ -203,65 +265,18 @@ func (opt *Options) Run() error {
 		logrus.WithError(err).Error("Failed to list clusteroperators")
 		return nil
 	}
-	// save all the operators items to futher querying
-	operatorsMap := make(map[string]objx.Map)
-	items := objects(objx.Map(clusterOperatorsObj.UnstructuredContent()).Get("items"))
-	for _, item := range items {
-		name := item.Get("metadata.name").String()
-		operatorsMap[name] = item
-	}
-	// ===== stage 1: create a ordered operator list =====
 	finalOperatorDependencies := expandDependencies(operatorDependencies)
-	// get all core operators, all the keys in the operatorDependencies map
-	var coreOperators []string
-	for op := range finalOperatorDependencies {
-		coreOperators = append(coreOperators, op)
-	}
-	sort.Strings(coreOperators)
-	// sort core operators by topological order
-	sortedCoreOperators, err := TopologicalSort(coreOperators, finalOperatorDependencies)
+	finalOperators, err := finalClusterOperators(clusterOperatorsObj)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to sort core operators")
 		return nil
 	}
-	logrus.Infof("Core operators will be checked in order:\n%s", strings.Join(sortedCoreOperators, "\n"))
-	// Per sorted core operators, consume each operator from operatorsMap
-	// meantime, mark it if it is core operator
-	var finalOperators []struct {
-		Name string
-		Op   objx.Map
-	}
-	for _, opName := range sortedCoreOperators {
-		if op, exists := operatorsMap[opName]; exists {
-			finalOperators = append(finalOperators, struct {
-				Name string
-				Op   objx.Map
-			}{Name: opName, Op: op})
-			// remove it from map, means it is consumed
-			delete(operatorsMap, opName)
-		} else {
-			// if not exist, Op will be filled with nil
-			finalOperators = append(finalOperators, struct {
-				Name string
-				Op   objx.Map
-			}{Name: opName, Op: nil})
-		}
-	}
-	// append all the left operators to finalOperators
-	for opName, op := range operatorsMap {
-		finalOperators = append(finalOperators, struct {
-			Name string
-			Op   objx.Map
-		}{Name: opName, Op: op})
-	}
-	logrus.Infof("Final operator list has %d items (%d core + %d additional)", len(finalOperators), len(sortedCoreOperators), len(operatorsMap))
 	// ===== stage 2: check each operator per the ordered list =====
 	var failedOperators = make(map[string]bool)
-	tcNamePrefix := "verify operator conditions"
 	for _, item := range finalOperators {
 		opName := item.Name
 		op := item.Op
-		tcName := fmt.Sprintf("%s %s", tcNamePrefix, opName)
+		tcName := fmt.Sprintf("%s %s", operatorConditionsTestCaseNamePrefix, opName)
 		tc = NewTestCase(tcName)
 		var skipMsg string
 		var failureMsg string
@@ -321,6 +336,43 @@ func (opt *Options) Run() error {
 	}
 
 	return nil
+}
+
+// finalClusterOperators returns the core operators and any additional runtime ClusterOperators.
+func finalClusterOperators(clusterOperatorsObj *unstructured.UnstructuredList) ([]clusterOperator, error) {
+	operatorsMap := make(map[string]objx.Map)
+	if clusterOperatorsObj != nil {
+		items := objects(objx.Map(clusterOperatorsObj.UnstructuredContent()).Get("items"))
+		for _, item := range items {
+			name := item.Get("metadata.name").String()
+			operatorsMap[name] = item
+		}
+	}
+
+	finalOperatorDependencies := expandDependencies(operatorDependencies)
+	var coreOperators []string
+	for op := range finalOperatorDependencies {
+		coreOperators = append(coreOperators, op)
+	}
+	sort.Strings(coreOperators)
+	sortedCoreOperators, err := TopologicalSort(coreOperators, finalOperatorDependencies)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Infof("Core operators will be checked in order:\n%s", strings.Join(sortedCoreOperators, "\n"))
+
+	finalOperators := make([]clusterOperator, 0, len(sortedCoreOperators)+len(operatorsMap))
+	for _, opName := range sortedCoreOperators {
+		op := operatorsMap[opName]
+		finalOperators = append(finalOperators, clusterOperator{Name: opName, Op: op})
+		delete(operatorsMap, opName)
+	}
+	for opName, op := range operatorsMap {
+		finalOperators = append(finalOperators, clusterOperator{Name: opName, Op: op})
+	}
+	logrus.Infof("Final operator list has %d items (%d core + %d additional)", len(finalOperators), len(sortedCoreOperators), len(operatorsMap))
+
+	return finalOperators, nil
 }
 
 // Explore all the dependency to expand the dependencies map
