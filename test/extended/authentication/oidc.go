@@ -1321,7 +1321,7 @@ func waitForAuthConfigSync(ctx context.Context, client *exutil.CLI, mustContain,
 			gomega.Expect(lastErr).NotTo(o.HaveOccurred(),
 				"expected auth-config ConfigMap in openshift-config-managed or openshift-oauth-apiserver")
 		}
-	}).WithTimeout(5 * time.Minute).WithPolling(5 * time.Second).Should(o.Succeed(),
+	}).WithTimeout(5*time.Minute).WithPolling(5*time.Second).Should(o.Succeed(),
 		fmt.Sprintf("auth-config should eventually contain %q", mustContain))
 }
 

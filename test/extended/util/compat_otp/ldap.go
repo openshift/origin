@@ -200,32 +200,32 @@ func ReadLDAPServerTestData() (*app.Deployment, *corev1.Service, *corev1.ConfigM
 
 func LDAPClientMounts() ([]corev1.VolumeMount, []corev1.Volume) {
 	return []corev1.VolumeMount{
-		{
-			Name:      configMountName,
-			MountPath: configMountPath,
-		},
-		{
-			Name:      certMountName,
-			MountPath: certMountPath,
-		},
-	}, []corev1.Volume{
-		{
-			Name: certMountName,
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: certMountName,
-				},
+			{
+				Name:      configMountName,
+				MountPath: configMountPath,
 			},
-		},
-		{
-			Name: configMountName,
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: configMountName,
+			{
+				Name:      certMountName,
+				MountPath: certMountPath,
+			},
+		}, []corev1.Volume{
+			{
+				Name: certMountName,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: certMountName,
 					},
 				},
 			},
-		},
-	}
+			{
+				Name: configMountName,
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: configMountName,
+						},
+					},
+				},
+			},
+		}
 }
