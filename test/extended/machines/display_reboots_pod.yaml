@@ -7,14 +7,43 @@ metadata:
 spec:
   restartPolicy: Never
   hostPID: true
+  initContainers:
+    - command: ['/bin/bash', '-ec']
+      args:
+        - |
+          chroot /host-root journalctl --flush
+          chroot /host-root journalctl --sync
+          chroot /host-root journalctl --rotate
+      image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+      name: prepare-journal
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+        requests:
+          cpu: 1m
+          memory: 10Mi
+      securityContext:
+        runAsUser: 0
+        privileged: true
+      volumeMounts:
+        - mountPath: /host-root
+          name: host-root
   containers:
     - command: ['/bin/bash', '-ec']
       args:
         - |
-          chroot /host-root journalctl --list-boots
+          chroot /host-root journalctl --list-boots --utc
       image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       name: list-boots
       terminationMessagePolicy: FallbackToLogsOnError
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+        requests:
+          cpu: 1m
+          memory: 10Mi
       securityContext:
         runAsUser: 0
         privileged: true
@@ -28,6 +57,13 @@ spec:
       image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       name: reboots
       terminationMessagePolicy: FallbackToLogsOnError
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+        requests:
+          cpu: 1m
+          memory: 10Mi
       securityContext:
         runAsUser: 0
         privileged: true
