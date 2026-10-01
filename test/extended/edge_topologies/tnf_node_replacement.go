@@ -54,6 +54,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 		e2e.Logf("Checking cluster health before running disruptive node replacement test")
 		beStart := time.Now()
 		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
+		utils.SkipIfPacemakerHealthCheckBaselineNotReady(oc)
 		e2e.Logf("Cluster health check passed: all operators healthy and all nodes ready")
 		e2e.Logf("[stage timing] BeforeEach cluster health precondition: %v (SkipIfClusterIsNotHealthy: nodes+CO via IsClusterHealthyWithTimeout cap %v each; etcd/CEO checks cap %v; CO monitor poll %v inside IsClusterHealthyWithTimeout)",
 			time.Since(beStart), utils.PreconditionClusterHealthyTimeout, utils.PreconditionEtcdHealthyTimeout, utils.FiveSecondPollInterval)

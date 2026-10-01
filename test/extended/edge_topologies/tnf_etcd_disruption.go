@@ -680,6 +680,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// resource (migration-threshold), we raise it to INFINITY for this test so recovery
 	// is purely automatic — the test never intervenes.
 	g.It("should coordinate recovery with peer when local etcd container is killed [Requires:HypervisorSSHConfig]", func() {
+		utils.SkipIfPacemakerHealthCheckBaselineNotReady(oc)
+
 		originalThreshold, err := getMigrationThreshold(oc, execNode.Name)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Must read existing migration-threshold before mutating it")
 		o.Expect(setMigrationThreshold(oc, execNode.Name, "INFINITY")).To(
@@ -737,6 +739,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// This test verifies that Pacemaker detects an etcd process crash and automatically
 	// restarts it, resulting in both nodes becoming healthy voting members.
 	g.It("should recover from etcd process crash [Requires:HypervisorSSHConfig]", func() {
+		utils.SkipIfPacemakerHealthCheckBaselineNotReady(oc)
+
 		originalThreshold, err := getMigrationThreshold(oc, execNode.Name)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Must read existing migration-threshold before mutating it")
 		o.Expect(setMigrationThreshold(oc, execNode.Name, "INFINITY")).To(
@@ -784,6 +788,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// 4. Unstandby the node
 	// 5. Verify both nodes recover to voting etcd members
 	g.It("should retry setting learner_node attribute after deletion during force-new-cluster recovery", func() {
+		utils.SkipIfPacemakerHealthCheckBaselineNotReady(oc)
+		// Gate before standby: the degraded wait below accepts any reason, so a collector
+		// already stalled before the disruption would let this pass on unrelated stale status.
+
 		standbyNode := targetNode
 
 		// Put the standby node in standby mode.
