@@ -16,6 +16,8 @@ objects:
       mediatype: ""
     publisher: "${PUBLISHER}"
     sourceType: "${SOURCETYPE}"
+    grpcPodConfig:
+      securityContextConfig: restricted
 parameters:
 - name: NAME
 - name: NAMESPACE

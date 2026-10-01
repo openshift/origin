@@ -9,3 +9,5 @@ spec:
   configMap: scenario3
   displayName: Scenario 3 Operators
   publisher: Red Hat
+  grpcPodConfig:
+    securityContextConfig: restricted

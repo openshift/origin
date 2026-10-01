@@ -14,6 +14,7 @@ objects:
         cacheDir: /tmp/cache
         catalogDir: /configs
       memoryTarget: 30Mi
+      securityContextConfig: restricted
     image: "${ADDRESS}"
     secrets:
     - "${SECRET}"  

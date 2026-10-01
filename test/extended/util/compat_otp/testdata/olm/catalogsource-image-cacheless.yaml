@@ -13,6 +13,7 @@ objects:
     grpcPodConfig:
       extractContent:
         catalogDir: /configs
+      securityContextConfig: restricted
     secrets:
     - "${SECRET}"  
     displayName: "${DISPLAYNAME}"
