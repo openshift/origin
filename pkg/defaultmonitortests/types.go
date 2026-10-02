@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/network/disruptioningress"
 	"github.com/openshift/origin/pkg/monitortests/network/disruptionpodnetwork"
 	"github.com/openshift/origin/pkg/monitortests/network/disruptionserviceloadbalancer"
+	"github.com/openshift/origin/pkg/monitortests/network/hostconnectionintegrity"
 	"github.com/openshift/origin/pkg/monitortests/network/legacynetworkmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/network/onpremhaproxy"
 	"github.com/openshift/origin/pkg/monitortests/network/onpremkeepalived"
@@ -157,6 +158,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	// Networking
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-networking-invariants", "Networking / cluster-network-operator", legacynetworkmonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("pod-network-avalibility", "Network / ovn-kubernetes", disruptionpodnetwork.NewPodNetworkAvalibilityInvariant(info))
+	monitorTestRegistry.AddMonitorTestOrDie(hostconnectionintegrity.MonitorName, "Networking / ovn-kubernetes", hostconnectionintegrity.NewMonitorTest(info))
 	monitorTestRegistry.AddMonitorTestOrDie("service-type-load-balancer-availability", "Networking / router", disruptionserviceloadbalancer.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("ingress-availability", "Networking / router", disruptioningress.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("on-prem-keepalived", "Networking / On-Prem Loadbalancer", onpremkeepalived.InitialAndFinalOperatorLogScraper())
