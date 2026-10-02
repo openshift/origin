@@ -173,7 +173,7 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 		g.By("all cluster operators report an operator version in the first position equal to the cluster version")
 		for _, co := range coList.Items {
 			if !isManagedByClusterVersionOperator(co) {
-				e2e.Logf("skipping ClusterOperator %q: no standard CVO conditions, likely a test fixture", co.Name)
+				e2e.Logf("skipping ClusterOperator %q: not owned by ClusterVersion, likely a test fixture", co.Name)
 				continue
 			}
 			msg := fmt.Sprintf("unexpected operator status versions %s:\n%#v", co.Name, co.Status.Versions)
@@ -201,14 +201,13 @@ func skipUnlessCVO(c coreclient.NamespaceInterface) {
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-// isManagedByClusterVersionOperator reports whether co has at least one
-// standard CVO condition type (Available, Progressing, Degraded, Upgradeable).
-// Transient test-created ClusterOperators (e.g. SSA test fixtures) lack these
+// isManagedByClusterVersionOperator reports whether co is owned by the
+// ClusterVersion object via ownerReferences. Transient test-created
+// ClusterOperators (e.g. SSA test fixtures) lack this owner reference
 // and must be excluded from version assertions to avoid parallel-test races.
 func isManagedByClusterVersionOperator(co configv1.ClusterOperator) bool {
-	for _, c := range co.Status.Conditions {
-		switch c.Type {
-		case configv1.OperatorAvailable, configv1.OperatorProgressing, configv1.OperatorDegraded, configv1.OperatorUpgradeable:
+	for _, ref := range co.OwnerReferences {
+		if ref.Kind == "ClusterVersion" && ref.APIVersion == "config.openshift.io/v1" {
 			return true
 		}
 	}

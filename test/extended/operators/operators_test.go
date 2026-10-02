@@ -8,78 +8,65 @@ import (
 )
 
 func Test_isManagedByClusterVersionOperator(t *testing.T) {
+	cvoOwnerRef := metav1.OwnerReference{
+		APIVersion: "config.openshift.io/v1",
+		Kind:       "ClusterVersion",
+		Name:       "version",
+		UID:        "test-uid",
+	}
+
 	tests := []struct {
 		name string
 		co   configv1.ClusterOperator
 		want bool
 	}{
 		{
-			name: "real operator with Available condition",
+			name: "real operator with CVO owner reference",
 			co: configv1.ClusterOperator{
-				ObjectMeta: metav1.ObjectMeta{Name: "authentication"},
-				Status: configv1.ClusterOperatorStatus{
-					Conditions: []configv1.ClusterOperatorStatusCondition{
-						{Type: configv1.OperatorAvailable, Status: configv1.ConditionTrue},
-						{Type: configv1.OperatorProgressing, Status: configv1.ConditionFalse},
-						{Type: configv1.OperatorDegraded, Status: configv1.ConditionFalse},
-					},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "authentication",
+					OwnerReferences: []metav1.OwnerReference{cvoOwnerRef},
 				},
 			},
 			want: true,
 		},
 		{
-			name: "test fixture with no conditions",
+			name: "test fixture with no owner references",
 			co: configv1.ClusterOperator{
 				ObjectMeta: metav1.ObjectMeta{Name: "test-instance"},
-				Status:     configv1.ClusterOperatorStatus{},
 			},
 			want: false,
 		},
 		{
-			name: "test fixture with only custom conditions",
+			name: "test fixture with non-CVO owner reference",
 			co: configv1.ClusterOperator{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-instance"},
-				Status: configv1.ClusterOperatorStatus{
-					Conditions: []configv1.ClusterOperatorStatusCondition{
-						{Type: "FirstType", Status: configv1.ConditionTrue},
-						{Type: "SecondType", Status: configv1.ConditionTrue},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-instance",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: "apps/v1",
+							Kind:       "Deployment",
+							Name:       "some-controller",
+							UID:        "other-uid",
+						},
 					},
 				},
 			},
 			want: false,
 		},
 		{
-			name: "operator with only Upgradeable condition",
+			name: "operator with CVO owner among multiple references",
 			co: configv1.ClusterOperator{
-				ObjectMeta: metav1.ObjectMeta{Name: "kube-apiserver"},
-				Status: configv1.ClusterOperatorStatus{
-					Conditions: []configv1.ClusterOperatorStatusCondition{
-						{Type: configv1.OperatorUpgradeable, Status: configv1.ConditionTrue},
-					},
-				},
-			},
-			want: true,
-		},
-		{
-			name: "operator with only Degraded condition",
-			co: configv1.ClusterOperator{
-				ObjectMeta: metav1.ObjectMeta{Name: "etcd"},
-				Status: configv1.ClusterOperatorStatus{
-					Conditions: []configv1.ClusterOperatorStatusCondition{
-						{Type: configv1.OperatorDegraded, Status: configv1.ConditionFalse},
-					},
-				},
-			},
-			want: true,
-		},
-		{
-			name: "operator with mixed standard and custom conditions",
-			co: configv1.ClusterOperator{
-				ObjectMeta: metav1.ObjectMeta{Name: "network"},
-				Status: configv1.ClusterOperatorStatus{
-					Conditions: []configv1.ClusterOperatorStatusCondition{
-						{Type: "CustomType", Status: configv1.ConditionTrue},
-						{Type: configv1.OperatorAvailable, Status: configv1.ConditionTrue},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "network",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: "apps/v1",
+							Kind:       "Deployment",
+							Name:       "some-controller",
+							UID:        "other-uid",
+						},
+						cvoOwnerRef,
 					},
 				},
 			},
