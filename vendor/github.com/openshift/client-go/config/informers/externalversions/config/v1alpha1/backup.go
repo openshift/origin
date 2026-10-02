@@ -18,11 +18,39 @@ import (
 )
 
 // BackupInformer provides access to a shared informer and lister for
-// Backups.
+// Backups. Prefer using the type-safe variant (see [TypedBackupInformer]).
 type BackupInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1alpha1.BackupLister
 }
+
+// TypedBackupInformer provides access to a shared informer and lister for
+// Backups, including the type-safe TypedInformer variant.
+// It is a superset of BackupInformer.
+type TypedBackupInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() BackupIndexInformer
+	Lister() configv1alpha1.BackupLister
+}
+
+// BackupIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type BackupIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1alpha1.Backup]
+
+// BackupHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for Backup.
+type BackupHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1alpha1.Backup]
+
+// BackupDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for Backup.
+type BackupDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1alpha1.Backup]
+
+// BackupFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for Backup.
+type BackupFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1alpha1.Backup]
+
+// BackupIndexers is a specialization of [cache.TypedIndexers] for Backup.
+type BackupIndexers = cache.TypedIndexers[*apiconfigv1alpha1.Backup]
+
+// DeletedBackup is a specialization of [cache.DeletedObject] for Backup.
+type DeletedBackup = cache.DeletedObject[*apiconfigv1alpha1.Backup]
 
 type backupInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type backupInformer struct {
 // NewBackupInformer constructs a new informer for Backup type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedBackupInformer]).
 func NewBackupInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewBackupInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedBackupInformer constructs a new informer for Backup type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedBackupInformer(client versioned.Interface, resyncPeriod time.Duration, indexers BackupIndexers) BackupIndexInformer {
+	return NewTypedBackupInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredBackupInformer constructs a new informer for Backup type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredBackupInformer]).
 func NewFilteredBackupInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewBackupInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedBackupInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredBackupInformer constructs a new informer for Backup type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredBackupInformer(client versioned.Interface, resyncPeriod time.Duration, indexers BackupIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) BackupIndexInformer {
+	return NewTypedBackupInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewBackupInformerWithOptions constructs a new informer for Backup type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedBackupInformerWithOptions]).
 func NewBackupInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedBackupInformerWithOptions(client, options)
+}
+
+// NewTypedBackupInformerWithOptions constructs a new informer for Backup type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedBackupInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) BackupIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1alpha1", Resource: "backups"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1alpha1.Backup](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewBackupInformerWithOptions(client versioned.Interface, options internalin
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *backupInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewBackupInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedBackupInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *backupInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1alpha1.Backup{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *backupInformer) TypedInformer() BackupIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1alpha1.Backup](f.factory.InformerFor(&apiconfigv1alpha1.Backup{}, f.defaultInformer))
 }
 
 func (f *backupInformer) Lister() configv1alpha1.BackupLister {
 	return configv1alpha1.NewBackupLister(f.Informer().GetIndexer())
+}
+
+// ToTypedBackupInformer converts an untyped informer into a TypedBackupInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Backup. If that is not the case, calling type-safe methods of the returned
+// TypedBackupInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedBackupInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedBackupInformer(informer BackupInformer) TypedBackupInformer {
+	if informer, ok := informer.(TypedBackupInformer); ok {
+		return informer
+	}
+	return &backupTypedInformerAdapter{informer}
+}
+
+type backupTypedInformerAdapter struct {
+	BackupInformer
+}
+
+func (a *backupTypedInformerAdapter) TypedInformer() BackupIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1alpha1.Backup](a.Informer())
+}
+
+// ToBackupIndexInformer converts an untyped informer into a BackupIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Backup. If that is not the case, calling type-safe methods of the returned
+// BackupIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a BackupIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToBackupIndexInformer(informer cache.SharedIndexInformer) BackupIndexInformer {
+	if informer, ok := informer.(BackupIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1alpha1.Backup](informer)
 }

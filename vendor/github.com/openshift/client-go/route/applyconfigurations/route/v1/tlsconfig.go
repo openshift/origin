@@ -26,7 +26,8 @@ type TLSConfigApplyConfiguration struct {
 	Certificate *string `json:"certificate,omitempty"`
 	// key provides key file contents
 	Key *string `json:"key,omitempty"`
-	// caCertificate provides the cert authority certificate contents
+	// caCertificate provides the cert authority certificate contents. Any needed
+	// intermediate certificates should be provided here.
 	CACertificate *string `json:"caCertificate,omitempty"`
 	// destinationCACertificate provides the contents of the ca certificate of the final destination.  When using reencrypt
 	// termination this file should be provided in order to have routers use it for health checks on the secure connection.
@@ -46,9 +47,12 @@ type TLSConfigApplyConfiguration struct {
 	// * Redirect - clients are redirected to the secure port.
 	InsecureEdgeTerminationPolicy *routev1.InsecureEdgeTerminationPolicyType `json:"insecureEdgeTerminationPolicy,omitempty"`
 	// externalCertificate provides certificate contents as a secret reference.
-	// This should be a single serving certificate, not a certificate
-	// chain. Do not include a CA certificate. The secret referenced should
-	// be present in the same namespace as that of the Route.
+	// This should be the serving certificate, and may optionally include the
+	// full certificate chain, including any needed intermediate certificates.
+	// There is no separate field to provide a CA certificate when using
+	// externalCertificate, so any CA certificate needed must be included as
+	// part of this chain. The secret referenced should be present in the same
+	// namespace as that of the Route.
 	// Forbidden when `certificate` is set.
 	// The router service account needs to be granted with read-only access to this secret,
 	// please refer to openshift docs for additional details.

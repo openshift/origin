@@ -8,7 +8,7 @@ package v1
 // NetworkStatus is detailed operator status, which is distilled
 // up to the Network clusteroperator object.
 type NetworkStatusApplyConfiguration struct {
-	OperatorStatusApplyConfiguration `json:",inline"`
+	OperatorStatusApplyConfiguration `json:""`
 }
 
 // NetworkStatusApplyConfiguration constructs a declarative configuration of the NetworkStatus type for use with

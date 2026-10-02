@@ -18,11 +18,39 @@ import (
 )
 
 // ProxyInformer provides access to a shared informer and lister for
-// Proxies.
+// Proxies. Prefer using the type-safe variant (see [TypedProxyInformer]).
 type ProxyInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1.ProxyLister
 }
+
+// TypedProxyInformer provides access to a shared informer and lister for
+// Proxies, including the type-safe TypedInformer variant.
+// It is a superset of ProxyInformer.
+type TypedProxyInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() ProxyIndexInformer
+	Lister() configv1.ProxyLister
+}
+
+// ProxyIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type ProxyIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1.Proxy]
+
+// ProxyHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for Proxy.
+type ProxyHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1.Proxy]
+
+// ProxyDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for Proxy.
+type ProxyDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1.Proxy]
+
+// ProxyFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for Proxy.
+type ProxyFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1.Proxy]
+
+// ProxyIndexers is a specialization of [cache.TypedIndexers] for Proxy.
+type ProxyIndexers = cache.TypedIndexers[*apiconfigv1.Proxy]
+
+// DeletedProxy is a specialization of [cache.DeletedObject] for Proxy.
+type DeletedProxy = cache.DeletedObject[*apiconfigv1.Proxy]
 
 type proxyInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type proxyInformer struct {
 // NewProxyInformer constructs a new informer for Proxy type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedProxyInformer]).
 func NewProxyInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewProxyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedProxyInformer constructs a new informer for Proxy type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedProxyInformer(client versioned.Interface, resyncPeriod time.Duration, indexers ProxyIndexers) ProxyIndexInformer {
+	return NewTypedProxyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredProxyInformer constructs a new informer for Proxy type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredProxyInformer]).
 func NewFilteredProxyInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewProxyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedProxyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredProxyInformer constructs a new informer for Proxy type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredProxyInformer(client versioned.Interface, resyncPeriod time.Duration, indexers ProxyIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) ProxyIndexInformer {
+	return NewTypedProxyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewProxyInformerWithOptions constructs a new informer for Proxy type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedProxyInformerWithOptions]).
 func NewProxyInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedProxyInformerWithOptions(client, options)
+}
+
+// NewTypedProxyInformerWithOptions constructs a new informer for Proxy type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedProxyInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) ProxyIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "proxys"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Proxy](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewProxyInformerWithOptions(client versioned.Interface, options internalint
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *proxyInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewProxyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedProxyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *proxyInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1.Proxy{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *proxyInformer) TypedInformer() ProxyIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Proxy](f.factory.InformerFor(&apiconfigv1.Proxy{}, f.defaultInformer))
 }
 
 func (f *proxyInformer) Lister() configv1.ProxyLister {
 	return configv1.NewProxyLister(f.Informer().GetIndexer())
+}
+
+// ToTypedProxyInformer converts an untyped informer into a TypedProxyInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Proxy. If that is not the case, calling type-safe methods of the returned
+// TypedProxyInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedProxyInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedProxyInformer(informer ProxyInformer) TypedProxyInformer {
+	if informer, ok := informer.(TypedProxyInformer); ok {
+		return informer
+	}
+	return &proxyTypedInformerAdapter{informer}
+}
+
+type proxyTypedInformerAdapter struct {
+	ProxyInformer
+}
+
+func (a *proxyTypedInformerAdapter) TypedInformer() ProxyIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Proxy](a.Informer())
+}
+
+// ToProxyIndexInformer converts an untyped informer into a ProxyIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Proxy. If that is not the case, calling type-safe methods of the returned
+// ProxyIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a ProxyIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToProxyIndexInformer(informer cache.SharedIndexInformer) ProxyIndexInformer {
+	if informer, ok := informer.(ProxyIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Proxy](informer)
 }

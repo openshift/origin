@@ -12,6 +12,7 @@ import (
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/flowcontrol"
+	"k8s.io/component-helpers/scheduling/corev1/nodeaffinity"
 	"k8s.io/klog/v2"
 
 	projectv1 "github.com/openshift/api/project/v1"
@@ -43,8 +44,8 @@ func NewNodeSelectorAwareDaemonSetsController(ctx context.Context, openshiftDefa
 	return controller, nil
 }
 
-func (dsc *DaemonSetsController) nodeShouldRunDaemonPod(logger klog.Logger, node *v1.Node, ds *appsv1.DaemonSet) (bool, bool) {
-	shouldRun, shouldContinueRunning := NodeShouldRunDaemonPod(logger, node, ds)
+func (dsc *DaemonSetsController) nodeShouldRunDaemonPod(logger klog.Logger, node *v1.Node, ds *appsv1.DaemonSet, tolerations []v1.Toleration, requiredNodeAffinity nodeaffinity.RequiredNodeAffinity) (bool, bool) {
+	shouldRun, shouldContinueRunning := nodeShouldRunDaemonPod(logger, node, ds, tolerations, requiredNodeAffinity)
 	if shouldRun && shouldContinueRunning {
 		if matches, matchErr := dsc.namespaceNodeSelectorMatches(node, ds); !matches || matchErr != nil {
 			return false, false

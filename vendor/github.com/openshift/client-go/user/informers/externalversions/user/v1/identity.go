@@ -18,11 +18,39 @@ import (
 )
 
 // IdentityInformer provides access to a shared informer and lister for
-// Identities.
+// Identities. Prefer using the type-safe variant (see [TypedIdentityInformer]).
 type IdentityInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() userv1.IdentityLister
 }
+
+// TypedIdentityInformer provides access to a shared informer and lister for
+// Identities, including the type-safe TypedInformer variant.
+// It is a superset of IdentityInformer.
+type TypedIdentityInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() IdentityIndexInformer
+	Lister() userv1.IdentityLister
+}
+
+// IdentityIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type IdentityIndexInformer cache.TypedSharedIndexInformer[*apiuserv1.Identity]
+
+// IdentityHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for Identity.
+type IdentityHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiuserv1.Identity]
+
+// IdentityDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for Identity.
+type IdentityDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiuserv1.Identity]
+
+// IdentityFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for Identity.
+type IdentityFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiuserv1.Identity]
+
+// IdentityIndexers is a specialization of [cache.TypedIndexers] for Identity.
+type IdentityIndexers = cache.TypedIndexers[*apiuserv1.Identity]
+
+// DeletedIdentity is a specialization of [cache.DeletedObject] for Identity.
+type DeletedIdentity = cache.DeletedObject[*apiuserv1.Identity]
 
 type identityInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type identityInformer struct {
 // NewIdentityInformer constructs a new informer for Identity type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedIdentityInformer]).
 func NewIdentityInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewIdentityInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedIdentityInformer constructs a new informer for Identity type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedIdentityInformer(client versioned.Interface, resyncPeriod time.Duration, indexers IdentityIndexers) IdentityIndexInformer {
+	return NewTypedIdentityInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredIdentityInformer constructs a new informer for Identity type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredIdentityInformer]).
 func NewFilteredIdentityInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewIdentityInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedIdentityInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredIdentityInformer constructs a new informer for Identity type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredIdentityInformer(client versioned.Interface, resyncPeriod time.Duration, indexers IdentityIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) IdentityIndexInformer {
+	return NewTypedIdentityInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewIdentityInformerWithOptions constructs a new informer for Identity type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedIdentityInformerWithOptions]).
 func NewIdentityInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedIdentityInformerWithOptions(client, options)
+}
+
+// NewTypedIdentityInformerWithOptions constructs a new informer for Identity type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedIdentityInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) IdentityIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "user.openshift.io", Version: "v1", Resource: "identitys"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiuserv1.Identity](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewIdentityInformerWithOptions(client versioned.Interface, options internal
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *identityInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewIdentityInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedIdentityInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *identityInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiuserv1.Identity{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *identityInformer) TypedInformer() IdentityIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiuserv1.Identity](f.factory.InformerFor(&apiuserv1.Identity{}, f.defaultInformer))
 }
 
 func (f *identityInformer) Lister() userv1.IdentityLister {
 	return userv1.NewIdentityLister(f.Informer().GetIndexer())
+}
+
+// ToTypedIdentityInformer converts an untyped informer into a TypedIdentityInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Identity. If that is not the case, calling type-safe methods of the returned
+// TypedIdentityInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedIdentityInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedIdentityInformer(informer IdentityInformer) TypedIdentityInformer {
+	if informer, ok := informer.(TypedIdentityInformer); ok {
+		return informer
+	}
+	return &identityTypedInformerAdapter{informer}
+}
+
+type identityTypedInformerAdapter struct {
+	IdentityInformer
+}
+
+func (a *identityTypedInformerAdapter) TypedInformer() IdentityIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiuserv1.Identity](a.Informer())
+}
+
+// ToIdentityIndexInformer converts an untyped informer into a IdentityIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Identity. If that is not the case, calling type-safe methods of the returned
+// IdentityIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a IdentityIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToIdentityIndexInformer(informer cache.SharedIndexInformer) IdentityIndexInformer {
+	if informer, ok := informer.(IdentityIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiuserv1.Identity](informer)
 }

@@ -45,6 +45,14 @@ func NewMinimumKubeletVersion(minVersion *semver.Version,
 	}
 }
 
+func (m *minimumKubeletVersionAuth) ConditionsAwareAuthorize(ctx context.Context, attrs authorizer.Attributes) authorizer.ConditionsAwareDecision {
+	return authorizer.ConditionsAwareDecisionFromParts(m.Authorize(ctx, attrs))
+}
+
+func (m *minimumKubeletVersionAuth) EvaluateConditions(_ context.Context, _ authorizer.ConditionsAwareDecision, _ authorizer.ConditionsData) (authorizer.Decision, string, error) {
+	return authorizer.DecisionDeny, "", authorizer.ErrorConditionEvaluationNotSupported
+}
+
 func (m *minimumKubeletVersionAuth) Authorize(ctx context.Context, attrs authorizer.Attributes) (authorizer.Decision, string, error) {
 	if m.minVersion == nil {
 		return authorizer.DecisionNoOpinion, "", nil

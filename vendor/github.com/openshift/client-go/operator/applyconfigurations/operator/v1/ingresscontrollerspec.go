@@ -288,19 +288,16 @@ type IngressControllerSpecApplyConfiguration struct {
 	// haproxyVersion specifies the HAProxy version to use for this
 	// IngressController.
 	//
-	// OpenShift 5.0 introduces HAProxy 3.2 as its default version and supports
-	// HAProxy 2.8 from OpenShift 4.22 for migration purposes. When an OpenShift
-	// release introduces a new default HAProxy version, that HAProxy version
-	// becomes available as a pinnable value in subsequent OpenShift releases,
-	// providing a smooth migration path for administrators who want to defer
-	// HAProxy upgrades.
+	// OpenShift 5.1 continues with HAProxy 3.2 (same minor version introduced
+	// in OpenShift 5.0) and does not introduce a new HAProxy version.
 	//
-	// Valid values for OpenShift 5.0:
-	// - Unset (default): Uses HAProxy 3.2 (the default for OpenShift 5.0)
-	// - "3.2": Explicitly pins HAProxy 3.2 for preservation during cluster
-	// upgrades to future OpenShift releases
-	// - "2.8": Uses HAProxy 2.8 from OpenShift 4.22 (migration support, will
-	// be dropped in the next OpenShift release)
+	// Valid values for OpenShift 5.1:
+	// - Unset (default): Uses HAProxy 3.2 (the default for OpenShift 5.1)
+	// - "3.2": Uses the latest HAProxy 3.2.z available for this OpenShift
+	// release and pins the minor version.
+	//
+	// Note: HAProxy 2.8 support has been dropped in OpenShift 5.1. Upgrading
+	// from OpenShift 5.0 with haproxyVersion set to "2.8" is blocked.
 	//
 	// If a specific HAProxy version is set and would become unsupported in a
 	// target cluster upgrade, a preflight check will block the cluster upgrade

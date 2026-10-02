@@ -642,6 +642,7 @@ const (
 )
 
 // GatewayConfig holds node gateway-related parsed config file parameters and command-line overrides
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=OVNKubernetesUplinkMode,rule="!has(self.uplinkMode) || (has(self.routingViaHost) && self.routingViaHost == true)",message="uplinkMode can only be set when routingViaHost is true"
 type GatewayConfig struct {
 	// routingViaHost allows pod egress traffic to exit via the ovn-k8s-mp0 management port
 	// into the host before sending it out. If this is not set, traffic will always egress directly
@@ -650,6 +651,16 @@ type GatewayConfig struct {
 	// +kubebuilder:default:=false
 	// +optional
 	RoutingViaHost bool `json:"routingViaHost,omitempty"`
+	// uplinkMode controls whether the external gateway bridge (br-ex) requires a physical uplink port.
+	// Allowed values are "Required" and "Optional".
+	// When set to "Required", ovn-kubernetes requires an uplink on the gateway bridge.
+	// When set to "Optional", ovn-kubernetes allows the gateway bridge to start without an uplink.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default,
+	// which is subject to change over time. The current default is "Required".
+	// This setting only takes effect when routingViaHost is true (local gateway mode).
+	// +openshift:enable:FeatureGate=OVNKubernetesUplinkMode
+	// +optional
+	UplinkMode UplinkMode `json:"uplinkMode,omitempty"`
 	// ipForwarding controls IP forwarding for all traffic on OVN-Kubernetes managed interfaces (such as br-ex).
 	// By default this is set to Restricted, and Kubernetes related traffic is still forwarded appropriately, but other
 	// IP traffic will not be routed by the OCP node. If there is a desire to allow the host to forward traffic across
@@ -898,6 +909,16 @@ const (
 	// IPsecModeFull enables IPsec on the node level (the same as IPsecModeExternal), and configures it to secure communication
 	// between pods on the cluster network.
 	IPsecModeFull IPsecMode = "Full"
+)
+
+// +kubebuilder:validation:Enum:="Required";"Optional"
+type UplinkMode string
+
+var (
+	// UplinkModeRequired requires an uplink on the gateway bridge.
+	UplinkModeRequired UplinkMode = "Required"
+	// UplinkModeOptional allows the gateway bridge to start without a physical uplink.
+	UplinkModeOptional UplinkMode = "Optional"
 )
 
 // +kubebuilder:validation:Enum:="";"Enabled";"Disabled"

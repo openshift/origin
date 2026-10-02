@@ -18,13 +18,13 @@ const (
 )
 
 type sccAuthorizationChecker struct {
-	authz              authorizer.Authorizer
+	authz              authorizer.UnconditionalAuthorizer
 	userInfo           user.Info
 	namespace          string
 	serviceAccountName string
 }
 
-func newSCCAuthorizerChecker(authz authorizer.Authorizer, attr admission.Attributes, serviceAccountName string) *sccAuthorizationChecker {
+func newSCCAuthorizerChecker(authz authorizer.UnconditionalAuthorizer, attr admission.Attributes, serviceAccountName string) *sccAuthorizationChecker {
 	return &sccAuthorizationChecker{
 		authz:              authz,
 		userInfo:           attr.GetUserInfo(),
