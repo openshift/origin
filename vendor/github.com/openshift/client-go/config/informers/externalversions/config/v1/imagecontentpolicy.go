@@ -18,11 +18,39 @@ import (
 )
 
 // ImageContentPolicyInformer provides access to a shared informer and lister for
-// ImageContentPolicies.
+// ImageContentPolicies. Prefer using the type-safe variant (see [TypedImageContentPolicyInformer]).
 type ImageContentPolicyInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1.ImageContentPolicyLister
 }
+
+// TypedImageContentPolicyInformer provides access to a shared informer and lister for
+// ImageContentPolicies, including the type-safe TypedInformer variant.
+// It is a superset of ImageContentPolicyInformer.
+type TypedImageContentPolicyInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() ImageContentPolicyIndexInformer
+	Lister() configv1.ImageContentPolicyLister
+}
+
+// ImageContentPolicyIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type ImageContentPolicyIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1.ImageContentPolicy]
+
+// ImageContentPolicyHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for ImageContentPolicy.
+type ImageContentPolicyHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1.ImageContentPolicy]
+
+// ImageContentPolicyDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for ImageContentPolicy.
+type ImageContentPolicyDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1.ImageContentPolicy]
+
+// ImageContentPolicyFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for ImageContentPolicy.
+type ImageContentPolicyFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1.ImageContentPolicy]
+
+// ImageContentPolicyIndexers is a specialization of [cache.TypedIndexers] for ImageContentPolicy.
+type ImageContentPolicyIndexers = cache.TypedIndexers[*apiconfigv1.ImageContentPolicy]
+
+// DeletedImageContentPolicy is a specialization of [cache.DeletedObject] for ImageContentPolicy.
+type DeletedImageContentPolicy = cache.DeletedObject[*apiconfigv1.ImageContentPolicy]
 
 type imageContentPolicyInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type imageContentPolicyInformer struct {
 // NewImageContentPolicyInformer constructs a new informer for ImageContentPolicy type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedImageContentPolicyInformer]).
 func NewImageContentPolicyInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewImageContentPolicyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedImageContentPolicyInformer constructs a new informer for ImageContentPolicy type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedImageContentPolicyInformer(client versioned.Interface, resyncPeriod time.Duration, indexers ImageContentPolicyIndexers) ImageContentPolicyIndexInformer {
+	return NewTypedImageContentPolicyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredImageContentPolicyInformer constructs a new informer for ImageContentPolicy type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredImageContentPolicyInformer]).
 func NewFilteredImageContentPolicyInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewImageContentPolicyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedImageContentPolicyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredImageContentPolicyInformer constructs a new informer for ImageContentPolicy type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredImageContentPolicyInformer(client versioned.Interface, resyncPeriod time.Duration, indexers ImageContentPolicyIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) ImageContentPolicyIndexInformer {
+	return NewTypedImageContentPolicyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewImageContentPolicyInformerWithOptions constructs a new informer for ImageContentPolicy type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedImageContentPolicyInformerWithOptions]).
 func NewImageContentPolicyInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedImageContentPolicyInformerWithOptions(client, options)
+}
+
+// NewTypedImageContentPolicyInformerWithOptions constructs a new informer for ImageContentPolicy type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedImageContentPolicyInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) ImageContentPolicyIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "imagecontentpolicys"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ImageContentPolicy](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewImageContentPolicyInformerWithOptions(client versioned.Interface, option
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *imageContentPolicyInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewImageContentPolicyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedImageContentPolicyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *imageContentPolicyInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1.ImageContentPolicy{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *imageContentPolicyInformer) TypedInformer() ImageContentPolicyIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ImageContentPolicy](f.factory.InformerFor(&apiconfigv1.ImageContentPolicy{}, f.defaultInformer))
 }
 
 func (f *imageContentPolicyInformer) Lister() configv1.ImageContentPolicyLister {
 	return configv1.NewImageContentPolicyLister(f.Informer().GetIndexer())
+}
+
+// ToTypedImageContentPolicyInformer converts an untyped informer into a TypedImageContentPolicyInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ImageContentPolicy. If that is not the case, calling type-safe methods of the returned
+// TypedImageContentPolicyInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedImageContentPolicyInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedImageContentPolicyInformer(informer ImageContentPolicyInformer) TypedImageContentPolicyInformer {
+	if informer, ok := informer.(TypedImageContentPolicyInformer); ok {
+		return informer
+	}
+	return &imageContentPolicyTypedInformerAdapter{informer}
+}
+
+type imageContentPolicyTypedInformerAdapter struct {
+	ImageContentPolicyInformer
+}
+
+func (a *imageContentPolicyTypedInformerAdapter) TypedInformer() ImageContentPolicyIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ImageContentPolicy](a.Informer())
+}
+
+// ToImageContentPolicyIndexInformer converts an untyped informer into a ImageContentPolicyIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ImageContentPolicy. If that is not the case, calling type-safe methods of the returned
+// ImageContentPolicyIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a ImageContentPolicyIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToImageContentPolicyIndexInformer(informer cache.SharedIndexInformer) ImageContentPolicyIndexInformer {
+	if informer, ok := informer.(ImageContentPolicyIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ImageContentPolicy](informer)
 }

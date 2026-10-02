@@ -18,11 +18,39 @@ import (
 )
 
 // ClusterImagePolicyInformer provides access to a shared informer and lister for
-// ClusterImagePolicies.
+// ClusterImagePolicies. Prefer using the type-safe variant (see [TypedClusterImagePolicyInformer]).
 type ClusterImagePolicyInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1.ClusterImagePolicyLister
 }
+
+// TypedClusterImagePolicyInformer provides access to a shared informer and lister for
+// ClusterImagePolicies, including the type-safe TypedInformer variant.
+// It is a superset of ClusterImagePolicyInformer.
+type TypedClusterImagePolicyInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() ClusterImagePolicyIndexInformer
+	Lister() configv1.ClusterImagePolicyLister
+}
+
+// ClusterImagePolicyIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type ClusterImagePolicyIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1.ClusterImagePolicy]
+
+// ClusterImagePolicyHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for ClusterImagePolicy.
+type ClusterImagePolicyHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1.ClusterImagePolicy]
+
+// ClusterImagePolicyDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for ClusterImagePolicy.
+type ClusterImagePolicyDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1.ClusterImagePolicy]
+
+// ClusterImagePolicyFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for ClusterImagePolicy.
+type ClusterImagePolicyFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1.ClusterImagePolicy]
+
+// ClusterImagePolicyIndexers is a specialization of [cache.TypedIndexers] for ClusterImagePolicy.
+type ClusterImagePolicyIndexers = cache.TypedIndexers[*apiconfigv1.ClusterImagePolicy]
+
+// DeletedClusterImagePolicy is a specialization of [cache.DeletedObject] for ClusterImagePolicy.
+type DeletedClusterImagePolicy = cache.DeletedObject[*apiconfigv1.ClusterImagePolicy]
 
 type clusterImagePolicyInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type clusterImagePolicyInformer struct {
 // NewClusterImagePolicyInformer constructs a new informer for ClusterImagePolicy type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedClusterImagePolicyInformer]).
 func NewClusterImagePolicyInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewClusterImagePolicyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedClusterImagePolicyInformer constructs a new informer for ClusterImagePolicy type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedClusterImagePolicyInformer(client versioned.Interface, resyncPeriod time.Duration, indexers ClusterImagePolicyIndexers) ClusterImagePolicyIndexInformer {
+	return NewTypedClusterImagePolicyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredClusterImagePolicyInformer constructs a new informer for ClusterImagePolicy type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredClusterImagePolicyInformer]).
 func NewFilteredClusterImagePolicyInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewClusterImagePolicyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedClusterImagePolicyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredClusterImagePolicyInformer constructs a new informer for ClusterImagePolicy type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredClusterImagePolicyInformer(client versioned.Interface, resyncPeriod time.Duration, indexers ClusterImagePolicyIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) ClusterImagePolicyIndexInformer {
+	return NewTypedClusterImagePolicyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewClusterImagePolicyInformerWithOptions constructs a new informer for ClusterImagePolicy type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedClusterImagePolicyInformerWithOptions]).
 func NewClusterImagePolicyInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedClusterImagePolicyInformerWithOptions(client, options)
+}
+
+// NewTypedClusterImagePolicyInformerWithOptions constructs a new informer for ClusterImagePolicy type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedClusterImagePolicyInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) ClusterImagePolicyIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "clusterimagepolicys"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ClusterImagePolicy](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewClusterImagePolicyInformerWithOptions(client versioned.Interface, option
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *clusterImagePolicyInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewClusterImagePolicyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedClusterImagePolicyInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *clusterImagePolicyInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1.ClusterImagePolicy{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *clusterImagePolicyInformer) TypedInformer() ClusterImagePolicyIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ClusterImagePolicy](f.factory.InformerFor(&apiconfigv1.ClusterImagePolicy{}, f.defaultInformer))
 }
 
 func (f *clusterImagePolicyInformer) Lister() configv1.ClusterImagePolicyLister {
 	return configv1.NewClusterImagePolicyLister(f.Informer().GetIndexer())
+}
+
+// ToTypedClusterImagePolicyInformer converts an untyped informer into a TypedClusterImagePolicyInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ClusterImagePolicy. If that is not the case, calling type-safe methods of the returned
+// TypedClusterImagePolicyInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedClusterImagePolicyInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedClusterImagePolicyInformer(informer ClusterImagePolicyInformer) TypedClusterImagePolicyInformer {
+	if informer, ok := informer.(TypedClusterImagePolicyInformer); ok {
+		return informer
+	}
+	return &clusterImagePolicyTypedInformerAdapter{informer}
+}
+
+type clusterImagePolicyTypedInformerAdapter struct {
+	ClusterImagePolicyInformer
+}
+
+func (a *clusterImagePolicyTypedInformerAdapter) TypedInformer() ClusterImagePolicyIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ClusterImagePolicy](a.Informer())
+}
+
+// ToClusterImagePolicyIndexInformer converts an untyped informer into a ClusterImagePolicyIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ClusterImagePolicy. If that is not the case, calling type-safe methods of the returned
+// ClusterImagePolicyIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a ClusterImagePolicyIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToClusterImagePolicyIndexInformer(informer cache.SharedIndexInformer) ClusterImagePolicyIndexInformer {
+	if informer, ok := informer.(ClusterImagePolicyIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ClusterImagePolicy](informer)
 }

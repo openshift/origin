@@ -18,11 +18,39 @@ import (
 )
 
 // RangeAllocationInformer provides access to a shared informer and lister for
-// RangeAllocations.
+// RangeAllocations. Prefer using the type-safe variant (see [TypedRangeAllocationInformer]).
 type RangeAllocationInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() securityv1.RangeAllocationLister
 }
+
+// TypedRangeAllocationInformer provides access to a shared informer and lister for
+// RangeAllocations, including the type-safe TypedInformer variant.
+// It is a superset of RangeAllocationInformer.
+type TypedRangeAllocationInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() RangeAllocationIndexInformer
+	Lister() securityv1.RangeAllocationLister
+}
+
+// RangeAllocationIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type RangeAllocationIndexInformer cache.TypedSharedIndexInformer[*apisecurityv1.RangeAllocation]
+
+// RangeAllocationHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for RangeAllocation.
+type RangeAllocationHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apisecurityv1.RangeAllocation]
+
+// RangeAllocationDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for RangeAllocation.
+type RangeAllocationDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apisecurityv1.RangeAllocation]
+
+// RangeAllocationFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for RangeAllocation.
+type RangeAllocationFilteringHandler = cache.TypedFilteringResourceEventHandler[*apisecurityv1.RangeAllocation]
+
+// RangeAllocationIndexers is a specialization of [cache.TypedIndexers] for RangeAllocation.
+type RangeAllocationIndexers = cache.TypedIndexers[*apisecurityv1.RangeAllocation]
+
+// DeletedRangeAllocation is a specialization of [cache.DeletedObject] for RangeAllocation.
+type DeletedRangeAllocation = cache.DeletedObject[*apisecurityv1.RangeAllocation]
 
 type rangeAllocationInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type rangeAllocationInformer struct {
 // NewRangeAllocationInformer constructs a new informer for RangeAllocation type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedRangeAllocationInformer]).
 func NewRangeAllocationInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewRangeAllocationInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedRangeAllocationInformer constructs a new informer for RangeAllocation type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedRangeAllocationInformer(client versioned.Interface, resyncPeriod time.Duration, indexers RangeAllocationIndexers) RangeAllocationIndexInformer {
+	return NewTypedRangeAllocationInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredRangeAllocationInformer constructs a new informer for RangeAllocation type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredRangeAllocationInformer]).
 func NewFilteredRangeAllocationInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewRangeAllocationInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedRangeAllocationInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredRangeAllocationInformer constructs a new informer for RangeAllocation type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredRangeAllocationInformer(client versioned.Interface, resyncPeriod time.Duration, indexers RangeAllocationIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) RangeAllocationIndexInformer {
+	return NewTypedRangeAllocationInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewRangeAllocationInformerWithOptions constructs a new informer for RangeAllocation type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedRangeAllocationInformerWithOptions]).
 func NewRangeAllocationInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedRangeAllocationInformerWithOptions(client, options)
+}
+
+// NewTypedRangeAllocationInformerWithOptions constructs a new informer for RangeAllocation type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedRangeAllocationInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) RangeAllocationIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "security.openshift.io", Version: "v1", Resource: "rangeallocations"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apisecurityv1.RangeAllocation](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewRangeAllocationInformerWithOptions(client versioned.Interface, options i
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *rangeAllocationInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewRangeAllocationInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedRangeAllocationInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *rangeAllocationInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisecurityv1.RangeAllocation{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *rangeAllocationInformer) TypedInformer() RangeAllocationIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisecurityv1.RangeAllocation](f.factory.InformerFor(&apisecurityv1.RangeAllocation{}, f.defaultInformer))
 }
 
 func (f *rangeAllocationInformer) Lister() securityv1.RangeAllocationLister {
 	return securityv1.NewRangeAllocationLister(f.Informer().GetIndexer())
+}
+
+// ToTypedRangeAllocationInformer converts an untyped informer into a TypedRangeAllocationInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *RangeAllocation. If that is not the case, calling type-safe methods of the returned
+// TypedRangeAllocationInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedRangeAllocationInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedRangeAllocationInformer(informer RangeAllocationInformer) TypedRangeAllocationInformer {
+	if informer, ok := informer.(TypedRangeAllocationInformer); ok {
+		return informer
+	}
+	return &rangeAllocationTypedInformerAdapter{informer}
+}
+
+type rangeAllocationTypedInformerAdapter struct {
+	RangeAllocationInformer
+}
+
+func (a *rangeAllocationTypedInformerAdapter) TypedInformer() RangeAllocationIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisecurityv1.RangeAllocation](a.Informer())
+}
+
+// ToRangeAllocationIndexInformer converts an untyped informer into a RangeAllocationIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *RangeAllocation. If that is not the case, calling type-safe methods of the returned
+// RangeAllocationIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a RangeAllocationIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToRangeAllocationIndexInformer(informer cache.SharedIndexInformer) RangeAllocationIndexInformer {
+	if informer, ok := informer.(RangeAllocationIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apisecurityv1.RangeAllocation](informer)
 }

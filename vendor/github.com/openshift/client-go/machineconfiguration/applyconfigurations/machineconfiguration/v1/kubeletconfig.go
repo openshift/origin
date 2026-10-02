@@ -18,7 +18,7 @@ import (
 //
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type KubeletConfigApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration    `json:""`
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	// spec contains the desired kubelet configuration.
 	Spec *KubeletConfigSpecApplyConfiguration `json:"spec,omitempty"`

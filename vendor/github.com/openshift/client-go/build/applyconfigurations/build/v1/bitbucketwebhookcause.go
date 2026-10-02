@@ -8,7 +8,7 @@ package v1
 // BitbucketWebHookCause has information about a Bitbucket webhook that triggered a
 // build.
 type BitbucketWebHookCauseApplyConfiguration struct {
-	CommonWebHookCauseApplyConfiguration `json:",inline"`
+	CommonWebHookCauseApplyConfiguration `json:""`
 }
 
 // BitbucketWebHookCauseApplyConfiguration constructs a declarative configuration of the BitbucketWebHookCause type for use with

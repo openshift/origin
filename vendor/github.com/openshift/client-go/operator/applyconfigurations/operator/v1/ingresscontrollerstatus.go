@@ -70,9 +70,8 @@ type IngressControllerStatusApplyConfiguration struct {
 	// spec.haproxyVersion field. When omitted, the effective value has not yet
 	// been resolved by the operator or the feature is not enabled for this cluster.
 	//
-	// Examples for OpenShift 5.0:
+	// Examples for OpenShift 5.1:
 	// - "3.2": Using HAProxy 3.2
-	// - "2.8": Using HAProxy 2.8
 	EffectiveHAProxyVersion *operatorv1.HAProxyVersion `json:"effectiveHAProxyVersion,omitempty"`
 }
 

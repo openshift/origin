@@ -27,6 +27,14 @@ func NewBrowserSafeAuthorizer(delegate authorizer.Authorizer, authenticatedGroup
 	}
 }
 
+func (a *browserSafeAuthorizer) ConditionsAwareAuthorize(ctx context.Context, attributes authorizer.Attributes) authorizer.ConditionsAwareDecision {
+	return authorizer.ConditionsAwareDecisionFromParts(a.Authorize(ctx, attributes))
+}
+
+func (a *browserSafeAuthorizer) EvaluateConditions(_ context.Context, _ authorizer.ConditionsAwareDecision, _ authorizer.ConditionsData) (authorizer.Decision, string, error) {
+	return authorizer.DecisionDeny, "", authorizer.ErrorConditionEvaluationNotSupported
+}
+
 func (a *browserSafeAuthorizer) Authorize(ctx context.Context, attributes authorizer.Attributes) (authorizer.Decision, string, error) {
 	attrs := a.getBrowserSafeAttributes(attributes)
 	decision, reason, err := a.delegate.Authorize(ctx, attrs)

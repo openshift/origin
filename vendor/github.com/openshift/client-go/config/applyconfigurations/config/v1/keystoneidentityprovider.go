@@ -8,7 +8,7 @@ package v1
 // KeystonePasswordIdentityProvider provides identities for users authenticating using keystone password credentials
 type KeystoneIdentityProviderApplyConfiguration struct {
 	// OAuthRemoteConnectionInfo contains information about how to connect to the keystone server
-	OAuthRemoteConnectionInfoApplyConfiguration `json:",inline"`
+	OAuthRemoteConnectionInfoApplyConfiguration `json:""`
 	// domainName is required for keystone v3
 	DomainName *string `json:"domainName,omitempty"`
 }
