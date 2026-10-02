@@ -171,11 +171,13 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 		o.Expect(coList.Items).NotTo(o.BeEmpty())
 
 		g.By("all cluster operators report an operator version in the first position equal to the cluster version")
+		cvoManaged := 0
 		for _, co := range coList.Items {
 			if !isManagedByClusterVersionOperator(co) {
 				e2e.Logf("skipping ClusterOperator %q: not owned by ClusterVersion, likely a test fixture", co.Name)
 				continue
 			}
+			cvoManaged++
 			msg := fmt.Sprintf("unexpected operator status versions %s:\n%#v", co.Name, co.Status.Versions)
 			o.Expect(co.Status.Versions).NotTo(o.BeEmpty(), msg)
 			operator := findOperatorVersion(co.Status.Versions, "operator")
@@ -183,6 +185,7 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 			o.Expect(operator.Name).To(o.Equal("operator"), msg)
 			o.Expect(operator.Version).To(o.Equal(cv.Status.Desired.Version), msg)
 		}
+		o.Expect(cvoManaged).NotTo(o.BeZero(), "expected at least one CVO-managed ClusterOperator, but none had a ClusterVersion ownerReference")
 	})
 })
 
