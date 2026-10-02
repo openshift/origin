@@ -17,7 +17,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	configv1 "github.com/openshift/api/config/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	operatorclient "github.com/openshift/client-go/operator/clientset/versioned"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -83,6 +85,25 @@ func isNotSupportedForPlatformExternal(infra *configv1.Infrastructure) bool {
 	}
 
 	return notSupported
+}
+
+// isInternalIngressLoadBalancer reports whether the default IngressController is exposed
+// with an internal-scoped load balancer.
+func isInternalIngressLoadBalancer(ctx context.Context, operatorClient operatorclient.Interface) (bool, error) {
+	var ingressController *operatorv1.IngressController
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		var getErr error
+		ingressController, getErr = operatorClient.OperatorV1().IngressControllers("openshift-ingress-operator").Get(ctx, "default", metav1.GetOptions{})
+		return getErr
+	}); err != nil {
+		return false, err
+	}
+
+	strategy := ingressController.Status.EndpointPublishingStrategy
+	if strategy == nil || strategy.LoadBalancer == nil {
+		return false, nil
+	}
+	return strategy.LoadBalancer.Scope == operatorv1.InternalLoadBalancer, nil
 }
 
 func NewAvailabilityInvariant() monitortestframework.MonitorTest {
@@ -162,6 +183,23 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 		return w.notSupportedReason
 	}
 
+	// On AWS clusters with only private subnets, AWS cannot provision an internet-facing
+	// load balancer (that requires public subnets), so the default external service load
+	// balancer this test creates would never come up. Such clusters expose their default
+	// router with an internal-scoped load balancer, so detect that and request an internal
+	// load balancer here too, which lands in the private subnets and can be provisioned.
+	internalAWSLoadBalancer := false
+	if infra.Status.PlatformStatus.Type == configv1.AWSPlatformType {
+		operatorClient, opErr := operatorclient.NewForConfig(adminRESTConfig)
+		if opErr != nil {
+			return opErr
+		}
+		internalAWSLoadBalancer, err = isInternalIngressLoadBalancer(ctx, operatorClient)
+		if err != nil {
+			return err
+		}
+	}
+
 	var actualNamespace *corev1.Namespace
 	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
 		var createErr error
@@ -196,6 +234,11 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 			// - Azure is hardcoded to 15s (2 failed with 5s interval in 1.17) and is sufficient
 			// - GCP has a non-configurable interval of 32s (3 failed health checks with 8s interval in 1.17)
 			//   - thus pods need to stay up for > 32s, so pod shutdown period will will be 45s
+
+			// On AWS clusters with only private subnets, request an internal load balancer.
+			if internalAWSLoadBalancer {
+				s.Annotations["service.beta.kubernetes.io/aws-load-balancer-internal"] = "true"
+			}
 
 			// Configure dual-stack if the cluster created with dual-stack IP families.
 			// NLB is required on AWS for dual-stack load balancers.
