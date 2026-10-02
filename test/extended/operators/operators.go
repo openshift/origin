@@ -172,6 +172,10 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 
 		g.By("all cluster operators report an operator version in the first position equal to the cluster version")
 		for _, co := range coList.Items {
+			if !isManagedByClusterVersionOperator(co) {
+				e2e.Logf("skipping ClusterOperator %q: no standard CVO conditions, likely a test fixture", co.Name)
+				continue
+			}
 			msg := fmt.Sprintf("unexpected operator status versions %s:\n%#v", co.Name, co.Status.Versions)
 			o.Expect(co.Status.Versions).NotTo(o.BeEmpty(), msg)
 			operator := findOperatorVersion(co.Status.Versions, "operator")
@@ -195,6 +199,20 @@ func skipUnlessCVO(c coreclient.NamespaceInterface) {
 		return false, nil
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// isManagedByClusterVersionOperator reports whether co has at least one
+// standard CVO condition type (Available, Progressing, Degraded, Upgradeable).
+// Transient test-created ClusterOperators (e.g. SSA test fixtures) lack these
+// and must be excluded from version assertions to avoid parallel-test races.
+func isManagedByClusterVersionOperator(co configv1.ClusterOperator) bool {
+	for _, c := range co.Status.Conditions {
+		switch c.Type {
+		case configv1.OperatorAvailable, configv1.OperatorProgressing, configv1.OperatorDegraded, configv1.OperatorUpgradeable:
+			return true
+		}
+	}
+	return false
 }
 
 func findOperatorVersion(versions []configv1.OperandVersion, name string) *configv1.OperandVersion {
