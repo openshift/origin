@@ -214,9 +214,9 @@ func (h *HAProxyVersionUpgradeTest) Teardown(ctx context.Context, f *framework.F
 
 // haproxyVersionConfig has HAProxy version configuration from the Ingress operator.
 type haproxyVersionConfig struct {
-	defaultVersion    operatorv1.HAProxyVersion
-	deprecatedVersion operatorv1.HAProxyVersion
-	availableVersions []operatorv1.HAProxyVersion
+	defaultVersion     operatorv1.HAProxyVersion
+	deprecatedVersions []operatorv1.HAProxyVersion
+	availableVersions  []operatorv1.HAProxyVersion
 }
 
 // getHAProxyVersionConfig parses the current Ingress operator configuration and extracts
@@ -280,7 +280,7 @@ func getHAProxyVersionConfig(ctx context.Context, oc *exutil.CLI) (haproxyVersio
 	}
 
 	// Read default and deprecated versions from Env
-	var deprecatedVersion operatorv1.HAProxyVersion
+	var deprecatedVersions []operatorv1.HAProxyVersion
 	for _, env := range operator.Env {
 		switch env.Name {
 		case "DEFAULT_HAPROXY_VERSION":
@@ -289,17 +289,16 @@ func getHAProxyVersionConfig(ctx context.Context, oc *exutil.CLI) (haproxyVersio
 				defaultVersion = operatorv1.HAProxyVersion(env.Value)
 			}
 		case "DEPRECATED_HAPROXY_VERSION":
-			deprecatedVersion = operatorv1.HAProxyVersion(env.Value)
+			for versionStr := range strings.SplitSeq(env.Value, ",") {
+				if version := strings.TrimSpace(versionStr); version != "" {
+					deprecatedVersions = append(deprecatedVersions, operatorv1.HAProxyVersion(version))
+				}
+			}
 		}
 	}
 	if defaultVersion == "" {
 		// envvar not found and version not overridden, so this is pre 4.23/5.0, assume "2.8"
 		defaultVersion = "2.8"
-	}
-	if deprecatedVersion == "" {
-		// envvar/flag not configured (e.g. HyperShift's asset doesn't set it at all),
-		// so fall back to the operator's own compiled default.
-		deprecatedVersion = operatorv1.HAProxyVersion28
 	}
 
 	// Read available versions from Command.
@@ -333,15 +332,17 @@ func getHAProxyVersionConfig(ctx context.Context, oc *exutil.CLI) (haproxyVersio
 		return haproxyVersionConfig{},
 			fmt.Errorf("the available versions list %v does not include the default version %q", availableVersions, defaultVersion)
 	}
-	if deprecatedVersion != "" && !slices.Contains(availableVersions, deprecatedVersion) {
-		return haproxyVersionConfig{},
-			fmt.Errorf("the available versions list %v does not include the deprecated version %q", availableVersions, deprecatedVersion)
+	for _, deprecatedVersion := range deprecatedVersions {
+		if !slices.Contains(availableVersions, deprecatedVersion) {
+			return haproxyVersionConfig{},
+				fmt.Errorf("the available versions list %v does not include the deprecated version %q", availableVersions, deprecatedVersion)
+		}
 	}
 
 	return haproxyVersionConfig{
-		defaultVersion:    defaultVersion,
-		deprecatedVersion: deprecatedVersion,
-		availableVersions: availableVersions,
+		defaultVersion:     defaultVersion,
+		deprecatedVersions: deprecatedVersions,
+		availableVersions:  availableVersions,
 	}, nil
 }
 
@@ -355,6 +356,6 @@ func (h *haproxyVersionConfig) getNonDefaultVersions() []operatorv1.HAProxyVersi
 // getNonDefaultUpgradeableVersions creates a list of non default and upgradeable versions, derived from the default, the deprecated, and the available ones.
 func (h *haproxyVersionConfig) getNonDefaultUpgradeableVersions() []operatorv1.HAProxyVersion {
 	return slices.DeleteFunc(slices.Clone(h.availableVersions), func(v operatorv1.HAProxyVersion) bool {
-		return v == h.defaultVersion || v == h.deprecatedVersion
+		return v == h.defaultVersion || slices.Contains(h.deprecatedVersions, v)
 	})
 }
