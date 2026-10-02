@@ -64,6 +64,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.28.0
 	github.com/onsi/gomega v1.39.1
 	github.com/opencontainers/go-digest v1.0.0
+	github.com/opencontainers/image-spec v1.1.1
 	github.com/openshift-eng/openshift-tests-extension v0.0.0-20260707142426-572a3e9deb7a
 	github.com/openshift-kni/commatrix v0.0.5-0.20251111204857-e5a931eff73f
 	github.com/openshift/api v0.0.0-20260810132456-8f52beb625b5
@@ -99,7 +100,7 @@ require (
 	golang.org/x/mod v0.35.0
 	golang.org/x/net v0.55.1-0.20260602153038-42abb857022c
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/sync v0.20.0
+	golang.org/x/sync v0.22.0
 	gonum.org/v1/plot v0.14.0
 	google.golang.org/api v0.247.0
 	google.golang.org/grpc v1.81.1
@@ -124,6 +125,7 @@ require (
 	k8s.io/kubernetes v1.36.2
 	k8s.io/pod-security-admission v0.36.2
 	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
+	oras.land/oras-go/v2 v2.6.2
 	sigs.k8s.io/cloud-provider-azure v1.30.4
 	sigs.k8s.io/controller-runtime v0.24.1
 	sigs.k8s.io/gateway-api v1.4.0
@@ -332,7 +334,6 @@ require (
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opencontainers/cgroups v0.0.6 // indirect
-	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/opencontainers/runtime-spec v1.3.0 // indirect
 	github.com/opencontainers/selinux v1.13.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
