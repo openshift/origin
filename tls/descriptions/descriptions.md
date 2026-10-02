@@ -3,9 +3,6 @@
 ## Table of Contents
   - [How to meet the requirement](#How-to-meet-the-requirement)
   - [Items Do NOT Meet the Requirement (100)](#Items-Do-NOT-Meet-the-Requirement-100)
-    - [Unknown Owner (5)](#Unknown-Owner-5)
-      - [Certificates (2)](#Certificates-2)
-      - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
     - [Bare Metal Hardware Provisioning / cluster-baremetal-operator (1)](#Bare-Metal-Hardware-Provisioning-/-cluster-baremetal-operator-1)
       - [Certificates (1)](#Certificates-1)
     - [Cloud Compute / Cloud Controller Manager (1)](#Cloud-Compute-/-Cloud-Controller-Manager-1)
@@ -24,6 +21,9 @@
     - [Networking / cluster-network-operator (40)](#Networking-/-cluster-network-operator-40)
       - [Certificates (8)](#Certificates-8)
       - [Certificate Authority Bundles (32)](#Certificate-Authority-Bundles-32)
+    - [Networking / router (4)](#Networking-/-router-4)
+      - [Certificates (2)](#Certificates-2)
+      - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
     - [Node / Kubelet (2)](#Node-/-Kubelet-2)
       - [Certificates (2)](#Certificates-2)
     - [Operator Framework / operator-lifecycle-manager (2)](#Operator-Framework-/-operator-lifecycle-manager-2)
@@ -35,9 +35,9 @@
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
     - [cluster-network-operator (1)](#cluster-network-operator-1)
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
-    - [kube-apiserver (14)](#kube-apiserver-14)
+    - [kube-apiserver (15)](#kube-apiserver-15)
       - [Certificates (4)](#Certificates-4)
-      - [Certificate Authority Bundles (10)](#Certificate-Authority-Bundles-10)
+      - [Certificate Authority Bundles (11)](#Certificate-Authority-Bundles-11)
     - [kube-controller-manager (8)](#kube-controller-manager-8)
       - [Certificates (3)](#Certificates-3)
       - [Certificate Authority Bundles (5)](#Certificate-Authority-Bundles-5)
@@ -76,44 +76,6 @@ These descriptions must be in the style of API documentation and must include
 To create a description, set the `openshift.io/description` annotation to the markdown formatted string describing your TLS artifact. 
 
 ## Items Do NOT Meet the Requirement (100)
-### Unknown Owner (5)
-#### Certificates (2)
-1. ns/openshift-ingress secret/router-certs-default
-
-      **Description:** 
-      
-
-2. ns/openshift-ingress-operator secret/router-ca
-
-      **Description:** 
-      
-
-
-
-#### Certificate Authority Bundles (3)
-1. ns/kube-system configmap/extension-apiserver-authentication
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      
-
-2. ns/openshift-config-managed configmap/default-ingress-cert
-
-      **Description:** 
-      
-
-3. ns/openshift-console configmap/default-ingress-cert
-
-      **Description:** 
-      
-
-
-
 ### Bare Metal Hardware Provisioning / cluster-baremetal-operator (1)
 #### Certificates (1)
 1. ns/openshift-machine-api secret/metal3-ironic-tls
@@ -479,6 +441,33 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 
 
+### Networking / router (4)
+#### Certificates (2)
+1. ns/openshift-ingress secret/router-certs-default
+
+      **Description:** Serving certificate for the default ingress controller, managed by the ingress operator.
+      
+
+2. ns/openshift-ingress-operator secret/router-ca
+
+      **Description:** CA certificate used by the ingress operator to sign default serving certificates for ingress controllers.
+      
+
+
+
+#### Certificate Authority Bundles (2)
+1. ns/openshift-config-managed configmap/default-ingress-cert
+
+      **Description:** CA bundle containing the certificate for the default ingress controller, published by the ingress operator.
+      
+
+2. ns/openshift-console configmap/default-ingress-cert
+
+      **Description:** CA bundle containing the certificate for the default ingress controller, published by the ingress operator.
+      
+
+
+
 ### Node / Kubelet (2)
 #### Certificates (2)
 1. file /var/lib/kubelet/pki/kubelet-client-\<timestamp>.pem
@@ -572,7 +561,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 
 
-### kube-apiserver (14)
+### kube-apiserver (15)
 #### Certificates (4)
 1. ns/openshift-kube-apiserver secret/control-plane-node-admin-client-cert-key
 
@@ -609,8 +598,19 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 
 
-#### Certificate Authority Bundles (10)
-1. ns/openshift-config-managed configmap/kube-apiserver-client-ca
+#### Certificate Authority Bundles (11)
+1. ns/kube-system configmap/extension-apiserver-authentication
+
+      **Description:** CA bundle used to verify client certificates for aggregated API servers, managed by kube-apiserver.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      
+
+2. ns/openshift-config-managed configmap/kube-apiserver-client-ca
 
       **Description:** 
       
@@ -622,7 +622,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-2. ns/openshift-config-managed configmap/kube-apiserver-server-ca
+3. ns/openshift-config-managed configmap/kube-apiserver-server-ca
 
       **Description:** 
       
@@ -636,24 +636,12 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
-3. ns/openshift-config-managed configmap/kubelet-bootstrap-kubeconfig
+4. ns/openshift-config-managed configmap/kubelet-bootstrap-kubeconfig
 
       **Description:** 
       
 
-4. ns/openshift-controller-manager configmap/client-ca
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/kubelet-ca.crt
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/client-ca/ca-bundle.crt
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
-      
-
-5. ns/openshift-kube-apiserver configmap/client-ca
+5. ns/openshift-controller-manager configmap/client-ca
 
       **Description:** 
       
@@ -665,7 +653,19 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-6. ns/openshift-kube-apiserver configmap/kube-apiserver-server-ca
+6. ns/openshift-kube-apiserver configmap/client-ca
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/kubelet-ca.crt
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
+      
+
+7. ns/openshift-kube-apiserver configmap/kube-apiserver-server-ca
 
       **Description:** 
       
@@ -679,7 +679,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
-7. ns/openshift-kube-controller-manager configmap/client-ca
+8. ns/openshift-kube-controller-manager configmap/client-ca
 
       **Description:** 
       
@@ -691,7 +691,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-8. ns/openshift-route-controller-manager configmap/client-ca
+9. ns/openshift-route-controller-manager configmap/client-ca
 
       **Description:** 
       
@@ -703,7 +703,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-9. file /etc/kubernetes/kubeconfig
+10. file /etc/kubernetes/kubeconfig
 
       **Description:** 
       
@@ -716,7 +716,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
-10. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+11. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
 
       **Description:** 
       
