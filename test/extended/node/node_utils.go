@@ -996,6 +996,24 @@ func EnsureNodesReady(ctx context.Context, oc *exutil.CLI) {
 		"Cannot start test: nodes not Ready: %v. Cluster may be recovering from previous test.", notReadyNodes)
 }
 
+// EnsureNodeResourceNodesReady checks only nodes reserved for this test label.
+// Unlike EnsureNodesReady, parallel NodeResource tests on other pool nodes
+// may temporarily leave a node NotReady without blocking this test.
+func EnsureNodeResourceNodesReady(ctx context.Context, oc *exutil.CLI, label string) {
+	nodes, err := GetNodeResourceNodes(ctx, oc, label)
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get NodeResource nodes for label %s", label)
+
+	var notReady []string
+	for _, node := range nodes {
+		if !isNodeInReadyState(&node) {
+			notReady = append(notReady, node.Name)
+		}
+	}
+
+	o.Expect(notReady).To(o.BeEmpty(),
+		"Cannot start test: NodeResource node(s) not Ready for label %s: %v. Assigned node(s) may still be recovering from this test's own setup.", label, notReady)
+}
+
 func CreatePodAndWaitForRunning(ctx context.Context, oc *exutil.CLI, pod *corev1.Pod) *corev1.Pod {
 	_, err := oc.AdminKubeClient().CoreV1().Pods(pod.Namespace).Create(ctx, pod, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -1025,4 +1043,32 @@ func cleanupDirectoriesOnNode(oc *exutil.CLI, nodeName string, dirs []string) er
 		return fmt.Errorf("failed to cleanup directories %v on node %s: %w", dirs, nodeName, err)
 	}
 	return nil
+}
+
+// NodeResourceLabelKey is the label key used by the NodeResource scheduler
+// to mark worker nodes as assigned to a specific test.
+const NodeResourceLabelKey = "noderesource.test.openshift.io/name"
+
+// GetNodeResourceNodes returns worker nodes assigned to a NodeResource test by label.
+// Tests tagged with [NodeResource:numNodes=N,label=X] should use this to find their
+// assigned nodes instead of manually selecting worker nodes.
+func GetNodeResourceNodes(ctx context.Context, oc *exutil.CLI, label string) ([]corev1.Node, error) {
+	labelSelector := fmt.Sprintf("%s=%s", NodeResourceLabelKey, label)
+	nodes, err := getNodesByLabel(ctx, oc, labelSelector)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get NodeResource nodes with label %s: %w", label, err)
+	}
+	if len(nodes) == 0 {
+		return nil, fmt.Errorf("no nodes found with NodeResource label %s", label)
+	}
+	return nodes, nil
+}
+
+// GetNodeResource returns the name of the first node assigned to a NodeResource test.
+func GetNodeResource(ctx context.Context, oc *exutil.CLI, label string) (string, error) {
+	nodes, err := GetNodeResourceNodes(ctx, oc, label)
+	if err != nil {
+		return "", err
+	}
+	return nodes[0].Name, nil
 }
