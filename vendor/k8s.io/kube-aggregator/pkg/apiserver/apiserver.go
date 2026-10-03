@@ -28,6 +28,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/runtime/serializer/cbor"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -282,8 +284,13 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 		return nil, fmt.Errorf("API group/version %s must be enabled", v1.SchemeGroupVersion.String())
 	}
 
+	codecs := aggregatorscheme.Codecs
+	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.CBORServingAndStorage) {
+		codecs = serializer.NewCodecFactory(aggregatorscheme.Scheme, serializer.WithSerializer(cbor.NewSerializerInfo))
+	}
+
 	apisHandler := &apisHandler{
-		codecs:         aggregatorscheme.Codecs,
+		codecs:         codecs,
 		lister:         s.lister,
 		discoveryGroup: discoveryGroup(enabledVersions),
 	}
@@ -625,6 +632,11 @@ func (s *APIAggregator) AddAPIService(apiService *v1.APIService) error {
 		return nil
 	}
 
+	codecs := aggregatorscheme.Codecs
+	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.CBORServingAndStorage) {
+		codecs = serializer.NewCodecFactory(aggregatorscheme.Scheme, serializer.WithSerializer(cbor.NewSerializerInfo))
+	}
+
 	// For some resources we always want to delegate to local API server.
 	// These resources have to exists as CRD to be served locally.
 	for _, alwaysLocalDelegatePath := range alwaysLocalDelegatePathPrefixes.List() {
@@ -640,7 +652,7 @@ func (s *APIAggregator) AddAPIService(apiService *v1.APIService) error {
 	// it's time to register the group aggregation endpoint
 	groupPath := "/apis/" + apiService.Spec.Group
 	groupDiscoveryHandler := &apiGroupHandler{
-		codecs:    aggregatorscheme.Codecs,
+		codecs:    codecs,
 		groupName: apiService.Spec.Group,
 		lister:    s.lister,
 		delegate:  s.delegateHandler,

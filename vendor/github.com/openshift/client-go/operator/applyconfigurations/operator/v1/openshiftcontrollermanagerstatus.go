@@ -5,7 +5,7 @@ package v1
 // OpenShiftControllerManagerStatusApplyConfiguration represents a declarative configuration of the OpenShiftControllerManagerStatus type for use
 // with apply.
 type OpenShiftControllerManagerStatusApplyConfiguration struct {
-	OperatorStatusApplyConfiguration `json:",inline"`
+	OperatorStatusApplyConfiguration `json:""`
 }
 
 // OpenShiftControllerManagerStatusApplyConfiguration constructs a declarative configuration of the OpenShiftControllerManagerStatus type for use with

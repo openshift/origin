@@ -10,7 +10,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
-	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
 	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
 	storageutils "k8s.io/kubernetes/test/e2e/storage/utils"
@@ -47,11 +46,12 @@ func (s *podDeleteAfterUmountCSISuite) GetTestSuiteInfo() storageframework.TestS
 	return s.tsInfo
 }
 
-func (s *podDeleteAfterUmountCSISuite) SkipUnsupportedTests(driver storageframework.TestDriver, pattern storageframework.TestPattern) {
+func (s *podDeleteAfterUmountCSISuite) SkipUnsupportedTests(driver storageframework.TestDriver, pattern storageframework.TestPattern) string {
 	cfg, ok := OpenShiftCSIDriverConfigFor(driver.GetDriverInfo().Name)
 	if !ok || !cfg.Capabilities[CapPodDeleteAfterUmount] {
-		e2eskipper.Skipf("Driver %q does not support pod delete after umount - skipping", driver.GetDriverInfo().Name)
+		return fmt.Sprintf("Driver %q does not support pod delete after umount - skipping", driver.GetDriverInfo().Name)
 	}
+	return ""
 }
 
 func (s *podDeleteAfterUmountCSISuite) DefineTests(driver storageframework.TestDriver, pattern storageframework.TestPattern) {

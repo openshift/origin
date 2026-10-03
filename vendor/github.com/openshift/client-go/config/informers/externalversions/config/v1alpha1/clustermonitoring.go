@@ -18,11 +18,39 @@ import (
 )
 
 // ClusterMonitoringInformer provides access to a shared informer and lister for
-// ClusterMonitorings.
+// ClusterMonitorings. Prefer using the type-safe variant (see [TypedClusterMonitoringInformer]).
 type ClusterMonitoringInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1alpha1.ClusterMonitoringLister
 }
+
+// TypedClusterMonitoringInformer provides access to a shared informer and lister for
+// ClusterMonitorings, including the type-safe TypedInformer variant.
+// It is a superset of ClusterMonitoringInformer.
+type TypedClusterMonitoringInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() ClusterMonitoringIndexInformer
+	Lister() configv1alpha1.ClusterMonitoringLister
+}
+
+// ClusterMonitoringIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type ClusterMonitoringIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1alpha1.ClusterMonitoring]
+
+// ClusterMonitoringHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for ClusterMonitoring.
+type ClusterMonitoringHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1alpha1.ClusterMonitoring]
+
+// ClusterMonitoringDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for ClusterMonitoring.
+type ClusterMonitoringDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1alpha1.ClusterMonitoring]
+
+// ClusterMonitoringFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for ClusterMonitoring.
+type ClusterMonitoringFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1alpha1.ClusterMonitoring]
+
+// ClusterMonitoringIndexers is a specialization of [cache.TypedIndexers] for ClusterMonitoring.
+type ClusterMonitoringIndexers = cache.TypedIndexers[*apiconfigv1alpha1.ClusterMonitoring]
+
+// DeletedClusterMonitoring is a specialization of [cache.DeletedObject] for ClusterMonitoring.
+type DeletedClusterMonitoring = cache.DeletedObject[*apiconfigv1alpha1.ClusterMonitoring]
 
 type clusterMonitoringInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type clusterMonitoringInformer struct {
 // NewClusterMonitoringInformer constructs a new informer for ClusterMonitoring type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedClusterMonitoringInformer]).
 func NewClusterMonitoringInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewClusterMonitoringInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedClusterMonitoringInformer constructs a new informer for ClusterMonitoring type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedClusterMonitoringInformer(client versioned.Interface, resyncPeriod time.Duration, indexers ClusterMonitoringIndexers) ClusterMonitoringIndexInformer {
+	return NewTypedClusterMonitoringInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredClusterMonitoringInformer constructs a new informer for ClusterMonitoring type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredClusterMonitoringInformer]).
 func NewFilteredClusterMonitoringInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewClusterMonitoringInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedClusterMonitoringInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredClusterMonitoringInformer constructs a new informer for ClusterMonitoring type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredClusterMonitoringInformer(client versioned.Interface, resyncPeriod time.Duration, indexers ClusterMonitoringIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) ClusterMonitoringIndexInformer {
+	return NewTypedClusterMonitoringInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewClusterMonitoringInformerWithOptions constructs a new informer for ClusterMonitoring type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedClusterMonitoringInformerWithOptions]).
 func NewClusterMonitoringInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedClusterMonitoringInformerWithOptions(client, options)
+}
+
+// NewTypedClusterMonitoringInformerWithOptions constructs a new informer for ClusterMonitoring type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedClusterMonitoringInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) ClusterMonitoringIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1alpha1", Resource: "clustermonitorings"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1alpha1.ClusterMonitoring](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewClusterMonitoringInformerWithOptions(client versioned.Interface, options
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *clusterMonitoringInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewClusterMonitoringInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedClusterMonitoringInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *clusterMonitoringInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1alpha1.ClusterMonitoring{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *clusterMonitoringInformer) TypedInformer() ClusterMonitoringIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1alpha1.ClusterMonitoring](f.factory.InformerFor(&apiconfigv1alpha1.ClusterMonitoring{}, f.defaultInformer))
 }
 
 func (f *clusterMonitoringInformer) Lister() configv1alpha1.ClusterMonitoringLister {
 	return configv1alpha1.NewClusterMonitoringLister(f.Informer().GetIndexer())
+}
+
+// ToTypedClusterMonitoringInformer converts an untyped informer into a TypedClusterMonitoringInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ClusterMonitoring. If that is not the case, calling type-safe methods of the returned
+// TypedClusterMonitoringInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedClusterMonitoringInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedClusterMonitoringInformer(informer ClusterMonitoringInformer) TypedClusterMonitoringInformer {
+	if informer, ok := informer.(TypedClusterMonitoringInformer); ok {
+		return informer
+	}
+	return &clusterMonitoringTypedInformerAdapter{informer}
+}
+
+type clusterMonitoringTypedInformerAdapter struct {
+	ClusterMonitoringInformer
+}
+
+func (a *clusterMonitoringTypedInformerAdapter) TypedInformer() ClusterMonitoringIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1alpha1.ClusterMonitoring](a.Informer())
+}
+
+// ToClusterMonitoringIndexInformer converts an untyped informer into a ClusterMonitoringIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ClusterMonitoring. If that is not the case, calling type-safe methods of the returned
+// ClusterMonitoringIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a ClusterMonitoringIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToClusterMonitoringIndexInformer(informer cache.SharedIndexInformer) ClusterMonitoringIndexInformer {
+	if informer, ok := informer.(ClusterMonitoringIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1alpha1.ClusterMonitoring](informer)
 }

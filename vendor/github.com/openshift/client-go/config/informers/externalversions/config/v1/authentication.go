@@ -18,11 +18,39 @@ import (
 )
 
 // AuthenticationInformer provides access to a shared informer and lister for
-// Authentications.
+// Authentications. Prefer using the type-safe variant (see [TypedAuthenticationInformer]).
 type AuthenticationInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1.AuthenticationLister
 }
+
+// TypedAuthenticationInformer provides access to a shared informer and lister for
+// Authentications, including the type-safe TypedInformer variant.
+// It is a superset of AuthenticationInformer.
+type TypedAuthenticationInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() AuthenticationIndexInformer
+	Lister() configv1.AuthenticationLister
+}
+
+// AuthenticationIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type AuthenticationIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1.Authentication]
+
+// AuthenticationHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for Authentication.
+type AuthenticationHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1.Authentication]
+
+// AuthenticationDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for Authentication.
+type AuthenticationDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1.Authentication]
+
+// AuthenticationFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for Authentication.
+type AuthenticationFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1.Authentication]
+
+// AuthenticationIndexers is a specialization of [cache.TypedIndexers] for Authentication.
+type AuthenticationIndexers = cache.TypedIndexers[*apiconfigv1.Authentication]
+
+// DeletedAuthentication is a specialization of [cache.DeletedObject] for Authentication.
+type DeletedAuthentication = cache.DeletedObject[*apiconfigv1.Authentication]
 
 type authenticationInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type authenticationInformer struct {
 // NewAuthenticationInformer constructs a new informer for Authentication type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedAuthenticationInformer]).
 func NewAuthenticationInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewAuthenticationInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedAuthenticationInformer constructs a new informer for Authentication type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedAuthenticationInformer(client versioned.Interface, resyncPeriod time.Duration, indexers AuthenticationIndexers) AuthenticationIndexInformer {
+	return NewTypedAuthenticationInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredAuthenticationInformer constructs a new informer for Authentication type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredAuthenticationInformer]).
 func NewFilteredAuthenticationInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewAuthenticationInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedAuthenticationInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredAuthenticationInformer constructs a new informer for Authentication type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredAuthenticationInformer(client versioned.Interface, resyncPeriod time.Duration, indexers AuthenticationIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) AuthenticationIndexInformer {
+	return NewTypedAuthenticationInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewAuthenticationInformerWithOptions constructs a new informer for Authentication type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedAuthenticationInformerWithOptions]).
 func NewAuthenticationInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedAuthenticationInformerWithOptions(client, options)
+}
+
+// NewTypedAuthenticationInformerWithOptions constructs a new informer for Authentication type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedAuthenticationInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) AuthenticationIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "authentications"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Authentication](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewAuthenticationInformerWithOptions(client versioned.Interface, options in
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *authenticationInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewAuthenticationInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedAuthenticationInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *authenticationInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1.Authentication{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *authenticationInformer) TypedInformer() AuthenticationIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Authentication](f.factory.InformerFor(&apiconfigv1.Authentication{}, f.defaultInformer))
 }
 
 func (f *authenticationInformer) Lister() configv1.AuthenticationLister {
 	return configv1.NewAuthenticationLister(f.Informer().GetIndexer())
+}
+
+// ToTypedAuthenticationInformer converts an untyped informer into a TypedAuthenticationInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Authentication. If that is not the case, calling type-safe methods of the returned
+// TypedAuthenticationInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedAuthenticationInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedAuthenticationInformer(informer AuthenticationInformer) TypedAuthenticationInformer {
+	if informer, ok := informer.(TypedAuthenticationInformer); ok {
+		return informer
+	}
+	return &authenticationTypedInformerAdapter{informer}
+}
+
+type authenticationTypedInformerAdapter struct {
+	AuthenticationInformer
+}
+
+func (a *authenticationTypedInformerAdapter) TypedInformer() AuthenticationIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Authentication](a.Informer())
+}
+
+// ToAuthenticationIndexInformer converts an untyped informer into a AuthenticationIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Authentication. If that is not the case, calling type-safe methods of the returned
+// AuthenticationIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a AuthenticationIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToAuthenticationIndexInformer(informer cache.SharedIndexInformer) AuthenticationIndexInformer {
+	if informer, ok := informer.(AuthenticationIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Authentication](informer)
 }

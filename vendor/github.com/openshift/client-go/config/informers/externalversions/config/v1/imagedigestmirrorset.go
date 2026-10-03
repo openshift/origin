@@ -18,11 +18,39 @@ import (
 )
 
 // ImageDigestMirrorSetInformer provides access to a shared informer and lister for
-// ImageDigestMirrorSets.
+// ImageDigestMirrorSets. Prefer using the type-safe variant (see [TypedImageDigestMirrorSetInformer]).
 type ImageDigestMirrorSetInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1.ImageDigestMirrorSetLister
 }
+
+// TypedImageDigestMirrorSetInformer provides access to a shared informer and lister for
+// ImageDigestMirrorSets, including the type-safe TypedInformer variant.
+// It is a superset of ImageDigestMirrorSetInformer.
+type TypedImageDigestMirrorSetInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() ImageDigestMirrorSetIndexInformer
+	Lister() configv1.ImageDigestMirrorSetLister
+}
+
+// ImageDigestMirrorSetIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type ImageDigestMirrorSetIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1.ImageDigestMirrorSet]
+
+// ImageDigestMirrorSetHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for ImageDigestMirrorSet.
+type ImageDigestMirrorSetHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1.ImageDigestMirrorSet]
+
+// ImageDigestMirrorSetDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for ImageDigestMirrorSet.
+type ImageDigestMirrorSetDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1.ImageDigestMirrorSet]
+
+// ImageDigestMirrorSetFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for ImageDigestMirrorSet.
+type ImageDigestMirrorSetFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1.ImageDigestMirrorSet]
+
+// ImageDigestMirrorSetIndexers is a specialization of [cache.TypedIndexers] for ImageDigestMirrorSet.
+type ImageDigestMirrorSetIndexers = cache.TypedIndexers[*apiconfigv1.ImageDigestMirrorSet]
+
+// DeletedImageDigestMirrorSet is a specialization of [cache.DeletedObject] for ImageDigestMirrorSet.
+type DeletedImageDigestMirrorSet = cache.DeletedObject[*apiconfigv1.ImageDigestMirrorSet]
 
 type imageDigestMirrorSetInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type imageDigestMirrorSetInformer struct {
 // NewImageDigestMirrorSetInformer constructs a new informer for ImageDigestMirrorSet type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedImageDigestMirrorSetInformer]).
 func NewImageDigestMirrorSetInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewImageDigestMirrorSetInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedImageDigestMirrorSetInformer constructs a new informer for ImageDigestMirrorSet type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedImageDigestMirrorSetInformer(client versioned.Interface, resyncPeriod time.Duration, indexers ImageDigestMirrorSetIndexers) ImageDigestMirrorSetIndexInformer {
+	return NewTypedImageDigestMirrorSetInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredImageDigestMirrorSetInformer constructs a new informer for ImageDigestMirrorSet type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredImageDigestMirrorSetInformer]).
 func NewFilteredImageDigestMirrorSetInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewImageDigestMirrorSetInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedImageDigestMirrorSetInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredImageDigestMirrorSetInformer constructs a new informer for ImageDigestMirrorSet type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredImageDigestMirrorSetInformer(client versioned.Interface, resyncPeriod time.Duration, indexers ImageDigestMirrorSetIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) ImageDigestMirrorSetIndexInformer {
+	return NewTypedImageDigestMirrorSetInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewImageDigestMirrorSetInformerWithOptions constructs a new informer for ImageDigestMirrorSet type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedImageDigestMirrorSetInformerWithOptions]).
 func NewImageDigestMirrorSetInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedImageDigestMirrorSetInformerWithOptions(client, options)
+}
+
+// NewTypedImageDigestMirrorSetInformerWithOptions constructs a new informer for ImageDigestMirrorSet type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedImageDigestMirrorSetInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) ImageDigestMirrorSetIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "imagedigestmirrorsets"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ImageDigestMirrorSet](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewImageDigestMirrorSetInformerWithOptions(client versioned.Interface, opti
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *imageDigestMirrorSetInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewImageDigestMirrorSetInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedImageDigestMirrorSetInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *imageDigestMirrorSetInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1.ImageDigestMirrorSet{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *imageDigestMirrorSetInformer) TypedInformer() ImageDigestMirrorSetIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ImageDigestMirrorSet](f.factory.InformerFor(&apiconfigv1.ImageDigestMirrorSet{}, f.defaultInformer))
 }
 
 func (f *imageDigestMirrorSetInformer) Lister() configv1.ImageDigestMirrorSetLister {
 	return configv1.NewImageDigestMirrorSetLister(f.Informer().GetIndexer())
+}
+
+// ToTypedImageDigestMirrorSetInformer converts an untyped informer into a TypedImageDigestMirrorSetInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ImageDigestMirrorSet. If that is not the case, calling type-safe methods of the returned
+// TypedImageDigestMirrorSetInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedImageDigestMirrorSetInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedImageDigestMirrorSetInformer(informer ImageDigestMirrorSetInformer) TypedImageDigestMirrorSetInformer {
+	if informer, ok := informer.(TypedImageDigestMirrorSetInformer); ok {
+		return informer
+	}
+	return &imageDigestMirrorSetTypedInformerAdapter{informer}
+}
+
+type imageDigestMirrorSetTypedInformerAdapter struct {
+	ImageDigestMirrorSetInformer
+}
+
+func (a *imageDigestMirrorSetTypedInformerAdapter) TypedInformer() ImageDigestMirrorSetIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ImageDigestMirrorSet](a.Informer())
+}
+
+// ToImageDigestMirrorSetIndexInformer converts an untyped informer into a ImageDigestMirrorSetIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ImageDigestMirrorSet. If that is not the case, calling type-safe methods of the returned
+// ImageDigestMirrorSetIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a ImageDigestMirrorSetIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToImageDigestMirrorSetIndexInformer(informer cache.SharedIndexInformer) ImageDigestMirrorSetIndexInformer {
+	if informer, ok := informer.(ImageDigestMirrorSetIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ImageDigestMirrorSet](informer)
 }

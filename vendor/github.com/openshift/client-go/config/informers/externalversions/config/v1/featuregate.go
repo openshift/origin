@@ -18,11 +18,39 @@ import (
 )
 
 // FeatureGateInformer provides access to a shared informer and lister for
-// FeatureGates.
+// FeatureGates. Prefer using the type-safe variant (see [TypedFeatureGateInformer]).
 type FeatureGateInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1.FeatureGateLister
 }
+
+// TypedFeatureGateInformer provides access to a shared informer and lister for
+// FeatureGates, including the type-safe TypedInformer variant.
+// It is a superset of FeatureGateInformer.
+type TypedFeatureGateInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() FeatureGateIndexInformer
+	Lister() configv1.FeatureGateLister
+}
+
+// FeatureGateIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type FeatureGateIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1.FeatureGate]
+
+// FeatureGateHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for FeatureGate.
+type FeatureGateHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1.FeatureGate]
+
+// FeatureGateDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for FeatureGate.
+type FeatureGateDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1.FeatureGate]
+
+// FeatureGateFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for FeatureGate.
+type FeatureGateFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1.FeatureGate]
+
+// FeatureGateIndexers is a specialization of [cache.TypedIndexers] for FeatureGate.
+type FeatureGateIndexers = cache.TypedIndexers[*apiconfigv1.FeatureGate]
+
+// DeletedFeatureGate is a specialization of [cache.DeletedObject] for FeatureGate.
+type DeletedFeatureGate = cache.DeletedObject[*apiconfigv1.FeatureGate]
 
 type featureGateInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type featureGateInformer struct {
 // NewFeatureGateInformer constructs a new informer for FeatureGate type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFeatureGateInformer]).
 func NewFeatureGateInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewFeatureGateInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedFeatureGateInformer constructs a new informer for FeatureGate type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFeatureGateInformer(client versioned.Interface, resyncPeriod time.Duration, indexers FeatureGateIndexers) FeatureGateIndexInformer {
+	return NewTypedFeatureGateInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredFeatureGateInformer constructs a new informer for FeatureGate type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredFeatureGateInformer]).
 func NewFilteredFeatureGateInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewFeatureGateInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedFeatureGateInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredFeatureGateInformer constructs a new informer for FeatureGate type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredFeatureGateInformer(client versioned.Interface, resyncPeriod time.Duration, indexers FeatureGateIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) FeatureGateIndexInformer {
+	return NewTypedFeatureGateInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewFeatureGateInformerWithOptions constructs a new informer for FeatureGate type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFeatureGateInformerWithOptions]).
 func NewFeatureGateInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedFeatureGateInformerWithOptions(client, options)
+}
+
+// NewTypedFeatureGateInformerWithOptions constructs a new informer for FeatureGate type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFeatureGateInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) FeatureGateIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "featuregates"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.FeatureGate](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewFeatureGateInformerWithOptions(client versioned.Interface, options inter
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *featureGateInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFeatureGateInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedFeatureGateInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *featureGateInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1.FeatureGate{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *featureGateInformer) TypedInformer() FeatureGateIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.FeatureGate](f.factory.InformerFor(&apiconfigv1.FeatureGate{}, f.defaultInformer))
 }
 
 func (f *featureGateInformer) Lister() configv1.FeatureGateLister {
 	return configv1.NewFeatureGateLister(f.Informer().GetIndexer())
+}
+
+// ToTypedFeatureGateInformer converts an untyped informer into a TypedFeatureGateInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *FeatureGate. If that is not the case, calling type-safe methods of the returned
+// TypedFeatureGateInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedFeatureGateInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedFeatureGateInformer(informer FeatureGateInformer) TypedFeatureGateInformer {
+	if informer, ok := informer.(TypedFeatureGateInformer); ok {
+		return informer
+	}
+	return &featureGateTypedInformerAdapter{informer}
+}
+
+type featureGateTypedInformerAdapter struct {
+	FeatureGateInformer
+}
+
+func (a *featureGateTypedInformerAdapter) TypedInformer() FeatureGateIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.FeatureGate](a.Informer())
+}
+
+// ToFeatureGateIndexInformer converts an untyped informer into a FeatureGateIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *FeatureGate. If that is not the case, calling type-safe methods of the returned
+// FeatureGateIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a FeatureGateIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToFeatureGateIndexInformer(informer cache.SharedIndexInformer) FeatureGateIndexInformer {
+	if informer, ok := informer.(FeatureGateIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.FeatureGate](informer)
 }
