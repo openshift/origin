@@ -18,9 +18,10 @@ import (
 
 // This test suite validates that the kubelet TLS configuration can be upgraded
 // from TLS 1.2 to TLS 1.3 via a KubeletConfig resource applied to a custom
-// MachineConfigPool containing a single worker node. Using a custom pool
-// avoids rebooting all workers and makes the test significantly faster.
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] Kubelet TLS configuration", func() {
+// MachineConfigPool containing a single worker node.
+// [Serial] because the MCP rollout restarts kubelet and static pods whose
+// manifests embed TLS settings.
+var _ = g.Describe("[sig-node][Serial] Kubelet TLS configuration", func() {
 	var (
 		oc                = exutil.NewCLIWithoutNamespace("node-kubeletconfig-tls")
 		kubeletConfigName = "tls13-kubelet-config"
@@ -48,6 +49,12 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		testNode := workerNodes[0].Name
 		o.Expect(isNodeInReadyState(&workerNodes[0])).To(o.BeTrue(), "Worker node %s is not in Ready state", testNode)
 		framework.Logf("Selected node %s for TLS upgrade test", testNode)
+
+		g.By("Recording node BootID before TLS change")
+		nodeSnapshot, err := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, testNode, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		originalBootID := nodeSnapshot.Status.NodeInfo.BootID
+		framework.Logf("Node %s BootID before change: %s", testNode, originalBootID)
 
 		g.By("Checking default TLS configuration")
 		nodeCfg, err := getKubeletConfigFromNode(ctx, oc, testNode)
@@ -119,7 +126,12 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		o.Expect(actualTLSVersion).To(o.Equal(expectedTLSVersion),
 			"TLS version should be %q, but got %q", expectedTLSVersion, actualTLSVersion)
 
-		framework.Logf("Successfully verified kubelet TLS upgrade from %s to %s on node %s",
+		g.By("Verifying no node reboot occurred (BootID unchanged)")
+		o.Expect(updatedNode.Status.NodeInfo.BootID).To(o.Equal(originalBootID),
+			"Node %s rebooted (BootID changed from %s to %s), expected only kubelet restart",
+			testNode, originalBootID, updatedNode.Status.NodeInfo.BootID)
+
+		framework.Logf("Successfully verified kubelet TLS upgrade from %s to %s on node %s without reboot",
 			defaultTLSVersion, actualTLSVersion, testNode)
 	})
 })
