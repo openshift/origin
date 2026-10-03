@@ -1065,6 +1065,50 @@ func getNodeEgressIPConfiguration(node *corev1.Node) ([]*NodeEgressIPConfigurati
 	return nodeEgressIPConfigs, nil
 }
 
+// createSecondaryEgressIPTriggerPod creates a pod that starts sending HTTP
+// requests immediately upon startup. It runs agnhost netexec in the background
+// and a curl loop in the foreground targeting the given host:port with the
+// searchString embedded in every request for later identification in sniffer logs.
+func createSecondaryEgressIPTriggerPod(clientset kubernetes.Interface, namespace, podName, targetHost string, targetPort int, searchString string, nodeNames []string) (*corev1.Pod, error) {
+	triggerCmd := fmt.Sprintf(
+		`/agnhost netexec --http-port=8000 & while true; do curl -s --max-time 0.5 --connect-timeout 0.5 "http://localhost:8000/dial?protocol=http&host=%s&port=%d&request=%s" 2>/dev/null; done`,
+		targetHost, targetPort, searchString)
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      podName,
+			Namespace: namespace,
+			Labels:    map[string]string{"app": podName},
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:    "trigger",
+					Image:   imageutils.GetE2EImage(imageutils.Agnhost),
+					Command: []string{"/bin/sh", "-c", triggerCmd},
+				},
+			},
+			Affinity: &corev1.Affinity{
+				NodeAffinity: &corev1.NodeAffinity{
+					RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+						NodeSelectorTerms: []corev1.NodeSelectorTerm{
+							{
+								MatchExpressions: []corev1.NodeSelectorRequirement{
+									{
+										Key:      "kubernetes.io/hostname",
+										Operator: corev1.NodeSelectorOpIn,
+										Values:   nodeNames,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return clientset.CoreV1().Pods(namespace).Create(context.Background(), pod, metav1.CreateOptions{})
+}
+
 // createProberPod creates a prober pod in the proberPodNamespace.
 func createProberPod(oc *exutil.CLI, proberPodNamespace, proberPodName string) *v1.Pod {
 	f := oc.KubeFramework()
@@ -1721,6 +1765,30 @@ func listEgressIPs(oc *exutil.CLI) (*EgressIPList, error) {
 		return nil, err
 	}
 	return egressipList, nil
+}
+
+// removeEgressIPAssignableLabelIfSafe removes the egress-assignable label from
+// a node only if no other EgressIP object is currently assigned there. This
+// prevents parallel tests from pulling a label out from under a running test.
+func removeEgressIPAssignableLabelIfSafe(oc *exutil.CLI, nodeName string) {
+	egressIPs, err := listEgressIPs(oc)
+	if err != nil {
+		framework.Logf("Warning: failed to list EgressIPs for node %s, removing label anyway: %v", nodeName, err)
+		_, _ = runOcWithRetry(oc.AsAdmin(), "label", "node", nodeName, "k8s.ovn.org/egress-assignable-")
+		return
+	}
+
+	for _, eip := range egressIPs.Items {
+		for _, status := range eip.Status.Items {
+			if status.Node == nodeName {
+				framework.Logf("Skipping egress-assignable label removal from %s: EgressIP %s/%s from another test is still assigned",
+					nodeName, eip.Name, status.EgressIP)
+				return
+			}
+		}
+	}
+
+	_, _ = runOcWithRetry(oc.AsAdmin(), "label", "node", nodeName, "k8s.ovn.org/egress-assignable-")
 }
 
 // getEgressIP uses the dynamic admin client to return a pointer to
