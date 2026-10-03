@@ -53,6 +53,55 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Seria
 		_, err := oc.AdminConfigClient().ConfigV1().Networks().Apply(ctx, netConfigApply,
 			metav1.ApplyOptions{FieldManager: fieldManager, Force: true})
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Wait for the network diagnostics namespace to be Active and pods to be running.
+		// This prevents a race where the next test starts before CNO has fully recreated
+		// the namespace after it was deleted by a "disable diagnostics" test.
+		o.Eventually(func() bool {
+			ns, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+			if err != nil {
+				framework.Logf("Waiting for namespace %s: %v", namespace, err)
+				return false
+			}
+			if ns.Status.Phase != corev1.NamespaceActive {
+				framework.Logf("Namespace %s is %s, waiting for Active", namespace, ns.Status.Phase)
+				return false
+			}
+
+			srcPods, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+				LabelSelector: "app=network-check-source"})
+			if err != nil {
+				framework.Logf("Error listing source pods: %v", err)
+				return false
+			}
+			if len(srcPods.Items) == 0 {
+				framework.Logf("No network-check-source pods found yet")
+				return false
+			}
+
+			targetPods, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+				LabelSelector: "app=network-check-target"})
+			if err != nil {
+				framework.Logf("Error listing target pods: %v", err)
+				return false
+			}
+			if len(targetPods.Items) == 0 {
+				framework.Logf("No network-check-target pods found yet")
+				return false
+			}
+
+			cfg, err := oc.AdminConfigClient().ConfigV1().Networks().Get(ctx, clusterConfig, metav1.GetOptions{})
+			if err != nil {
+				framework.Logf("Error getting cluster config: %v", err)
+				return false
+			}
+			if !meta.IsStatusConditionTrue(cfg.Status.Conditions, condition) {
+				framework.Logf("NetworkDiagnosticsAvailable condition is not True yet")
+				return false
+			}
+
+			return true
+		}, 5*time.Minute, 5*time.Second).Should(o.BeTrue())
 	})
 
 	g.It("Should be enabled by default", func(ctx context.Context) {
