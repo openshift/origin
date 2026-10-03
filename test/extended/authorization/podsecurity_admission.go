@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -13,8 +14,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	rest "k8s.io/client-go/rest"
+	"k8s.io/client-go/util/retry"
 	psapi "k8s.io/pod-security-admission/api"
 	"k8s.io/utils/pointer"
 
@@ -22,6 +25,10 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
+
+// labelSyncControlLabel opts a namespace in or out of PSa label syncing. The
+// test framework sets it to "false" on every namespace it creates.
+const labelSyncControlLabel = "security.openshift.io/scc.podSecurityLabelSync"
 
 var sleeperContainer = corev1.Container{
 	Name:    "sleeper",
@@ -33,21 +40,73 @@ var sleeperContainer = corev1.Container{
 var _ = g.Describe("[sig-auth][Feature:PodSecurity]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithPodSecurityLevel("pod-security", psapi.LevelRestricted)
+	g.Context("with restricted level", func() {
+		oc := exutil.NewCLIWithPodSecurityLevel("pod-security", psapi.LevelRestricted)
 
-	g.It("restricted-v2 SCC should mutate empty securityContext to match restricted PSa profile", func() {
-		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "psa-testpod",
-			},
-			Spec: corev1.PodSpec{
-				Containers: []corev1.Container{
-					sleeperContainer,
+		g.It("restricted-v2 SCC should mutate empty securityContext to match restricted PSa profile", func() {
+			pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "psa-testpod",
 				},
-			},
-		}, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())                                                     // the pod passed admission
-		o.Expect(pod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("restricted-v2")) // and the mutating SCC is restricted-v2
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						sleeperContainer,
+					},
+				},
+			}, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())                                                     // the pod passed admission
+			o.Expect(pod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("restricted-v2")) // and the mutating SCC is restricted-v2
+		})
+	})
+
+	g.Context("with baseline level", func() {
+		oc := exutil.NewCLIWithPodSecurityLevel("pod-security", psapi.LevelBaseline)
+
+		g.It("should set correct MinimallySufficientPodSecurityStandard, even though PSA label is set to Baseline", func(ctx context.Context) {
+			// The test framework opts every namespace out of PSa label syncing, so the
+			// sync controller skips it and never computes the annotation.
+			//
+			// Deliberately not setting it to "true": an explicit opt-in makes the
+			// controller force ownership of the PSa labels and overwrite the baseline
+			// levels asserted on below.
+			err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+				namespace, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, oc.Namespace(), metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+
+				delete(namespace.Labels, labelSyncControlLabel)
+
+				_, err = oc.AdminKubeClient().CoreV1().Namespaces().Update(ctx, namespace, metav1.UpdateOptions{})
+				return err
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			verifyNSMetadata := func(ctx context.Context) (bool, error) {
+				namespace, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, oc.Namespace(), metav1.GetOptions{})
+				if err != nil {
+					return false, err
+				}
+
+				if warnLabel, hasWarnLabel := namespace.Labels[psapi.WarnLevelLabel]; hasWarnLabel {
+					if warnLabel != string(psapi.LevelBaseline) {
+						return false, nil
+					}
+				}
+
+				if auditLabel, hasAuditLabel := namespace.Labels[psapi.AuditLevelLabel]; hasAuditLabel {
+					if auditLabel != string(psapi.LevelBaseline) {
+						return false, nil
+					}
+				}
+
+				// The PSa labels must keep the level the user asked for, while the
+				// annotation records the level the namespace's SCCs actually require.
+				return namespace.Annotations[securityv1.MinimallySufficientPodSecurityStandard] == string(psapi.LevelRestricted), nil
+			}
+
+			o.Expect(wait.PollUntilContextTimeout(ctx, 2*time.Second, 1*time.Minute, true, verifyNSMetadata)).NotTo(o.HaveOccurred())
+		})
 	})
 })
 
