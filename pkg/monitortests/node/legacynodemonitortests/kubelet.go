@@ -466,11 +466,20 @@ var invalidImagesRE = []*regexp.Regexp{
 	regexp.MustCompile("invalid.com"),
 
 	// See this test: "should not be able to pull from private registry without secret [NodeConformance]"
-	regexp.MustCompile("3.7 in gcr.io/authenticated-image-pulling/alpine"),
+	regexp.MustCompile(`docker://gcr.io/authenticated-image-pulling/alpine(:|$)`),
 
 	// See this test: "deployment should support proportional scaling"
 	// and "Updating deployment %q with a non-existent image" where they use webserver:404
-	regexp.MustCompile("404 in docker.io/library/webserver"),
+	regexp.MustCompile(`docker://docker.io/library/webserver:404([[:space:]]|$)`),
+
+	// k8s deployment rollover test uses intentionally nonexistent tag
+	regexp.MustCompile(`docker://gcr.io/google_samples/gb-redisslave:nonexistent([[:space:]]|$)`),
+
+	// k8s pod test uses intentionally nonexistent image
+	regexp.MustCompile(`docker://localhost/some-image-that-doesnt-exist(:|$)`),
+
+	// k8s image volume test uses bare "nonexistent" image
+	regexp.MustCompile(`docker://nonexistent(:|$)`),
 }
 
 // namespaceRestriction is an enum for clearly indicating if were only interested in events in openshift- namespaces,
