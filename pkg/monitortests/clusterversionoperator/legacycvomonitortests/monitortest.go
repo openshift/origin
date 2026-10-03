@@ -96,7 +96,7 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 		if err != nil || level == unknownUpgradeLevel {
 			return nil, fmt.Errorf("failed to determine upgrade level: %w", err)
 		}
-		junits = append(junits, testUpgradeOperatorProgressingStateTransitions(finalIntervals, level == patchUpgradeLevel)...)
+		junits = append(junits, testUpgradeOperatorProgressingStateTransitions(finalIntervals, level == patchUpgradeLevel, w.adminRESTConfig)...)
 	} else {
 		junits = append(junits, testStableSystemOperatorStateTransitions(finalIntervals, w.adminRESTConfig)...)
 	}
