@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -378,4 +379,284 @@ func (gv *GPUValidator) GetGPUCountInPod(ctx context.Context, namespace, podName
 	}
 
 	return count, nil
+}
+
+const debugPodImage = "registry.access.redhat.com/ubi9/ubi-minimal:latest"
+
+// ClaimStatusInfo holds structured status info for a ResourceClaim
+type ClaimStatusInfo struct {
+	Allocated   bool
+	ReservedFor []string
+	DeviceCount int
+	Devices     []DeviceInfo
+}
+
+// DeviceInfo describes an allocated device
+type DeviceInfo struct {
+	Driver  string
+	Pool    string
+	Device  string
+	Request string
+}
+
+// createDebugPod creates a privileged host-access pod on the specified node
+func (gv *GPUValidator) createDebugPod(ctx context.Context, nodeName, podName string) (*corev1.Pod, error) {
+	hostPathType := corev1.HostPathDirectory
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      podName,
+			Namespace: gv.framework.Namespace.Name,
+		},
+		Spec: corev1.PodSpec{
+			RestartPolicy: corev1.RestartPolicyNever,
+			HostPID:       true,
+			HostNetwork:   true,
+			NodeSelector:  map[string]string{"kubernetes.io/hostname": nodeName},
+			Containers: []corev1.Container{
+				{
+					Name:    "debug",
+					Image:   debugPodImage,
+					Command: []string{"sleep", "3600"},
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							Name:      "host-root",
+							MountPath: "/host",
+						},
+					},
+					SecurityContext: &corev1.SecurityContext{
+						Privileged: ptr.To(true),
+					},
+				},
+			},
+			Volumes: []corev1.Volume{
+				{
+					Name: "host-root",
+					VolumeSource: corev1.VolumeSource{
+						HostPath: &corev1.HostPathVolumeSource{
+							Path: "/",
+							Type: &hostPathType,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	created, err := gv.client.CoreV1().Pods(gv.framework.Namespace.Name).Create(ctx, pod, metav1.CreateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create debug pod %s: %w", podName, err)
+	}
+
+	if err := e2epod.WaitForPodRunningInNamespace(ctx, gv.client, created); err != nil {
+		gv.deleteDebugPod(ctx, podName)
+		return nil, fmt.Errorf("debug pod %s failed to start: %w", podName, err)
+	}
+
+	return created, nil
+}
+
+// deleteDebugPod removes a debug pod
+func (gv *GPUValidator) deleteDebugPod(ctx context.Context, podName string) {
+	gracePeriod := int64(0)
+	err := gv.client.CoreV1().Pods(gv.framework.Namespace.Name).Delete(ctx, podName, metav1.DeleteOptions{
+		GracePeriodSeconds: &gracePeriod,
+	})
+	if err != nil {
+		framework.Logf("Warning: failed to delete debug pod %s: %v", podName, err)
+	}
+}
+
+// ValidateGPUInContainer validates GPU accessibility in a specific container
+func (gv *GPUValidator) ValidateGPUInContainer(ctx context.Context, namespace, podName, containerName string, expectedGPUCount int) error {
+	framework.Logf("Validating GPU accessibility in pod %s/%s container %s (expected %d GPUs)", namespace, podName, containerName, expectedGPUCount)
+
+	nvidiaSmiCmd := []string{"nvidia-smi", "--query-gpu=index,name", "--format=csv,noheader"}
+	stdout, stderr, err := e2epod.ExecWithOptions(gv.framework, e2epod.ExecOptions{
+		Command:       nvidiaSmiCmd,
+		Namespace:     namespace,
+		PodName:       podName,
+		ContainerName: containerName,
+		CaptureStdout: true,
+		CaptureStderr: true,
+	})
+	output := stdout + stderr
+	if err != nil {
+		return fmt.Errorf("failed to execute nvidia-smi in pod %s/%s container %s: %w\nOutput: %s",
+			namespace, podName, containerName, err, output)
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	actualGPUCount := 0
+	for _, line := range lines {
+		if strings.TrimSpace(line) != "" {
+			actualGPUCount++
+		}
+	}
+
+	if actualGPUCount != expectedGPUCount {
+		return fmt.Errorf("expected %d GPUs but found %d in pod %s/%s container %s\nnvidia-smi output:\n%s",
+			expectedGPUCount, actualGPUCount, namespace, podName, containerName, output)
+	}
+
+	framework.Logf("Successfully validated %d GPU(s) in pod %s/%s container %s", actualGPUCount, namespace, podName, containerName)
+	return nil
+}
+
+// ValidateCDISpecFilesOnNode checks that CDI spec files exist under /var/run/cdi/ on the node
+func (gv *GPUValidator) ValidateCDISpecFilesOnNode(ctx context.Context, nodeName string) error {
+	framework.Logf("Validating CDI spec files on node %s", nodeName)
+
+	debugPodName := "cdi-spec-check-" + nodeName
+	_, err := gv.createDebugPod(ctx, nodeName, debugPodName)
+	if err != nil {
+		return fmt.Errorf("failed to create debug pod on node %s: %w", nodeName, err)
+	}
+	defer gv.deleteDebugPod(ctx, debugPodName)
+
+	lsCmd := []string{"ls", "/host/var/run/cdi/"}
+	stdout, stderr, err := e2epod.ExecWithOptions(gv.framework, e2epod.ExecOptions{
+		Command:       lsCmd,
+		Namespace:     gv.framework.Namespace.Name,
+		PodName:       debugPodName,
+		ContainerName: "debug",
+		CaptureStdout: true,
+		CaptureStderr: true,
+	})
+	output := stdout + stderr
+	if err != nil {
+		return fmt.Errorf("failed to list CDI spec files on node %s: %w\nOutput: %s", nodeName, err, output)
+	}
+
+	files := strings.TrimSpace(output)
+	if files == "" {
+		return fmt.Errorf("no CDI spec files found under /var/run/cdi/ on node %s", nodeName)
+	}
+
+	framework.Logf("Found CDI spec files on node %s:\n%s", nodeName, files)
+	return nil
+}
+
+// ValidateNoSELinuxDenials checks that there are no recent AVC denials matching the given keyword
+func (gv *GPUValidator) ValidateNoSELinuxDenials(ctx context.Context, nodeName string, processKeyword string) error {
+	framework.Logf("Checking for SELinux AVC denials on node %s matching %q", nodeName, processKeyword)
+
+	debugPodName := "selinux-check-" + nodeName
+	_, err := gv.createDebugPod(ctx, nodeName, debugPodName)
+	if err != nil {
+		return fmt.Errorf("failed to create debug pod on node %s: %w", nodeName, err)
+	}
+	defer gv.deleteDebugPod(ctx, debugPodName)
+
+	ausearchCmd := []string{"chroot", "/host", "bash", "-c", "ausearch -m AVC -ts recent 2>/dev/null || true"}
+	stdout, stderr, err := e2epod.ExecWithOptions(gv.framework, e2epod.ExecOptions{
+		Command:       ausearchCmd,
+		Namespace:     gv.framework.Namespace.Name,
+		PodName:       debugPodName,
+		ContainerName: "debug",
+		CaptureStdout: true,
+		CaptureStderr: true,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to run ausearch on node %s: %w\nStderr: %s", nodeName, err, stderr)
+	}
+
+	output := strings.TrimSpace(stdout)
+	if output == "" || strings.Contains(output, "<no matches>") {
+		framework.Logf("No AVC denials found on node %s", nodeName)
+		return nil
+	}
+
+	var matchingDenials []string
+	for _, line := range strings.Split(output, "\n") {
+		if strings.Contains(strings.ToLower(line), strings.ToLower(processKeyword)) {
+			matchingDenials = append(matchingDenials, line)
+		}
+	}
+
+	if len(matchingDenials) > 0 {
+		return fmt.Errorf("found %d SELinux AVC denial(s) matching %q on node %s:\n%s",
+			len(matchingDenials), processKeyword, nodeName, strings.Join(matchingDenials, "\n"))
+	}
+
+	framework.Logf("No AVC denials matching %q on node %s", processKeyword, nodeName)
+	return nil
+}
+
+// ValidateSELinuxEnforcing verifies that SELinux is in Enforcing mode on the node
+func (gv *GPUValidator) ValidateSELinuxEnforcing(ctx context.Context, nodeName string) error {
+	framework.Logf("Checking SELinux mode on node %s", nodeName)
+
+	debugPodName := "selinux-mode-" + nodeName
+	_, err := gv.createDebugPod(ctx, nodeName, debugPodName)
+	if err != nil {
+		return fmt.Errorf("failed to create debug pod on node %s: %w", nodeName, err)
+	}
+	defer gv.deleteDebugPod(ctx, debugPodName)
+
+	getenforceCmd := []string{"chroot", "/host", "getenforce"}
+	stdout, stderr, err := e2epod.ExecWithOptions(gv.framework, e2epod.ExecOptions{
+		Command:       getenforceCmd,
+		Namespace:     gv.framework.Namespace.Name,
+		PodName:       debugPodName,
+		ContainerName: "debug",
+		CaptureStdout: true,
+		CaptureStderr: true,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to run getenforce on node %s: %w\nStderr: %s", nodeName, err, stderr)
+	}
+
+	mode := strings.TrimSpace(stdout)
+	if mode != "Enforcing" {
+		return fmt.Errorf("SELinux is %q on node %s, expected Enforcing", mode, nodeName)
+	}
+
+	framework.Logf("SELinux is Enforcing on node %s", nodeName)
+	return nil
+}
+
+// GetPodSCC returns the SCC annotation value for a pod
+func (gv *GPUValidator) GetPodSCC(ctx context.Context, namespace, podName string) (string, error) {
+	pod, err := gv.client.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get pod %s/%s: %w", namespace, podName, err)
+	}
+
+	scc := pod.Annotations["openshift.io/scc"]
+	framework.Logf("Pod %s/%s SCC annotation: %q", namespace, podName, scc)
+	return scc, nil
+}
+
+// ValidateClaimStatus returns structured status information for a ResourceClaim
+func (gv *GPUValidator) ValidateClaimStatus(ctx context.Context, namespace, claimName string) (*ClaimStatusInfo, error) {
+	framework.Logf("Getting ResourceClaim status for %s/%s", namespace, claimName)
+
+	claim, err := gv.client.ResourceV1().ResourceClaims(namespace).Get(ctx, claimName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ResourceClaim %s/%s: %w", namespace, claimName, err)
+	}
+
+	info := &ClaimStatusInfo{}
+	info.Allocated = claim.Status.Allocation != nil
+
+	for _, ref := range claim.Status.ReservedFor {
+		info.ReservedFor = append(info.ReservedFor, string(ref.UID))
+	}
+
+	if claim.Status.Allocation != nil {
+		results := claim.Status.Allocation.Devices.Results
+		info.DeviceCount = len(results)
+		for _, result := range results {
+			info.Devices = append(info.Devices, DeviceInfo{
+				Driver:  result.Driver,
+				Pool:    result.Pool,
+				Device:  result.Device,
+				Request: result.Request,
+			})
+		}
+	}
+
+	framework.Logf("ResourceClaim %s/%s: allocated=%v, reservedFor=%d, devices=%d",
+		namespace, claimName, info.Allocated, len(info.ReservedFor), info.DeviceCount)
+	return info, nil
 }

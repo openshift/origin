@@ -50,6 +50,34 @@ var (
 	prerequisitesError     error
 )
 
+// ensurePrerequisites validates the NVIDIA GPU stack exactly once per process and records the
+// outcome in prerequisitesInstalled/prerequisitesError. Every Describe in this package calls it
+// from BeforeEach, so the gate is populated no matter which spec Ginkgo happens to run first.
+func ensurePrerequisites(ctx context.Context, prereqInstaller *PrerequisitesInstaller) {
+	prerequisitesOnce.Do(func() {
+		framework.Logf("Checking NVIDIA GPU stack prerequisites")
+
+		// Check if prerequisites are already installed
+		if prereqInstaller.IsGPUOperatorInstalled(ctx) && prereqInstaller.IsDRADriverInstalled(ctx) {
+			framework.Logf("Prerequisites already installed, skipping installation")
+			prerequisitesInstalled = true
+			return
+		}
+
+		framework.Logf("Validating GPU Operator and installing DRA driver if needed...")
+		// Validate GPU Operator presence and install DRA driver
+		if err := prereqInstaller.InstallAll(ctx); err != nil {
+			prerequisitesError = err
+			framework.Logf("ERROR: Failed to validate/install prerequisites: %v", err)
+			framework.Logf("Ensure GPU Operator is installed on the cluster before running these tests")
+			return
+		}
+
+		prerequisitesInstalled = true
+		framework.Logf("Prerequisites validation completed successfully")
+	})
+}
+
 var _ = g.Describe("[sig-scheduling][Feature:NVIDIA-DRA][Suite:openshift/nvidia-dra][Serial]", func() {
 	defer g.GinkgoRecover()
 
@@ -81,28 +109,7 @@ var _ = g.Describe("[sig-scheduling][Feature:NVIDIA-DRA][Suite:openshift/nvidia-
 		// Install prerequisites if needed (runs once via sync.Once)
 		// NOTE: GPU Operator must be pre-installed on the cluster
 		// Tests will validate GPU Operator presence and install DRA driver if needed
-		prerequisitesOnce.Do(func() {
-			framework.Logf("Checking NVIDIA GPU stack prerequisites")
-
-			// Check if prerequisites are already installed
-			if prereqInstaller.IsGPUOperatorInstalled(ctx) && prereqInstaller.IsDRADriverInstalled(ctx) {
-				framework.Logf("Prerequisites already installed, skipping installation")
-				prerequisitesInstalled = true
-				return
-			}
-
-			framework.Logf("Validating GPU Operator and installing DRA driver if needed...")
-			// Validate GPU Operator presence and install DRA driver
-			if err := prereqInstaller.InstallAll(ctx); err != nil {
-				prerequisitesError = err
-				framework.Logf("ERROR: Failed to validate/install prerequisites: %v", err)
-				framework.Logf("Ensure GPU Operator is installed on the cluster before running these tests")
-				return
-			}
-
-			prerequisitesInstalled = true
-			framework.Logf("Prerequisites validation completed successfully")
-		})
+		ensurePrerequisites(ctx, prereqInstaller)
 
 		// Verify prerequisites are installed
 		if prerequisitesError != nil {
