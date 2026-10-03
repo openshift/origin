@@ -11,6 +11,7 @@ import (
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
+	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/sirupsen/logrus"
@@ -50,7 +51,19 @@ func getPlatformType(clientConfig *rest.Config) (configv1.PlatformType, error) {
 	return infra.Status.PlatformStatus.Type, nil
 }
 
-func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
+func isROSACluster(clientConfig *rest.Config) (bool, error) {
+	configClient, err := configclient.NewForConfig(clientConfig)
+	if err != nil {
+		return false, fmt.Errorf("error creating configClient: %v", err)
+	}
+	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false, fmt.Errorf("error getting cluster infrastructure: %v", err)
+	}
+	return extensions.IsROSACluster(infra.Status.PlatformStatus), nil
+}
+
+func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Config, skipROSA bool) []*junitapi.JUnitTestCase {
 	const testName = "[sig-network] pods should successfully create sandboxes"
 	// we can further refine this signal by subdividing different failure modes if it is pertinent.  Right now I'm seeing
 	// 1. error reading container (probably exited) json message: EOF
@@ -70,6 +83,17 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 		{by: " by initializing docker source", substring: `can't talk to a V1 container registry`},
 		{by: " by binding hostport", substring: "failed to add hostport"},
 		{by: " by other", substring: " "}, // always matches
+	}
+
+	if skipROSA {
+		ret := make([]*junitapi.JUnitTestCase, 0, len(bySubStrings))
+		for _, by := range bySubStrings {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name:        testName + by.by,
+				SkipMessage: &junitapi.SkipMessage{Message: "not applicable to ROSA"},
+			})
+		}
+		return ret
 	}
 
 	failures := []string{}
@@ -488,8 +512,14 @@ func testNoExcessiveDNSDisruption(events monitorapi.Intervals) []*junitapi.JUnit
 	}
 }
 
-func testNoOVSVswitchdUnreasonablyLongPollIntervals(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func testNoOVSVswitchdUnreasonablyLongPollIntervals(events monitorapi.Intervals, skipROSA bool) []*junitapi.JUnitTestCase {
 	const testName = "[sig-network] ovs-vswitchd should not log any unreasonably long poll intervals to system journal"
+	if skipROSA {
+		return []*junitapi.JUnitTestCase{{
+			Name:        testName,
+			SkipMessage: &junitapi.SkipMessage{Message: "not applicable to ROSA"},
+		}}
+	}
 	success := &junitapi.JUnitTestCase{Name: testName}
 
 	var failures []string
