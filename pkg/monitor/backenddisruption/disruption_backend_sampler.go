@@ -409,6 +409,14 @@ func (b *BackendSampler) CheckConnection(ctx context.Context) (string, error) {
 		sampleErr = bodyReadErr
 	case b.expectedStatusCode > 0 && b.expectedStatusCode == resp.StatusCode:
 		// don't fail
+	case b.GetConnectionType() == monitorapi.ReusedConnectionType && resp.StatusCode == 429 && bytes.Contains(body, []byte(`The apiserver is shutting down, please try again later.`)):
+		// This is the response sent by API servers in the final stage of graceful shutdown
+		// when --shutdown-send-retry-after is enabled. The REST client in k8s.io/client-go
+		// recognizes it and automatically retries without exposing an error to the client
+		// program. It is designed to shunt clients to other API servers that are not
+		// shutting down. Only requests on reused connections should see this, because we
+		// expect terminating API servers to be disabled as load balancer backends before
+		// this stage of the shutdown process.
 	case resp.StatusCode < 200 || resp.StatusCode > 399:
 		sampleErr = fmt.Errorf("error running request: %v: %v", resp.Status, string(body))
 	default:
