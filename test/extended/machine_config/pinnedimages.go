@@ -57,7 +57,7 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 	)
 
 	g.BeforeEach(func(ctx context.Context) {
-		//skip these tests on hypershift platforms
+		// skip these tests on hypershift platforms
 		if ok, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient()); ok {
 			g.Skip("PinnedImages is not supported on hypershift. Skipping tests.")
 		}
@@ -464,10 +464,10 @@ func detectXCondition(oc *exutil.CLI, node corev1.Node, mcn *mcfgv1.MachineConfi
 //  3. Get the nodes part of the MCP from step 2
 //  4. Loop through the nodes to see if the desired conditions are met
 //     - If the PIS is expected to be invalid, it checks that the degrade condition in the
-//     corresponding MCN becomes "true"
+//     corresponding MCN becomes "true" and that the associated MCP degrades
 //     - If the PIS is expected to be valid, it checks that the desired images are pinned on the
 //     corresponding nodes and that the MCN conditions properly report the success
-func waitForPISStatusX(ctx context.Context, oc *exutil.CLI, kubeClient *kubernetes.Clientset, clientSet *mcClient.Clientset, pisName string, success bool, isMetalDisconnected bool) error {
+func waitForPISStatusX(ctx context.Context, oc *exutil.CLI, kubeClient *kubernetes.Clientset, clientSet *mcClient.Clientset, pisName string, success, isMetalDisconnected bool) error {
 	return wait.PollUntilContextCancel(ctx, time.Second, true, func(ctx context.Context) (done bool, err error) {
 		// Wait for PIS object to get created
 		appliedPIS, err := clientSet.MachineconfigurationV1().PinnedImageSets().Get(context.TODO(), pisName, metav1.GetOptions{})
@@ -493,11 +493,24 @@ func waitForPISStatusX(ctx context.Context, oc *exutil.CLI, kubeClient *kubernet
 		// Loop through nodes to see if the conditions required to consider the pis apply "done" are met
 		doneNodes := 0
 		for _, node := range nodes.Items {
-			if !success { // handle case when we are expecting the PIS application to fail, so the PIS degraded condition should become true
+			if !success { // handle case when we are expecting the PIS application to fail
+				// The `PinnedImageSetsDegraded` MachineConfigNode condition should be `True`
 				framework.Logf("Waiting for PinnedImageSetsDegraded=True")
 				conditionMet, err := WaitForMCNConditionStatus(clientSet, node.Name, mcfgv1.MachineConfigNodePinnedImageSetsDegraded, metav1.ConditionTrue, 2*time.Minute, 5*time.Second)
 				o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for PinnedImageSetsDegraded=True: %v", err))
 				o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect PinnedImageSetsDegraded=True.")
+
+				// The associated MachineConfigPool should degrade
+				framework.Logf("Waiting for MCP `%v` to be Degraded=True", pool.Name)
+				err = WaitForMCPConditionStatus(oc, pool.Name, mcfgv1.MachineConfigPoolDegraded, corev1.ConditionTrue, 30*time.Second, 5*time.Second)
+				o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for MachineConfigPoolDegraded=True: %v", err))
+
+				// The associated MachineConfigPool should not be in an "Updating" state
+				framework.Logf("Ensuring MCP `%v` is in Updating=False", pool.Name)
+				pool, err = clientSet.MachineconfigurationV1().MachineConfigPools().Get(ctx, appliedPIS.Labels["machineconfiguration.openshift.io/role"], metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error getting MCP: %v", err))
+				isExpected := IsMachineConfigPoolConditionExpected(pool.Status.Conditions, mcfgv1.MachineConfigPoolUpdating, corev1.ConditionFalse)
+				o.Expect(isExpected).To(o.BeTrue(), fmt.Sprintf("MCP `%v` does not have condition Updating=False", pool.Name))
 			} else { // handle cases where we are expecting the PIS application to succeed
 				mcn, err := clientSet.MachineconfigurationV1().MachineConfigNodes().Get(ctx, node.Name, metav1.GetOptions{})
 				if err != nil {

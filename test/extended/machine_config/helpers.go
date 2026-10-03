@@ -187,11 +187,12 @@ func WaitForMachineConfigurationStatusUpdate(oc *exutil.CLI) {
 	}, 3*time.Minute, 1*time.Second).MustPassRepeatedly(3).Should(o.BeTrue())
 }
 
-// IsMachineConfigPoolConditionTrue returns true when the conditionType is present and set to `ConditionTrue`
-func IsMachineConfigPoolConditionTrue(conditions []mcfgv1.MachineConfigPoolCondition, conditionType mcfgv1.MachineConfigPoolConditionType) bool {
+// IsMachineConfigPoolConditionExpected returns true when the conditionType is present and set to
+// the expected conditionStatus
+func IsMachineConfigPoolConditionExpected(conditions []mcfgv1.MachineConfigPoolCondition, conditionType mcfgv1.MachineConfigPoolConditionType, conditionStatus corev1.ConditionStatus) bool {
 	for _, condition := range conditions {
 		if condition.Type == conditionType {
-			return condition.Status == corev1.ConditionTrue
+			return condition.Status == conditionStatus
 		}
 	}
 	return false
@@ -249,8 +250,8 @@ func WaitForOneMasterNodeToBeReady(oc *exutil.CLI) error {
 		}
 		// Check if the pool has atleast one updated node(mid-upgrade), or if the pool has completed the upgrade to the new config(the additional check for spec==status here is
 		// to ensure we are not checking an older "Updated" condition and the MCP fields haven't caught up yet
-		if (IsMachineConfigPoolConditionTrue(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdating) && mcp.Status.UpdatedMachineCount > 0) ||
-			(IsMachineConfigPoolConditionTrue(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated) && (mcp.Spec.Configuration.Name == mcp.Status.Configuration.Name)) {
+		if (IsMachineConfigPoolConditionExpected(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdating, corev1.ConditionTrue) && mcp.Status.UpdatedMachineCount > 0) ||
+			(IsMachineConfigPoolConditionExpected(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated, corev1.ConditionTrue) && (mcp.Spec.Configuration.Name == mcp.Status.Configuration.Name)) {
 			return true
 		}
 		framework.Logf("Waiting for atleast one ready control-plane node")
@@ -431,7 +432,7 @@ func WaitForMCPToBeReady(oc *exutil.CLI, machineConfigClient *machineconfigclien
 			return false
 		}
 		// Check if the pool is in an updated state with the correct number of ready machines
-		if IsMachineConfigPoolConditionTrue(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated) && mcp.Status.UpdatedMachineCount == readyMachineCount {
+		if IsMachineConfigPoolConditionExpected(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated, corev1.ConditionTrue) && mcp.Status.UpdatedMachineCount == readyMachineCount {
 			framework.Logf("MCP '%v' has the desired %v ready machines.", poolName, mcp.Status.UpdatedMachineCount)
 			return true
 		}
@@ -468,7 +469,6 @@ func CleanupCustomMCP(oc *exutil.CLI, clientSet *machineconfigclient.Clientset, 
 		deleteMCErr := oc.Run("delete").Args("machineconfig", *mcName).Execute()
 		if deleteMCErr != nil {
 			return fmt.Errorf("could delete MachineConfig '%v'; err: %v", mcName, deleteMCErr)
-
 		}
 	}
 
@@ -575,8 +575,8 @@ func WaitForMCPConditionStatus(oc *exutil.CLI, mcpName string, conditionType mcf
 // "Unknown," the function will also return true if the condition is "True," which ensures that we
 // do not fail when an update progresses quickly through the intermediary "Unknown" phase.
 func WaitForMCNConditionStatus(clientSet *machineconfigclient.Clientset, mcnName string, conditionType mcfgv1.StateProgress, status metav1.ConditionStatus,
-	timeout time.Duration, interval time.Duration) (bool, error) {
-
+	timeout time.Duration, interval time.Duration,
+) (bool, error) {
 	conditionMet := false
 	var conditionErr error
 	var workerNodeMCN *mcfgv1.MachineConfigNode
@@ -868,9 +868,9 @@ func WaitForMachineInState(machineClient *machineclient.Clientset, machineName s
 func GetNodeInMachine(oc *exutil.CLI, machineName string) (corev1.Node, error) {
 	// Get name of nodes associated with the desired machine
 	nodeNames, nodeNamesErr := oc.Run("get").Args("nodes", "-o", fmt.Sprintf(`jsonpath='{.items[?(@.metadata.annotations.machine\.openshift\.io/machine=="openshift-machine-api/%v")].metadata.name}'`, machineName)).Output()
-	if nodeNamesErr != nil { //error getting filtered node names
+	if nodeNamesErr != nil { // error getting filtered node names
 		return corev1.Node{}, nodeNamesErr
-	} else if nodeNames == "" { //error when no nodes are found
+	} else if nodeNames == "" { // error when no nodes are found
 		return corev1.Node{}, fmt.Errorf("no node is linked to Machine: %s", machineName)
 	}
 
@@ -878,12 +878,12 @@ func GetNodeInMachine(oc *exutil.CLI, machineName string) (corev1.Node, error) {
 	// Note: the format of `nodeNames` is the names of nodes seperated by a space (ex: "node-name-1 node-name-2"),
 	// so the number of nodes is equal to one more than the number of spaces
 	numberOfNodeNames := strings.Count(nodeNames, " ") + 1
-	if numberOfNodeNames > 1 { //error when a machine has more than one node
+	if numberOfNodeNames > 1 { // error when a machine has more than one node
 		return corev1.Node{}, fmt.Errorf("more than one node is linked to Machine: %s; number of nodes: %d", machineName, numberOfNodeNames)
 	}
 
 	node, nodeErr := oc.AsAdmin().KubeClient().CoreV1().Nodes().Get(context.TODO(), strings.ReplaceAll(nodeNames, "'", ""), metav1.GetOptions{})
-	if nodeErr != nil { //error getting filtered node names
+	if nodeErr != nil { // error getting filtered node names
 		return corev1.Node{}, nodeErr
 	}
 
@@ -1031,7 +1031,8 @@ func ScaleMachineSetDown(oc *exutil.CLI, machineSet machinev1beta1.MachineSet, d
 // `CleanupProvisionedMachine` scales down the replica count for a given MachineSet and checks whether the
 // provisioned Machine provided is deleted.
 func CleanupProvisionedMachine(oc *exutil.CLI, machineClient *machineclient.Clientset, machineSetName string, desiredReplicaValue int,
-	machineName string, cleanupCompleted bool) error {
+	machineName string, cleanupCompleted bool,
+) error {
 	// Skip when cleanup is not needed
 	if cleanupCompleted {
 		return nil
@@ -1182,10 +1183,12 @@ func execCmdOnNode(oc *exutil.CLI, node corev1.Node, subArgs ...string) (*exec.C
 	mcdName := mcd.ObjectMeta.Name
 
 	entryPoint := path
-	args := []string{"rsh",
+	args := []string{
+		"rsh",
 		"-n", "openshift-machine-config-operator",
 		"-c", "machine-config-daemon",
-		mcdName}
+		mcdName,
+	}
 	args = append(args, subArgs...)
 
 	cmd := exec.Command(entryPoint, args...)
@@ -1296,7 +1299,7 @@ func WaitForPoolComplete(oc *exutil.CLI, pool, target string) error {
 		if mcp.Status.Configuration.Name != target {
 			return false
 		}
-		if IsMachineConfigPoolConditionTrue(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated) {
+		if IsMachineConfigPoolConditionExpected(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated, corev1.ConditionTrue) {
 			return true
 		}
 		return false
