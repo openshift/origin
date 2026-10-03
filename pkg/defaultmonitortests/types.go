@@ -56,6 +56,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/dnsdisruptionstats"
 	"github.com/openshift/origin/pkg/monitortests/testframework/e2etestanalyzer"
+	"github.com/openshift/origin/pkg/monitortests/testframework/etcddbsizemetriccollector"
 	"github.com/openshift/origin/pkg/monitortests/testframework/etcddiskmetricsintervals"
 	"github.com/openshift/origin/pkg/monitortests/testframework/highcputestanalyzer"
 
@@ -239,6 +240,7 @@ func newDisruptiveMonitorTests(info monitortestframework.MonitorTestInitializati
 	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer(monitortestframework.AsFlake))
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-etcd-invariants", "etcd", legacyetcdmonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("etcd-disk-metrics-intervals", "etcd", etcddiskmetricsintervals.NewEtcdDiskMetricsCollector())
+	monitorTestRegistry.AddMonitorTestOrDie("etcd-db-size-metric-collector", "etcd", etcddbsizemetriccollector.NewEtcdDBSizeMetricCollector())
 
 	// kube-apiserver
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-kube-apiserver-invariants", "kube-apiserver", legacykubeapiservermonitortests.NewLegacyTests())
