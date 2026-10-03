@@ -2,11 +2,11 @@ package images
 
 import (
 	"context"
+	"strings"
 
-	"github.com/MakeNowJust/heredoc"
 	g "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
 
-	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -28,16 +28,41 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageInfo] Image info", func() {
 
 	g.It("should display information about images [apigroup:image.openshift.io]", func() {
 		ns = oc.Namespace()
-		cli := e2epod.PodClientNS(oc.KubeFramework(), ns)
-		pod := cli.Create(context.TODO(), cliPodWithPullSecret(oc, heredoc.Docf(`
-			set -x
+		payloadImage, err := oc.AsAdmin().Run("get").Args("clusterversion", "version", "-o", "jsonpath={.status.desired.image}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get current payload image from clusterversion")
+		payloadImage = strings.TrimSpace(payloadImage)
+		o.Expect(payloadImage).NotTo(o.BeEmpty())
 
-			# display info about an image on quay.io
-			oc image info quay.io/openshift-release-dev/ocp-release:4.18.3-x86_64
+		var out string
+		cleanup, regArgs, prepErr := exutil.PrepareImagePullSecretAndCABundle(oc)
+		if cleanup != nil {
+			defer cleanup()
+		}
 
-			# display info about an image in json format
-			oc image info quay.io/openshift-release-dev/ocp-release:4.18.3-x86_64 -o json
-		`)))
-		cli.WaitForSuccess(context.TODO(), pod.Name, podStartupTimeout)
+		if prepErr != nil {
+			o.Expect(prepErr).NotTo(o.HaveOccurred(), "Failed to prepare image pull secrets")
+		}
+
+		args := append([]string{"info", payloadImage}, regArgs...)
+		out, err = oc.AsAdmin().Run("image").Args(args...).Output()
+
+		if err != nil {
+			ctx := context.Background()
+			isHyperShift, hsErr := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+			o.Expect(hsErr).NotTo(o.HaveOccurred())
+			if isHyperShift {
+				g.Skip("Skipping on HyperShift: runner requires external outbound access to registry")
+			}
+			o.Expect(err).NotTo(o.HaveOccurred(), "oc image info failed on a standard cluster")
+		}
+		o.Expect(out).To(o.ContainSubstring("Digest:"))
+		o.Expect(out).To(o.MatchRegexp(`Name:\s+.*`))
+
+		//Test the json output
+		argsJson := append([]string{"info", payloadImage, "-o", "json"}, regArgs...)
+		outJson, errJson := oc.AsAdmin().Run("image").Args(argsJson...).Output()
+		o.Expect(errJson).NotTo(o.HaveOccurred())
+		o.Expect(outJson).To(o.ContainSubstring(`"digest":`))
+		o.Expect(outJson).To(o.MatchRegexp(`"name":\s+.*`))
 	})
 })
