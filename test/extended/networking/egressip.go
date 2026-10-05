@@ -755,7 +755,9 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			nftChainFound := make(chan bool, 1)
 			stopChecking := make(chan bool, 1)
 			goroutineReady := make(chan bool, 1)
-			nftChainCheckCmd := "nft -j list chains | jq '.nftables[] | select(.chain.table==\"ovn-kubernetes-egressip\" and .chain.family==\"netdev\" and .chain.name==\"egressip-drop\").chain'"
+			// Use direct nft chain query - simpler and more reliable than pipes
+			// This command will succeed and output chain details if the chain exists, fail if not
+			nftChainCheckCmd := "nft list chain netdev ovn-kubernetes-egressip egressip-drop"
 
 			go func() {
 				defer close(nftChainFound)
