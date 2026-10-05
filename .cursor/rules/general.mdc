@@ -9,6 +9,10 @@ Sources under **`.apm/`** (instructions, prompts, `apm.yml`, etc.) drive generat
 
 **Slash / agent commands:** content under **`.apm/prompts/*.prompt.md`** is the single source of truth. **`apm install`** (part of **`make apm`**) copies each prompt into editor command targets (e.g. **`.claude/commands/`**, **`.opencode/commands/`**, **`.gemini/commands/`**). Do not add those generated paths by hand or installs will skip them as unmanaged duplicates.
 
+### Retry allowlist policy
+
+**`pkg/test/ginkgo/retry_allowed_tests.yaml`** is strictly shrink-only. Never add tests to it. Remove an entry only when its underlying flake is fixed. If a requested change conflicts with this policy, stop and ask for human direction.
+
 ### Repository overview
 
 **openshift/origin** builds the `openshift-tests` binary — the orchestrator for all OpenShift end-to-end testing. It contains:
