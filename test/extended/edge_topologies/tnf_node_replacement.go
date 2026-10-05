@@ -128,6 +128,11 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 		e2e.Logf("[stage timing] Pre-destroy OVS identity (SSH + API): %v", time.Since(stageStart))
 		stageStart = time.Now()
 
+		g.By("Capturing healthy Pacemaker state immediately before target destruction")
+		failureBaselineResourceVersion, err := apis.CapturePacemakerTargetFailureBaseline(oc)
+		o.Expect(err).ShouldNot(o.HaveOccurred(),
+			"Pacemaker should be healthy and readable immediately before destroying the target VM")
+
 		g.By("Destroying the target VM")
 		destroyVM(&testConfig)
 		e2e.Logf("[stage timing] Destroying target VM: %v (no poll timeout; virsh/SSH)", time.Since(stageStart))
@@ -143,19 +148,17 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 		e2e.Logf("[stage timing] Restoring etcd quorum: %v (phase1 etcd start cap: %v, phase2 %d×%v)", time.Since(stageStart), etcdPhase1StartAfterStonithTimeout, stonithCleanupMaxAttempts, stonithCleanupRoundTimeout)
 		stageStart = time.Now()
 
-		g.By("Verifying PacemakerHealthCheckDegraded=True after node destruction")
-		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "is offline", apis.PacemakerDegradedDetectionTimeout)).
-			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should be True with an offline-node reason after node destruction and quorum restore")
-
-		g.By("Verifying PacemakerCluster CR shows target node Online=False")
-		o.Eventually(func() error {
-			pc, pcErr := apis.GetPacemakerCluster(oc)
-			if pcErr != nil {
-				return pcErr
-			}
-			return apis.ExpectNodeOnlineFalse(pc, testConfig.TargetNode.Name)
-		}, 2*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
-			"Target node should show Online=False in PacemakerCluster CR after destruction")
+		g.By("Verifying Pacemaker reports the target node offline or removed after node destruction")
+		failureMode, err := apis.WaitForPacemakerTargetFailure(
+			oc,
+			testConfig.TargetNode.Name,
+			testConfig.SurvivingNode.Name,
+			failureBaselineResourceVersion,
+			apis.PacemakerDegradedDetectionTimeout,
+		)
+		o.Expect(err).ShouldNot(o.HaveOccurred(),
+			"Pacemaker should report the destroyed target node offline or removed while the surviving node remains healthy")
+		e2e.Logf("Observed coherent Pacemaker target failure state: %s", failureMode)
 
 		g.By("Deleting OpenShift node references")
 		deleteNodeReferences(&testConfig, oc)
