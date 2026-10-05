@@ -1,12 +1,77 @@
 package e2e_analysis
 
 import (
+	"encoding/xml"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	k8sv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
+
+func TestSkippedReadinessChecksIncludeRuntimeClusterOperators(t *testing.T) {
+	tests := []struct {
+		name string
+		env  bool
+		opt  Options
+	}{
+		{
+			name: "environment variable",
+			env:  true,
+		},
+		{
+			name: "option",
+			opt:  Options{SkipReadinessChecks: true},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("SKIP_READINESS_CHECKS", "")
+			if tc.env {
+				t.Setenv("SKIP_READINESS_CHECKS", "true")
+			}
+
+			originalListClusterOperators := listClusterOperators
+			listClusterOperators = func() (*unstructured.UnstructuredList, error) {
+				return &unstructured.UnstructuredList{Items: []unstructured.Unstructured{{Object: map[string]interface{}{
+					"metadata": map[string]interface{}{"name": "insights"},
+				}}}}, nil
+			}
+			t.Cleanup(func() { listClusterOperators = originalListClusterOperators })
+
+			junitDir := t.TempDir()
+			tc.opt.JUnitDir = junitDir
+			require.NoError(t, tc.opt.Run())
+
+			reports, err := filepath.Glob(filepath.Join(junitDir, "junit_e2e_analysis_*.xml"))
+			require.NoError(t, err)
+			require.Len(t, reports, 1)
+			report, err := os.ReadFile(reports[0])
+			require.NoError(t, err)
+			suite := &junitapi.JUnitTestSuite{}
+			require.NoError(t, xml.Unmarshal(report, suite))
+			require.EqualValues(t, len(operatorDependencies)+6, suite.NumTests)
+			require.EqualValues(t, len(operatorDependencies)+6, suite.NumSkipped)
+
+			var insights *junitapi.JUnitTestCase
+			for _, testCase := range suite.TestCases {
+				if testCase.Name == "verify operator conditions insights" {
+					insights = testCase
+					break
+				}
+			}
+			require.NotNil(t, insights)
+			require.NotNil(t, insights.SkipMessage)
+		})
+	}
+}
 
 func TestExpandDependencies(t *testing.T) {
 	tests := []struct {
