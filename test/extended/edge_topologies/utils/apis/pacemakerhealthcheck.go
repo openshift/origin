@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	etcdv1 "github.com/openshift/api/etcd/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
@@ -13,6 +14,7 @@ import (
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
@@ -21,6 +23,9 @@ import (
 
 const (
 	PacemakerHealthCheckDegradedCondition = "PacemakerHealthCheckDegraded"
+	pacemakerUnhealthyReason              = "PacemakerUnhealthy"
+	insufficientNodesHealthMessage        = "Cluster is unhealthy: Insufficient nodes in cluster (expected 2, found 1)"
+	insufficientNodesCountMessage         = "Expected 2 nodes, found 1"
 
 	healthCheckPollInterval = 10 * time.Second
 
@@ -45,6 +50,24 @@ const (
 	// margin covers status-collector CronJob scheduling jitter.
 	PacemakerDegradedDetectionTimeout = 15 * time.Minute
 )
+
+// PacemakerTargetFailureMode identifies the target-specific failure state
+// accepted by WaitForPacemakerTargetFailure.
+type PacemakerTargetFailureMode string
+
+const (
+	// PacemakerTargetOffline means the target remains in Pacemaker status and
+	// is explicitly offline while the survivor is online.
+	PacemakerTargetOffline PacemakerTargetFailureMode = "target-offline"
+	// PacemakerTargetRemoved means the target is absent and the survivor is the
+	// sole online Pacemaker member with the exact insufficient-node state.
+	PacemakerTargetRemoved PacemakerTargetFailureMode = "target-removed"
+)
+
+type pacemakerTargetFailureReader struct {
+	getPacemakerCluster func() (*etcdv1.PacemakerCluster, error)
+	getEtcdOperator     func() (*operatorv1.Etcd, error)
+}
 
 func getEtcdOperator(oc *exutil.CLI) (*operatorv1.Etcd, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -327,6 +350,316 @@ func describeNotDegradedCondition(cond *operatorv1.OperatorCondition) string {
 		return fmt.Sprintf("Status=%s (healthy)", cond.Status)
 	}
 	return fmt.Sprintf("Status=%s reason=%s message=%q", cond.Status, cond.Reason, cond.Message)
+}
+
+func expectPacemakerNodes(pc *etcdv1.PacemakerCluster, names ...string) error {
+	if pc == nil {
+		return fmt.Errorf("PacemakerCluster is nil")
+	}
+	if pc.Status.Nodes == nil {
+		return fmt.Errorf("PacemakerCluster status nodes are nil")
+	}
+
+	expected := make(map[string]struct{}, len(names))
+	for _, name := range names {
+		if name == "" {
+			return fmt.Errorf("expected node name is empty")
+		}
+		if _, exists := expected[name]; exists {
+			return fmt.Errorf("expected node name %q is duplicated", name)
+		}
+		expected[name] = struct{}{}
+	}
+
+	nodes := *pc.Status.Nodes
+	if len(nodes) != len(expected) {
+		return fmt.Errorf("PacemakerCluster has %d nodes, expected exactly %d", len(nodes), len(expected))
+	}
+
+	byName := make(map[string]*etcdv1.PacemakerClusterNodeStatus, len(nodes))
+	for i := range nodes {
+		node := &nodes[i]
+		if node.NodeName == "" {
+			return fmt.Errorf("PacemakerCluster contains a node with an empty name")
+		}
+		if _, exists := byName[node.NodeName]; exists {
+			return fmt.Errorf("PacemakerCluster contains duplicate node %q", node.NodeName)
+		}
+		if _, exists := expected[node.NodeName]; !exists {
+			return fmt.Errorf("PacemakerCluster contains unexpected node %q", node.NodeName)
+		}
+		byName[node.NodeName] = node
+	}
+	return nil
+}
+
+func validatePacemakerTargetFailureArgs(targetNode, survivingNode, baselineResourceVersion string) error {
+	if targetNode == "" || survivingNode == "" || targetNode == survivingNode {
+		return fmt.Errorf("target and surviving node names must be distinct and non-empty")
+	}
+	if baselineResourceVersion == "" {
+		return fmt.Errorf("PacemakerCluster baseline resourceVersion must be non-empty")
+	}
+	return nil
+}
+
+func readStablePacemakerTargetFailureSnapshot(reader pacemakerTargetFailureReader) (*etcdv1.PacemakerCluster, *operatorv1.Etcd, error) {
+	pcBefore, err := reader.getPacemakerCluster()
+	if err != nil {
+		return nil, nil, fmt.Errorf("get PacemakerCluster before Etcd condition: %w", err)
+	}
+	if pcBefore == nil {
+		return nil, nil, fmt.Errorf("get PacemakerCluster before Etcd condition: empty response")
+	}
+	if pcBefore.ResourceVersion == "" {
+		return nil, nil, fmt.Errorf("PacemakerCluster before Etcd condition has an empty resourceVersion")
+	}
+
+	etcd, err := reader.getEtcdOperator()
+	if err != nil {
+		return nil, nil, fmt.Errorf("get Etcd operator: %w", err)
+	}
+	if etcd == nil {
+		return nil, nil, fmt.Errorf("get Etcd operator: empty response")
+	}
+
+	pcAfter, err := reader.getPacemakerCluster()
+	if err != nil {
+		return nil, nil, fmt.Errorf("get PacemakerCluster after Etcd condition: %w", err)
+	}
+	if pcAfter == nil {
+		return nil, nil, fmt.Errorf("get PacemakerCluster after Etcd condition: empty response")
+	}
+	if pcAfter.ResourceVersion == "" {
+		return nil, nil, fmt.Errorf("PacemakerCluster after Etcd condition has an empty resourceVersion")
+	}
+	if pcBefore.ResourceVersion != pcAfter.ResourceVersion {
+		return nil, nil, fmt.Errorf("PacemakerCluster changed while reading Etcd condition (resourceVersion %q to %q)",
+			pcBefore.ResourceVersion, pcAfter.ResourceVersion)
+	}
+	return pcAfter, etcd, nil
+}
+
+func capturePacemakerTargetFailureBaseline(reader pacemakerTargetFailureReader) (string, error) {
+	pc, etcd, err := readStablePacemakerTargetFailureSnapshot(reader)
+	if err != nil {
+		return "", err
+	}
+	cond := v1helpers.FindOperatorCondition(etcd.Status.Conditions, PacemakerHealthCheckDegradedCondition)
+	if cond == nil {
+		return "", fmt.Errorf("healthy baseline is missing %s condition", PacemakerHealthCheckDegradedCondition)
+	}
+	if cond.Status != operatorv1.ConditionFalse {
+		return "", fmt.Errorf("healthy baseline requires %s=False, observed %s",
+			PacemakerHealthCheckDegradedCondition, describeNotDegradedCondition(cond))
+	}
+	return pc.ResourceVersion, nil
+}
+
+func classifyPacemakerTargetFailureMessage(message, targetNode string) (PacemakerTargetFailureMode, error) {
+	offlineMessage := fmt.Sprintf("Node %s is offline", targetNode)
+	offlineMatches := 0
+	removedMatches := 0
+
+	for _, component := range strings.Split(message, "; ") {
+		switch component {
+		case offlineMessage:
+			offlineMatches++
+		case insufficientNodesHealthMessage:
+			removedMatches++
+		default:
+			if strings.HasPrefix(component, "Node ") && strings.HasSuffix(component, " is offline") {
+				return "", fmt.Errorf("%s message contains conflicting offline component %q", PacemakerHealthCheckDegradedCondition, component)
+			}
+			if strings.HasPrefix(component, "Cluster is unhealthy: Insufficient nodes in cluster ") {
+				return "", fmt.Errorf("%s message contains conflicting insufficient-node component %q", PacemakerHealthCheckDegradedCondition, component)
+			}
+		}
+	}
+
+	if offlineMatches > 1 || removedMatches > 1 {
+		return "", fmt.Errorf("%s message repeats a target-failure component: %q", PacemakerHealthCheckDegradedCondition, message)
+	}
+	if offlineMatches == 1 && removedMatches == 1 {
+		return "", fmt.Errorf("%s message contains conflicting offline and removed components: %q", PacemakerHealthCheckDegradedCondition, message)
+	}
+	if offlineMatches == 1 {
+		return PacemakerTargetOffline, nil
+	}
+	if removedMatches == 1 {
+		return PacemakerTargetRemoved, nil
+	}
+	return "", fmt.Errorf("%s message %q does not contain the exact target %s offline or one-node removal component",
+		PacemakerHealthCheckDegradedCondition, message, targetNode)
+}
+
+func classifyPacemakerTargetFailure(
+	cond *operatorv1.OperatorCondition,
+	pc *etcdv1.PacemakerCluster,
+	targetNode, survivingNode string,
+) (PacemakerTargetFailureMode, error) {
+	if targetNode == "" || survivingNode == "" || targetNode == survivingNode {
+		return "", fmt.Errorf("target and surviving node names must be distinct and non-empty")
+	}
+	if cond == nil {
+		return "", fmt.Errorf("%s condition is absent", PacemakerHealthCheckDegradedCondition)
+	}
+	if cond.Status != operatorv1.ConditionTrue {
+		return "", fmt.Errorf("%s condition is %s, expected True", PacemakerHealthCheckDegradedCondition, cond.Status)
+	}
+	if cond.Reason != pacemakerUnhealthyReason {
+		return "", fmt.Errorf("%s reason is %q, expected %q", PacemakerHealthCheckDegradedCondition, cond.Reason, pacemakerUnhealthyReason)
+	}
+	if pc == nil {
+		return "", fmt.Errorf("PacemakerCluster is nil")
+	}
+	if pc.Status.LastUpdated.IsZero() {
+		return "", fmt.Errorf("PacemakerCluster lastUpdated is zero")
+	}
+
+	mode, err := classifyPacemakerTargetFailureMessage(cond.Message, targetNode)
+	if err != nil {
+		return "", err
+	}
+	switch mode {
+	case PacemakerTargetOffline:
+		if err := expectPacemakerNodes(pc, targetNode, survivingNode); err != nil {
+			return "", err
+		}
+		if err := ExpectNodeCondition(pc, targetNode, etcdv1.NodeOnlineConditionType, metav1.ConditionFalse); err != nil {
+			return "", err
+		}
+		if err := ExpectNodeCondition(pc, survivingNode, etcdv1.NodeOnlineConditionType, metav1.ConditionTrue); err != nil {
+			return "", err
+		}
+		if err := ExpectNodeCondition(pc, survivingNode, etcdv1.NodeMemberConditionType, metav1.ConditionTrue); err != nil {
+			return "", err
+		}
+		if err := ExpectClusterCondition(pc, etcdv1.ClusterNodeCountAsExpectedConditionType, metav1.ConditionTrue); err != nil {
+			return "", err
+		}
+		return mode, nil
+
+	case PacemakerTargetRemoved:
+		if err := expectPacemakerNodes(pc, survivingNode); err != nil {
+			return "", err
+		}
+		if err := ExpectNodeCondition(pc, survivingNode, etcdv1.NodeOnlineConditionType, metav1.ConditionTrue); err != nil {
+			return "", err
+		}
+		if err := ExpectNodeCondition(pc, survivingNode, etcdv1.NodeMemberConditionType, metav1.ConditionTrue); err != nil {
+			return "", err
+		}
+		nodeCount := meta.FindStatusCondition(pc.Status.Conditions, etcdv1.ClusterNodeCountAsExpectedConditionType)
+		if nodeCount == nil {
+			return "", fmt.Errorf("PacemakerCluster is missing %s condition", etcdv1.ClusterNodeCountAsExpectedConditionType)
+		}
+		if nodeCount.Status != metav1.ConditionFalse ||
+			nodeCount.Reason != etcdv1.ClusterNodeCountAsExpectedReasonInsufficientNodes ||
+			nodeCount.Message != insufficientNodesCountMessage {
+			return "", fmt.Errorf("PacemakerCluster %s is %s reason=%q message=%q, expected False reason=%q message=%q",
+				etcdv1.ClusterNodeCountAsExpectedConditionType, nodeCount.Status, nodeCount.Reason, nodeCount.Message,
+				etcdv1.ClusterNodeCountAsExpectedReasonInsufficientNodes, insufficientNodesCountMessage)
+		}
+		return mode, nil
+	default:
+		return "", fmt.Errorf("unsupported Pacemaker target failure mode %q", mode)
+	}
+}
+
+func observePacemakerTargetFailure(
+	reader pacemakerTargetFailureReader,
+	targetNode, survivingNode string,
+	baselineResourceVersion string,
+) (PacemakerTargetFailureMode, error) {
+	if err := validatePacemakerTargetFailureArgs(targetNode, survivingNode, baselineResourceVersion); err != nil {
+		return "", err
+	}
+	pc, etcd, err := readStablePacemakerTargetFailureSnapshot(reader)
+	if err != nil {
+		return "", err
+	}
+	if pc.ResourceVersion == baselineResourceVersion {
+		return "", fmt.Errorf("PacemakerCluster resourceVersion %q is unchanged from the pre-destruction baseline", pc.ResourceVersion)
+	}
+
+	cond := v1helpers.FindOperatorCondition(etcd.Status.Conditions, PacemakerHealthCheckDegradedCondition)
+	return classifyPacemakerTargetFailure(cond, pc, targetNode, survivingNode)
+}
+
+func waitForPacemakerTargetFailure(
+	reader pacemakerTargetFailureReader,
+	targetNode, survivingNode string,
+	baselineResourceVersion string,
+	timeout, pollInterval time.Duration,
+) (PacemakerTargetFailureMode, error) {
+	if err := validatePacemakerTargetFailureArgs(targetNode, survivingNode, baselineResourceVersion); err != nil {
+		return "", err
+	}
+	var acceptedMode PacemakerTargetFailureMode
+	var lastErr error
+	checker := func() (bool, error) {
+		mode, err := observePacemakerTargetFailure(reader, targetNode, survivingNode, baselineResourceVersion)
+		if err != nil {
+			lastErr = err
+			framework.Logf("WaitForPacemakerTargetFailure: %v", err)
+			return false, nil
+		}
+		acceptedMode = mode
+		framework.Logf("Coherent Pacemaker target failure confirmed: mode=%s target=%s survivor=%s", mode, targetNode, survivingNode)
+		return true, nil
+	}
+
+	if err := core.PollUntil(checker, timeout, pollInterval, "coherent Pacemaker target failure"); err != nil {
+		return "", fmt.Errorf("timed out after %v waiting for target %s offline or removed (last: %v)", timeout, targetNode, lastErr)
+	}
+	return acceptedMode, nil
+}
+
+// CapturePacemakerTargetFailureBaseline validates that the live
+// PacemakerHealthCheckDegraded condition is healthy and returns the stable
+// PacemakerCluster resourceVersion immediately before target destruction.
+func CapturePacemakerTargetFailureBaseline(oc *exutil.CLI) (string, error) {
+	reader := pacemakerTargetFailureReader{
+		getPacemakerCluster: func() (*etcdv1.PacemakerCluster, error) { return GetPacemakerCluster(oc) },
+		getEtcdOperator:     func() (*operatorv1.Etcd, error) { return getEtcdOperator(oc) },
+	}
+	resourceVersion, err := capturePacemakerTargetFailureBaseline(reader)
+	if err != nil {
+		DumpHealthCheckDiagnostics(oc, "CapturePacemakerTargetFailureBaseline failed")
+		return "", fmt.Errorf("capture healthy pre-destruction Pacemaker baseline: %w", err)
+	}
+	return resourceVersion, nil
+}
+
+// WaitForPacemakerTargetFailure accepts either the named target explicitly
+// offline or the named target removed with the named survivor as the sole
+// online member. The PacemakerCluster read is stable around the Etcd condition
+// read and must have a resourceVersion different from the pre-destruction
+// baseline. ResourceVersions are opaque and are compared only for equality.
+// The two resources are not transactionally atomic, so the classifier also
+// requires their structured states to agree. Target absence can still result
+// from collector filtering as well as removal; unchanged final recovery checks
+// remain responsible for proving restoration of the complete two-node state.
+func WaitForPacemakerTargetFailure(
+	oc *exutil.CLI,
+	targetNode, survivingNode string,
+	baselineResourceVersion string,
+	timeout time.Duration,
+) (PacemakerTargetFailureMode, error) {
+	if err := validatePacemakerTargetFailureArgs(targetNode, survivingNode, baselineResourceVersion); err != nil {
+		return "", err
+	}
+	reader := pacemakerTargetFailureReader{
+		getPacemakerCluster: func() (*etcdv1.PacemakerCluster, error) { return GetPacemakerCluster(oc) },
+		getEtcdOperator:     func() (*operatorv1.Etcd, error) { return getEtcdOperator(oc) },
+	}
+
+	mode, err := waitForPacemakerTargetFailure(reader, targetNode, survivingNode, baselineResourceVersion, timeout, healthCheckPollInterval)
+	if err != nil {
+		DumpHealthCheckDiagnostics(oc, "WaitForPacemakerTargetFailure timeout")
+	}
+	return mode, err
 }
 
 // WaitForPacemakerHealthCheckDegraded polls the etcd operator resource until
