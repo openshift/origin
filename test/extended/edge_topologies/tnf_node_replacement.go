@@ -15,6 +15,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
+	etcdv1 "github.com/openshift/api/etcd/v1"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/apis"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
@@ -159,7 +160,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 					return apis.ExpectNodeOnlineFalse(pc, testConfig.TargetNode.Name)
 				}
 			}
-			return nil
+			if err := apis.ExpectNodeCondition(pc, testConfig.SurvivingNode.Name, etcdv1.NodeOnlineConditionType, metav1.ConditionTrue); err != nil {
+				return err
+			}
+			return apis.ExpectNodeMember(pc, testConfig.SurvivingNode.Name)
 		}, 2*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
 			"Target node should show Online=False or be absent from populated PacemakerCluster status after destruction")
 
