@@ -340,6 +340,14 @@ func killEtcdViaSSH(node *corev1.Node) {
 // faster than that, the fault can be fully recovered within a single snapshot
 // gap and never be caught by a snapshot-driven wait (see the equivalent race
 // documented in tnf_kubelet_disruption.go).
+//
+// The observer's own polls go through the kube-apiserver, which can itself be
+// briefly unreachable while a 2-node etcd loses majority during recovery (e.g.
+// "could not get a etcd client", 503s). That creates a second, correlated blind
+// spot: a poll can fail with an error during exactly the window the condition
+// would have been True. Errors are counted and logged (not silently dropped) so
+// callers can tell an unobservable window apart from a genuine absence of the
+// condition.
 type pacemakerDegradedObserver struct {
 	oc       *exutil.CLI
 	interval time.Duration
@@ -347,6 +355,8 @@ type pacemakerDegradedObserver struct {
 	mu       sync.Mutex
 	observed bool
 	message  string
+	errCount int
+	lastErr  error
 	stopCh   chan struct{}
 	stopOnce sync.Once
 }
@@ -362,15 +372,21 @@ func (p *pacemakerDegradedObserver) Start() {
 			case <-p.stopCh:
 				return
 			default:
-				if degraded, msg, err := apis.IsPacemakerHealthCheckDegraded(p.oc); err == nil && degraded {
-					p.mu.Lock()
+				degraded, msg, err := apis.IsPacemakerHealthCheckDegraded(p.oc)
+				p.mu.Lock()
+				switch {
+				case err != nil:
+					p.errCount++
+					p.lastErr = err
+					framework.Logf("pacemakerDegradedObserver: poll error (will retry): %v", err)
+				case degraded:
 					if !p.observed {
 						framework.Logf("pacemakerDegradedObserver: detected PacemakerHealthCheckDegraded=True (message: %q)", msg)
 					}
 					p.observed = true
 					p.message = msg
-					p.mu.Unlock()
 				}
+				p.mu.Unlock()
 				time.Sleep(p.interval)
 			}
 		}
@@ -385,6 +401,41 @@ func (p *pacemakerDegradedObserver) WasObserved() (message string, observed bool
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return p.message, p.observed
+}
+
+// Errors returns how many polls errored and the most recent error, so callers
+// can distinguish "condition never went True" from "the apiserver was
+// unavailable for part of the observation window."
+func (p *pacemakerDegradedObserver) Errors() (count int, lastErr error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.errCount, p.lastErr
+}
+
+// logPacemakerDegradedObserved is a non-blocking, informational check that
+// reports whether the background observer saw PacemakerHealthCheckDegraded=True
+// during its observation window. It distinguishes three outcomes:
+//   - Observed: the condition was True at some point (expected during recovery).
+//   - Inconclusive: polls failed (API unavailable during the disruption window),
+//     so the condition may have been True but we couldn't see it.
+//   - Not observed: no errors and no True — the fault resolved faster than the
+//     status-collector snapshot interval.
+//
+// This never fails the test — PacemakerHealthCheckDegraded detection latency is
+// covered by dedicated tests in tnf_pacemaker_healthcheck.go.
+func logPacemakerDegradedObserved(observer *pacemakerDegradedObserver, context string) {
+	msg, observed := observer.WasObserved()
+	errCount, lastErr := observer.Errors()
+	switch {
+	case observed:
+		framework.Logf("[sig-etcd][PHCCheck] %s: PacemakerHealthCheckDegraded=True observed (message: %q)", context, msg)
+	case errCount > 0:
+		framework.Logf("[sig-etcd][PHCMiss] %s: PacemakerHealthCheckDegraded observation inconclusive — "+
+			"%d poll errors during observation window (last: %v)", context, errCount, lastErr)
+	default:
+		framework.Logf("[sig-etcd][PHCMiss] %s: PacemakerHealthCheckDegraded=True was never observed "+
+			"(fault may have resolved within a single status-collector snapshot gap)", context)
+	}
 }
 
 var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Disruptive] Two Node with Fencing etcd disruption", func() {
@@ -652,11 +703,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "etcd cluster should self-heal after container kill")
 
-		g.By("Verifying PacemakerHealthCheckDegraded was observed during container kill/recovery")
-		degradedMsg, wasDegraded := degradedObserver.WasObserved()
-		o.Expect(wasDegraded).To(o.BeTrue(),
-			"expected PacemakerHealthCheckDegraded=True to be observed at some point during etcd container kill recovery")
-		framework.Logf("PacemakerHealthCheckDegraded observed message: %q", degradedMsg)
+		g.By("Checking whether PacemakerHealthCheckDegraded was observed during container kill/recovery (informational)")
+		logPacemakerDegradedObserved(degradedObserver, "etcd container kill recovery")
 
 		g.By("Verifying pcs status shows etcd-clone Started on both nodes")
 		o.Eventually(func() error {
@@ -711,11 +759,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&targetNode, true, false,
 			6*time.Minute, 45*time.Second)
 
-		g.By("Verifying PacemakerHealthCheckDegraded was observed during process crash/recovery")
-		degradedMsg, wasDegraded := degradedObserver.WasObserved()
-		o.Expect(wasDegraded).To(o.BeTrue(),
-			"expected PacemakerHealthCheckDegraded=True to be observed at some point during etcd process crash recovery")
-		framework.Logf("PacemakerHealthCheckDegraded observed message: %q", degradedMsg)
+		g.By("Checking whether PacemakerHealthCheckDegraded was observed during process crash/recovery (informational)")
+		logPacemakerDegradedObserved(degradedObserver, "etcd process crash recovery")
 
 		g.By("Waiting for PacemakerHealthCheckDegraded to clear after etcd process crash recovery")
 		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, 6*time.Minute)).
