@@ -5,9 +5,12 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/apis"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
@@ -137,6 +140,68 @@ type pcsStatusXMLResponse struct {
 			Online string `xml:"online,attr"` // Changed from bool to string as XML uses "true"/"false" strings
 		} `xml:"node"`
 	} `xml:"nodes"`
+	FenceHistory struct {
+		Status *string             `xml:"status,attr"`
+		Events []FenceHistoryEvent `xml:"fence_event"`
+	} `xml:"fence_history"`
+}
+
+// FenceHistoryEvent holds a Pacemaker fence operation and its raw completion time.
+type FenceHistoryEvent struct {
+	Target    string `xml:"target,attr"`
+	Action    string `xml:"action,attr"`
+	Status    string `xml:"status,attr"`
+	Completed string `xml:"completed,attr"`
+}
+
+// parsePcsFenceHistoryXML decodes the PCS status document and validates optional history status.
+func parsePcsFenceHistoryXML(output string) ([]FenceHistoryEvent, error) {
+	var status pcsStatusXMLResponse
+	if err := xml.Unmarshal([]byte(output), &status); err != nil {
+		return nil, fmt.Errorf("parse pcs status XML fence history: %w", err)
+	}
+	if status.FenceHistory.Status != nil {
+		value, err := strconv.Atoi(*status.FenceHistory.Status)
+		if err != nil {
+			return nil, fmt.Errorf("parse pcs fence_history status %q: %w", *status.FenceHistory.Status, err)
+		}
+		if value != 0 {
+			return nil, fmt.Errorf("pcs fence_history status is %d", value)
+		}
+	}
+	return status.FenceHistory.Events, nil
+}
+
+// GetFenceHistory reads raw PCS history and validates its optional retrieval status.
+func GetFenceHistory(oc *exutil.CLI, execNode string) ([]FenceHistoryEvent, error) {
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, execNode, apis.EtcdNamespace, "pcs", "status", "xml")
+	if err != nil {
+		return nil, err
+	}
+	return parsePcsFenceHistoryXML(output)
+}
+
+// NewSuccessfulFences returns distinct successful candidate fences whose target/action/completed key is absent from the snapshot.
+func NewSuccessfulFences(before, after []FenceHistoryEvent, targets ...string) []FenceHistoryEvent {
+	// fenceKey identifies one Pacemaker fence operation; Completed is microsecond-precise and unique per operation.
+	type fenceKey struct {
+		target, action, completed string
+	}
+	seen := make(map[fenceKey]bool, len(before))
+	for _, entry := range before {
+		seen[fenceKey{target: entry.Target, action: entry.Action, completed: entry.Completed}] = true
+	}
+	var fences []FenceHistoryEvent
+	for _, entry := range after {
+		key := fenceKey{target: entry.Target, action: entry.Action, completed: entry.Completed}
+		if seen[key] || !slices.Contains(targets, entry.Target) || entry.Status != "success" ||
+			(entry.Action != "reboot" && entry.Action != "off") || entry.Completed == "" {
+			continue
+		}
+		seen[key] = true
+		fences = append(fences, entry)
+	}
+	return fences
 }
 
 // WaitForNodesOnline waits for all specified nodes to be online in the pacemaker cluster by polling XML status.

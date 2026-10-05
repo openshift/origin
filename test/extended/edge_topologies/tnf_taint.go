@@ -201,6 +201,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.It("should apply and remove out-of-service taint and annotation during network disruption recovery", func() {
+		utils.SkipIfPacemakerHealthCheckBaselineNotReady(oc)
+
 		g.By("Recording timestamp before disruption for journal log scoping")
 		baseTimestamp, err := services.GetTimestampViaDebug(oc, peerNode.Name)
 		o.Expect(err).ToNot(o.HaveOccurred(), "Expected to capture baseline timestamp")
@@ -213,6 +215,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By(fmt.Sprintf("Blocking network communication between %s and %s for %v",
 			targetNode.Name, peerNode.Name, networkDisruptionDuration))
+		before := takeFencingSnapshot(oc, &peerNode)
 		command, err := exutil.TriggerNetworkDisruption(oc.KubeClient(), &targetNode, &peerNode, networkDisruptionDuration)
 		o.Expect(err).To(o.BeNil(), "Expected to disrupt network without errors")
 		framework.Logf("Network disruption command: %s", command)
@@ -382,5 +385,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				services.UntaintScriptLogTag, services.UntaintSuccessLog, baseTimestamp)
 		}, taintRemovedTimeout, utils.FiveSecondPollInterval).Should(o.BeTrue(),
 			"untaint-fenced-node should log successful untaint on at least one node")
+
+		g.By("Checking for a successful fencing Event after taint network disruption recovery")
+		expectFencingEventsForNewFences(oc, "taint-network-disruption", survivedNode, before, &peerNode, &targetNode)
 	})
 })
