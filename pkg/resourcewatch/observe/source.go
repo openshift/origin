@@ -129,6 +129,14 @@ func resourcesToWatch(enableEvents bool) []schema.GroupVersionResource {
 		coreResource("replicationcontrollers"),
 		coreResource("services"),
 		coreResource("serviceaccounts"),
+
+		// storage objects
+		coreResource("persistentvolumes"),
+		coreResource("persistentvolumeclaims"),
+		resource("groupsnapshot.storage.k8s.io", "v1beta2", "volumegroupsnapshots"),
+		resource("groupsnapshot.storage.k8s.io", "v1beta2", "volumegroupsnapshotcontents"),
+		resource("snapshot.storage.k8s.io", "v1", "volumesnapshots"),
+		resource("snapshot.storage.k8s.io", "v1", "volumesnapshotcontents"),
 	}
 
 	if enableEvents {
