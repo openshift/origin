@@ -24,6 +24,11 @@ const (
 	// minOVSStall is the ovs-vswitchd poll interval above which a failure is attributed to an ovs-vswitchd
 	// stall (tracked separately) instead of the gateway reconcile.
 	minOVSStall = 1000 * time.Millisecond
+
+	// udnTeardownWindow is how long before a gateway reconcile a UDN teardown on the same node must have been
+	// logged for the reconcile to count. In the CI runs behind OCPBUGS-128289 the gap was 25-42ms; reconciles
+	// without a recent teardown are unrelated to this bug.
+	udnTeardownWindow = 2 * time.Second
 )
 
 var ovsPollIntervalRegex = regexp.MustCompile(`Unreasonably long (\d+)ms poll interval`)
@@ -101,16 +106,19 @@ func UDNTeardownObserved(intervals monitorapi.Intervals) bool {
 }
 
 // Correlate finds Reset/Stalled failures of established host-network connections whose onset window contains
-// a gateway reconcile on the same node, excluding failures explained by a kube-apiserver graceful shutdown
+// a gateway reconcile on the same node that followed a UDN teardown on that node, excluding failures explained by a kube-apiserver graceful shutdown
 // (for the apiserver backends, see OCPBUGS-100298) or by an ovs-vswitchd stall on the same node.
 func Correlate(intervals monitorapi.Intervals) []Finding {
-	reconciles := map[string][]time.Time{}
+	allReconciles, teardowns := map[string][]time.Time{}, map[string][]time.Time{}
 	var shutdowns, ovsStalls monitorapi.Intervals
 	for _, i := range intervals {
 		switch i.Source {
 		case SourceGatewayReconcile:
 			n := nodeOf(i)
-			reconciles[n] = append(reconciles[n], i.From)
+			allReconciles[n] = append(allReconciles[n], i.From)
+		case SourceUDNTeardown:
+			n := nodeOf(i)
+			teardowns[n] = append(teardowns[n], i.From)
 		case monitorapi.APIServerGracefulShutdown:
 			shutdowns = append(shutdowns, i)
 		case monitorapi.SourceOVSVswitchdLog:
@@ -119,7 +127,13 @@ func Correlate(intervals monitorapi.Intervals) []Finding {
 			}
 		}
 	}
-	for n := range reconciles {
+	reconciles := map[string][]time.Time{}
+	for n, rs := range allReconciles {
+		for _, r := range rs {
+			if teardownBefore(teardowns[n], r) {
+				reconciles[n] = append(reconciles[n], r)
+			}
+		}
 		sort.Slice(reconciles[n], func(a, b int) bool { return reconciles[n][a].Before(reconciles[n][b]) })
 	}
 
@@ -207,4 +221,15 @@ func FindingToInterval(f Finding) monitorapi.Interval {
 			HumanMessage(f.FailureLine())).
 		Display().
 		Build(f.Onset, f.Recovered)
+}
+
+// teardownBefore reports whether one of the teardowns happened within udnTeardownWindow before (or at) the
+// reconcile.
+func teardownBefore(teardowns []time.Time, reconcile time.Time) bool {
+	for _, t := range teardowns {
+		if !t.After(reconcile) && reconcile.Sub(t) <= udnTeardownWindow {
+			return true
+		}
+	}
+	return false
 }

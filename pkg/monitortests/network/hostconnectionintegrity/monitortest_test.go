@@ -195,7 +195,39 @@ func TestCorrelateNegatives(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := Correlate(tt.intervals); len(got) != tt.want {
+			// every case has a UDN teardown on each node just before the trigger, so only the case's own
+			// condition decides the outcome.
+			intervals := append(monitorapi.Intervals{
+				udnTeardownAt(node, trigger.Add(-400*time.Millisecond)),
+				udnTeardownAt("master-0", trigger.Add(-400*time.Millisecond)),
+				udnTeardownAt("master-2", trigger.Add(-400*time.Millisecond)),
+			}, tt.intervals...)
+			if got := Correlate(intervals); len(got) != tt.want {
+				t.Errorf("expected %d findings, got %d: %+v", tt.want, len(got), got)
+			}
+		})
+	}
+}
+
+func TestCorrelateRequiresRecentSameNodeUDNTeardown(t *testing.T) {
+	trigger := mustTime(t, "2026-09-17T06:25:57.620Z")
+	node := "master-1"
+	failure := failureAt(node, poller.BackendAPIIntSelf, poller.ReasonReset, trigger)
+	reconcile := reconcileAt(node, trigger.Add(-6*time.Millisecond))
+	tests := []struct {
+		name     string
+		teardown monitorapi.Interval
+		want     int
+	}{
+		{name: "teardown 26ms before the reconcile (CI case)", teardown: udnTeardownAt(node, trigger.Add(-32*time.Millisecond)), want: 1},
+		{name: "teardown 2s before the reconcile", teardown: udnTeardownAt(node, trigger.Add(-2006*time.Millisecond)), want: 1},
+		{name: "teardown 3s before the reconcile", teardown: udnTeardownAt(node, trigger.Add(-3*time.Second))},
+		{name: "teardown after the reconcile", teardown: udnTeardownAt(node, trigger.Add(10*time.Millisecond))},
+		{name: "teardown on another node", teardown: udnTeardownAt("master-2", trigger.Add(-32*time.Millisecond))},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := Correlate(monitorapi.Intervals{tt.teardown, reconcile, failure}); len(got) != tt.want {
 				t.Errorf("expected %d findings, got %d: %+v", tt.want, len(got), got)
 			}
 		})
