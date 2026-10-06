@@ -47,8 +47,9 @@ func NewCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "watch-established-connections",
 		Short: "Keep long-lived host-network connections open and report resets and silent stalls",
-		Long: `Keep one long-lived connection open to every peer kubelet, to the api-int endpoint and (on
-control-plane nodes) to the local kube-apiserver. Probe over it periodically and report, as one-line JSON
+		Long: `Keep one long-lived connection open to each of the next --max-peers peer kubelets (nodes in sorted
+name order, as a ring), to the api-int endpoint (when --api-int-url is set) and (on control-plane nodes) to the
+local kube-apiserver. Probe over it periodically and report, as one-line JSON
 intervals on stdout, every episode where the established connection was reset or silently stopped passing
 traffic while a new connection to the same target still worked.`,
 		SilenceUsage: true,

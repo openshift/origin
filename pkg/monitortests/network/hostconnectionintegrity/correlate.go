@@ -140,6 +140,10 @@ func Correlate(intervals monitorapi.Intervals) []Finding {
 		excluded := false
 		if backend != poller.BackendPeerKubelet {
 			for _, s := range shutdowns {
+				// localhost-apiserver only talks to this node's kube-apiserver; api-int is load balanced.
+				if backend == poller.BackendLocalhostAPIServer && nodeOf(s) != node {
+					continue
+				}
 				if overlaps(s, from, to) {
 					excluded = true
 					break

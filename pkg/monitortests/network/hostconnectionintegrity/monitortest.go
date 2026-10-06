@@ -2,10 +2,10 @@
 // connections that are reset or silently black-holed by an ovnkube-node gateway reconcile during the
 // teardown of a user defined network (OCPBUGS-128289).
 //
-// A hostNetwork poller runs on every node (see the poller subpackage). It keeps long-lived connections to
-// every peer kubelet, to api-int and, on control-plane nodes, to the local kube-apiserver, and records every
-// episode where such an established connection is reset or stops passing traffic while a new connection to
-// the same target still works. After the run the monitor reads the ovnkube-controller logs of every
+// A hostNetwork poller runs on every schedulable node (see the poller subpackage). It keeps long-lived
+// connections to the kubelets of the next few peer nodes (a ring), to api-int and, on control-plane nodes,
+// to the local kube-apiserver, and records every episode where such an established connection is reset or
+// stops passing traffic while a new connection to the same target still works. After the run the monitor reads the ovnkube-controller logs of every
 // ovnkube-node pod and correlates the failures with gateway reconciles on the same node.
 package hostconnectionintegrity
 
@@ -169,17 +169,21 @@ func (w *hostConnectionIntegrity) PrepareCollection(ctx context.Context, adminRE
 	if err != nil {
 		return err
 	}
-	w.peers, w.controlPlane = peersFromNodes(nodes.Items)
+	w.peers, w.controlPlane = peersFromNodes(nodes.Items, deploymentTemplate.Spec.Template.Spec.Tolerations)
 	if len(w.peers) < 2 {
-		return w.notSupported("need at least two nodes with an InternalIP, found %d", len(w.peers))
+		return w.notSupported("need at least two schedulable nodes with an InternalIP, found %d", len(w.peers))
 	}
 	return nil
 }
 
-// peersFromNodes returns nodeName=InternalIP pairs and the control-plane node names.
-func peersFromNodes(nodes []corev1.Node) ([]string, []string) {
+// peersFromNodes returns nodeName=InternalIP pairs and the control-plane node names of the nodes a poller
+// pod with the given tolerations can run on. Other nodes would leave a poller Pending and fail readiness.
+func peersFromNodes(nodes []corev1.Node, tolerations []corev1.Toleration) ([]string, []string) {
 	peers, controlPlane := []string{}, []string{}
 	for _, n := range nodes {
+		if !pollerSchedulable(&n, tolerations) {
+			continue
+		}
 		for _, a := range n.Status.Addresses {
 			if a.Type == corev1.NodeInternalIP {
 				peers = append(peers, fmt.Sprintf("%s=%s", n.Name, a.Address))
@@ -195,6 +199,44 @@ func peersFromNodes(nodes []corev1.Node) ([]string, []string) {
 	sort.Strings(peers)
 	sort.Strings(controlPlane)
 	return peers, controlPlane
+}
+
+// pollerSchedulable reports whether a poller pod can run on the node: Ready, schedulable, Linux, and every
+// NoSchedule/NoExecute taint tolerated.
+func pollerSchedulable(n *corev1.Node, tolerations []corev1.Toleration) bool {
+	if n.Spec.Unschedulable {
+		return false
+	}
+	if nodeOS, ok := n.Labels[corev1.LabelOSStable]; ok && nodeOS != "linux" {
+		return false
+	}
+	ready := false
+	for _, c := range n.Status.Conditions {
+		if c.Type == corev1.NodeReady {
+			ready = c.Status == corev1.ConditionTrue
+			break
+		}
+	}
+	if !ready {
+		return false
+	}
+	for i := range n.Spec.Taints {
+		taint := &n.Spec.Taints[i]
+		if taint.Effect == corev1.TaintEffectPreferNoSchedule {
+			continue
+		}
+		tolerated := false
+		for j := range tolerations {
+			if tolerations[j].ToleratesTaint(klog.Background(), taint, false) {
+				tolerated = true
+				break
+			}
+		}
+		if !tolerated {
+			return false
+		}
+	}
+	return true
 }
 
 func (w *hostConnectionIntegrity) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {

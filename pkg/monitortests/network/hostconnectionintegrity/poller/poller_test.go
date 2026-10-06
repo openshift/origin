@@ -108,7 +108,10 @@ func TestHTTPProberAgainstRealServers(t *testing.T) {
 			mode.Store(0)
 			rw.Header().Set("Content-Length", "1000")
 			rw.WriteHeader(http.StatusUnauthorized)
-			_, _ = rw.Write([]byte("partial"))
+			if n, err := rw.Write([]byte("partial")); err != nil || n != len("partial") {
+				t.Errorf("partial body write: wrote %d bytes, err %v", n, err)
+				return
+			}
 			rw.(http.Flusher).Flush()
 			hj, _ := rw.(http.Hijacker)
 			conn, _, err := hj.Hijack()
@@ -332,5 +335,52 @@ func TestBuildTargets(t *testing.T) {
 	}
 	if _, err := ParsePeers([]string{"bad"}); err == nil {
 		t.Errorf("expected error for invalid peer")
+	}
+}
+
+func TestWatcherCancelledProbeIsNotAnOutage(t *testing.T) {
+	now := time.Date(2026, 9, 17, 6, 0, 0, 0, time.UTC)
+	var emitted []monitorapi.Interval
+	cancelled := Result{Reused: true, Err: context.Canceled}
+	w := &Watcher{
+		NodeName:    "worker-a",
+		Target:      Target{Backend: BackendPeerKubelet, Name: "master-0"},
+		Established: &fakeProber{results: []Result{ok, cancelled}},
+		Fresh:       &fakeProber{results: []Result{{Err: context.Canceled}}},
+		Now:         func() time.Time { return now },
+		Emit:        func(i monitorapi.Interval) { emitted = append(emitted, i) },
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	w.Step(ctx)
+	cancel()
+	w.Step(ctx)
+	w.Stopped()
+	for _, i := range emitted {
+		if i.Message.Reason != monitorapi.IntervalReason(ReasonWatchStopped) {
+			t.Errorf("stopping the poller must not record an episode, got %s", i.Message.Reason)
+		}
+	}
+}
+
+func TestValidate(t *testing.T) {
+	valid := func() *Options {
+		return &Options{MyNodeName: "worker-a", Namespace: "ns", MaxPeers: 3, Peers: []string{"worker-a=10.0.0.1", "worker-b=fd00::2"}}
+	}
+	if err := valid().Validate(); err != nil {
+		t.Fatalf("valid options rejected: %v", err)
+	}
+	for name, mutate := range map[string]func(*Options){
+		"missing node name": func(o *Options) { o.MyNodeName = "" },
+		"missing namespace": func(o *Options) { o.Namespace = "" },
+		"zero max peers":    func(o *Options) { o.MaxPeers = 0 },
+		"peer without IP":   func(o *Options) { o.Peers = []string{"worker-a"} },
+		"peer with bad IP":  func(o *Options) { o.Peers = []string{"worker-a=not-an-ip"} },
+		"peer without name": func(o *Options) { o.Peers = []string{"=10.0.0.1"} },
+	} {
+		o := valid()
+		mutate(o)
+		if err := o.Validate(); err == nil {
+			t.Errorf("%s: expected an error", name)
+		}
 	}
 }

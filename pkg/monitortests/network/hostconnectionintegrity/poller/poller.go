@@ -258,6 +258,10 @@ func (w *Watcher) Step(ctx context.Context) {
 		w.lastOK = w.Now()
 		return
 	}
+	if ctx.Err() != nil {
+		// the poller is stopping: the probe was cancelled, it did not fail.
+		return
+	}
 	fresh := w.Fresh.Probe(ctx)
 	reason := Classify(res, fresh)
 	if w.current != nil && w.current.reason == reason {

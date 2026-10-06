@@ -168,6 +168,23 @@ func TestCorrelateNegatives(t *testing.T) {
 			want: 1,
 		},
 		{
+			name: "localhost-apiserver failure during this node's kube-apiserver shutdown",
+			intervals: monitorapi.Intervals{
+				shutdown,
+				reconcileAt("master-0", trigger),
+				failureAt("master-0", poller.BackendLocalhostAPIServer, poller.ReasonStalled, trigger),
+			},
+		},
+		{
+			name: "localhost-apiserver failure is still reported during another node's kube-apiserver shutdown",
+			intervals: monitorapi.Intervals{
+				shutdown,
+				reconcileAt(node, trigger),
+				failureAt(node, poller.BackendLocalhostAPIServer, poller.ReasonStalled, trigger),
+			},
+			want: 1,
+		},
+		{
 			name: "failure during an ovs-vswitchd stall on the same node (OCPBUGS-99645)",
 			intervals: monitorapi.Intervals{
 				ovsStall,
@@ -244,13 +261,33 @@ func TestOVNKubeControllerLogHandler(t *testing.T) {
 }
 
 func TestPeersFromNodes(t *testing.T) {
-	nodes := []corev1.Node{
-		{ObjectMeta: metav1.ObjectMeta{Name: "master-0", Labels: map[string]string{"node-role.kubernetes.io/master": ""}},
-			Status: corev1.NodeStatus{Addresses: []corev1.NodeAddress{{Type: corev1.NodeHostName, Address: "m0"}, {Type: corev1.NodeInternalIP, Address: "10.0.0.5"}}}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "worker-a"},
-			Status: corev1.NodeStatus{Addresses: []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: "10.0.128.2"}}}},
+	ready := []corev1.NodeCondition{{Type: corev1.NodeReady, Status: corev1.ConditionTrue}}
+	node := func(name string, labels map[string]string, ip string, mutate func(*corev1.Node)) corev1.Node {
+		n := corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: name, Labels: labels},
+			Status: corev1.NodeStatus{Conditions: ready, Addresses: []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: ip}}}}
+		if mutate != nil {
+			mutate(&n)
+		}
+		return n
 	}
-	peers, cp := peersFromNodes(nodes)
+	nodes := []corev1.Node{
+		node("master-0", map[string]string{"node-role.kubernetes.io/master": "", corev1.LabelOSStable: "linux"}, "10.0.0.5", func(n *corev1.Node) {
+			n.Status.Addresses = append([]corev1.NodeAddress{{Type: corev1.NodeHostName, Address: "m0"}}, n.Status.Addresses...)
+			n.Spec.Taints = []corev1.Taint{{Key: "node-role.kubernetes.io/master", Effect: corev1.TaintEffectNoSchedule}}
+		}),
+		node("worker-a", nil, "10.0.128.2", func(n *corev1.Node) {
+			n.Spec.Taints = []corev1.Taint{{Key: "soft", Effect: corev1.TaintEffectPreferNoSchedule}}
+		}),
+		node("infra-0", nil, "10.0.128.3", func(n *corev1.Node) {
+			n.Spec.Taints = []corev1.Taint{{Key: "node-role.kubernetes.io/infra", Effect: corev1.TaintEffectNoSchedule}}
+		}),
+		node("cordoned", nil, "10.0.128.4", func(n *corev1.Node) { n.Spec.Unschedulable = true }),
+		node("not-ready", nil, "10.0.128.5", func(n *corev1.Node) {
+			n.Status.Conditions = []corev1.NodeCondition{{Type: corev1.NodeReady, Status: corev1.ConditionUnknown}}
+		}),
+		node("windows", map[string]string{corev1.LabelOSStable: "windows"}, "10.0.128.6", nil),
+	}
+	peers, cp := peersFromNodes(nodes, deploymentTemplate.Spec.Template.Spec.Tolerations)
 	if strings.Join(peers, ",") != "master-0=10.0.0.5,worker-a=10.0.128.2" || strings.Join(cp, ",") != "master-0" {
 		t.Errorf("unexpected peers %v control plane %v", peers, cp)
 	}

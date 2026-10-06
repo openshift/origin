@@ -31,8 +31,12 @@ spec:
           name: poller
           terminationMessagePolicy: FallbackToLogsOnError
           securityContext:
+            # hostNetwork is all the poller needs: it only opens outbound connections.
             runAsUser: 0
-            privileged: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           env:
             - name: MY_NODE_NAME
               valueFrom:
