@@ -146,6 +146,24 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 		e2e.Logf("[stage timing] Restoring etcd quorum: %v (phase1 etcd start cap: %v, phase2 %d×%v)", time.Since(stageStart), etcdPhase1StartAfterStonithTimeout, stonithCleanupMaxAttempts, stonithCleanupRoundTimeout)
 		stageStart = time.Now()
 
+		// The accepted offline/insufficient degraded reasons are derived from a non-stale
+		// PacemakerCluster snapshot, so wait for one before inspecting the snapshot's node details.
+		g.By("Verifying PacemakerHealthCheckDegraded=True after node destruction")
+		o.Eventually(func() error {
+			degraded, message, degradedErr := apis.IsPacemakerHealthCheckDegraded(oc)
+			if degradedErr != nil {
+				return degradedErr
+			}
+			if !degraded {
+				return fmt.Errorf("PacemakerHealthCheckDegraded is not True")
+			}
+			if !strings.Contains(message, "is offline") && !strings.Contains(message, "Insufficient nodes in cluster") {
+				return fmt.Errorf("PacemakerHealthCheckDegraded message %q does not report an offline or removed node", message)
+			}
+			return nil
+		}, apis.PacemakerDegradedDetectionTimeout, 10*time.Second).ShouldNot(o.HaveOccurred(),
+			"PacemakerHealthCheckDegraded should be True with an offline-node or insufficient-nodes reason after node destruction and quorum restore")
+
 		g.By("Verifying PacemakerCluster CR shows the target node offline or removed")
 		o.Eventually(func() error {
 			pc, pcErr := apis.GetPacemakerCluster(oc)
@@ -166,22 +184,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 			return apis.ExpectNodeMember(pc, testConfig.SurvivingNode.Name)
 		}, 2*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
 			"Target node should show Online=False or be absent from populated PacemakerCluster status after destruction")
-
-		g.By("Verifying PacemakerHealthCheckDegraded=True after node destruction")
-		o.Eventually(func() error {
-			degraded, message, degradedErr := apis.IsPacemakerHealthCheckDegraded(oc)
-			if degradedErr != nil {
-				return degradedErr
-			}
-			if !degraded {
-				return fmt.Errorf("PacemakerHealthCheckDegraded is not True")
-			}
-			if !strings.Contains(message, "is offline") && !strings.Contains(message, "Insufficient nodes in cluster") {
-				return fmt.Errorf("PacemakerHealthCheckDegraded message %q does not report an offline or removed node", message)
-			}
-			return nil
-		}, apis.PacemakerDegradedDetectionTimeout, 10*time.Second).ShouldNot(o.HaveOccurred(),
-			"PacemakerHealthCheckDegraded should be True with an offline-node or insufficient-nodes reason after node destruction and quorum restore")
 
 		g.By("Deleting OpenShift node references")
 		deleteNodeReferences(&testConfig, oc)
