@@ -863,6 +863,8 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 
 		// Keycloak exposes a single /userinfo endpoint, so this covers multiple claim
 		// mappings against that endpoint (merge behavior), not two distinct IdP hosts.
+		// CNTRLPLANE-3481 remaining gaps (predicates, partial failure, dynamic path)
+		// are in the following Describe.
 		g.Describe("with multiple mappings from the same external claims endpoint", g.Ordered, func() {
 			var multiSourceUser, multiSourceUserPassword string
 			var source1Groups, source2Groups []string
@@ -968,6 +970,132 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 						gomega.Expect(ssr.Status.UserInfo.Groups).To(o.ContainElement(grp),
 							"should contain groups from mapping 2")
 					}
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+		})
+
+		// CNTRLPLANE-3481: sourcing from >1 sources / source entries.
+		// Dual Keycloak hosts are not available in CI, so distinct sources are modeled as
+		// two ExternalClaimsSources entries (good userinfo + unreachable) plus predicates
+		// and a claims.sub pathExpression. Setup lives in the It because openshift-tests
+		// does not reliably honor Ordered/BeforeAll when running a single test name.
+		g.Describe("with multiple external claims sources", func() {
+			g.It("should honor predicates, omit unreachable sources, and evaluate dynamic path expressions", func() {
+				testID := rand.String(8)
+				o.Expect(keycloakCli.ConfigureClientForExternalClaims(externalClaimsKeycloakClientID)).To(o.Succeed(),
+					"should configure a Keycloak client for external claims testing")
+
+				matchUser := fmt.Sprintf("pred-match-%s", testID)
+				skipUser := fmt.Sprintf("pred-skip-%s", testID)
+				userPassword := fmt.Sprintf("password-msrc-%s", testID)
+				predGroup := fmt.Sprintf("pred-group-%s", testID)
+				okGroup := fmt.Sprintf("msrcok-group-%s", testID)
+				badGroup := fmt.Sprintf("msrcbad-group-%s", testID)
+				dynGroup := fmt.Sprintf("dynpath-group-%s", testID)
+
+				for _, grp := range []string{predGroup, okGroup, badGroup, dynGroup} {
+					o.Expect(keycloakCli.CreateGroup(grp)).To(o.Succeed(), "should create multi-source test group")
+				}
+				o.Expect(keycloakCli.CreateUser(matchUser, userPassword, predGroup, okGroup, badGroup, dynGroup)).To(o.Succeed(),
+					"should create predicate-matching user")
+				o.Expect(keycloakCli.CreateUser(skipUser, userPassword, predGroup, okGroup, badGroup, dynGroup)).To(o.Succeed(),
+					"should create predicate-skipping user")
+
+				hostname := keycloakHostname(ctx, oc, keycloakNamespace)
+				ensureOIDCConfigured(ctx, oc, keycloakNamespace, oidcClientSecret)
+				baselineRevision := kubeAPIServerLatestRevision(ctx, oc)
+
+				predicateNeedle := fmt.Sprintf("pred-match-%s", testID)
+				predSource := keycloakUserInfoClaimsSource(hostname, configv1.SourcedClaimMapping{
+					Name:       "groups_predicate",
+					Expression: "response.body.groups.filter(g, g.startsWith('pred-group-')).join(',')",
+				})
+				predSource.Predicates = []configv1.ExternalSourcePredicate{
+					{
+						// preferred_username is present on Keycloak access tokens; email is
+						// the username claim but is not always copied onto the access token.
+						Expression: fmt.Sprintf("has(claims.preferred_username) && claims.preferred_username == '%s'", matchUser),
+					},
+				}
+
+				hotReloadExternalClaimsAndWait(ctx, oc, baselineRevision, predicateNeedle, "", func(provider *configv1.OIDCProvider) {
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{predSource}
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: "claims.?groups_predicate.orValue('').split(',').filter(g, size(g) > 0)",
+						},
+					}
+				})
+
+				o.Eventually(func(gomega o.Gomega) {
+					groups, err := selfSubjectGroups(ctx, oc, keycloakCli, externalClaimsKeycloakClientID, matchUser, userPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "predicate true: should authenticate and fetch the source")
+					gomega.Expect(groups).To(o.ContainElement(predGroup), "predicate true: should include groups from the source")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+
+				o.Eventually(func(gomega o.Gomega) {
+					groups, err := selfSubjectGroups(ctx, oc, keycloakCli, externalClaimsKeycloakClientID, skipUser, userPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "predicate false: authentication should still succeed")
+					gomega.Expect(groups).NotTo(o.ContainElement(predGroup), "predicate false: source must not be fetched")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+
+				const unreachableHost = "unreachable-host-that-does-not-exist.example.com"
+				hotReloadExternalClaimsAndWait(ctx, oc, baselineRevision, unreachableHost, predicateNeedle, func(provider *configv1.OIDCProvider) {
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{
+						keycloakUserInfoClaimsSource(hostname, configv1.SourcedClaimMapping{
+							Name:       "groups_ok",
+							Expression: "response.body.groups.filter(g, g.startsWith('msrcok-')).join(',')",
+						}),
+						{
+							Authentication: configv1.ExternalSourceAuthentication{
+								Type: configv1.ExternalSourceAuthenticationTypeRequestProvidedToken,
+							},
+							URL: configv1.SourceURL{
+								Hostname:       unreachableHost,
+								PathExpression: "['userinfo']",
+							},
+							Mappings: []configv1.SourcedClaimMapping{
+								{
+									Name:       "groups_bad",
+									Expression: "response.body.groups.filter(g, g.startsWith('msrcbad-')).join(',')",
+								},
+							},
+						},
+					}
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: "(claims.?groups_ok.orValue('') + ',' + claims.?groups_bad.orValue('')).split(',').filter(g, size(g) > 0)",
+						},
+					}
+				})
+
+				o.Eventually(func(gomega o.Gomega) {
+					groups, err := selfSubjectGroups(ctx, oc, keycloakCli, externalClaimsKeycloakClientID, matchUser, userPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "partial failure: reachable source should still allow authentication")
+					gomega.Expect(groups).To(o.ContainElement(okGroup), "partial failure: groups from the reachable source should be present")
+					gomega.Expect(groups).NotTo(o.ContainElement(badGroup), "partial failure: groups from the unreachable source should be omitted")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+
+				const missingPathMarker = "does-not-exist"
+				hotReloadExternalClaimsAndWait(ctx, oc, baselineRevision, missingPathMarker, unreachableHost, func(provider *configv1.OIDCProvider) {
+					dynSource := keycloakUserInfoClaimsSource(hostname, configv1.SourcedClaimMapping{
+						Name:       "groups_dyn",
+						Expression: "response.body.groups.filter(g, g.startsWith('dynpath-')).join(',')",
+					})
+					// Keycloak userinfo is a fixed path; claims.sub selects that path vs a 404.
+					dynSource.URL.PathExpression = fmt.Sprintf("has(claims.sub) && size(claims.sub) > 0 ? ['realms', 'master', 'protocol', 'openid-connect', 'userinfo'] : ['%s']", missingPathMarker)
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{dynSource}
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: "claims.?groups_dyn.orValue('').split(',').filter(g, size(g) > 0)",
+						},
+					}
+				})
+
+				o.Eventually(func(gomega o.Gomega) {
+					groups, err := selfSubjectGroups(ctx, oc, keycloakCli, externalClaimsKeycloakClientID, matchUser, userPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "dynamic path: should authenticate when pathExpression uses claims.sub")
+					gomega.Expect(groups).To(o.ContainElement(dynGroup), "dynamic path: should source groups from the claims.sub-selected userinfo path")
 				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 			})
 		})
