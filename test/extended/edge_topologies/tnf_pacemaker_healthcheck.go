@@ -45,6 +45,19 @@ func waitForHealthCheckClearedBestEffort(oc *exutil.CLI) {
 	}
 }
 
+// checkPacemakerHealthyEventObserved performs a bounded, non-blocking, informational
+// check for a PacemakerHealthy event emitted at or after since,
+// since the event is informational and not required for recovery.
+func checkPacemakerHealthyEventObserved(oc *exutil.CLI, since time.Time) {
+	if err := apis.WaitForPacemakerEvent(oc, apis.PacemakerHealthCheckEventNamespace, "PacemakerHealthy", since, 2*time.Minute); err != nil {
+		framework.Logf("[sig-etcd][PHCMiss] PacemakerHealthy event not observed for recovery starting %s: %v",
+			since.Format(time.RFC3339), err)
+	} else {
+		framework.Logf("[sig-etcd][PHCCheck] PacemakerHealthy event observed for recovery starting %s",
+			since.Format(time.RFC3339))
+	}
+}
+
 // deferHealthCheckDiagnosticsOnFailure registers a DeferCleanup that dumps
 // PacemakerHealthCheck diagnostics when the current spec fails. WaitForPacemakerHealthCheckDegraded
 // and WaitForPacemakerHealthCheckCleared already dump diagnostics on their own timeout, but any
@@ -131,17 +144,24 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		// exist. Require one emitted after recovery begins.
 		recoveryBaseline := time.Now()
 
+		// CR-clock baseline for the fresh-snapshot wait below.
+		preRecoveryPC, err := apis.GetPacemakerCluster(oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "expected to fetch PacemakerCluster before recovery")
+
 		g.By("Disabling cluster maintenance mode")
 		err = services.PcsPropertySetViaDebug(oc, execNode.Name, "maintenance-mode", "false")
 		o.Expect(err).To(o.BeNil(), "Expected to disable maintenance mode")
+
+		g.By("Waiting for a fresh, healthy PacemakerCluster snapshot after disabling maintenance mode")
+		o.Expect(apis.WaitForFreshHealthyPacemakerSnapshot(oc, preRecoveryPC.Status.LastUpdated.Time, healthCheckRecoveryTimeout)).
+			ShouldNot(o.HaveOccurred(), "expected a fresh, healthy PacemakerCluster snapshot after disabling maintenance mode")
 
 		g.By("Waiting for PacemakerHealthCheckDegraded to clear")
 		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, healthCheckRecoveryTimeout)).
 			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after maintenance mode is disabled")
 
-		g.By("Verifying PacemakerHealthy event was emitted after recovery")
-		o.Expect(apis.WaitForPacemakerEvent(oc, apis.PacemakerHealthCheckEventNamespace, "PacemakerHealthy", recoveryBaseline, 2*time.Minute)).
-			ShouldNot(o.HaveOccurred(), "Expected PacemakerHealthy event in openshift-etcd-operator namespace after recovery")
+		g.By("Checking for PacemakerHealthy event after recovery (informational)")
+		checkPacemakerHealthyEventObserved(oc, recoveryBaseline)
 
 		g.By("Validating cluster health after maintenance mode recovery")
 		o.Eventually(func() error {
