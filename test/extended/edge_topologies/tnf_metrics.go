@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		})
 		cancelNodes()
 		o.Expect(err).NotTo(o.HaveOccurred(), "list control-plane nodes before TNF metric testing")
-		o.Expect(masterNodes.Items).To(o.HaveLen(2), "TNF metrics tests require exactly two control-plane nodes")
+		o.Expect(len(masterNodes.Items)).To(o.Equal(2), "TNF metrics tests require exactly two control-plane nodes")
 
 		nodes = nodes[:0]
 		for _, node := range masterNodes.Items {
@@ -76,7 +76,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(waitForTNFGauges(ctx, oc, healthy)).To(o.Succeed(), "establish the healthy TNF metric baseline")
 		gauges, err := queryTNFGauges(ctx, oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "query the TNF metric inventory")
-		o.Expect(gauges).To(o.HaveLen(53), "expected exactly 53 TNF gauges")
+		o.Expect(len(gauges)).To(o.Equal(53), "expected exactly 53 TNF gauges")
 
 		g.By("verifying no TNF alerts are firing before disruption")
 		o.Expect(waitForNoFiringTNFAlerts(ctx, oc, prometheusPod)).To(o.Succeed(), "clear firing TNF alerts before disruption")

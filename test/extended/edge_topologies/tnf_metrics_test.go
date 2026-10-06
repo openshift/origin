@@ -168,6 +168,30 @@ func TestTNFGaugeMismatchesReportsMissingAndUnexpectedValues(t *testing.T) {
 	}
 }
 
+func TestTNFGaugeMismatchesOmitsNodeHostnames(t *testing.T) {
+	firstNode := "master-0.internal.example.test"
+	secondNode := "master-1.internal.example.test"
+	expected := map[metricKey]float64{
+		{name: "tnf_node_healthy", node: firstNode}:  1,
+		{name: "tnf_node_healthy", node: secondNode}: 1,
+	}
+	actual := map[metricKey]float64{
+		{name: "tnf_node_healthy", node: firstNode}: 0,
+	}
+
+	got := strings.Join(tnfGaugeMismatches(actual, expected), "; ")
+	for _, hostname := range []string{firstNode, secondNode} {
+		if strings.Contains(got, hostname) {
+			t.Errorf("mismatch diagnostics expose node hostname %q: %s", hostname, got)
+		}
+	}
+	for _, alias := range []string{"node-0", "node-1"} {
+		if !strings.Contains(got, alias) {
+			t.Errorf("mismatch diagnostics do not identify %s: %s", alias, got)
+		}
+	}
+}
+
 func TestParseLoadedTNFAlertRules(t *testing.T) {
 	response := `{"status":"success","data":{"groups":[{"name":"tnf.rules","rules":[{"name":"TNFClusterInMaintenance"},{"name":"etcdNoLeader"},{"name":"TNFNodeInMaintenance"}]}]}}`
 
@@ -420,5 +444,29 @@ func TestSingleTNFFencingAgentPrerequisite(t *testing.T) {
 	}
 	if _, err := singleTNFFencingAgent(&etcdv1.PacemakerCluster{}, "master-0"); err == nil {
 		t.Fatal("accepted missing node status")
+	}
+}
+
+func TestSingleTNFFencingAgentErrorsOmitNodeHostname(t *testing.T) {
+	nodeName := "master-0.internal.example.test"
+	for _, tc := range []struct {
+		name  string
+		nodes []etcdv1.PacemakerClusterNodeStatus
+	}{
+		{name: "missing node"},
+		{name: "no agents", nodes: []etcdv1.PacemakerClusterNodeStatus{{NodeName: nodeName}}},
+		{name: "stopped agent", nodes: []etcdv1.PacemakerClusterNodeStatus{{NodeName: nodeName, FencingAgents: []etcdv1.PacemakerClusterFencingAgentStatus{{Name: "fence-device"}}}}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			pc := &etcdv1.PacemakerCluster{}
+			pc.Status.Nodes = &tc.nodes
+			_, err := singleTNFFencingAgent(pc, nodeName)
+			if err == nil {
+				t.Fatal("expected fencing prerequisite error")
+			}
+			if strings.Contains(err.Error(), nodeName) {
+				t.Errorf("fencing prerequisite error exposes node hostname: %v", err)
+			}
+		})
 	}
 }

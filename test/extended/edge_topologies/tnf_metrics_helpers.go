@@ -239,15 +239,32 @@ func parseLoadedTNFAlertRules(response string) ([]string, error) {
 }
 
 func tnfGaugeMismatches(actual, expected map[metricKey]float64) []string {
+	nodeNames := map[string]struct{}{}
+	for key := range expected {
+		if key.node != "" {
+			nodeNames[key.node] = struct{}{}
+		}
+	}
+	sortedNodes := make([]string, 0, len(nodeNames))
+	for node := range nodeNames {
+		sortedNodes = append(sortedNodes, node)
+	}
+	sort.Strings(sortedNodes)
+	nodeAliases := make(map[string]string, len(sortedNodes))
+	for index, node := range sortedNodes {
+		nodeAliases[node] = fmt.Sprintf("node-%d", index)
+	}
+
 	mismatches := []string{}
 	for key, expectedValue := range expected {
+		displayKey := formatTNFMetricKey(key, nodeAliases)
 		actualValue, found := actual[key]
 		if !found {
-			mismatches = append(mismatches, fmt.Sprintf("%s is missing", key))
+			mismatches = append(mismatches, fmt.Sprintf("%s is missing", displayKey))
 			continue
 		}
 		if actualValue != expectedValue {
-			mismatches = append(mismatches, fmt.Sprintf("%s=%v, want %v", key, actualValue, expectedValue))
+			mismatches = append(mismatches, fmt.Sprintf("%s=%v, want %v", displayKey, actualValue, expectedValue))
 		}
 	}
 	sort.Strings(mismatches)
@@ -265,10 +282,10 @@ func tnfGaugesWithOverrides(baseline, overrides map[metricKey]float64) map[metri
 	return expected
 }
 
-func (key metricKey) String() string {
+func formatTNFMetricKey(key metricKey, nodeAliases map[string]string) string {
 	labels := []string{}
 	if key.node != "" {
-		labels = append(labels, fmt.Sprintf("node=%q", key.node))
+		labels = append(labels, fmt.Sprintf("node=%q", nodeAliases[key.node]))
 	}
 	if key.resource != "" {
 		labels = append(labels, fmt.Sprintf("resource=%q", key.resource))
@@ -438,13 +455,17 @@ func singleTNFFencingAgent(pc *etcdv1.PacemakerCluster, nodeName string) (string
 		for _, node := range *pc.Status.Nodes {
 			if node.NodeName == nodeName {
 				if len(node.FencingAgents) != 1 {
-					return "", fmt.Errorf("fence-disable scenario requires exactly one configured fencing agent for node %s, found %d", nodeName, len(node.FencingAgents))
+					return "", fmt.Errorf("fence-disable scenario requires exactly one configured fencing agent for the target node, found %d", len(node.FencingAgents))
 				}
-				return apis.FindStartedFencingAgent(pc, nodeName)
+				agent, err := apis.FindStartedFencingAgent(pc, nodeName)
+				if err != nil {
+					return "", errors.New("no started fencing agent found for the target node")
+				}
+				return agent, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("node %s not found in PacemakerCluster status", nodeName)
+	return "", errors.New("target node not found in PacemakerCluster status")
 }
 
 func queryTNFGauges(ctx context.Context, oc *exutil.CLI) (map[metricKey]float64, error) {
