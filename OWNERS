@@ -17,10 +17,11 @@ filters:
     - smg247
     - petr-muller
     - cpmeadors
-    - mkowalski 
+    - mkowalski
     - miyadav
     - jogeo
-    - xueqzhan 
+    - xueqzhan
+    - stephenfin
   "^\\.go.(mod|sum)$":
     labels:
     - "vendor-update"
