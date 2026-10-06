@@ -34,6 +34,13 @@ func log(format string, args ...interface{}) {
 	//fmt.Printf(format, args...)
 }
 
+func joinLinesPreservingTrailingNewline(lines []string) string {
+	if len(lines) == 0 {
+		return ""
+	}
+	return strings.Join(lines, "\n") + "\n"
+}
+
 // Parse parses `go test -v` output into test suites. Test output from `go test -v` is not bookmarked for packages, so
 // the parsing strategy is to advance line-by-line, building up a slice of test cases until a package declaration is found,
 // at which point all tests cases are added to that package and the process can start again.
@@ -193,9 +200,18 @@ func (p *testOutputParser) Parse(input *bufio.Scanner) (*api.TestSuites, error) 
 
 			// treat as regular output at the appropriate depth
 			log("  found message line %d %v\n", depth, testNameStack)
+			originalDepth := depth
 			// BUG: in go test, double nested output is double indented for some reason
 			if depth >= len(testNameStack) {
 				depth = len(testNameStack) - 1
+			}
+			// Output that appears after a nested result line at the same indentation belongs to the
+			// parent test, because the child at that depth has already been closed by its result line.
+			if originalDepth == len(testNameStack)-1 && len(testNameStack) > 1 {
+				name := testNameStack[depth]
+				if test, ok := tests[name]; ok && (test.FailureOutput != nil || test.SkipMessage != nil) {
+					depth--
+				}
 			}
 			name := testNameStack[depth]
 			log("    name %s\n", name)
@@ -233,17 +249,17 @@ func (p *testOutputParser) Parse(input *bufio.Scanner) (*api.TestSuites, error) 
 
 					switch {
 					case test.FailureOutput != nil:
-						test.FailureOutput.Output = strings.Join(messageLines, "\n")
+						test.FailureOutput.Output = joinLinesPreservingTrailingNewline(messageLines)
 
 						lines := append(output[name], extraOutput...)
-						test.SystemOut = strings.Join(lines, "\n")
+						test.SystemOut = joinLinesPreservingTrailingNewline(lines)
 
 					case test.SkipMessage != nil:
-						test.SkipMessage.Message = strings.Join(messageLines, "\n")
+						test.SkipMessage.Message = joinLinesPreservingTrailingNewline(messageLines)
 
 					default:
 						lines := append(output[name], extraOutput...)
-						test.SystemOut = strings.Join(lines, "\n")
+						test.SystemOut = joinLinesPreservingTrailingNewline(lines)
 					}
 
 					currentSuite.AddTestCase(test)
