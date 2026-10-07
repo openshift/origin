@@ -285,6 +285,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/cluster-kube-storage-version-migrator-operator-tests-ext.gz",
 	},
 	{
+		imageTag:   "cluster-machine-approver",
+		binaryPath: "/usr/bin/cluster-machine-approver-tests-ext.gz",
+	},
+	{
 		imageTag:   "cluster-monitoring-operator",
 		binaryPath: "/usr/bin/cluster-monitoring-operator-tests-ext.gz",
 	},
