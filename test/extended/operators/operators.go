@@ -171,7 +171,13 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 		o.Expect(coList.Items).NotTo(o.BeEmpty())
 
 		g.By("all cluster operators report an operator version in the first position equal to the cluster version")
+		cvoManaged := 0
 		for _, co := range coList.Items {
+			if !isManagedByClusterVersionOperator(co) {
+				e2e.Logf("skipping ClusterOperator %q: not owned by ClusterVersion, likely a test fixture", co.Name)
+				continue
+			}
+			cvoManaged++
 			msg := fmt.Sprintf("unexpected operator status versions %s:\n%#v", co.Name, co.Status.Versions)
 			o.Expect(co.Status.Versions).NotTo(o.BeEmpty(), msg)
 			operator := findOperatorVersion(co.Status.Versions, "operator")
@@ -179,6 +185,7 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 			o.Expect(operator.Name).To(o.Equal("operator"), msg)
 			o.Expect(operator.Version).To(o.Equal(cv.Status.Desired.Version), msg)
 		}
+		o.Expect(cvoManaged).NotTo(o.BeZero(), "expected at least one CVO-managed ClusterOperator, but none had a ClusterVersion ownerReference")
 	})
 })
 
@@ -195,6 +202,19 @@ func skipUnlessCVO(c coreclient.NamespaceInterface) {
 		return false, nil
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// isManagedByClusterVersionOperator reports whether co is owned by the
+// ClusterVersion object via ownerReferences. Transient test-created
+// ClusterOperators (e.g. SSA test fixtures) lack this owner reference
+// and must be excluded from version assertions to avoid parallel-test races.
+func isManagedByClusterVersionOperator(co configv1.ClusterOperator) bool {
+	for _, ref := range co.OwnerReferences {
+		if ref.Kind == "ClusterVersion" && ref.APIVersion == "config.openshift.io/v1" {
+			return true
+		}
+	}
+	return false
 }
 
 func findOperatorVersion(versions []configv1.OperandVersion, name string) *configv1.OperandVersion {
