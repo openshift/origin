@@ -124,7 +124,7 @@ func (mo *Monitor) InstantQuery(queryParams MonitorInstantQueryParams) (string, 
 	mo.ocClient.NotShowInfo()
 	defer mo.ocClient.SetShowInfo()
 
-	return RemoteShPod(mo.ocClient, monitorNamespace, "statefulsets/"+prometheusK8s, queryArgs...)
+	return RemoteExecPod(mo.ocClient, monitorNamespace, "statefulsets/"+prometheusK8s, queryArgs...)
 }
 
 // RangeQuery executes a query range in prometheus with start, end, step and timeout
@@ -155,7 +155,7 @@ func (mo *Monitor) RangeQuery(queryParams MonitorRangeQueryParams) (string, erro
 	mo.ocClient.NotShowInfo()
 	defer mo.ocClient.SetShowInfo()
 
-	return RemoteShPod(mo.ocClient, monitorNamespace, "statefulsets/"+prometheusK8s, queryArgs...)
+	return RemoteExecPod(mo.ocClient, monitorNamespace, "statefulsets/"+prometheusK8s, queryArgs...)
 }
 
 func (mo *Monitor) queryRules(query string) (string, error) {
@@ -171,7 +171,7 @@ func (mo *Monitor) queryRules(query string) (string, error) {
 	mo.ocClient.NotShowInfo()
 	defer mo.ocClient.SetShowInfo()
 
-	return RemoteShPod(mo.ocClient, monitorNamespace, "statefulsets/"+prometheusK8s, queryArgs...)
+	return RemoteExecPod(mo.ocClient, monitorNamespace, "statefulsets/"+prometheusK8s, queryArgs...)
 }
 
 // GetAllRules returns all rules
@@ -197,7 +197,7 @@ func (mo *Monitor) GetAlerts() (string, error) {
 	defer mo.ocClient.SetShowInfo()
 
 	getCmd := "curl -k -s -H \"" + fmt.Sprintf("Authorization: Bearer %v", mo.Token) + "\" " + mo.url + monitorAlerts
-	return RemoteShPod(mo.ocClient, monitorNamespace, "statefulsets/"+prometheusK8s, "sh", "-c", getCmd)
+	return RemoteExecPod(mo.ocClient, monitorNamespace, "statefulsets/"+prometheusK8s, "sh", "-c", getCmd)
 }
 
 // GetSAToken get a token assigned to prometheus-k8s from openshift-monitoring namespace
