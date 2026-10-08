@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -108,15 +109,16 @@ func generateTestCase(namespace corev1.Namespace) []*junitapi.JUnitTestCase {
 	// syncer retirement. Many are still unlabelled, so failing hard would fail every job.
 	// Remove the trailing success case to turn this into a hard failure.
 	if reason, isException := exceptedNamespaces[namespaceName]; isException {
+		exceptionMsg := fmt.Sprintf("namespace %q has an exception in place. See https://redhat.atlassian.net/browse/%s for reference. ", namespaceName, reason)
 		return []*junitapi.JUnitTestCase{
 			{
 				Name:          testName,
 				SystemOut:     failure,
-				FailureOutput: &junitapi.FailureOutput{Output: failure},
+				FailureOutput: &junitapi.FailureOutput{Output: exceptionMsg + failure},
 			},
 			{
 				Name:      testName,
-				SystemOut: fmt.Sprintf("namespace %q has an exception in place. See https://redhat.atlassian.net/browse/%s for reference.", namespaceName, reason),
+				SystemOut: exceptionMsg,
 			},
 		}
 	}
@@ -142,6 +144,10 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) CollectData(ctx context.Co
 	if err != nil {
 		return nil, nil, err
 	}
+	oc := exutil.NewCLI("psa-label-syncer").AsAdmin()
+
+	isHyperShift, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+
 	junits := []*junitapi.JUnitTestCase{}
 	for _, ns := range namespaces.Items {
 		// Any namespaces with non-empty GenerateName attributes are dynamic namespace names.
@@ -149,6 +155,16 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) CollectData(ctx context.Co
 		if ns.GenerateName != "" {
 			continue
 		}
+		isHyperShiftIncludedNamespace := ns.Annotations["include.release.openshift.io/hypershift"] == "true"
+		_, isException := exceptedNamespaces[ns.Name]
+
+		// Any namespaces that have include.release.openshift.io/hypershift == true annotation, are excepted,
+		// and the test case in question is ran on HyperShift platform, we can filter these results so we can
+		// focus on special OpenShift managed namespaces on HyperShift to reduce duplicate work and findings.
+		if isHyperShift && isHyperShiftIncludedNamespace && isException {
+			continue
+		}
+
 		// We are only checking OpenShift managed namespaces.
 		isManagedNamespace := ns.Name == "openshift" || strings.HasPrefix(ns.Name, "openshift-")
 		if !isManagedNamespace {
