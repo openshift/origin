@@ -98,6 +98,13 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 			{Namespace: "openshift-dns-operator", Port: 9393},
 			{Namespace: "openshift-ingress-operator", Port: 9393},
 		}
+		_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), "openshift-console", metav1.GetOptions{})
+		if err != nil && !kapierrs.IsNotFound(err) {
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+		if err == nil {
+			ports = append([]networkPolicyTarget{{Namespace: "openshift-console", Port: 8443}}, ports...)
+		}
 		networkPolicies := BuildNetworkPolicies(oc.Namespace(), ports)
 		for _, networkPolicy := range networkPolicies {
 			_, err := oc.AdminKubeClient().NetworkingV1().NetworkPolicies(networkPolicy.Namespace).Create(context.Background(), &networkPolicy, metav1.CreateOptions{})
