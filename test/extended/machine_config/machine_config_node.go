@@ -435,7 +435,9 @@ func ValidateMCNConditionOnNodeDegrade(oc *exutil.CLI, fixture string, isSno boo
 	o.Expect(degradedNodeErr).NotTo(o.HaveOccurred(), "Could not get degraded node.")
 
 	unknownCondition := mcfgv1.MachineConfigNodeUpdateFilesAndOS
-	if isFeatureGateEnabled(oc.AdminConfigClient(), "ImageModeStatusReporting") {
+	enabled, err := exutil.IsFeatureGateEnabled(context.TODO(), oc.AdminConfigClient(), "ImageModeStatusReporting")
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting cluster FeatureGates.")
+	if enabled {
 		unknownCondition = mcfgv1.MachineConfigNodeUpdateFiles
 	}
 
