@@ -17,6 +17,7 @@ import (
 	compat_otp "github.com/openshift/origin/test/extended/util/compat_otp"
 	utilimage "github.com/openshift/origin/test/extended/util/image"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
@@ -107,12 +108,29 @@ var _ = g.Describe("[sig-api-machinery] API_Server", func() {
 		// (after applying the patch) not just the patch snippet itself
 		// The fact that steps 3-6 succeeded proves admission validation worked correctly
 
-		g.By("8) Verify admission control rejects patches that would violate resource limits on merged object")
+		g.By("8) Verify admission control rejects a Pod that violates resource limits")
 		// The LimitRange limits Container max cpu to 400m and memory to 750Mi
-		// Attempt to patch with resources that exceed these limits - should be rejected
-		invalidResourcePatch := `{"spec":{"containers":[{"name":"hello-openshift","resources":{"requests":{"cpu":"1000m","memory":"1Gi"},"limits":{"cpu":"1000m","memory":"1Gi"}}}]}}`
-		_, err = oc.Run("patch").Args("pod", podName, "-n", namespace, "-p", invalidResourcePatch).Output()
-		o.Expect(err).To(o.HaveOccurred(), "Patch with excessive resource limits should be rejected by admission control")
+		_, err = oc.KubeClient().CoreV1().Pods(namespace).Create(context.Background(), &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "limit-range-violation"},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{
+					Name:  "limit-range-violation",
+					Image: initialImage,
+					Args:  []string{"netexec"},
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("1000m"),
+							corev1.ResourceMemory: resource.MustParse("1Gi"),
+						},
+						Limits: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("1000m"),
+							corev1.ResourceMemory: resource.MustParse("1Gi"),
+						},
+					},
+				}},
+			},
+		}, metav1.CreateOptions{})
+		o.Expect(err).To(o.HaveOccurred(), "Pod with excessive resource limits should be rejected by admission control")
 		o.Expect(err.Error()).To(o.MatchRegexp(`(?i)maximum (cpu|memory) usage per Container is (400m|750Mi), but limit is (1|1Gi)`), "Error should indicate a LimitRange maximum resource usage violation")
 	})
 
@@ -142,7 +160,7 @@ var _ = g.Describe("[sig-api-machinery] API_Server", func() {
 			g.By("2.) Create new app")
 			var apperr error
 			errApp := wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 300*time.Second, false, func(cxt context.Context) (bool, error) {
-				apperr = oc.WithoutNamespace().Run("new-app").Args("quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83", "-n", tmpnamespace, "--import-mode=PreserveOriginal").Execute()
+				apperr = oc.WithoutNamespace().Run("new-app").Args(utilimage.LocationFor("registry.k8s.io/e2e-test-images/nginx:1.15-4"), "-n", tmpnamespace, "--import-mode=PreserveOriginal").Execute()
 				if apperr != nil {
 					return false, nil
 				}

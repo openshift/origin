@@ -38,6 +38,9 @@ var (
 		// used by open ldap tests
 		"quay.io/openshifttest/ldap:1.2": -1,
 
+		// used by API server quota tests to copy images to the internal registry
+		"quay.io/openshifttest/skopeo@sha256:d5f288968744a8880f983e49870c0bfcf808703fe126e4fb5fc393fb9e599f65": -1,
+
 		// used by oc mirror test, should be moved to publish to quay
 		"docker.io/library/registry:2.8.0-beta.1": -1,
 
