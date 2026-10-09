@@ -1738,3 +1738,302 @@ func getEgressIP(oc *exutil.CLI, name string) (*EgressIP, error) {
 	}
 	return egressip, nil
 }
+
+// getNodeMAC retrieves the br-ex interface MAC address of a node
+func getNodeMAC(oc *exutil.CLI, nodeName string) (string, error) {
+	// Use oc debug node to get node info
+	output, err := oc.AsAdmin().Run("debug").Args("node/"+nodeName, "--", "chroot", "/host", "ip", "link", "show", "br-ex").Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get MAC for node %s: %v", nodeName, err)
+	}
+
+	// Parse output to extract MAC address
+	// Format: <index>: br-ex: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500
+	//         link/ether aa:bb:cc:dd:ee:ff brd ff:ff:ff:ff:ff:ff
+	macRegex := regexp.MustCompile(`link/ether\s+([0-9a-fA-F:]+)`)
+	matches := macRegex.FindStringSubmatch(output)
+	if len(matches) < 2 {
+		return "", fmt.Errorf("could not extract MAC address from node %s output: %s", nodeName, output)
+	}
+	return strings.ToLower(strings.TrimSpace(matches[1])), nil
+}
+
+// checkForDuplicateMAC performs repeated MAC discovery checks to ensure
+// only the new node responds, and the old node does not respond
+func checkForDuplicateMAC(oc *exutil.CLI, externalNamespace, externalPodName, interfaceName, egressIP, oldNodeMAC, newNodeMAC string, isIPv6 bool, maxChecks int, checkInterval time.Duration) error {
+	var discoveryCmd string
+	var macRegex *regexp.Regexp
+
+	if isIPv6 {
+		// IPv6: Use ndisc6
+		discoveryCmd = fmt.Sprintf("ndisc6 -1 -w 1000 %s %s 2>&1", egressIP, interfaceName)
+		macRegex = regexp.MustCompile(`Target link-layer address:\s+([0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2})`)
+	} else {
+		// IPv4: Use arping
+		discoveryCmd = fmt.Sprintf("arping -c 1 -I %s %s 2>&1", interfaceName, egressIP)
+		macRegex = regexp.MustCompile(`\[([0-9a-fA-F:]+)\]`)
+	}
+
+	oldNodeMAC = strings.ToLower(oldNodeMAC)
+	newNodeMAC = strings.ToLower(newNodeMAC)
+
+	for i := 0; i < maxChecks; i++ {
+		var output string
+		var err error
+		// EgressIP reassignment can take a moment before remote ARP succeeds.
+		pollErr := wait.PollImmediate(500*time.Millisecond, 30*time.Second, func() (bool, error) {
+			output, err = oc.AsAdmin().Run("exec").Args("-n", externalNamespace, externalPodName, "--", "sh", "-c", discoveryCmd).Output()
+			if err != nil {
+				return false, nil
+			}
+			if len(macRegex.FindAllStringSubmatch(output, -1)) == 0 {
+				return false, nil
+			}
+			return true, nil
+		})
+		if pollErr != nil {
+			if err != nil {
+				return fmt.Errorf("discovery check %d failed: %v", i+1, err)
+			}
+			return fmt.Errorf("discovery check %d failed: no MAC in discovery output: %s", i+1, output)
+		}
+
+		// Use FindAllStringSubmatch to get ALL MAC addresses in the probe output
+		// arping and ndisc6 can print several replies when two nodes answer for the same address
+		allMatches := macRegex.FindAllStringSubmatch(output, -1)
+		if len(allMatches) == 0 {
+			return fmt.Errorf("could not extract MAC from discovery output at check %d: %s", i+1, output)
+		}
+
+		// Inspect every MAC in the probe output
+		var responseMac string
+		for _, match := range allMatches {
+			if len(match) < 2 {
+				return fmt.Errorf("check %d: malformed regex match (expected capture group with MAC): %v", i+1, match)
+			}
+			mac := strings.ToLower(strings.TrimSpace(match[1]))
+
+			// Check if old node is responding (BAD)
+			if mac == oldNodeMAC {
+				return fmt.Errorf("check %d: old node MAC %s still responding (should be blocked by nftables)", i+1, oldNodeMAC)
+			}
+
+			// Check if response is from new node (GOOD)
+			if mac == newNodeMAC {
+				responseMac = mac
+			}
+		}
+
+		// Reject the check if any match equals oldNodeMAC (already handled above)
+		// Accept only if we found the expected new node MAC
+		if responseMac == "" {
+			return fmt.Errorf("check %d: expected MAC %s from new node not found (expected %s from new node)", i+1, newNodeMAC, newNodeMAC)
+		}
+
+		framework.Logf("MAC check %d/%d: PASS (MAC = %s)", i+1, maxChecks, responseMac)
+
+		// Wait before next check (except last one)
+		if i < maxChecks-1 {
+			time.Sleep(checkInterval)
+		}
+	}
+
+	return nil
+}
+
+// getNodeSubnet retrieves the subnet CIDR for a node from its egress IP configuration.
+// Returns the IPv4 subnet if available, otherwise IPv6 subnet.
+func getNodeSubnet(clientset kubernetes.Interface, nodeName string) (string, error) {
+	// Get the node
+	node, err := clientset.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get node %s: %v", nodeName, err)
+	}
+
+	// Get egress IP configuration
+	nodeEgressIPConfigs, err := getNodeEgressIPConfiguration(node)
+	if err != nil {
+		return "", fmt.Errorf("failed to get egress IP config for node %s: %v", nodeName, err)
+	}
+	if len(nodeEgressIPConfigs) == 0 {
+		return "", fmt.Errorf("no egress IP configuration found for node %s", nodeName)
+	}
+
+	// Get the subnet CIDR (prefer IPv4, fall back to IPv6)
+	subnet := nodeEgressIPConfigs[0].IFAddr.IPv4
+	if subnet == "" {
+		subnet = nodeEgressIPConfigs[0].IFAddr.IPv6
+	}
+
+	return subnet, nil
+}
+
+// getNodeIPs retrieves all IP addresses configured on a node.
+// Returns a slice of IP addresses (both IPv4 and IPv6 if available).
+func getNodeIPs(oc *exutil.CLI, nodeName string) ([]string, error) {
+	// Get the node object
+	f := oc.KubeFramework()
+	clientset := f.ClientSet
+	node, err := clientset.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get node %s: %v", nodeName, err)
+	}
+
+	// Extract IP addresses from node status
+	var ips []string
+	for _, addr := range node.Status.Addresses {
+		if addr.Type == corev1.NodeInternalIP || addr.Type == corev1.NodeExternalIP {
+			ips = append(ips, addr.Address)
+		}
+	}
+
+	if len(ips) == 0 {
+		return nil, fmt.Errorf("no IP addresses found for node %s", nodeName)
+	}
+
+	return ips, nil
+}
+
+// nodesInSameSubnet checks if two nodes belong to the same subnet by comparing their
+// egress IP configuration subnets. Returns true if nodes are in the same subnet, false otherwise.
+func nodesInSameSubnet(clientset kubernetes.Interface, node1Name, node2Name string) (bool, error) {
+	// Get node 1
+	node1, err := clientset.CoreV1().Nodes().Get(context.TODO(), node1Name, metav1.GetOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to get node %s: %v", node1Name, err)
+	}
+
+	// Get node 2
+	node2, err := clientset.CoreV1().Nodes().Get(context.TODO(), node2Name, metav1.GetOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to get node %s: %v", node2Name, err)
+	}
+
+	// Get egress IP configuration for node 1
+	node1EgressIPConfigs, err := getNodeEgressIPConfiguration(node1)
+	if err != nil {
+		return false, fmt.Errorf("failed to get egress IP config for node %s: %v", node1Name, err)
+	}
+	if len(node1EgressIPConfigs) == 0 {
+		return false, fmt.Errorf("no egress IP configuration found for node %s", node1Name)
+	}
+
+	// Get egress IP configuration for node 2
+	node2EgressIPConfigs, err := getNodeEgressIPConfiguration(node2)
+	if err != nil {
+		return false, fmt.Errorf("failed to get egress IP config for node %s: %v", node2Name, err)
+	}
+	if len(node2EgressIPConfigs) == 0 {
+		return false, fmt.Errorf("no egress IP configuration found for node %s", node2Name)
+	}
+
+	// Get the subnet CIDR from each node (prefer IPv4, fall back to IPv6)
+	node1Subnet := node1EgressIPConfigs[0].IFAddr.IPv4
+	if node1Subnet == "" {
+		node1Subnet = node1EgressIPConfigs[0].IFAddr.IPv6
+	}
+
+	node2Subnet := node2EgressIPConfigs[0].IFAddr.IPv4
+	if node2Subnet == "" {
+		node2Subnet = node2EgressIPConfigs[0].IFAddr.IPv6
+	}
+
+	// Compare the subnets
+	return node1Subnet == node2Subnet, nil
+}
+
+// nodeInternalIPv4 returns the node's primary IPv4 internal address.
+func nodeInternalIPv4(clientset kubernetes.Interface, nodeName string) (net.IP, error) {
+	node, err := clientset.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get node %s: %v", nodeName, err)
+	}
+	for _, addr := range node.Status.Addresses {
+		if addr.Type != corev1.NodeInternalIP {
+			continue
+		}
+		ip := net.ParseIP(addr.Address)
+		if ip != nil && ip.To4() != nil {
+			return ip.To4(), nil
+		}
+	}
+	return nil, fmt.Errorf("no IPv4 internal IP found for node %s", nodeName)
+}
+
+func ipInCIDR(ip net.IP, cidr string) bool {
+	if ip == nil {
+		return false
+	}
+	_, n, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return false
+	}
+	return n.Contains(ip)
+}
+
+// egressIPMACDiscoveryInterface is the OVN external bridge where EgressIPs are configured on the host.
+const egressIPMACDiscoveryInterface = "br-ex"
+
+// selectPacketSnifferPodForMACDiscovery picks a packet sniffer pod that can ARP/NDP for egressIP.
+// MAC probes use br-ex (not the physical NIC used for tcpdump). Prefer a sniffer on a node other
+// than egressIPNode; fall back to the EgressIP node if needed.
+// Returns ok=false when no sniffer host is in the node egress subnet from egress-ipconfig.
+func selectPacketSnifferPodForMACDiscovery(
+	clientset kubernetes.Interface,
+	pods []corev1.Pod,
+	egressIPNode, egressIP string,
+) (corev1.Pod, string, bool, error) {
+	egressSubnet, err := getNodeSubnet(clientset, egressIPNode)
+	if err != nil {
+		return corev1.Pod{}, "", false, err
+	}
+
+	egressIPAddr := net.ParseIP(egressIP)
+	if egressIPAddr == nil {
+		return corev1.Pod{}, "", false, fmt.Errorf("invalid egress IP %q", egressIP)
+	}
+	if !ipInCIDR(egressIPAddr, egressSubnet) {
+		return corev1.Pod{}, "", false, fmt.Errorf("egress IP %s is not in node egress subnet %s", egressIP, egressSubnet)
+	}
+
+	egressNodeIP, err := nodeInternalIPv4(clientset, egressIPNode)
+	if err != nil {
+		return corev1.Pod{}, "", false, err
+	}
+	if !ipInCIDR(egressNodeIP, egressSubnet) {
+		return corev1.Pod{}, egressIPMACDiscoveryInterface, false, nil
+	}
+
+	var remoteCandidates []corev1.Pod
+	var localCandidate *corev1.Pod
+	for _, pod := range pods {
+		if pod.Spec.NodeName == "" {
+			continue
+		}
+		snifferNodeIP, err := nodeInternalIPv4(clientset, pod.Spec.NodeName)
+		if err != nil {
+			framework.Logf("Skipping packet sniffer pod %s: %v", pod.Name, err)
+			continue
+		}
+		if !ipInCIDR(snifferNodeIP, egressSubnet) {
+			framework.Logf("Skipping packet sniffer pod %s on node %s: host IP %s is outside egress subnet %s",
+				pod.Name, pod.Spec.NodeName, snifferNodeIP, egressSubnet)
+			continue
+		}
+		if pod.Spec.NodeName == egressIPNode {
+			podCopy := pod
+			localCandidate = &podCopy
+			continue
+		}
+		remoteCandidates = append(remoteCandidates, pod)
+	}
+
+	if len(remoteCandidates) > 0 {
+		return remoteCandidates[0], egressIPMACDiscoveryInterface, true, nil
+	}
+	if localCandidate != nil {
+		framework.Logf("Using packet sniffer on EgressIP node %s (no remote host in egress subnet %s)", egressIPNode, egressSubnet)
+		return *localCandidate, egressIPMACDiscoveryInterface, true, nil
+	}
+	return corev1.Pod{}, egressIPMACDiscoveryInterface, false, nil
+}
