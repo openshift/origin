@@ -25,6 +25,7 @@ import (
 	e2epodoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	e2eservice "k8s.io/kubernetes/test/e2e/framework/service"
 	admissionapi "k8s.io/pod-security-admission/api"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -61,7 +62,14 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 		g.By("creating a dual-stack service backend")
 		backend := e2eservice.NewTestJig(client, namespace, "azure-dualstack-backend")
 		_, err = backend.Run(ctx, func(deployment *appsv1.Deployment) {
-			deployment.Spec.Template.Spec.SecurityContext = e2epod.GetRestrictedPodSecurityContext()
+			// The pods are created by the replicaset controller on behalf of the
+			// namespace's default ServiceAccount, so only restricted-v2 applies and it
+			// allocates the UID from the namespace range. Deliberately not using
+			// e2epod.GetRestrictedPodSecurityContext(), which pins runAsUser to 1000.
+			deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{
+				RunAsNonRoot:   ptr.To(true),
+				SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault},
+			}
 			for i := range deployment.Spec.Template.Spec.Containers {
 				container := &deployment.Spec.Template.Spec.Containers[i]
 				container.Args = []string{
@@ -230,16 +238,20 @@ func azureLoadBalancerClientNode(ctx context.Context, client kubernetes.Interfac
 		return "", err
 	}
 
+	// The Azure cloud provider keeps control-plane nodes out of the standard load
+	// balancer by role: excludeMasterFromStandardLB defaults to true and the check is
+	// isControlPlaneNode(), which matches the node-role labels. It does not depend on
+	// node.kubernetes.io/exclude-from-external-load-balancers, and nothing in OpenShift
+	// applies that label, so requiring it here would never match.
 	for _, node := range nodes.Items {
 		_, isMaster := node.Labels["node-role.kubernetes.io/master"]
 		_, isControlPlane := node.Labels["node-role.kubernetes.io/control-plane"]
-		_, excludedFromLoadBalancers := node.Labels[corev1.LabelNodeExcludeBalancers]
-		if (isMaster || isControlPlane) && excludedFromLoadBalancers && nodeIsReady(&node) {
+		if (isMaster || isControlPlane) && nodeIsReady(&node) {
 			return node.Name, nil
 		}
 	}
 
-	return "", fmt.Errorf("no ready control-plane node excluded from external load balancers was found")
+	return "", fmt.Errorf("no ready control-plane node was found to probe from")
 }
 
 func nodeIsReady(node *corev1.Node) bool {
