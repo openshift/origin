@@ -2,7 +2,8 @@
 # Any test NOT in this list must pass on the first attempt.
 #
 # This list is the single source of truth for retry eligibility.
-# It should be reduced over time as flaky tests are fixed.
+# This finite list is being worked down and must not be expanded.
+# Do not add tests. Remove an entry only after its underlying flake is fixed.
 # The goal is to eventually reach an empty list (no retries for anyone).
 #
 # Refreshes only ever remove entries: a test is dropped once it no longer meets
