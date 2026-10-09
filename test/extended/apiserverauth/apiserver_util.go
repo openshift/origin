@@ -1421,37 +1421,6 @@ func isIPv6(str string) bool {
 	return ip != nil && strings.Contains(str, ":")
 }
 
-// Copy one public image to the internel image registry of OCP cluster
-func copyImageToInternelRegistry(oc *exutil.CLI, namespace string, source string, dest string) (string, error) {
-	var (
-		podName string
-		appName = "skopeo"
-		err     error
-	)
-
-	podName, _ = oc.AsAdmin().WithoutNamespace().Run("get").Args("pod", "-n", namespace, "-l", "name="+appName, "-o", `jsonpath={.items[*].metadata.name}`).Output()
-	// If the skopeo pod doesn't exist, create it
-	if len(podName) == 0 {
-		template := getTestDataFilePath("skopeo-deployment.json")
-		err = oc.Run("create").Args("-f", template, "-n", namespace).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		podName = getPodsListByLabel(oc.AsAdmin(), namespace, "name="+appName)[0]
-		compat_otp.AssertPodToBeReady(oc, podName, namespace)
-	} else {
-		output, err := oc.AsAdmin().Run("get").Args("pod", podName, "-n", namespace, "-o", "jsonpath='{.status.conditions[?(@.type==\"Ready\")].status}'").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(output).Should(o.ContainSubstring("True"), appName+" pod is not ready!")
-	}
-
-	token, err := getSAToken(oc, "builder", namespace)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	o.Expect(token).NotTo(o.BeEmpty())
-
-	command := []string{podName, "-n", namespace, "--", appName, "--insecure-policy", "--src-tls-verify=false", "--dest-tls-verify=false", "copy", "--dcreds", "dnm:" + token, source, dest}
-	results, err := oc.AsAdmin().WithoutNamespace().Run("exec").Args(command...).Output()
-	return results, err
-}
-
 // Check if BaselineCapabilities have been set
 func isBaselineCapsSet(oc *exutil.CLI) bool {
 	baselineCapabilitySet, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("clusterversion", "version", "-o=jsonpath={.spec.capabilities.baselineCapabilitySet}").Output()

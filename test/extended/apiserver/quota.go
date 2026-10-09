@@ -21,53 +21,6 @@ import (
 // defaultRegistryServiceURL is the in-cluster service endpoint of the internal image registry.
 const defaultRegistryServiceURL = "image-registry.openshift-image-registry.svc:5000"
 
-// getSAToken retrieves a bearer token for the given ServiceAccount in the given namespace.
-func getSAToken(oc *exutil.CLI, sa, ns string) (string, error) {
-	e2e.Logf("Getting a token assgined to specific serviceaccount from %s namespace...", ns)
-	token, err := oc.AsAdmin().WithoutNamespace().Run("create").Args("token", sa, "-n", ns).Output()
-	if err != nil {
-		if strings.Contains(token, "unknown command") { // oc client is old version, create token is not supported
-			e2e.Logf("oc create token is not supported by current client, use oc sa get-token instead")
-			token, err = oc.AsAdmin().WithoutNamespace().Run("sa").Args("get-token", sa, "-n", ns).Output()
-		} else {
-			return "", err
-		}
-	}
-	return token, err
-}
-
-// copyImageToInternelRegistry copies one public image into the internal image registry of the
-// OCP cluster, using a skopeo pod, so that registry-level quota/admission behavior can be exercised.
-func copyImageToInternelRegistry(oc *exutil.CLI, namespace string, source string, dest string) (string, error) {
-	var (
-		podName string
-		appName = "skopeo"
-		err     error
-	)
-
-	podName, _ = oc.AsAdmin().WithoutNamespace().Run("get").Args("pod", "-n", namespace, "-l", "name="+appName, "-o", `jsonpath={.items[*].metadata.name}`).Output()
-	// If the skopeo pod doesn't exist, create it
-	if len(podName) == 0 {
-		template := apiserverAuthFixture("skopeo-deployment.json")
-		err = oc.Run("create").Args("-f", template, "-n", namespace).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		podName = getPodsListByLabel(oc.AsAdmin(), namespace, "name="+appName)[0]
-		compat_otp.AssertPodToBeReady(oc, podName, namespace)
-	} else {
-		output, err := oc.AsAdmin().Run("get").Args("pod", podName, "-n", namespace, "-o", "jsonpath='{.status.conditions[?(@.type==\"Ready\")].status}'").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(output).Should(o.ContainSubstring("True"), appName+" pod is not ready!")
-	}
-
-	token, err := getSAToken(oc, "builder", namespace)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	o.Expect(token).NotTo(o.BeEmpty())
-
-	command := []string{podName, "-n", namespace, "--", appName, "--insecure-policy", "--src-tls-verify=false", "--dest-tls-verify=false", "copy", "--dcreds", "dnm:" + token, source, dest}
-	results, err := oc.AsAdmin().WithoutNamespace().Run("exec").Args(command...).Output()
-	return results, err
-}
-
 // countResource returns the number of objects of the given resource type in the namespace.
 func countResource(oc *exutil.CLI, resource string, namespace string) (int, error) {
 	output, err := oc.Run("get").Args(resource, "-n", namespace, "-o", "jsonpath='{.items[*].metadata.name}'").Output()
@@ -106,7 +59,7 @@ var _ = g.Describe("[sig-api-machinery] API_Server", func() {
 		e2e.Logf("test dir %s is cleaned up", tmpdir)
 	})
 
-	g.It("[OTP][OCP-12158] When exceed openshift.io/images and storage limits will ban image tagging and registry push [Apiserver]", ote.Informing(), func() {
+	g.It("[OTP][OCP-12158] When exceed openshift.io/images and storage limits will ban image tagging and registry push [Apiserver][Skipped:Disconnected]", ote.Informing(), func() {
 		if isBaselineCapsSet(oc) && !(isEnabledCapability(oc, "Build") && isEnabledCapability(oc, "DeploymentConfig") && isEnabledCapability(oc, "ImageRegistry")) {
 			g.Skip("Skipping the test as baselinecaps have been set and some of API capabilities are not enabled!")
 		}
@@ -194,7 +147,7 @@ spec:
 		publicImageUrl := "docker://" + imageName3
 		var output string
 		errPoll := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 120*time.Second, false, func(cxt context.Context) (bool, error) {
-			output, err = copyImageToInternelRegistry(oc, namespace, publicImageUrl, destRegistry)
+			output, err = exutil.CopyImageToInternalRegistry(oc, namespace, publicImageUrl, destRegistry)
 			if err == nil {
 				return false, fmt.Errorf("image copy unexpectedly succeeded when it should have been denied by quota")
 			}
@@ -206,7 +159,7 @@ spec:
 		compat_otp.AssertWaitPollNoErr(errPoll, "Failed to observe quota denial")
 	})
 
-	g.It("[OTP][OCP-12263] Verify openshift.io/images will not create image reference or push image to project when quota is exceeded[Apiserver]", ote.Informing(), func() {
+	g.It("[OTP][OCP-12263] Verify openshift.io/images will not create image reference or push image to project when quota is exceeded[Apiserver][Skipped:Disconnected]", ote.Informing(), func() {
 		if isBaselineCapsSet(oc) && !(isEnabledCapability(oc, "Build") && isEnabledCapability(oc, "DeploymentConfig") && isEnabledCapability(oc, "ImageRegistry")) {
 			g.Skip("Skipping the test as baselinecaps have been set and some of API capabilities are not enabled!")
 		}
@@ -297,7 +250,7 @@ spec:
 		publicImageUrl := "docker://" + imageName3
 		var output string
 		errPoll := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 120*time.Second, false, func(cxt context.Context) (bool, error) {
-			output, err = copyImageToInternelRegistry(oc, namespace, publicImageUrl, destRegistry)
+			output, err = exutil.CopyImageToInternalRegistry(oc, namespace, publicImageUrl, destRegistry)
 			if err == nil {
 				return false, fmt.Errorf("image copy unexpectedly succeeded when it should have been denied by quota")
 			}

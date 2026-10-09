@@ -296,6 +296,7 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Audit Logging and 
 		for _, master := range masters.Items {
 			framework.Logf("Checking audit log file permissions on a master node")
 			output, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args(
+				"-n", "default",
 				"node/"+master.Name,
 				"--",
 				"chroot", "/host", "stat", "-c", "%a", "/var/log/kube-apiserver/audit.log",
