@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"encoding/hex"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -219,13 +221,16 @@ func getNumberOfBootsForNode(kubeClient kubernetes.Interface, namespaceName, nod
 	}
 	e2e.Logf("node/%v reboot-requests %v", nodeName, containerRebootsLogs)
 
-	bootInstances, err := parseBootInstances(containerListBootsLogs)
+	bootInstances, bootDiagnostics, err := parseBootInstances(containerListBootsLogs)
+	for _, diagnostic := range bootDiagnostics {
+		e2e.Logf("node/%v list-boots diagnostic: %s", nodeName, diagnostic)
+	}
 	if err != nil {
 		return nil, nil, nodeLogs.String(), fmt.Errorf("failed to parse boots from --namespace=%v pods/%v err: %v pod logs: %v", actualPod.Namespace, actualPod.Name, err, containerListBootsLogs)
 	}
-	rebootInstances, err := parseRebootInstances(containerRebootsLogs)
-	if err != nil {
-		return nil, nil, nodeLogs.String(), fmt.Errorf("failed to parse reboots from --namespace=%v pods/%v err: %v pod logs: %v", actualPod.Namespace, actualPod.Name, err, containerListBootsLogs)
+	rebootInstances, rebootDiagnostics := parseRebootInstances(containerRebootsLogs)
+	for _, diagnostic := range rebootDiagnostics {
+		e2e.Logf("node/%v reboot-requests diagnostic: %s", nodeName, diagnostic)
 	}
 
 	return bootInstances, rebootInstances, nodeLogs.String(), nil
@@ -248,66 +253,137 @@ func (e bootTimelineEntry) String() string {
 	return fmt.Sprintf("%v - %v", e.time.Format(time.RFC3339), e.action)
 }
 
-func parseBootInstances(listBootsOutput string) ([]bootTimelineEntry, error) {
-	ret := []bootTimelineEntry{}
-
-	lines := strings.Split(listBootsOutput, "\n")
-	for i := 1; i < len(lines); i++ {
-		line := lines[i]
-		fields := strings.Fields(line)
-		if len(fields) < 6 {
-			continue
-		}
-		date := fields[3]
-		timeOfDay := fields[4]
-		timezone := fields[5]
-		bootTime, err := time.Parse("2006-01-02 15:04:05 MST", fmt.Sprintf("%s %s %s", date, timeOfDay, timezone))
-		if err != nil {
-			return nil, err
-		}
-		ret = append(ret, bootTimelineEntry{
-			action: "Boot",
-			time:   bootTime,
-		})
-	}
-
-	return ret, nil
+func isBootHeader(fields []string) bool {
+	return len(fields) == 7 &&
+		fields[0] == "IDX" && fields[1] == "BOOT" && fields[2] == "ID" &&
+		fields[3] == "FIRST" && fields[4] == "ENTRY" && fields[5] == "LAST" && fields[6] == "ENTRY"
 }
 
-func parseRebootInstances(rebootsOutput string) ([]bootTimelineEntry, error) {
-	ret := []bootTimelineEntry{}
+func parseBootTimestamp(fields []string) (time.Time, error) {
+	if len(fields) != 4 {
+		return time.Time{}, fmt.Errorf("expected weekday, date, time, and timezone")
+	}
+	switch fields[0] {
+	case "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun":
+	default:
+		return time.Time{}, fmt.Errorf("invalid weekday %q", fields[0])
+	}
+	return time.Parse("2006-01-02 15:04:05 UTC", strings.Join(fields[1:], " "))
+}
 
-	lines := strings.Split(rebootsOutput, "\n")
-	for _, line := range lines {
-		fields := strings.Fields(line)
-		if len(fields) < 1 {
-			continue
-		}
-		date := fields[0]
-
-		var bootTime time.Time
-		var err error
-
-		layouts := []string{
-			"2006-01-02T15:04:05-0700",
-			"2006-01-02T15:04:05-07:00", // for cs10, rhel10
-		}
-
-		for _, layout := range layouts {
-			bootTime, err = time.Parse(layout, date)
-			if err == nil {
-				break
-			}
-		}
-
-		if err != nil {
-			return nil, err
-		}
-		ret = append(ret, bootTimelineEntry{
-			action: "RebootRequest",
-			time:   bootTime,
-		})
+func parseBootInstance(fields []string) (bootTimelineEntry, bool) {
+	if len(fields) != 10 {
+		return bootTimelineEntry{}, false
+	}
+	if _, err := strconv.Atoi(fields[0]); err != nil {
+		return bootTimelineEntry{}, false
+	}
+	if len(fields[1]) != 32 {
+		return bootTimelineEntry{}, false
+	}
+	if _, err := hex.DecodeString(fields[1]); err != nil {
+		return bootTimelineEntry{}, false
 	}
 
-	return ret, nil
+	bootTime, err := parseBootTimestamp(fields[2:6])
+	if err != nil {
+		return bootTimelineEntry{}, false
+	}
+	if _, err := parseBootTimestamp(fields[6:10]); err != nil {
+		return bootTimelineEntry{}, false
+	}
+
+	return bootTimelineEntry{action: "Boot", time: bootTime}, true
+}
+
+func parseBootInstances(listBootsOutput string) ([]bootTimelineEntry, []string, error) {
+	ret := []bootTimelineEntry{}
+	var diagnostics []string
+
+	for _, line := range strings.Split(listBootsOutput, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) == 0 {
+			continue
+		}
+		if isBootHeader(fields) {
+			continue
+		}
+		bootInstance, ok := parseBootInstance(fields)
+		if !ok {
+			diagnostics = append(diagnostics, line)
+			continue
+		}
+		ret = append(ret, bootInstance)
+	}
+
+	if len(ret) == 0 {
+		return nil, diagnostics, fmt.Errorf("no boot records found")
+	}
+
+	return ret, diagnostics, nil
+}
+
+func parseRebootTimestamp(value string) (time.Time, error) {
+	var parsed time.Time
+	var err error
+	for _, layout := range []string{
+		"2006-01-02T15:04:05-0700",
+		"2006-01-02T15:04:05-07:00", // for cs10, rhel10
+	} {
+		parsed, err = time.Parse(layout, value)
+		if err == nil {
+			return parsed, nil
+		}
+	}
+	return time.Time{}, err
+}
+
+func isSystemdLogindTag(value string) bool {
+	const prefix = "systemd-logind["
+	const suffix = "]:"
+	if !strings.HasPrefix(value, prefix) || !strings.HasSuffix(value, suffix) {
+		return false
+	}
+	pid := strings.TrimSuffix(strings.TrimPrefix(value, prefix), suffix)
+	if pid == "" {
+		return false
+	}
+	for _, char := range pid {
+		if char < '0' || char > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func parseRebootInstance(fields []string) (bootTimelineEntry, bool) {
+	if len(fields) != 6 || !isSystemdLogindTag(fields[2]) || strings.Join(fields[3:], " ") != "System is rebooting." {
+		return bootTimelineEntry{}, false
+	}
+	bootTime, err := parseRebootTimestamp(fields[0])
+	if err != nil {
+		return bootTimelineEntry{}, false
+	}
+
+	return bootTimelineEntry{action: "RebootRequest", time: bootTime}, true
+}
+
+func parseRebootInstances(rebootsOutput string) ([]bootTimelineEntry, []string) {
+	ret := []bootTimelineEntry{}
+	var diagnostics []string
+
+	for _, line := range strings.Split(rebootsOutput, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) == 0 {
+			continue
+		}
+		rebootInstance, ok := parseRebootInstance(fields)
+		if !ok {
+			diagnostics = append(diagnostics, line)
+			continue
+		}
+		ret = append(ret, rebootInstance)
+	}
+
+	return ret, diagnostics
 }
