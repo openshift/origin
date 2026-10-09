@@ -3,14 +3,29 @@ package ginkgo
 import (
 	"testing"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/util/sets"
+	"github.com/openshift/origin/pkg/test/extensions"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestParseNodeResourceTag(t *testing.T) {
+func makeTestCaseWithLabels(name string, labels ...string) *testCase {
+	return &testCase{
+		name: name,
+		spec: &extensions.ExtensionTestSpec{
+			ExtensionTestSpec: &extensiontests.ExtensionTestSpec{
+				Name:   name,
+				Labels: sets.New[string](labels...),
+			},
+		},
+	}
+}
+
+func TestParseNodeResourceFromSpec(t *testing.T) {
 	tests := []struct {
 		name      string
-		input     string
+		labels    []string
 		wantNum   int
 		wantLabel string
 		wantIsAll bool
@@ -18,59 +33,66 @@ func TestParseNodeResourceTag(t *testing.T) {
 	}{
 		{
 			name:      "single node",
-			input:     "[NodeResource:numNodes=1,label=foo]",
+			labels:    []string{"NodeResource", "NodeResourceNumNodes=1", "NodeResourceName=foo"},
 			wantNum:   1,
 			wantLabel: "foo",
 		},
 		{
 			name:      "all nodes",
-			input:     "[NodeResource:numNodes=all,label=bar]",
+			labels:    []string{"NodeResource", "NodeResourceNumNodes=all", "NodeResourceName=bar"},
 			wantNum:   -1,
 			wantLabel: "bar",
 			wantIsAll: true,
 		},
 		{
 			name:      "multiple nodes",
-			input:     "[NodeResource:numNodes=3,label=multi_node]",
+			labels:    []string{"NodeResource", "NodeResourceNumNodes=3", "NodeResourceName=multi_node"},
 			wantNum:   3,
 			wantLabel: "multi_node",
 		},
 		{
-			name:      "embedded in full test name",
-			input:     "[sig-node][Disruptive][NodeResource:numNodes=1,label=test_embed] some test description",
+			name:      "defaults to 1 node when numNodes not specified",
+			labels:    []string{"NodeResource", "NodeResourceName=default_test"},
 			wantNum:   1,
-			wantLabel: "test_embed",
+			wantLabel: "default_test",
 		},
 		{
-			name:    "zero nodes",
-			input:   "[NodeResource:numNodes=0,label=bad]",
+			name:      "max wins with multiple numNodes labels",
+			labels:    []string{"NodeResource", "NodeResourceNumNodes=1", "NodeResourceNumNodes=2", "NodeResourceName=override"},
+			wantNum:   2,
+			wantLabel: "override",
+		},
+		{
+			name:    "missing NodeResource label",
+			labels:  []string{"NodeResourceNumNodes=1", "NodeResourceName=foo"},
 			wantErr: true,
 		},
 		{
-			name:    "negative nodes",
-			input:   "[NodeResource:numNodes=-1,label=bad]",
+			name:    "missing NodeResourceName",
+			labels:  []string{"NodeResource", "NodeResourceNumNodes=1"},
 			wantErr: true,
 		},
 		{
 			name:    "non-numeric nodes",
-			input:   "[NodeResource:numNodes=abc,label=bad]",
+			labels:  []string{"NodeResource", "NodeResourceNumNodes=abc", "NodeResourceName=bad"},
 			wantErr: true,
 		},
 		{
-			name:    "no tag",
-			input:   "no tag here",
-			wantErr: true,
-		},
-		{
-			name:    "empty string",
-			input:   "",
+			name:    "nil spec",
 			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg, err := parseNodeResourceTag(tt.input)
+			var tc *testCase
+			if tt.labels == nil {
+				tc = &testCase{name: "no-spec"}
+			} else {
+				tc = makeTestCaseWithLabels("test", tt.labels...)
+			}
+
+			cfg, err := parseNodeResourceFromSpec(tc)
 			if tt.wantErr {
 				if err == nil {
 					t.Errorf("expected error, got nil")
@@ -95,22 +117,26 @@ func TestParseNodeResourceTag(t *testing.T) {
 
 func TestIsNodeResourceTest(t *testing.T) {
 	tests := []struct {
-		name string
-		want bool
+		name   string
+		labels []string
+		want   bool
 	}{
-		{"[NodeResource:numNodes=1,label=x] test", true},
-		{"[sig-node][NodeResource:numNodes=all,label=y] test", true},
-		{"[sig-node] regular test", false},
-		{"", false},
-		{"NodeResource without brackets", false},
+		{"with NodeResource label", []string{"NodeResource", "NodeResourceNumNodes=1", "NodeResourceName=x"}, true},
+		{"without NodeResource label", []string{"sig-node"}, false},
+		{"nil spec", nil, false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tc := &testCase{name: tt.name}
+			var tc *testCase
+			if tt.labels == nil {
+				tc = &testCase{name: "no-spec"}
+			} else {
+				tc = makeTestCaseWithLabels("test", tt.labels...)
+			}
 			got := isNodeResourceTest(tc)
 			if got != tt.want {
-				t.Errorf("isNodeResourceTest(%q) = %v, want %v", tt.name, got, tt.want)
+				t.Errorf("isNodeResourceTest() = %v, want %v", got, tt.want)
 			}
 		})
 	}

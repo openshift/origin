@@ -23,189 +23,191 @@ import (
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
-var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node][NodeResource:numNodes=1,label=probe_termination] Probe configuration", func() {
-	var (
-		oc       = exutil.NewCLIWithoutNamespace("probe-termination")
-		testNode string
-	)
+var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node] Probe configuration",
+	g.Label("NodeResource", "NodeResourceNumNodes=1", "NodeResourceName=probe_termination"),
+	func() {
+		var (
+			oc       = exutil.NewCLIWithoutNamespace("probe-termination")
+			testNode string
+		)
 
-	g.BeforeEach(func(ctx context.Context) {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster")
-		}
+		g.BeforeEach(func(ctx context.Context) {
+			isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if isMicroShift {
+				g.Skip("Skipping test on MicroShift cluster")
+			}
 
-		nodeutils.EnsureNodeResourceNodesReady(ctx, oc, "probe_termination")
-		testNode, err = nodeutils.GetNodeResource(ctx, oc, "probe_termination")
-		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
-	})
+			nodeutils.EnsureNodeResourceNodesReady(ctx, oc, "probe_termination")
+			testNode, err = nodeutils.GetNodeResource(ctx, oc, "probe_termination")
+			o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
+		})
 
-	//author: bgudi@redhat.com
-	g.It("[OTP] Liveness probe should respect probe-level terminationGracePeriodSeconds [OCP-44493]", ote.Informing(), func() {
-		ctx := context.Background()
+		//author: bgudi@redhat.com
+		g.It("[OTP] Liveness probe should respect probe-level terminationGracePeriodSeconds [OCP-44493]", ote.Informing(), func() {
+			ctx := context.Background()
 
-		oc.SetupProject()
-		namespace := oc.Namespace()
+			oc.SetupProject()
+			namespace := oc.Namespace()
 
-		g.By("Create pod with liveness probe having probe-level terminationGracePeriodSeconds=10s")
-		pod := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "liveness-probe-level",
-				Namespace: namespace,
-			},
-			Spec: corev1.PodSpec{
-				NodeName:                      testNode,
-				TerminationGracePeriodSeconds: ptr.To[int64](60),
-				Containers: []corev1.Container{
-					{
-						Name:    "test",
-						Image:   image.ShellImage(),
-						Command: []string{"sh", "-c", "sleep 100000000"},
-						Ports: []corev1.ContainerPort{
-							{ContainerPort: 8080},
-						},
-						LivenessProbe: &corev1.Probe{
-							ProbeHandler: corev1.ProbeHandler{
-								HTTPGet: &corev1.HTTPGetAction{
-									Path: "/healthz",
-									Port: intstr.FromInt(8080),
-								},
+			g.By("Create pod with liveness probe having probe-level terminationGracePeriodSeconds=10s")
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "liveness-probe-level",
+					Namespace: namespace,
+				},
+				Spec: corev1.PodSpec{
+					NodeName:                      testNode,
+					TerminationGracePeriodSeconds: ptr.To[int64](60),
+					Containers: []corev1.Container{
+						{
+							Name:    "test",
+							Image:   image.ShellImage(),
+							Command: []string{"sh", "-c", "sleep 100000000"},
+							Ports: []corev1.ContainerPort{
+								{ContainerPort: 8080},
 							},
-							InitialDelaySeconds:           5,
-							FailureThreshold:              1,
-							PeriodSeconds:                 60,
-							TerminationGracePeriodSeconds: ptr.To[int64](10),
+							LivenessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/healthz",
+										Port: intstr.FromInt(8080),
+									},
+								},
+								InitialDelaySeconds:           5,
+								FailureThreshold:              1,
+								PeriodSeconds:                 60,
+								TerminationGracePeriodSeconds: ptr.To[int64](10),
+							},
 						},
 					},
 				},
-			},
-		}
+			}
 
-		_, err := oc.KubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create liveness probe pod")
+			_, err := oc.KubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to create liveness probe pod")
 
-		g.By("Verify probe-level terminationGracePeriodSeconds is honored (10s)")
-		expectedSec := 10
-		// Allow asymmetric tolerance: -3s for event timing precision, +10s for container cleanup overhead
-		minSec := expectedSec - 3
-		maxSec := expectedSec + 10
-		timeDiff, err := verifyProbeTermination(ctx, oc, namespace, "liveness-probe-level", "test", expectedSec)
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get probe termination events")
-		o.Expect(timeDiff).To(o.BeNumerically(">=", minSec), fmt.Sprintf("time difference %ds is less than expected minimum %ds", timeDiff, minSec))
-		o.Expect(timeDiff).To(o.BeNumerically("<=", maxSec), fmt.Sprintf("time difference %ds is greater than expected maximum %ds", timeDiff, maxSec))
-	})
+			g.By("Verify probe-level terminationGracePeriodSeconds is honored (10s)")
+			expectedSec := 10
+			// Allow asymmetric tolerance: -3s for event timing precision, +10s for container cleanup overhead
+			minSec := expectedSec - 3
+			maxSec := expectedSec + 10
+			timeDiff, err := verifyProbeTermination(ctx, oc, namespace, "liveness-probe-level", "test", expectedSec)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get probe termination events")
+			o.Expect(timeDiff).To(o.BeNumerically(">=", minSec), fmt.Sprintf("time difference %ds is less than expected minimum %ds", timeDiff, minSec))
+			o.Expect(timeDiff).To(o.BeNumerically("<=", maxSec), fmt.Sprintf("time difference %ds is greater than expected maximum %ds", timeDiff, maxSec))
+		})
 
-	//author: bgudi@redhat.com
-	g.It("[OTP] Startup probe should respect probe-level terminationGracePeriodSeconds [OCP-44493]", ote.Informing(), func() {
-		ctx := context.Background()
+		//author: bgudi@redhat.com
+		g.It("[OTP] Startup probe should respect probe-level terminationGracePeriodSeconds [OCP-44493]", ote.Informing(), func() {
+			ctx := context.Background()
 
-		oc.SetupProject()
-		namespace := oc.Namespace()
+			oc.SetupProject()
+			namespace := oc.Namespace()
 
-		g.By("Create pod with startup probe having probe-level terminationGracePeriodSeconds=10s")
-		pod := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "startup-probe-level",
-				Namespace: namespace,
-			},
-			Spec: corev1.PodSpec{
-				NodeName:                      testNode,
-				TerminationGracePeriodSeconds: ptr.To[int64](60),
-				Containers: []corev1.Container{
-					{
-						Name:    "teststartup",
-						Image:   image.ShellImage(),
-						Command: []string{"sh", "-c", "sleep 100000000"},
-						Ports: []corev1.ContainerPort{
-							{ContainerPort: 8080},
-						},
-						StartupProbe: &corev1.Probe{
-							ProbeHandler: corev1.ProbeHandler{
-								HTTPGet: &corev1.HTTPGetAction{
-									Path: "/healthz",
-									Port: intstr.FromInt(8080),
-								},
+			g.By("Create pod with startup probe having probe-level terminationGracePeriodSeconds=10s")
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "startup-probe-level",
+					Namespace: namespace,
+				},
+				Spec: corev1.PodSpec{
+					NodeName:                      testNode,
+					TerminationGracePeriodSeconds: ptr.To[int64](60),
+					Containers: []corev1.Container{
+						{
+							Name:    "teststartup",
+							Image:   image.ShellImage(),
+							Command: []string{"sh", "-c", "sleep 100000000"},
+							Ports: []corev1.ContainerPort{
+								{ContainerPort: 8080},
 							},
-							InitialDelaySeconds:           5,
-							FailureThreshold:              1,
-							PeriodSeconds:                 60,
-							TerminationGracePeriodSeconds: ptr.To[int64](10),
+							StartupProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/healthz",
+										Port: intstr.FromInt(8080),
+									},
+								},
+								InitialDelaySeconds:           5,
+								FailureThreshold:              1,
+								PeriodSeconds:                 60,
+								TerminationGracePeriodSeconds: ptr.To[int64](10),
+							},
 						},
 					},
 				},
-			},
-		}
+			}
 
-		_, err := oc.KubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create startup probe pod")
+			_, err := oc.KubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to create startup probe pod")
 
-		g.By("Verify probe-level terminationGracePeriodSeconds is honored (10s)")
-		expectedSec := 10
-		// Allow asymmetric tolerance: -3s for event timing precision, +10s for container cleanup overhead
-		minSec := expectedSec - 3
-		maxSec := expectedSec + 10
-		timeDiff, err := verifyProbeTermination(ctx, oc, namespace, "startup-probe-level", "teststartup", expectedSec)
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get probe termination events")
-		o.Expect(timeDiff).To(o.BeNumerically(">=", minSec), fmt.Sprintf("time difference %ds is less than expected minimum %ds", timeDiff, minSec))
-		o.Expect(timeDiff).To(o.BeNumerically("<=", maxSec), fmt.Sprintf("time difference %ds is greater than expected maximum %ds", timeDiff, maxSec))
-	})
+			g.By("Verify probe-level terminationGracePeriodSeconds is honored (10s)")
+			expectedSec := 10
+			// Allow asymmetric tolerance: -3s for event timing precision, +10s for container cleanup overhead
+			minSec := expectedSec - 3
+			maxSec := expectedSec + 10
+			timeDiff, err := verifyProbeTermination(ctx, oc, namespace, "startup-probe-level", "teststartup", expectedSec)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get probe termination events")
+			o.Expect(timeDiff).To(o.BeNumerically(">=", minSec), fmt.Sprintf("time difference %ds is less than expected minimum %ds", timeDiff, minSec))
+			o.Expect(timeDiff).To(o.BeNumerically("<=", maxSec), fmt.Sprintf("time difference %ds is greater than expected maximum %ds", timeDiff, maxSec))
+		})
 
-	//author: bgudi@redhat.com
-	g.It("[OTP] Liveness probe should fall back to pod-level terminationGracePeriodSeconds when probe-level is not set [OCP-44493]", ote.Informing(), func() {
-		ctx := context.Background()
+		//author: bgudi@redhat.com
+		g.It("[OTP] Liveness probe should fall back to pod-level terminationGracePeriodSeconds when probe-level is not set [OCP-44493]", ote.Informing(), func() {
+			ctx := context.Background()
 
-		oc.SetupProject()
-		namespace := oc.Namespace()
+			oc.SetupProject()
+			namespace := oc.Namespace()
 
-		g.By("Create pod with liveness probe without probe-level terminationGracePeriodSeconds")
-		pod := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "liveness-pod-level",
-				Namespace: namespace,
-			},
-			Spec: corev1.PodSpec{
-				NodeName:                      testNode,
-				TerminationGracePeriodSeconds: ptr.To[int64](60),
-				Containers: []corev1.Container{
-					{
-						Name:    "test",
-						Image:   image.ShellImage(),
-						Command: []string{"sh", "-c", "sleep 100000000"},
-						Ports: []corev1.ContainerPort{
-							{ContainerPort: 8080},
-						},
-						LivenessProbe: &corev1.Probe{
-							ProbeHandler: corev1.ProbeHandler{
-								HTTPGet: &corev1.HTTPGetAction{
-									Path: "/healthz",
-									Port: intstr.FromInt(8080),
-								},
+			g.By("Create pod with liveness probe without probe-level terminationGracePeriodSeconds")
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "liveness-pod-level",
+					Namespace: namespace,
+				},
+				Spec: corev1.PodSpec{
+					NodeName:                      testNode,
+					TerminationGracePeriodSeconds: ptr.To[int64](60),
+					Containers: []corev1.Container{
+						{
+							Name:    "test",
+							Image:   image.ShellImage(),
+							Command: []string{"sh", "-c", "sleep 100000000"},
+							Ports: []corev1.ContainerPort{
+								{ContainerPort: 8080},
 							},
-							InitialDelaySeconds: 5,
-							FailureThreshold:    1,
-							PeriodSeconds:       60,
-							// No TerminationGracePeriodSeconds - should use pod-level (60s)
+							LivenessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/healthz",
+										Port: intstr.FromInt(8080),
+									},
+								},
+								InitialDelaySeconds: 5,
+								FailureThreshold:    1,
+								PeriodSeconds:       60,
+								// No TerminationGracePeriodSeconds - should use pod-level (60s)
+							},
 						},
 					},
 				},
-			},
-		}
+			}
 
-		_, err := oc.KubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create liveness probe pod without probe-level termination")
+			_, err := oc.KubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to create liveness probe pod without probe-level termination")
 
-		g.By("Verify pod-level terminationGracePeriodSeconds is used (60s)")
-		expectedSec := 60
-		// Allow asymmetric tolerance: -3s for event timing precision, +10s for container cleanup overhead
-		minSec := expectedSec - 3
-		maxSec := expectedSec + 10
-		timeDiff, err := verifyProbeTermination(ctx, oc, namespace, "liveness-pod-level", "test", expectedSec)
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get probe termination events")
-		o.Expect(timeDiff).To(o.BeNumerically(">=", minSec), fmt.Sprintf("time difference %ds is less than expected minimum %ds", timeDiff, minSec))
-		o.Expect(timeDiff).To(o.BeNumerically("<=", maxSec), fmt.Sprintf("time difference %ds is greater than expected maximum %ds", timeDiff, maxSec))
+			g.By("Verify pod-level terminationGracePeriodSeconds is used (60s)")
+			expectedSec := 60
+			// Allow asymmetric tolerance: -3s for event timing precision, +10s for container cleanup overhead
+			minSec := expectedSec - 3
+			maxSec := expectedSec + 10
+			timeDiff, err := verifyProbeTermination(ctx, oc, namespace, "liveness-pod-level", "test", expectedSec)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get probe termination events")
+			o.Expect(timeDiff).To(o.BeNumerically(">=", minSec), fmt.Sprintf("time difference %ds is less than expected minimum %ds", timeDiff, minSec))
+			o.Expect(timeDiff).To(o.BeNumerically("<=", maxSec), fmt.Sprintf("time difference %ds is greater than expected maximum %ds", timeDiff, maxSec))
+		})
 	})
-})
 
 // verifyProbeTermination returns the seconds between the "Killing" event (FirstTimestamp) and
 // the container's restart (pod.Status, gated on RestartCount==1 for the same cycle) - avoids

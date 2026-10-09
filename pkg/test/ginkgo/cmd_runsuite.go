@@ -584,7 +584,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	}
 
 	// NodeResource bucket + pool only for nodes/isolated; other suites
-	// may carry [NodeResource:...] tags without triggering pool provisioning.
+	// may carry NodeResource labels without triggering pool provisioning.
 	var nodeResourceTests []*testCase
 	if suite.Name == nodeResourceSuiteName {
 		nodeResourceTests, primaryTests = splitTests(primaryTests, isNodeResourceTest)
@@ -1006,8 +1006,14 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 	// Track attempts per test name
 	testAttempts := make(map[string][]*testCase)
 
-	// Initialize with original failed tests, checking strategy eligibility
+	// Initialize with original failed tests, checking strategy eligibility.
+	// NodeResource tests cannot be retried because the dedicated pool is
+	// already torn down by the time retries run.
 	for _, test := range failing {
+		if isNodeResourceTest(test) {
+			logrus.Infof("Test %s not eligible for retries (NodeResource pool already torn down)", test.name)
+			continue
+		}
 		maxRetries := o.RetryStrategy.GetMaxRetries(test)
 		if maxRetries > 0 {
 			testAttempts[test.name] = []*testCase{test}

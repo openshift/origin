@@ -76,10 +76,7 @@ func newMirrorTestPool(oc *exutil.CLI, ctx context.Context) *mirrorTestPool {
 	_, err = mcClient.MachineconfigurationV1().MachineConfigPools().Create(ctx, testMCP, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "failed to create custom MachineConfigPool %s", poolName)
 
-	patchData := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:""}}}`, nodeLabel))
-	_, err = oc.AdminKubeClient().CoreV1().Nodes().Patch(ctx, nodeName, types.MergePatchType, patchData, metav1.PatchOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to label node %s for custom MCP", nodeName)
-
+	// Build pool early so Teardown can clean up if labeling or readiness fails.
 	pool := &mirrorTestPool{
 		oc:        oc,
 		mcClient:  mcClient,
@@ -88,8 +85,19 @@ func newMirrorTestPool(oc *exutil.CLI, ctx context.Context) *mirrorTestPool {
 		nodeLabel: nodeLabel,
 	}
 
+	patchData := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:""}}}`, nodeLabel))
+	_, err = oc.AdminKubeClient().CoreV1().Nodes().Patch(ctx, nodeName, types.MergePatchType, patchData, metav1.PatchOptions{})
+	if err != nil {
+		// MCP was created but labeling failed — clean up the MCP before failing.
+		pool.Teardown()
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to label node %s for custom MCP", nodeName)
+	}
+
 	err = waitForMirrorTestMCPReady(ctx, mcClient, poolName, 10*time.Minute)
-	o.Expect(err).NotTo(o.HaveOccurred(), "custom MachineConfigPool %s did not become ready", poolName)
+	if err != nil {
+		pool.Teardown()
+		o.Expect(err).NotTo(o.HaveOccurred(), "custom MachineConfigPool %s did not become ready", poolName)
+	}
 	e2e.Logf("Custom mirror test pool %s ready on node %s", poolName, nodeName)
 
 	return pool
@@ -101,6 +109,15 @@ func (p *mirrorTestPool) currentSpec() string {
 
 func (p *mirrorTestPool) waitForRollout(initialSpec string) {
 	imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(p.oc, p.PoolName, initialSpec)
+}
+
+// waitForWorkerMCPStable waits for the worker MCP to finish any rollout
+// triggered by cluster-scoped resources (IDMS/ITMS/ICSP) that affect all pools.
+func (p *mirrorTestPool) waitForWorkerMCPStable(ctx context.Context) {
+	e2e.Logf("Waiting for worker MCP to stabilize after cluster-scoped mirror resource change")
+	if err := nodeutils.WaitForMCP(ctx, p.mcClient, "worker", 15*time.Minute); err != nil {
+		e2e.Logf("Warning: worker MCP did not stabilize: %v", err)
+	}
 }
 
 func (p *mirrorTestPool) readRegistriesConf(ctx context.Context) string {
@@ -254,7 +271,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		e2e.Logf("ImageDigestMirrorSet %q created successfully", createdIDMS.Name)
 
 		g.DeferCleanup(func() {
-			cleanupCtx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			cleanupCtx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 			defer cancel()
 			g.By("Cleanup: Delete IDMS and ITMS resources")
 			cleanupSpec := pool.currentSpec()
@@ -265,9 +282,11 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 				e2e.Logf("Warning: failed to delete ImageDigestMirrorSet: %v", delErr)
 			}
 			pool.waitForRollout(cleanupSpec)
+			pool.waitForWorkerMCPStable(cleanupCtx)
 		})
 
 		pool.waitForRollout(initialSpec)
+		pool.waitForWorkerMCPStable(ctx)
 		e2e.Logf("IDMS MCP rollout complete on custom pool %s", pool.PoolName)
 
 		g.By("Step 2: Create an ImageTagMirrorSet")
@@ -302,8 +321,9 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create ImageTagMirrorSet")
 		e2e.Logf("ImageTagMirrorSet %q created successfully", createdITMS.Name)
 
-		g.By("Step 3: Wait for custom MCP to finish rolling out")
+		g.By("Step 3: Wait for custom MCP and worker MCP to finish rolling out")
 		pool.waitForRollout(itmsInitialSpec)
+		pool.waitForWorkerMCPStable(ctx)
 		e2e.Logf("Custom MCP %s finished rolling out after ITMS creation", pool.PoolName)
 
 		g.By("Step 4: Verify /etc/containers/registries.conf on the custom pool node")
@@ -382,7 +402,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		e2e.Logf("ICSP %s created successfully", icspName1)
 
 		g.DeferCleanup(func() {
-			cleanupCtx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			cleanupCtx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 			defer cancel()
 			g.By("Cleanup: Delete any remaining test resources and wait for custom MCP to settle")
 			cleanupSpec := pool.currentSpec()
@@ -416,11 +436,13 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 			}
 			if toDelete {
 				pool.waitForRollout(cleanupSpec)
+				pool.waitForWorkerMCPStable(cleanupCtx)
 			}
 		})
 
-		g.By("Step 2: Wait for custom MCP rollout after ICSP creation and verify registries.conf")
+		g.By("Step 2: Wait for custom MCP and worker MCP rollout after ICSP creation and verify registries.conf")
 		pool.waitForRollout(initialSpec)
+		pool.waitForWorkerMCPStable(ctx)
 		e2e.Logf("Custom MCP %s rollout complete after ICSP creation", pool.PoolName)
 
 		registriesConf := pool.readRegistriesConf(ctx)
@@ -517,6 +539,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		e2e.Logf("ITMS %s created successfully", itmsName)
 
 		pool.waitForRollout(itmsInitialSpec)
+		pool.waitForWorkerMCPStable(ctx)
 		e2e.Logf("Custom MCP %s rollout complete after ITMS creation", pool.PoolName)
 
 		g.By("Step 7: Verify registries.conf updated with ITMS tag-only entries alongside IDMS digest entries")
@@ -557,6 +580,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		e2e.Logf("ICSP %s created successfully", icspName2)
 
 		pool.waitForRollout(icsp2InitialSpec)
+		pool.waitForWorkerMCPStable(ctx)
 		e2e.Logf("Custom MCP %s rollout complete after second ICSP creation", pool.PoolName)
 
 		g.By("Step 9: Verify registries.conf updated with ICSP2 entries alongside IDMS and ITMS entries")
@@ -579,6 +603,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		e2e.Logf("IDMS %s deleted successfully", idmsName)
 
 		pool.waitForRollout(idmsDeleteInitialSpec)
+		pool.waitForWorkerMCPStable(ctx)
 		e2e.Logf("Custom MCP %s rollout complete after IDMS deletion", pool.PoolName)
 
 		g.By("Step 11: Verify registries.conf - IDMS entries removed, ITMS and ICSP2 entries remain")

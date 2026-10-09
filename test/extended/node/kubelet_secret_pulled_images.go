@@ -30,263 +30,265 @@ const (
 	credVerifyPublicImage = internalRegistryPrefix + "/openshift/tools:latest"
 )
 
-var _ = g.Describe("[sig-node][Suite:openshift/nodes/isolated][Disruptive][OCPFeatureGate:KubeletEnsureSecretPulledImages][Serial][NodeResource:numNodes=1,label=kubelet_secret_images]", g.Ordered, func() {
-	defer g.GinkgoRecover()
+var _ = g.Describe("[sig-node][Suite:openshift/nodes/isolated][Disruptive][OCPFeatureGate:KubeletEnsureSecretPulledImages][Serial] Kubelet Secret Pulled Images",
+	g.Label("NodeResource", "NodeResourceNumNodes=1", "NodeResourceName=kubelet_secret_images"),
+	g.Ordered, func() {
+		defer g.GinkgoRecover()
 
-	var (
-		oc         = exutil.NewCLIWithoutNamespace("kubelet-cred-verify")
-		ctx        = context.Background()
-		sourceNS   = "cred-verify-source"
-		workerNode string
+		var (
+			oc         = exutil.NewCLIWithoutNamespace("kubelet-cred-verify")
+			ctx        = context.Background()
+			sourceNS   = "cred-verify-source"
+			workerNode string
 
-		privateImage string
-		pullSecret   []byte
-	)
+			privateImage string
+			pullSecret   []byte
+		)
 
-	// Setup: import a private image into the internal registry so each test
-	// can use it without hardcoded credentials or external accounts.
-	g.BeforeEach(func() {
-		SkipOnMicroShift(oc)
+		// Setup: import a private image into the internal registry so each test
+		// can use it without hardcoded credentials or external accounts.
+		g.BeforeEach(func() {
+			SkipOnMicroShift(oc)
 
-		if !exutil.IsNoUpgradeFeatureSet(oc) {
-			g.Skip("requires TechPreviewNoUpgrade or CustomNoUpgrade feature set")
-		}
-
-		var err error
-		workerNode, err = GetNodeResource(ctx, oc, "kubelet_secret_images")
-		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
-		EnsureNodeResourceNodesReady(ctx, oc, "kubelet_secret_images")
-		e2e.Logf("Worker node: %s", workerNode)
-
-		// Tag the cluster-hosted openshift/tools image into a namespace-scoped imagestream
-		// so it becomes a "private" image requiring namespace-level pull credentials.
-		sourceNamespace, err := e2e.CreateTestingNS(ctx, "cred-verify-source", oc.AdminKubeClient(), map[string]string{
-			"pod-security.kubernetes.io/enforce": "baseline",
-			"pod-security.kubernetes.io/audit":   "baseline",
-			"pod-security.kubernetes.io/warn":    "baseline",
-		})
-		if sourceNamespace != nil {
-			sourceNS = sourceNamespace.Name
-			g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, sourceNS)
-		}
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create source namespace")
-		privateImage = fmt.Sprintf("%s/%s/test-image:latest", internalRegistryPrefix, sourceNS)
-
-		err = oc.AsAdmin().WithoutNamespace().Run("tag").Args(
-			"openshift/tools:latest",
-			fmt.Sprintf("%s/test-image:latest", sourceNS),
-		).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		o.Eventually(func() error {
-			out, e := oc.AsAdmin().WithoutNamespace().Run("get").Args(
-				"istag", "test-image:latest", "-n", sourceNS,
-				"-o", "jsonpath={.image.dockerImageReference}",
-			).Output()
-			if e != nil {
-				return e
+			if !exutil.IsNoUpgradeFeatureSet(oc) {
+				g.Skip("requires TechPreviewNoUpgrade or CustomNoUpgrade feature set")
 			}
-			if out == "" {
-				return fmt.Errorf("imagestream tag not ready")
+
+			var err error
+			workerNode, err = GetNodeResource(ctx, oc, "kubelet_secret_images")
+			o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
+			EnsureNodeResourceNodesReady(ctx, oc, "kubelet_secret_images")
+			e2e.Logf("Worker node: %s", workerNode)
+
+			// Tag the cluster-hosted openshift/tools image into a namespace-scoped imagestream
+			// so it becomes a "private" image requiring namespace-level pull credentials.
+			sourceNamespace, err := e2e.CreateTestingNS(ctx, "cred-verify-source", oc.AdminKubeClient(), map[string]string{
+				"pod-security.kubernetes.io/enforce": "baseline",
+				"pod-security.kubernetes.io/audit":   "baseline",
+				"pod-security.kubernetes.io/warn":    "baseline",
+			})
+			if sourceNamespace != nil {
+				sourceNS = sourceNamespace.Name
+				g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, sourceNS)
 			}
-			e2e.Logf("Image ready")
-			return nil
-		}, 2*time.Minute, 5*time.Second).Should(o.Succeed())
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to create source namespace")
+			privateImage = fmt.Sprintf("%s/%s/test-image:latest", internalRegistryPrefix, sourceNS)
 
-		pullSecret = credVerifyExtractSAPullSecret(ctx, oc, sourceNS, "default")
-		e2e.Logf("Private image configured")
-	})
-
-	// This test validates that:
-	// - A tenant with valid credentials can pull a private image
-	// - A different tenant without credentials cannot access the same private image
-	// - Both tenants can pull a public image without any secrets
-	g.It("Case 1: Multi-tenancy isolation for private and public images", func() {
-		tenantA := "cred-verify-tenant-a"
-		tenantB := "cred-verify-tenant-b"
-		credVerifyEnsureNamespace(ctx, oc, tenantA)
-		credVerifyEnsureNamespace(ctx, oc, tenantB)
-		g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, tenantA)
-		g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, tenantB)
-
-		// Only tenant-a gets pull permission and a pull secret
-		credVerifyGrantImagePuller(oc, sourceNS, tenantA)
-		credVerifyCreateSecret(ctx, oc, tenantA, "pull-secret", pullSecret)
-
-		g.By("Verifying tenant-a can pull private image with valid secret")
-		credVerifyRunPod(ctx, oc, credVerifyPod(tenantA, "pod-1a-with-secret", privateImage, workerNode, corev1.PullIfNotPresent, "pull-secret"))
-
-		g.By("Verifying tenant-b cannot pull private image without secret")
-		credVerifyExpectImagePullError(ctx, oc, credVerifyPod(tenantB, "pod-1a-no-secret", privateImage, workerNode, corev1.PullIfNotPresent))
-
-		g.By("Verifying tenant-a can pull public image without secret")
-		credVerifyRunPod(ctx, oc, credVerifyPod(tenantA, "pod-1b-public-a", credVerifyPublicImage, workerNode, corev1.PullIfNotPresent))
-
-		g.By("Verifying tenant-b can pull same public image without secret")
-		credVerifyRunPod(ctx, oc, credVerifyPod(tenantB, "pod-1b-public-b", credVerifyPublicImage, workerNode, corev1.PullIfNotPresent))
-	})
-
-	// This test validates kubelet pull record behavior during credential rotation:
-	// - Pod succeeds when secret name changes but credential content (hash) stays the same
-	// - Pod succeeds when secret name stays the same but credential content (hash) changes
-	g.It("Case 2: Credential rotation", func() {
-		ns := "cred-verify-rotation"
-		credVerifyEnsureNamespace(ctx, oc, ns)
-		g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, ns)
-
-		credVerifyGrantImagePuller(oc, sourceNS, ns)
-		credVerifyCreateSecret(ctx, oc, ns, "secret-v1", pullSecret)
-
-		g.By("Pulling private image with secret-v1 to establish pull record on the node")
-		credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-initial-pull", privateImage, workerNode, corev1.PullIfNotPresent, "secret-v1"))
-
-		// Delete secret-v1 and recreate as secret-v2 with the SAME credentials.
-		// The secret name (coordinates) changed, but the credential content (hash) is identical.
-		g.By("Verifying pod succeeds when secret hash matches but secret coordinates differ")
-		err := oc.AdminKubeClient().CoreV1().Secrets(ns).Delete(ctx, "secret-v1", metav1.DeleteOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		credVerifyCreateSecret(ctx, oc, ns, "secret-v2", pullSecret)
-		credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-hash-match", privateImage, workerNode, corev1.PullIfNotPresent, "secret-v2"))
-
-		// Create a second SA to get different credentials, then recreate secret-v2
-		// with those new credentials. The secret name stays the same but the content changes.
-		g.By("Verifying pod succeeds when secret coordinates match but secret hash differs")
-		sa := &corev1.ServiceAccount{
-			ObjectMeta: metav1.ObjectMeta{Name: "rotated-sa"},
-		}
-		_, err = oc.AdminKubeClient().CoreV1().ServiceAccounts(sourceNS).Create(ctx, sa, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		rotatedSecret := credVerifyExtractSAPullSecret(ctx, oc, sourceNS, "rotated-sa")
-		err = oc.AdminKubeClient().CoreV1().Secrets(ns).Delete(ctx, "secret-v2", metav1.DeleteOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		credVerifyCreateSecret(ctx, oc, ns, "secret-v2", rotatedSecret)
-		credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-coord-match", privateImage, workerNode, corev1.PullIfNotPresent, "secret-v2"))
-	})
-
-	// This test validates credential verification across all ImagePullPolicy modes:
-	// - Never: uses cached image without pulling, kubelet still verifies credentials
-	// - Always: forces a fresh pull even when image is cached
-	// - IfNotPresent: uses cached image with credential check
-	g.It("Case 3: ImagePullPolicy scenarios", func() {
-		ns := "cred-verify-pullpolicy"
-		credVerifyEnsureNamespace(ctx, oc, ns)
-		g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, ns)
-
-		credVerifyGrantImagePuller(oc, sourceNS, ns)
-		credVerifyCreateSecret(ctx, oc, ns, "pull-secret", pullSecret)
-
-		// IfNotPresent first: this also caches the image on the node for the Never test
-		g.By("Verifying IfNotPresent ImagePullPolicy with valid secret pulls and caches the image")
-		credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-ifnotpresent", privateImage, workerNode, corev1.PullIfNotPresent, "pull-secret"))
-
-		g.By("Verifying Never ImagePullPolicy with valid secret uses cached image")
-		credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-never", privateImage, workerNode, corev1.PullNever, "pull-secret"))
-
-		g.By("Verifying Always ImagePullPolicy with valid secret re-pulls the image")
-		credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-always", privateImage, workerNode, corev1.PullAlways, "pull-secret"))
-	})
-
-	// This test validates imagePullCredentialsVerificationPolicy via KubeletConfig:
-	// - NeverVerify: disables credential verification, pod without secret can use cached image
-	// - AlwaysVerify: requires valid credentials for all images, pod without secret is rejected
-	// Switching from NeverVerify to AlwaysVerify also verifies that the policy update takes
-	// effect after kubelet restart triggered by the MCO rollout.
-	g.It("Case 4: Credential verification policy [Slow][Skipped:SingleReplicaTopology][Timeout:60m]", func() {
-		kcName := "cred-verify-policy"
-		mcpName := "cred-verify-policy"
-		ns := "cred-verify-policy"
-		credVerifyEnsureNamespace(ctx, oc, ns)
-		g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, ns)
-
-		mcClient, err := mcclient.NewForConfig(oc.AdminConfig())
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		credVerifyGrantImagePuller(oc, sourceNS, ns)
-		credVerifyCreateSecret(ctx, oc, ns, "pull-secret", pullSecret)
-
-		err = EnsureNodeHasNoCustomRole(ctx, oc, workerNode)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		var mcpConfig *CustomMCPConfig
-		g.DeferCleanup(func() {
-			cleanupCtx := context.Background()
-			if err := CleanupKubeletConfig(cleanupCtx, mcClient, kcName, mcpName); err != nil {
-				e2e.Logf("WARNING: failed to delete KubeletConfig %s: %v", kcName, err)
-			}
-			if err := CleanupCustomMCP(cleanupCtx, mcpConfig); err != nil {
-				e2e.Logf("WARNING: cleanup had errors: %v", err)
-			}
-		})
-
-		mcpConfig, err = CreateCustomMCPForNode(ctx, oc, mcClient, mcpName, workerNode)
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create custom MCP")
-
-		g.By("Pre-caching private image on the node with a valid secret")
-		credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-seed", privateImage, workerNode, corev1.PullIfNotPresent, "pull-secret"))
-
-		g.By("Applying NeverVerify policy and waiting for MCO rollout")
-		credVerifyApplyPolicy(ctx, mcClient, kcName, mcpName, `{"imagePullCredentialsVerificationPolicy":"NeverVerify"}`)
-		credVerifyWaitForMCPUpdating(ctx, mcClient, mcpName)
-		err = WaitForMCP(ctx, mcClient, mcpName, 15*time.Minute)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("Verifying NeverVerify policy allows pod without secret to use cached image")
-		credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-neververify", privateImage, workerNode, corev1.PullNever))
-
-		g.By("Switching to AlwaysVerify policy and waiting for MCO rollout")
-		credVerifyApplyPolicy(ctx, mcClient, kcName, mcpName, `{"imagePullCredentialsVerificationPolicy":"AlwaysVerify"}`)
-		credVerifyWaitForMCPUpdating(ctx, mcClient, mcpName)
-		err = WaitForMCP(ctx, mcClient, mcpName, 15*time.Minute)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// This pod also re-caches the image after MCO rollout since pull records are cleared
-		g.By("Verifying AlwaysVerify policy allows pod with valid secret")
-		credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-alwaysverify-secret", privateImage, workerNode, corev1.PullIfNotPresent, "pull-secret"))
-
-		// Use a nonexistent-secret to override the default SA auto-injection,
-		// ensuring the pod truly has no valid credentials for AlwaysVerify to reject.
-		g.By("Verifying AlwaysVerify policy blocks pod without valid secret")
-		credVerifyExpectImagePullError(ctx, oc, credVerifyPod(ns, "pod-alwaysverify-nosecret", privateImage, workerNode, corev1.PullIfNotPresent, "nonexistent-secret"))
-	})
-
-	// Validates that cached pull-records work offline but new credentials need the registry for verification
-	g.It("Case 5: Registry availability", func() {
-		ns := "cred-verify-registry"
-		credVerifyEnsureNamespace(ctx, oc, ns)
-		g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, ns)
-
-		credVerifyGrantImagePuller(oc, sourceNS, ns)
-		credVerifyCreateSecret(ctx, oc, ns, "pull-secret", pullSecret)
-
-		g.By("Caching private image then making the registry unavailable")
-		credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-seed", privateImage, workerNode, corev1.PullIfNotPresent, "pull-secret"))
-
-		deploy, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-image-registry").Get(ctx, "image-registry", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		originalReplicas := ptr.Deref(deploy.Spec.Replicas, int32(1))
-
-		err = oc.AsAdmin().WithoutNamespace().Run("scale").Args("deployment/image-registry", "-n", "openshift-image-registry", "--replicas=0").Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		g.DeferCleanup(func() {
-			_ = oc.AsAdmin().WithoutNamespace().Run("scale").Args(
-				"deployment/image-registry", "-n", "openshift-image-registry",
-				fmt.Sprintf("--replicas=%d", originalReplicas),
+			err = oc.AsAdmin().WithoutNamespace().Run("tag").Args(
+				"openshift/tools:latest",
+				fmt.Sprintf("%s/test-image:latest", sourceNS),
 			).Execute()
-			_ = oc.AsAdmin().WithoutNamespace().Run("rollout").Args(
-				"status", "deployment/image-registry", "-n", "openshift-image-registry", "--timeout=2m",
-			).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Eventually(func() error {
+				out, e := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+					"istag", "test-image:latest", "-n", sourceNS,
+					"-o", "jsonpath={.image.dockerImageReference}",
+				).Output()
+				if e != nil {
+					return e
+				}
+				if out == "" {
+					return fmt.Errorf("imagestream tag not ready")
+				}
+				e2e.Logf("Image ready")
+				return nil
+			}, 2*time.Minute, 5*time.Second).Should(o.Succeed())
+
+			pullSecret = credVerifyExtractSAPullSecret(ctx, oc, sourceNS, "default")
+			e2e.Logf("Private image configured")
 		})
-		err = oc.AsAdmin().WithoutNamespace().Run("rollout").Args("status", "deployment/image-registry", "-n", "openshift-image-registry", "--timeout=2m").Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("Verifying cached pull-record works when registry is down")
-		credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-cached", privateImage, workerNode, corev1.PullIfNotPresent, "pull-secret"))
+		// This test validates that:
+		// - A tenant with valid credentials can pull a private image
+		// - A different tenant without credentials cannot access the same private image
+		// - Both tenants can pull a public image without any secrets
+		g.It("Case 1: Multi-tenancy isolation for private and public images", func() {
+			tenantA := "cred-verify-tenant-a"
+			tenantB := "cred-verify-tenant-b"
+			credVerifyEnsureNamespace(ctx, oc, tenantA)
+			credVerifyEnsureNamespace(ctx, oc, tenantB)
+			g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, tenantA)
+			g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, tenantB)
 
-		g.By("Verifying new credentials fail when registry is down")
-		credVerifyCreateSecret(ctx, oc, ns, "new-secret", credVerifyBuildDockerConfigJSON(internalRegistryPrefix, "dummy", "dummy"))
-		credVerifyExpectImagePullError(ctx, oc, credVerifyPod(ns, "pod-new-creds", privateImage, workerNode, corev1.PullIfNotPresent, "new-secret"))
+			// Only tenant-a gets pull permission and a pull secret
+			credVerifyGrantImagePuller(oc, sourceNS, tenantA)
+			credVerifyCreateSecret(ctx, oc, tenantA, "pull-secret", pullSecret)
+
+			g.By("Verifying tenant-a can pull private image with valid secret")
+			credVerifyRunPod(ctx, oc, credVerifyPod(tenantA, "pod-1a-with-secret", privateImage, workerNode, corev1.PullIfNotPresent, "pull-secret"))
+
+			g.By("Verifying tenant-b cannot pull private image without secret")
+			credVerifyExpectImagePullError(ctx, oc, credVerifyPod(tenantB, "pod-1a-no-secret", privateImage, workerNode, corev1.PullIfNotPresent))
+
+			g.By("Verifying tenant-a can pull public image without secret")
+			credVerifyRunPod(ctx, oc, credVerifyPod(tenantA, "pod-1b-public-a", credVerifyPublicImage, workerNode, corev1.PullIfNotPresent))
+
+			g.By("Verifying tenant-b can pull same public image without secret")
+			credVerifyRunPod(ctx, oc, credVerifyPod(tenantB, "pod-1b-public-b", credVerifyPublicImage, workerNode, corev1.PullIfNotPresent))
+		})
+
+		// This test validates kubelet pull record behavior during credential rotation:
+		// - Pod succeeds when secret name changes but credential content (hash) stays the same
+		// - Pod succeeds when secret name stays the same but credential content (hash) changes
+		g.It("Case 2: Credential rotation", func() {
+			ns := "cred-verify-rotation"
+			credVerifyEnsureNamespace(ctx, oc, ns)
+			g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, ns)
+
+			credVerifyGrantImagePuller(oc, sourceNS, ns)
+			credVerifyCreateSecret(ctx, oc, ns, "secret-v1", pullSecret)
+
+			g.By("Pulling private image with secret-v1 to establish pull record on the node")
+			credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-initial-pull", privateImage, workerNode, corev1.PullIfNotPresent, "secret-v1"))
+
+			// Delete secret-v1 and recreate as secret-v2 with the SAME credentials.
+			// The secret name (coordinates) changed, but the credential content (hash) is identical.
+			g.By("Verifying pod succeeds when secret hash matches but secret coordinates differ")
+			err := oc.AdminKubeClient().CoreV1().Secrets(ns).Delete(ctx, "secret-v1", metav1.DeleteOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			credVerifyCreateSecret(ctx, oc, ns, "secret-v2", pullSecret)
+			credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-hash-match", privateImage, workerNode, corev1.PullIfNotPresent, "secret-v2"))
+
+			// Create a second SA to get different credentials, then recreate secret-v2
+			// with those new credentials. The secret name stays the same but the content changes.
+			g.By("Verifying pod succeeds when secret coordinates match but secret hash differs")
+			sa := &corev1.ServiceAccount{
+				ObjectMeta: metav1.ObjectMeta{Name: "rotated-sa"},
+			}
+			_, err = oc.AdminKubeClient().CoreV1().ServiceAccounts(sourceNS).Create(ctx, sa, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			rotatedSecret := credVerifyExtractSAPullSecret(ctx, oc, sourceNS, "rotated-sa")
+			err = oc.AdminKubeClient().CoreV1().Secrets(ns).Delete(ctx, "secret-v2", metav1.DeleteOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			credVerifyCreateSecret(ctx, oc, ns, "secret-v2", rotatedSecret)
+			credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-coord-match", privateImage, workerNode, corev1.PullIfNotPresent, "secret-v2"))
+		})
+
+		// This test validates credential verification across all ImagePullPolicy modes:
+		// - Never: uses cached image without pulling, kubelet still verifies credentials
+		// - Always: forces a fresh pull even when image is cached
+		// - IfNotPresent: uses cached image with credential check
+		g.It("Case 3: ImagePullPolicy scenarios", func() {
+			ns := "cred-verify-pullpolicy"
+			credVerifyEnsureNamespace(ctx, oc, ns)
+			g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, ns)
+
+			credVerifyGrantImagePuller(oc, sourceNS, ns)
+			credVerifyCreateSecret(ctx, oc, ns, "pull-secret", pullSecret)
+
+			// IfNotPresent first: this also caches the image on the node for the Never test
+			g.By("Verifying IfNotPresent ImagePullPolicy with valid secret pulls and caches the image")
+			credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-ifnotpresent", privateImage, workerNode, corev1.PullIfNotPresent, "pull-secret"))
+
+			g.By("Verifying Never ImagePullPolicy with valid secret uses cached image")
+			credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-never", privateImage, workerNode, corev1.PullNever, "pull-secret"))
+
+			g.By("Verifying Always ImagePullPolicy with valid secret re-pulls the image")
+			credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-always", privateImage, workerNode, corev1.PullAlways, "pull-secret"))
+		})
+
+		// This test validates imagePullCredentialsVerificationPolicy via KubeletConfig:
+		// - NeverVerify: disables credential verification, pod without secret can use cached image
+		// - AlwaysVerify: requires valid credentials for all images, pod without secret is rejected
+		// Switching from NeverVerify to AlwaysVerify also verifies that the policy update takes
+		// effect after kubelet restart triggered by the MCO rollout.
+		g.It("Case 4: Credential verification policy [Slow][Skipped:SingleReplicaTopology][Timeout:60m]", func() {
+			kcName := "cred-verify-policy"
+			mcpName := "cred-verify-policy"
+			ns := "cred-verify-policy"
+			credVerifyEnsureNamespace(ctx, oc, ns)
+			g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, ns)
+
+			mcClient, err := mcclient.NewForConfig(oc.AdminConfig())
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			credVerifyGrantImagePuller(oc, sourceNS, ns)
+			credVerifyCreateSecret(ctx, oc, ns, "pull-secret", pullSecret)
+
+			err = EnsureNodeHasNoCustomRole(ctx, oc, workerNode)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			var mcpConfig *CustomMCPConfig
+			g.DeferCleanup(func() {
+				cleanupCtx := context.Background()
+				if err := CleanupKubeletConfig(cleanupCtx, mcClient, kcName, mcpName); err != nil {
+					e2e.Logf("WARNING: failed to delete KubeletConfig %s: %v", kcName, err)
+				}
+				if err := CleanupCustomMCP(cleanupCtx, mcpConfig); err != nil {
+					e2e.Logf("WARNING: cleanup had errors: %v", err)
+				}
+			})
+
+			mcpConfig, err = CreateCustomMCPForNode(ctx, oc, mcClient, mcpName, workerNode)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to create custom MCP")
+
+			g.By("Pre-caching private image on the node with a valid secret")
+			credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-seed", privateImage, workerNode, corev1.PullIfNotPresent, "pull-secret"))
+
+			g.By("Applying NeverVerify policy and waiting for MCO rollout")
+			credVerifyApplyPolicy(ctx, mcClient, kcName, mcpName, `{"imagePullCredentialsVerificationPolicy":"NeverVerify"}`)
+			credVerifyWaitForMCPUpdating(ctx, mcClient, mcpName)
+			err = WaitForMCP(ctx, mcClient, mcpName, 15*time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Verifying NeverVerify policy allows pod without secret to use cached image")
+			credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-neververify", privateImage, workerNode, corev1.PullNever))
+
+			g.By("Switching to AlwaysVerify policy and waiting for MCO rollout")
+			credVerifyApplyPolicy(ctx, mcClient, kcName, mcpName, `{"imagePullCredentialsVerificationPolicy":"AlwaysVerify"}`)
+			credVerifyWaitForMCPUpdating(ctx, mcClient, mcpName)
+			err = WaitForMCP(ctx, mcClient, mcpName, 15*time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// This pod also re-caches the image after MCO rollout since pull records are cleared
+			g.By("Verifying AlwaysVerify policy allows pod with valid secret")
+			credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-alwaysverify-secret", privateImage, workerNode, corev1.PullIfNotPresent, "pull-secret"))
+
+			// Use a nonexistent-secret to override the default SA auto-injection,
+			// ensuring the pod truly has no valid credentials for AlwaysVerify to reject.
+			g.By("Verifying AlwaysVerify policy blocks pod without valid secret")
+			credVerifyExpectImagePullError(ctx, oc, credVerifyPod(ns, "pod-alwaysverify-nosecret", privateImage, workerNode, corev1.PullIfNotPresent, "nonexistent-secret"))
+		})
+
+		// Validates that cached pull-records work offline but new credentials need the registry for verification
+		g.It("Case 5: Registry availability", func() {
+			ns := "cred-verify-registry"
+			credVerifyEnsureNamespace(ctx, oc, ns)
+			g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, ns)
+
+			credVerifyGrantImagePuller(oc, sourceNS, ns)
+			credVerifyCreateSecret(ctx, oc, ns, "pull-secret", pullSecret)
+
+			g.By("Caching private image then making the registry unavailable")
+			credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-seed", privateImage, workerNode, corev1.PullIfNotPresent, "pull-secret"))
+
+			deploy, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-image-registry").Get(ctx, "image-registry", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			originalReplicas := ptr.Deref(deploy.Spec.Replicas, int32(1))
+
+			err = oc.AsAdmin().WithoutNamespace().Run("scale").Args("deployment/image-registry", "-n", "openshift-image-registry", "--replicas=0").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.DeferCleanup(func() {
+				_ = oc.AsAdmin().WithoutNamespace().Run("scale").Args(
+					"deployment/image-registry", "-n", "openshift-image-registry",
+					fmt.Sprintf("--replicas=%d", originalReplicas),
+				).Execute()
+				_ = oc.AsAdmin().WithoutNamespace().Run("rollout").Args(
+					"status", "deployment/image-registry", "-n", "openshift-image-registry", "--timeout=2m",
+				).Execute()
+			})
+			err = oc.AsAdmin().WithoutNamespace().Run("rollout").Args("status", "deployment/image-registry", "-n", "openshift-image-registry", "--timeout=2m").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Verifying cached pull-record works when registry is down")
+			credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-cached", privateImage, workerNode, corev1.PullIfNotPresent, "pull-secret"))
+
+			g.By("Verifying new credentials fail when registry is down")
+			credVerifyCreateSecret(ctx, oc, ns, "new-secret", credVerifyBuildDockerConfigJSON(internalRegistryPrefix, "dummy", "dummy"))
+			credVerifyExpectImagePullError(ctx, oc, credVerifyPod(ns, "pod-new-creds", privateImage, workerNode, corev1.PullIfNotPresent, "new-secret"))
+		})
 	})
-})
 
 // credVerifyExtractSAPullSecret reads the auto-generated dockercfg secret for the given
 // service account and returns a dockerconfigjson blob suitable for use as an imagePullSecret.

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -22,8 +21,8 @@ import (
 const nodeResourceLabelKey = "noderesource.test.openshift.io/name"
 
 // nodeResourceSuiteName is the only suite that uses the NodeResource bucket
-// and dedicated pool. Other suites may carry [NodeResource:...] tags on
-// individual tests without triggering pool provisioning (see cmd_runsuite.go).
+// and dedicated pool. Other suites may carry NodeResource labels on individual
+// tests without triggering pool provisioning (see cmd_runsuite.go).
 const nodeResourceSuiteName = "openshift/nodes/isolated"
 
 // nodeResourceNoProgressDeadline is the idle stall limit when no test holds
@@ -34,7 +33,12 @@ const nodeResourceNoProgressDeadline = 45 * time.Minute
 // nodeResourceUnlabelTimeout bounds API waits when removing reservation labels.
 const nodeResourceUnlabelTimeout = 2 * time.Minute
 
-var nodeResourceTagRe = regexp.MustCompile(`\[NodeResource:numNodes=([^,]+),label=([^\]]+)\]`)
+// NodeResource label constants used by g.Label() in test files and by the scheduler.
+const (
+	NodeResourceLabel          = "NodeResource"
+	NodeResourceNumNodesPrefix = "NodeResourceNumNodes="
+	NodeResourceNamePrefix     = "NodeResourceName="
+)
 
 type nodeResourceConfig struct {
 	numNodes int
@@ -42,27 +46,50 @@ type nodeResourceConfig struct {
 	isAll    bool
 }
 
-func parseNodeResourceTag(testName string) (*nodeResourceConfig, error) {
-	match := nodeResourceTagRe.FindStringSubmatch(testName)
-	if match == nil {
-		return nil, fmt.Errorf("no [NodeResource:...] tag found in %q", testName)
+// parseNodeResourceFromSpec extracts NodeResource config from test.spec.Labels.
+// Tests declare requirements via g.Label("NodeResource", "NodeResourceNumNodes=1", "NodeResourceName=foo").
+// When multiple NodeResourceNumNodes= labels exist (e.g. inherited from a parent
+// container plus an override on the It), the largest value wins.
+func parseNodeResourceFromSpec(test *testCase) (*nodeResourceConfig, error) {
+	if test.spec == nil || test.spec.ExtensionTestSpec == nil {
+		return nil, fmt.Errorf("test %q has no spec/labels", test.name)
 	}
-	numNodesStr := match[1]
-	label := match[2]
+	labels := test.spec.ExtensionTestSpec.Labels
+	if !labels.Has(NodeResourceLabel) {
+		return nil, fmt.Errorf("test %q missing %s label", test.name, NodeResourceLabel)
+	}
 
-	cfg := &nodeResourceConfig{label: label}
-	if numNodesStr == "all" {
-		cfg.isAll = true
-		cfg.numNodes = -1
-	} else {
-		n, err := strconv.Atoi(numNodesStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid numNodes %q in test %q: %w", numNodesStr, testName, err)
+	cfg := &nodeResourceConfig{}
+	for _, l := range labels.UnsortedList() {
+		if strings.HasPrefix(l, NodeResourceNumNodesPrefix) {
+			val := strings.TrimPrefix(l, NodeResourceNumNodesPrefix)
+			if val == "all" {
+				cfg.isAll = true
+				cfg.numNodes = -1
+			} else {
+				n, err := strconv.Atoi(val)
+				if err != nil {
+					return nil, fmt.Errorf("invalid NodeResourceNumNodes %q in test %q: %w", val, test.name, err)
+				}
+				if n <= 0 {
+					return nil, fmt.Errorf("NodeResourceNumNodes must be positive or 'all', got %q in test %q", val, test.name)
+				}
+				// When an It overrides a parent Describe's numNodes, both
+				// labels are present; take the larger (more demanding) value.
+				if n > cfg.numNodes {
+					cfg.numNodes = n
+				}
+			}
 		}
-		if n <= 0 {
-			return nil, fmt.Errorf("numNodes must be positive or 'all', got %q in test %q", numNodesStr, testName)
+		if strings.HasPrefix(l, NodeResourceNamePrefix) {
+			cfg.label = strings.TrimPrefix(l, NodeResourceNamePrefix)
 		}
-		cfg.numNodes = n
+	}
+	if cfg.label == "" {
+		return nil, fmt.Errorf("test %q has NodeResource label but missing NodeResourceName=", test.name)
+	}
+	if cfg.numNodes == 0 && !cfg.isAll {
+		cfg.numNodes = 1 // default to 1 node if not specified
 	}
 	return cfg, nil
 }
@@ -92,7 +119,7 @@ func newNodeResourceScheduler(ctx context.Context, kubeClient kubernetes.Interfa
 
 	configs := make(map[string]*nodeResourceConfig, len(tests))
 	for _, t := range tests {
-		cfg, err := parseNodeResourceTag(t.name)
+		cfg, err := parseNodeResourceFromSpec(t)
 		if err != nil {
 			return nil, err
 		}
@@ -184,11 +211,18 @@ func (nrs *nodeResourceScheduler) GetNextTestToRun(ctx context.Context) *testCas
 
 			if err := labelNodes(ctx, nrs.kubeClient, reserved, cfg.label); err != nil {
 				logrus.Errorf("Failed to label nodes for test %s: %v, marking test failed", test.name, err)
+				now := time.Now()
+				test.start = now
+				test.end = now
 				test.failed = true
+				test.success = false
+				test.skipped = false
 				test.testOutputBytes = []byte(fmt.Sprintf("NodeResource scheduler failed to label nodes: %v", err))
 				nrs.tests = append(nrs.tests[:i], nrs.tests[i+1:]...)
-				nrs.lastProgress = time.Now()
-				return test
+				nrs.lastProgress = now
+				// Don't return this test — it would be executed by RunOneTest which
+				// overwrites the synthetic failure. Instead skip it and keep scanning.
+				continue
 			}
 
 			for _, nodeName := range reserved {
@@ -230,28 +264,20 @@ func (nrs *nodeResourceScheduler) isLabelReservedLocked(label string) bool {
 }
 
 func (nrs *nodeResourceScheduler) MarkTestComplete(test *testCase) {
-	nrs.mu.Lock()
-
 	cfg := nrs.configs[test.name]
 
+	// Identify nodes reserved by this test.
+	nrs.mu.Lock()
 	var nodesToRelease []string
 	for nodeName, reservedLabel := range nrs.reservedBy {
 		if reservedLabel == cfg.label {
 			nodesToRelease = append(nodesToRelease, nodeName)
 		}
 	}
-
-	for _, nodeName := range nodesToRelease {
-		delete(nrs.reservedBy, nodeName)
-	}
-
-	nrs.lastProgress = time.Now()
-	nrs.cond.Broadcast()
 	nrs.mu.Unlock()
 
-	// Unlabel outside the lock so slow API calls do not block dispatch.
-	// Only remove the label if it still matches this test's reservation; another
-	// test may have already claimed the node.
+	// Remove labels before freeing slots so a same-label test cannot acquire
+	// a node that still carries the previous reservation's label.
 	cleanupCtx, cancel := context.WithTimeout(context.Background(), nodeResourceUnlabelTimeout)
 	defer cancel()
 	for _, nodeName := range nodesToRelease {
@@ -259,6 +285,15 @@ func (nrs *nodeResourceScheduler) MarkTestComplete(test *testCase) {
 			logrus.Errorf("Failed to remove NodeResource label from node %s after test %s: %v", nodeName, test.name, err)
 		}
 	}
+
+	// Now free the slots and wake waiting workers.
+	nrs.mu.Lock()
+	for _, nodeName := range nodesToRelease {
+		delete(nrs.reservedBy, nodeName)
+	}
+	nrs.lastProgress = time.Now()
+	nrs.cond.Broadcast()
+	nrs.mu.Unlock()
 }
 
 func (nrs *nodeResourceScheduler) getFreeNodesLocked() []string {
@@ -482,14 +517,27 @@ func executeNodeResourceTests(
 	logrus.Infof("NodeResource bucket: %d test(s) on %d pool node(s)",
 		len(tests), len(pool.nodeNames))
 
-	// Single queue with pool-wide parallelism (Neeraj-style interleaving). The
-	// scheduler still serializes numNodes=all tests when fewer than all nodes are free.
-	runNodeResourceSchedulerPhase(ctx, tests, len(pool.nodeNames), kubeClient, pool.nodeNames,
-		commandContext, testOutput, maybeAbortOnFailureFn)
+	// Honor [Serial]: run parallel tests first with pool-wide parallelism,
+	// then serial tests one at a time — same pattern as queue.go execute().
+	serial, parallel := splitTests(tests, isSerialTest)
+
+	if len(parallel) > 0 {
+		logrus.Infof("NodeResource parallel phase: %d test(s), parallelism=%d", len(parallel), len(pool.nodeNames))
+		runNodeResourceSchedulerPhase(ctx, parallel, len(pool.nodeNames), kubeClient, pool.nodeNames,
+			commandContext, testOutput, maybeAbortOnFailureFn)
+	}
+	if len(serial) > 0 {
+		logrus.Infof("NodeResource serial phase: %d test(s)", len(serial))
+		runNodeResourceSchedulerPhase(ctx, serial, 1, kubeClient, pool.nodeNames,
+			commandContext, testOutput, maybeAbortOnFailureFn)
+	}
 }
 
 func isNodeResourceTest(test *testCase) bool {
-	return strings.Contains(test.name, "[NodeResource:")
+	if test.spec != nil && test.spec.ExtensionTestSpec != nil {
+		return test.spec.ExtensionTestSpec.Labels.Has(NodeResourceLabel)
+	}
+	return false
 }
 
 // markTestsFailed marks tests failed when pool or scheduler setup fails.

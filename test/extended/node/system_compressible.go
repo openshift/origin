@@ -22,228 +22,230 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node][Disruptive] [NodeResource:numNodes=1,label=system_compressible] System Compressible CPU", g.Serial, func() {
-	defer g.GinkgoRecover()
+var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node][Disruptive] System Compressible CPU",
+	g.Label("NodeResource", "NodeResourceNumNodes=1", "NodeResourceName=system_compressible"),
+	g.Serial, func() {
+		defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithoutNamespace("system-compressible")
+		oc := exutil.NewCLIWithoutNamespace("system-compressible")
 
-	g.BeforeEach(func(ctx context.Context) {
-		SkipOnMicroShift(oc)
-		EnsureNodeResourceNodesReady(ctx, oc, "system_compressible")
-	})
-
-	g.It("should enforce system compressible CPU limit by default", func(ctx context.Context) {
-		// Select node with >= 4 CPUs
-		nodeName, cpuCount, err := selectTestNode(ctx, oc, 4)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should find a node with at least 4 CPUs")
-		framework.Logf("Testing on node: %s with %d CPUs", nodeName, cpuCount)
-
-		// Get kubelet config and verify system compressible is enabled
-		config, err := getKubeletConfigFromNode(ctx, oc, nodeName)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read kubelet config")
-
-		// Skip if reserved CPU is enabled
-		if isReservedCPUEnabled(config) {
-			g.Skip("Skipping: cluster uses reserved CPU feature")
-		}
-
-		// Verify system compressible is enabled
-		o.Expect(isSystemCompressibleEnabled(config)).To(o.BeTrue(),
-			"System compressible should be enabled by default")
-
-		g.By("Reading systemReserved.cpu from /etc/openshift/kubelet.conf.d/20-auto-sizing.conf")
-		autoSizingOutput, err := ExecOnNodeWithChroot(ctx, oc, nodeName, "cat", "/etc/openshift/kubelet.conf.d/20-auto-sizing.conf")
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read /etc/openshift/kubelet.conf.d/20-auto-sizing.conf")
-		framework.Logf("/etc/openshift/kubelet.conf.d/20-auto-sizing.conf contents:\n%s", autoSizingOutput)
-
-		var autoSizingConfig kubeletconfigv1beta1.KubeletConfiguration
-		err = yaml.Unmarshal([]byte(autoSizingOutput), &autoSizingConfig)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to parse auto-sizing config")
-
-		cpuQuantity, ok := autoSizingConfig.SystemReserved["cpu"]
-		o.Expect(ok).To(o.BeTrue(), "systemReserved.cpu should be set")
-		cpuResource, err := resource.ParseQuantity(cpuQuantity)
-		o.Expect(err).NotTo(o.HaveOccurred(), "systemReserved.cpu must be a valid resource quantity")
-		systemReservedCPU := float64(cpuResource.MilliValue()) / 1000.0
-		o.Expect(systemReservedCPU).To(o.BeNumerically(">", 0), "systemReserved.cpu should be greater than 0")
-		framework.Logf("systemReserved.cpu: %.2f (%.0f millicores)", systemReservedCPU, systemReservedCPU*1000)
-
-		// Convert to cpuShares: cpuShares = systemReservedCPU * 1024
-		cpuShares := uint64(systemReservedCPU * 1024)
-		expectedWeight := getCPUWeight(&cpuShares)
-		framework.Logf("Expected cpu.weight for cpuShares=%d: %d", cpuShares, expectedWeight)
-
-		// Check cgroup cpu.weight configuration for system.slice
-		g.By("Verifying system.slice cgroup CPU weight")
-		actualWeight, err := readCgroupCPUWeight(ctx, oc, nodeName, "system.slice")
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read cpu.weight for system.slice")
-		framework.Logf("system.slice actual cpu.weight: %d", actualWeight)
-
-		o.Expect(actualWeight).To(o.Equal(expectedWeight),
-			"system.slice cpu.weight should be %d (cpuShares=%d, SYSTEM_RESERVED_CPU=%.2f) when system compressible is enabled",
-			expectedWeight, cpuShares, systemReservedCPU)
-
-		framework.Logf("System compressible CPU weight verified successfully")
-	})
-
-	g.It("should not enforce CPU limit when system compressible is disabled", func(ctx context.Context) {
-		mcClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
-		o.Expect(err).NotTo(o.HaveOccurred(), "Error creating MCO client")
-
-		testMCPName := "system-compressible-test"
-		kubeletConfigName := "system-compressible-override"
-
-		// Select node
-		nodeName, cpuCount, err := selectTestNode(ctx, oc, 4)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should find a node with at least 4 CPUs")
-		framework.Logf("Testing on node: %s with %d CPUs", nodeName, cpuCount)
-
-		// Register cleanups BEFORE MCP creation so they always run
-		var mcpConfig *CustomMCPConfig
-		g.DeferCleanup(func() {
-			cleanupCtx := context.Background()
-			if err := CleanupCustomMCP(cleanupCtx, mcpConfig); err != nil {
-				framework.Logf("Warning: MCP cleanup had errors: %v", err)
-			}
-		})
-		g.DeferCleanup(func() {
-			cleanupCtx := context.Background()
-			if err := CleanupKubeletConfig(cleanupCtx, mcClient, kubeletConfigName, ""); err != nil {
-				framework.Logf("Warning: KubeletConfig cleanup failed: %v", err)
-			}
+		g.BeforeEach(func(ctx context.Context) {
+			SkipOnMicroShift(oc)
+			EnsureNodeResourceNodesReady(ctx, oc, "system_compressible")
 		})
 
-		// Create custom MCP for the node
-		mcpConfig, err = CreateCustomMCPForNode(ctx, oc, mcClient, testMCPName, nodeName)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should create custom MCP")
+		g.It("should enforce system compressible CPU limit by default", func(ctx context.Context) {
+			// Select node with >= 4 CPUs
+			nodeName, cpuCount, err := selectTestNode(ctx, oc, 4)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Should find a node with at least 4 CPUs")
+			framework.Logf("Testing on node: %s with %d CPUs", nodeName, cpuCount)
 
-		// Create KubeletConfig to disable system compressible
-		g.By("Creating KubeletConfig to disable system compressible")
-		kubeletConfig := &mcfgv1.KubeletConfig{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "machineconfiguration.openshift.io/v1",
-				Kind:       "KubeletConfig",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: kubeletConfigName,
-			},
-			Spec: mcfgv1.KubeletConfigSpec{
-				KubeletConfig: &runtime.RawExtension{
-					Raw: []byte(`{"systemReservedCgroup":"","enforceNodeAllocatable":["pods"]}`),
+			// Get kubelet config and verify system compressible is enabled
+			config, err := getKubeletConfigFromNode(ctx, oc, nodeName)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read kubelet config")
+
+			// Skip if reserved CPU is enabled
+			if isReservedCPUEnabled(config) {
+				g.Skip("Skipping: cluster uses reserved CPU feature")
+			}
+
+			// Verify system compressible is enabled
+			o.Expect(isSystemCompressibleEnabled(config)).To(o.BeTrue(),
+				"System compressible should be enabled by default")
+
+			g.By("Reading systemReserved.cpu from /etc/openshift/kubelet.conf.d/20-auto-sizing.conf")
+			autoSizingOutput, err := ExecOnNodeWithChroot(ctx, oc, nodeName, "cat", "/etc/openshift/kubelet.conf.d/20-auto-sizing.conf")
+			o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read /etc/openshift/kubelet.conf.d/20-auto-sizing.conf")
+			framework.Logf("/etc/openshift/kubelet.conf.d/20-auto-sizing.conf contents:\n%s", autoSizingOutput)
+
+			var autoSizingConfig kubeletconfigv1beta1.KubeletConfiguration
+			err = yaml.Unmarshal([]byte(autoSizingOutput), &autoSizingConfig)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to parse auto-sizing config")
+
+			cpuQuantity, ok := autoSizingConfig.SystemReserved["cpu"]
+			o.Expect(ok).To(o.BeTrue(), "systemReserved.cpu should be set")
+			cpuResource, err := resource.ParseQuantity(cpuQuantity)
+			o.Expect(err).NotTo(o.HaveOccurred(), "systemReserved.cpu must be a valid resource quantity")
+			systemReservedCPU := float64(cpuResource.MilliValue()) / 1000.0
+			o.Expect(systemReservedCPU).To(o.BeNumerically(">", 0), "systemReserved.cpu should be greater than 0")
+			framework.Logf("systemReserved.cpu: %.2f (%.0f millicores)", systemReservedCPU, systemReservedCPU*1000)
+
+			// Convert to cpuShares: cpuShares = systemReservedCPU * 1024
+			cpuShares := uint64(systemReservedCPU * 1024)
+			expectedWeight := getCPUWeight(&cpuShares)
+			framework.Logf("Expected cpu.weight for cpuShares=%d: %d", cpuShares, expectedWeight)
+
+			// Check cgroup cpu.weight configuration for system.slice
+			g.By("Verifying system.slice cgroup CPU weight")
+			actualWeight, err := readCgroupCPUWeight(ctx, oc, nodeName, "system.slice")
+			o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read cpu.weight for system.slice")
+			framework.Logf("system.slice actual cpu.weight: %d", actualWeight)
+
+			o.Expect(actualWeight).To(o.Equal(expectedWeight),
+				"system.slice cpu.weight should be %d (cpuShares=%d, SYSTEM_RESERVED_CPU=%.2f) when system compressible is enabled",
+				expectedWeight, cpuShares, systemReservedCPU)
+
+			framework.Logf("System compressible CPU weight verified successfully")
+		})
+
+		g.It("should not enforce CPU limit when system compressible is disabled", func(ctx context.Context) {
+			mcClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+			o.Expect(err).NotTo(o.HaveOccurred(), "Error creating MCO client")
+
+			testMCPName := "system-compressible-test"
+			kubeletConfigName := "system-compressible-override"
+
+			// Select node
+			nodeName, cpuCount, err := selectTestNode(ctx, oc, 4)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Should find a node with at least 4 CPUs")
+			framework.Logf("Testing on node: %s with %d CPUs", nodeName, cpuCount)
+
+			// Register cleanups BEFORE MCP creation so they always run
+			var mcpConfig *CustomMCPConfig
+			g.DeferCleanup(func() {
+				cleanupCtx := context.Background()
+				if err := CleanupCustomMCP(cleanupCtx, mcpConfig); err != nil {
+					framework.Logf("Warning: MCP cleanup had errors: %v", err)
+				}
+			})
+			g.DeferCleanup(func() {
+				cleanupCtx := context.Background()
+				if err := CleanupKubeletConfig(cleanupCtx, mcClient, kubeletConfigName, ""); err != nil {
+					framework.Logf("Warning: KubeletConfig cleanup failed: %v", err)
+				}
+			})
+
+			// Create custom MCP for the node
+			mcpConfig, err = CreateCustomMCPForNode(ctx, oc, mcClient, testMCPName, nodeName)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Should create custom MCP")
+
+			// Create KubeletConfig to disable system compressible
+			g.By("Creating KubeletConfig to disable system compressible")
+			kubeletConfig := &mcfgv1.KubeletConfig{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "machineconfiguration.openshift.io/v1",
+					Kind:       "KubeletConfig",
 				},
-				MachineConfigPoolSelector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"machineconfiguration.openshift.io/pool": testMCPName,
+				ObjectMeta: metav1.ObjectMeta{
+					Name: kubeletConfigName,
+				},
+				Spec: mcfgv1.KubeletConfigSpec{
+					KubeletConfig: &runtime.RawExtension{
+						Raw: []byte(`{"systemReservedCgroup":"","enforceNodeAllocatable":["pods"]}`),
+					},
+					MachineConfigPoolSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"machineconfiguration.openshift.io/pool": testMCPName,
+						},
 					},
 				},
-			},
-		}
-
-		g.By("Applying KubeletConfig and waiting for MCP rollout")
-		err = ApplyKubeletConfigAndWaitForMCP(ctx, mcClient, kubeletConfig, testMCPName, 15*time.Minute)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should apply KubeletConfig and complete MCP rollout")
-
-		// Verify system compressible is disabled
-		config, err := getKubeletConfigFromNode(ctx, oc, nodeName)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read kubelet config")
-		o.Expect(isSystemCompressibleEnabled(config)).To(o.BeFalse(),
-			"System compressible should be disabled")
-
-		// Check cgroup cpu.weight configuration for system.slice
-		g.By("Verifying system.slice cgroup CPU weight when system compressible is disabled")
-		actualWeight, err := readCgroupCPUWeight(ctx, oc, nodeName, "system.slice")
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read cpu.weight for system.slice")
-		framework.Logf("system.slice actual cpu.weight when disabled: %d", actualWeight)
-
-		// When system compressible is disabled, system.slice should have the default cgroup v2 weight (100)
-		defaultWeight := uint64(100)
-		framework.Logf("Expected default cpu.weight: %d", defaultWeight)
-
-		o.Expect(actualWeight).To(o.Equal(defaultWeight),
-			"system.slice cpu.weight should be %d (default cgroup v2 weight) when system compressible is disabled",
-			defaultWeight)
-
-		framework.Logf("System compressible override verified successfully: cpu.weight is default value")
-
-		// Cleanup explicitly before DeferCleanup
-		CleanupKubeletConfig(ctx, mcClient, kubeletConfigName, "")
-		CleanupCustomMCP(ctx, mcpConfig)
-	})
-
-	g.It("should not enable system compressible when reserved CPU is configured", func(ctx context.Context) {
-		mcClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
-		o.Expect(err).NotTo(o.HaveOccurred(), "Error creating MCO client")
-
-		testMCPName := "reserved-cpu-test"
-		kubeletConfigName := "reserved-cpu-config"
-
-		// Select node
-		nodeName, cpuCount, err := selectTestNode(ctx, oc, 4)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should find a node with at least 4 CPUs")
-		framework.Logf("Testing on node: %s with %d CPUs", nodeName, cpuCount)
-
-		// Register cleanups BEFORE MCP creation so they always run
-		var mcpConfig *CustomMCPConfig
-		g.DeferCleanup(func() {
-			cleanupCtx := context.Background()
-			if err := CleanupCustomMCP(cleanupCtx, mcpConfig); err != nil {
-				framework.Logf("Warning: MCP cleanup had errors: %v", err)
 			}
-		})
-		g.DeferCleanup(func() {
-			cleanupCtx := context.Background()
-			if err := CleanupKubeletConfig(cleanupCtx, mcClient, kubeletConfigName, ""); err != nil {
-				framework.Logf("Warning: KubeletConfig cleanup failed: %v", err)
-			}
+
+			g.By("Applying KubeletConfig and waiting for MCP rollout")
+			err = ApplyKubeletConfigAndWaitForMCP(ctx, mcClient, kubeletConfig, testMCPName, 15*time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Should apply KubeletConfig and complete MCP rollout")
+
+			// Verify system compressible is disabled
+			config, err := getKubeletConfigFromNode(ctx, oc, nodeName)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read kubelet config")
+			o.Expect(isSystemCompressibleEnabled(config)).To(o.BeFalse(),
+				"System compressible should be disabled")
+
+			// Check cgroup cpu.weight configuration for system.slice
+			g.By("Verifying system.slice cgroup CPU weight when system compressible is disabled")
+			actualWeight, err := readCgroupCPUWeight(ctx, oc, nodeName, "system.slice")
+			o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read cpu.weight for system.slice")
+			framework.Logf("system.slice actual cpu.weight when disabled: %d", actualWeight)
+
+			// When system compressible is disabled, system.slice should have the default cgroup v2 weight (100)
+			defaultWeight := uint64(100)
+			framework.Logf("Expected default cpu.weight: %d", defaultWeight)
+
+			o.Expect(actualWeight).To(o.Equal(defaultWeight),
+				"system.slice cpu.weight should be %d (default cgroup v2 weight) when system compressible is disabled",
+				defaultWeight)
+
+			framework.Logf("System compressible override verified successfully: cpu.weight is default value")
+
+			// Cleanup explicitly before DeferCleanup
+			CleanupKubeletConfig(ctx, mcClient, kubeletConfigName, "")
+			CleanupCustomMCP(ctx, mcpConfig)
 		})
 
-		// Create custom MCP for the node
-		mcpConfig, err = CreateCustomMCPForNode(ctx, oc, mcClient, testMCPName, nodeName)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should create custom MCP")
+		g.It("should not enable system compressible when reserved CPU is configured", func(ctx context.Context) {
+			mcClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+			o.Expect(err).NotTo(o.HaveOccurred(), "Error creating MCO client")
 
-		// Configure static CPU manager with reserved CPUs
-		g.By("Creating KubeletConfig with reserved CPU")
-		kubeletConfig := &mcfgv1.KubeletConfig{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "machineconfiguration.openshift.io/v1",
-				Kind:       "KubeletConfig",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: kubeletConfigName,
-			},
-			Spec: mcfgv1.KubeletConfigSpec{
-				KubeletConfig: &runtime.RawExtension{
-					Raw: []byte(`{"cpuManagerPolicy":"static","reservedSystemCPUs":"0-1"}`),
+			testMCPName := "reserved-cpu-test"
+			kubeletConfigName := "reserved-cpu-config"
+
+			// Select node
+			nodeName, cpuCount, err := selectTestNode(ctx, oc, 4)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Should find a node with at least 4 CPUs")
+			framework.Logf("Testing on node: %s with %d CPUs", nodeName, cpuCount)
+
+			// Register cleanups BEFORE MCP creation so they always run
+			var mcpConfig *CustomMCPConfig
+			g.DeferCleanup(func() {
+				cleanupCtx := context.Background()
+				if err := CleanupCustomMCP(cleanupCtx, mcpConfig); err != nil {
+					framework.Logf("Warning: MCP cleanup had errors: %v", err)
+				}
+			})
+			g.DeferCleanup(func() {
+				cleanupCtx := context.Background()
+				if err := CleanupKubeletConfig(cleanupCtx, mcClient, kubeletConfigName, ""); err != nil {
+					framework.Logf("Warning: KubeletConfig cleanup failed: %v", err)
+				}
+			})
+
+			// Create custom MCP for the node
+			mcpConfig, err = CreateCustomMCPForNode(ctx, oc, mcClient, testMCPName, nodeName)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Should create custom MCP")
+
+			// Configure static CPU manager with reserved CPUs
+			g.By("Creating KubeletConfig with reserved CPU")
+			kubeletConfig := &mcfgv1.KubeletConfig{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "machineconfiguration.openshift.io/v1",
+					Kind:       "KubeletConfig",
 				},
-				MachineConfigPoolSelector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"machineconfiguration.openshift.io/pool": testMCPName,
+				ObjectMeta: metav1.ObjectMeta{
+					Name: kubeletConfigName,
+				},
+				Spec: mcfgv1.KubeletConfigSpec{
+					KubeletConfig: &runtime.RawExtension{
+						Raw: []byte(`{"cpuManagerPolicy":"static","reservedSystemCPUs":"0-1"}`),
+					},
+					MachineConfigPoolSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"machineconfiguration.openshift.io/pool": testMCPName,
+						},
 					},
 				},
-			},
-		}
+			}
 
-		g.By("Applying KubeletConfig and waiting for MCP rollout")
-		err = ApplyKubeletConfigAndWaitForMCP(ctx, mcClient, kubeletConfig, testMCPName, 15*time.Minute)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should apply KubeletConfig and complete MCP rollout")
+			g.By("Applying KubeletConfig and waiting for MCP rollout")
+			err = ApplyKubeletConfigAndWaitForMCP(ctx, mcClient, kubeletConfig, testMCPName, 15*time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Should apply KubeletConfig and complete MCP rollout")
 
-		// Verify reserved CPU is enabled
-		config, err := getKubeletConfigFromNode(ctx, oc, nodeName)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read kubelet config")
-		o.Expect(isReservedCPUEnabled(config)).To(o.BeTrue(),
-			"Reserved CPU should be enabled")
+			// Verify reserved CPU is enabled
+			config, err := getKubeletConfigFromNode(ctx, oc, nodeName)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read kubelet config")
+			o.Expect(isReservedCPUEnabled(config)).To(o.BeTrue(),
+				"Reserved CPU should be enabled")
 
-		// Verify system compressible is NOT enabled
-		o.Expect(isSystemCompressibleEnabled(config)).To(o.BeFalse(),
-			"System compressible should not be enabled when reserved CPU is configured")
+			// Verify system compressible is NOT enabled
+			o.Expect(isSystemCompressibleEnabled(config)).To(o.BeFalse(),
+				"System compressible should not be enabled when reserved CPU is configured")
 
-		framework.Logf("Reserved CPU takes precedence over system compressible")
+			framework.Logf("Reserved CPU takes precedence over system compressible")
 
-		// Cleanup explicitly before DeferCleanup
-		CleanupKubeletConfig(ctx, mcClient, kubeletConfigName, "")
-		CleanupCustomMCP(ctx, mcpConfig)
+			// Cleanup explicitly before DeferCleanup
+			CleanupKubeletConfig(ctx, mcClient, kubeletConfigName, "")
+			CleanupCustomMCP(ctx, mcpConfig)
+		})
 	})
-})
 
 // Helper Functions
 
