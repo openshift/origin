@@ -80,7 +80,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 		o.Expect(err).NotTo(o.HaveOccurred(), "Request prometheus service account API token")
 	})
 
-	g.It("should not be accessible without auth [Serial]", func() {
+	g.It("should not be accessible without auth [Serial]", func(ctx g.SpecContext) {
 		// TODO: remove the namespace when the bug is fixed.
 		namespacesToSkip := []string{
 			"openshift-image-registry",           // https://issues.redhat.com/browse/OCPBUGS-59767
@@ -97,6 +97,13 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 			{Namespace: "openshift-dns", Port: 9154},
 			{Namespace: "openshift-dns-operator", Port: 9393},
 			{Namespace: "openshift-ingress-operator", Port: 9393},
+		}
+		_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, "openshift-console", metav1.GetOptions{})
+		if err != nil && !kapierrs.IsNotFound(err) {
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to check whether openshift-console namespace exists")
+		}
+		if err == nil {
+			ports = append([]networkPolicyTarget{{Namespace: "openshift-console", Port: 8443}}, ports...)
 		}
 		networkPolicies := BuildNetworkPolicies(oc.Namespace(), ports)
 		for _, networkPolicy := range networkPolicies {
