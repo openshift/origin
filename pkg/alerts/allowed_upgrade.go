@@ -14,6 +14,11 @@ func AllowedAlertsDuringUpgrade(featureSet configv1.FeatureSet) (allowedFiringWi
 
 	allowedFiringAlerts := MetricConditions{
 		{
+			AlertName:      "TNFNodeOffline",
+			AlertNamespace: "openshift-etcd-operator",
+			Text:           "A node may be fenced during a two-node-fencing upgrade",
+		},
+		{
 			AlertName:      "TargetDown",
 			AlertNamespace: "openshift-e2e-loki",
 			Text:           "Loki is nice to have, but we can allow it to be down",
