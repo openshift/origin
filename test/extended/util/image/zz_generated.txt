@@ -7,6 +7,7 @@ quay.io/kubevirt/fedora-with-test-tooling-container-disk:v1.8.2 quay.io/openshif
 quay.io/olmtest/webhook-operator:v0.0.5 quay.io/openshift/community-e2e-images:e2e-quay-io-olmtest-webhook-operator-v0-0-5--2OhUsk-Xv-pLaTI
 quay.io/openshifttest/ldap:1.2 quay.io/openshift/community-e2e-images:e2e-quay-io-openshifttest-ldap-1-2-O3f5zPgtmWzEtasv
 quay.io/openshifttest/minio:latest quay.io/openshift/community-e2e-images:e2e-quay-io-openshifttest-minio-latest-p_yqYDk9rEgphwXT
+quay.io/openshifttest/skopeo@sha256:d5f288968744a8880f983e49870c0bfcf808703fe126e4fb5fc393fb9e599f65 quay.io/openshift/community-e2e-images:e2e-io-openshifttest-skopeo-sha256-d5f288968744a8880f983e49870c0bfcf808703fe126e4fb5fc393fb9e599f65-daQ5Pf95LDAoV4ht
 quay.io/redhat-developer/nfs-server:1.1 quay.io/openshift/community-e2e-images:e2e-quay-io-redhat-developer-nfs-server-1-1-dlXGfzrk5aNo8EjC
 quay.io/redhat-developer/test-build-roots2i:1.2 quay.io/openshift/community-e2e-images:e2e-quay-io-redhat-developer-test-build-roots2i-1-2-gLJ7WcnS2TSllJ32
 quay.io/redhat-developer/test-build-simples2i:1.2 quay.io/openshift/community-e2e-images:e2e-quay-io-redhat-developer-test-build-simples2i-1-2-thirLMR-JKplfkmE
