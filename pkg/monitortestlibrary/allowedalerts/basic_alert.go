@@ -352,6 +352,17 @@ func (a *basicAlertTest) InvariantCheck(allEventIntervals monitorapi.Intervals, 
 	pendingIntervals := allEventIntervals.Filter(AlertPendingInNamespace(a.alertName, a.namespace))
 	firingIntervals := allEventIntervals.Filter(AlertFiringInNamespace(a.alertName, a.namespace))
 
+	// An alert an e2e test deliberately caused says nothing about the health of the cluster,
+	// so drop those intervals before judging the rest. Only alerts in testInducibleAlerts can
+	// be excused this way, and only for the span of the test that claimed them.
+	var excusedMessage string
+	if windows := testInducedAlertWindowsFor(a.alertName, allEventIntervals); len(windows) > 0 {
+		var excusedPending, excusedFiring monitorapi.Intervals
+		pendingIntervals, excusedPending = filterTestInducedAlertIntervals(a.alertName, pendingIntervals, windows)
+		firingIntervals, excusedFiring = filterTestInducedAlertIntervals(a.alertName, firingIntervals, windows)
+		excusedMessage = describeTestInducedAlerts(a.alertName, windows, append(excusedPending, excusedFiring...))
+	}
+
 	state, message := a.failOrFlake(firingIntervals, pendingIntervals)
 
 	switch a.alertName {
@@ -391,11 +402,22 @@ func (a *basicAlertTest) InvariantCheck(allEventIntervals monitorapi.Intervals, 
 		}
 	}
 
+	// Record what was excused even when nothing failed, so the suppression shows up in the
+	// junit rather than only in the step log.
+	if len(excusedMessage) > 0 {
+		if len(message) == 0 {
+			message = excusedMessage
+		} else {
+			message = message + "\n\n" + excusedMessage
+		}
+	}
+
 	switch state {
 	case pass:
 		return []*junitapi.JUnitTestCase{
 			{
-				Name: a.InvariantTestName(),
+				Name:      a.InvariantTestName(),
+				SystemOut: excusedMessage,
 			},
 		}, nil
 
