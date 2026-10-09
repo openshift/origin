@@ -299,7 +299,7 @@ func getHAProxyVersionConfig(ctx context.Context, oc *exutil.CLI) (haproxyVersio
 	if deprecatedVersion == "" {
 		// envvar/flag not configured (e.g. HyperShift's asset doesn't set it at all),
 		// so fall back to the operator's own compiled default.
-		deprecatedVersion = operatorv1.HAProxyVersion28
+		deprecatedVersion = "2.8"
 	}
 
 	// Read available versions from Command.

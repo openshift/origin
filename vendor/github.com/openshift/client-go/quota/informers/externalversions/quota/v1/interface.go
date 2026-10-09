@@ -9,7 +9,7 @@ import (
 // Interface provides access to all the informers in this group version.
 type Interface interface {
 	// ClusterResourceQuotas returns a ClusterResourceQuotaInformer.
-	ClusterResourceQuotas() ClusterResourceQuotaInformer
+	ClusterResourceQuotas() TypedClusterResourceQuotaInformer
 }
 
 type version struct {
@@ -23,7 +23,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// ClusterResourceQuotas returns a ClusterResourceQuotaInformer.
-func (v *version) ClusterResourceQuotas() ClusterResourceQuotaInformer {
+// ClusterResourceQuotas returns a TypedClusterResourceQuotaInformer.
+func (v *version) ClusterResourceQuotas() TypedClusterResourceQuotaInformer {
 	return &clusterResourceQuotaInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

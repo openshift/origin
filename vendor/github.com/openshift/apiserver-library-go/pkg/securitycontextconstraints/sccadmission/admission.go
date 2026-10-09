@@ -48,11 +48,11 @@ type constraint struct {
 	sccLister       securityv1listers.SecurityContextConstraintsLister
 	namespaceLister corev1listers.NamespaceLister
 	listersSynced   []cache.InformerSynced
-	authorizer      authorizer.Authorizer
+	authorizer      authorizer.UnconditionalAuthorizer
 }
 
 var (
-	_ = initializer.WantsAuthorizer(&constraint{})
+	_ = initializer.WantsUnconditionalAuthorizer(&constraint{})
 	_ = WantsSecurityInformer(&constraint{})
 	_ = initializer.WantsExternalKubeInformerFactory(&constraint{})
 	_ = admission.ValidationInterface(&constraint{})
@@ -522,8 +522,8 @@ func (c *constraint) SetExternalKubeInformerFactory(informers informers.SharedIn
 	c.listersSynced = append(c.listersSynced, informers.Core().V1().Namespaces().Informer().HasSynced)
 }
 
-func (c *constraint) SetAuthorizer(authorizer authorizer.Authorizer) {
-	c.authorizer = authorizer
+func (c *constraint) SetUnconditionalAuthorizer(a authorizer.UnconditionalAuthorizer) {
+	c.authorizer = a
 }
 
 // ValidateInitialization implements InitializationValidator interface for constraint.

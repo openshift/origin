@@ -61,6 +61,22 @@ type ContainerRuntimeConfigurationApplyConfiguration struct {
 	// When omitted, only the default artifact location is used.
 	// When specified, at least one store must be provided.
 	AdditionalArtifactStores []AdditionalArtifactStoreApplyConfiguration `json:"additionalArtifactStores,omitempty"`
+	// containerGomaxprocsBehavior controls whether CRI-O automatically injects the GOMAXPROCS environment variable into containers
+	// based on their CPU resource requests.
+	// Valid values are "Autosize" and "Disabled".
+	// When set to "Autosize", CRI-O will automatically set GOMAXPROCS proportional to the container's CPU request,
+	// calculated as max(ceil(cpu_request_in_cores * 2), 1). This helps Go applications optimize their runtime parallelism
+	// based on the allocated CPU resources rather than the total node capacity.
+	// When set to "Disabled", GOMAXPROCS injection is disabled and containers will use Go's default GOMAXPROCS behavior.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
+	// The current default is "Disabled".
+	//
+	// Containers can override the injected GOMAXPROCS value by:
+	// - Setting GOMAXPROCS in the container image Dockerfile (ENV GOMAXPROCS=...)
+	// - Setting GOMAXPROCS in the pod spec (env or envFrom)
+	// - Calling runtime.GOMAXPROCS() programmatically in Go code
+	// - Adding the skip-gomaxprocs.crio.io annotation to the pod
+	ContainerGomaxprocsBehavior *machineconfigurationv1.GomaxprocsBehaviorType `json:"containerGomaxprocsBehavior,omitempty"`
 }
 
 // ContainerRuntimeConfigurationApplyConfiguration constructs a declarative configuration of the ContainerRuntimeConfiguration type for use with
@@ -145,5 +161,13 @@ func (b *ContainerRuntimeConfigurationApplyConfiguration) WithAdditionalArtifact
 		}
 		b.AdditionalArtifactStores = append(b.AdditionalArtifactStores, *values[i])
 	}
+	return b
+}
+
+// WithContainerGomaxprocsBehavior sets the ContainerGomaxprocsBehavior field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the ContainerGomaxprocsBehavior field is set to the value of the last call.
+func (b *ContainerRuntimeConfigurationApplyConfiguration) WithContainerGomaxprocsBehavior(value machineconfigurationv1.GomaxprocsBehaviorType) *ContainerRuntimeConfigurationApplyConfiguration {
+	b.ContainerGomaxprocsBehavior = &value
 	return b
 }

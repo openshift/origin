@@ -11,7 +11,7 @@ import (
 //
 // ImageRegistryStatus reports image registry operational status.
 type ImageRegistryStatusApplyConfiguration struct {
-	operatorv1.OperatorStatusApplyConfiguration `json:",inline"`
+	operatorv1.OperatorStatusApplyConfiguration `json:""`
 	// storageManaged is deprecated, please refer to Storage.managementState
 	StorageManaged *bool `json:"storageManaged,omitempty"`
 	// storage indicates the current applied storage configuration of the

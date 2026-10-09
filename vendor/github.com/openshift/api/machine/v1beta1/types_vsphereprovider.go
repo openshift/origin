@@ -53,7 +53,7 @@ type VSphereMachineProviderSpec struct {
 	DiskGiB int32 `json:"diskGiB,omitempty"`
 	// tagIDs is an optional set of tags to add to an instance. Specified tagIDs
 	// must use URN-notation instead of display names. A maximum of 10 tag IDs may be specified.
-	// +kubebuilder:validation:Pattern="^(urn):(vmomi):(InventoryServiceTag):([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}):([^:]+)$"
+	// +kubebuilder:validation:items:Pattern="^(urn):(vmomi):(InventoryServiceTag):([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}):([^:]+)$"
 	// +kubebuilder:example="urn:vmomi:InventoryServiceTag:5736bf56-49f5-4667-b38c-b97e09dc9578:GLOBAL"
 	// +optional
 	TagIDs []string `json:"tagIDs,omitempty"`
@@ -73,7 +73,6 @@ type VSphereMachineProviderSpec struct {
 	// dataDisks is a list of non OS disks to be created and attached to the VM.  The max number of disk allowed to be attached is
 	// currently 29.  The max number of disks for any controller is 30, but VM template will always have OS disk so that will leave
 	// 29 disks on any controller type.
-	// +openshift:enable:FeatureGate=VSphereMultiDisk
 	// +optional
 	// +listType=map
 	// +listMapKey=name

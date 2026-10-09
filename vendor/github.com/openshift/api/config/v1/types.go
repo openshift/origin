@@ -61,6 +61,15 @@ type ServingInfo struct {
 	// cipherSuites contains an overridden list of ciphers for the server to support.
 	// Values must match cipher suite IDs from https://golang.org/pkg/crypto/tls/#pkg-constants
 	CipherSuites []string `json:"cipherSuites,omitempty"`
+	// curvePreferences contains the allowed TLS key-exchange groups for the server.
+	// Values must match curve IDs from https://golang.org/pkg/crypto/tls/#pkg-constants.
+	// When omitted, the Go TLS implementation uses its default curve set.
+	// +kubebuilder:validation:MaxItems=7
+	// +kubebuilder:validation:MinItems=1
+	// +listType=atomic
+	// +optional
+	// +openshift:enable:FeatureGate=TLSGroupPreferences
+	CurvePreferences []int32 `json:"curvePreferences,omitempty"`
 }
 
 // CertInfo relates a certificate with a private key
@@ -403,7 +412,7 @@ const (
 
 // IBMCloudServiceName contains a value specifying the name of an IBM Cloud Service,
 // which are used by MAPI, CIRO, CIO, Installer, etc.
-// +kubebuilder:validation:Enum=CIS;COS;COSConfig;DNSServices;GlobalCatalog;GlobalSearch;GlobalTagging;HyperProtect;IAM;KeyProtect;ResourceController;ResourceManager;VPC
+// +kubebuilder:validation:Enum=CIS;COS;COSConfig;DNSServices;GlobalCatalog;GlobalSearch;GlobalTagging;HyperProtect;IAM;KeyProtect;ResourceController;ResourceManager;VPC;TransitGateway;PowerVS
 type IBMCloudServiceName string
 
 const (
@@ -433,4 +442,8 @@ const (
 	IBMCloudServiceResourceManager IBMCloudServiceName = "ResourceManager"
 	// IBMCloudServiceVPC is the name for IBM Cloud VPC.
 	IBMCloudServiceVPC IBMCloudServiceName = "VPC"
+	// IBMCloudServiceTransitGateway is the name for IBM Cloud Transit Gateway.
+	IBMCloudServiceTransitGateway IBMCloudServiceName = "TransitGateway"
+	// IBMCloudServicePowerVS is the name for IBM Cloud Power Virtual Server.
+	IBMCloudServicePowerVS IBMCloudServiceName = "PowerVS"
 )

@@ -4,6 +4,7 @@ package v1
 
 import (
 	configv1 "github.com/openshift/api/config/v1"
+	machineconfigurationv1 "github.com/openshift/api/machineconfiguration/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
@@ -38,6 +39,17 @@ type KubeletConfigSpecApplyConfiguration struct {
 	// When omitted, the TLS configuration defaults to the value from apiservers.config.openshift.io/cluster.
 	// When specified, the type field can be set to either "Old", "Intermediate", "Modern", "Custom" or omitted for backward compatibility.
 	TLSSecurityProfile *configv1.TLSSecurityProfile `json:"tlsSecurityProfile,omitempty"`
+	// systemGomaxprocsBehavior controls whether the kubelet-auto-node-size service automatically configures
+	// GOMAXPROCS for kubelet and CRI-O system services based on the system reserved CPU allocation.
+	// Valid values are "Autosize" and "Disabled".
+	// When set to "Autosize", the GOMAXPROCS environment variable for kubelet and CRI-O is set to
+	// max(ceil(system_reserved_cpu), 1). This optimizes the runtime parallelism of these Go-based system
+	// services based on their CPU allocation rather than total node capacity.
+	// When set to "Disabled", automatic GOMAXPROCS configuration is disabled and the system services
+	// use Go's default GOMAXPROCS behavior.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
+	// The current default is "Disabled".
+	SystemGomaxprocsBehavior *machineconfigurationv1.GomaxprocsBehaviorType `json:"systemGomaxprocsBehavior,omitempty"`
 }
 
 // KubeletConfigSpecApplyConfiguration constructs a declarative configuration of the KubeletConfigSpec type for use with
@@ -83,5 +95,13 @@ func (b *KubeletConfigSpecApplyConfiguration) WithKubeletConfig(value runtime.Ra
 // If called multiple times, the TLSSecurityProfile field is set to the value of the last call.
 func (b *KubeletConfigSpecApplyConfiguration) WithTLSSecurityProfile(value configv1.TLSSecurityProfile) *KubeletConfigSpecApplyConfiguration {
 	b.TLSSecurityProfile = &value
+	return b
+}
+
+// WithSystemGomaxprocsBehavior sets the SystemGomaxprocsBehavior field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the SystemGomaxprocsBehavior field is set to the value of the last call.
+func (b *KubeletConfigSpecApplyConfiguration) WithSystemGomaxprocsBehavior(value machineconfigurationv1.GomaxprocsBehaviorType) *KubeletConfigSpecApplyConfiguration {
+	b.SystemGomaxprocsBehavior = &value
 	return b
 }
