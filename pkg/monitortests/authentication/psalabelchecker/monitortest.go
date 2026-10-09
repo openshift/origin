@@ -54,7 +54,7 @@ var exceptedNamespaces = map[string]string{
 	"openshift-kube-storage-version-migrator-operator": "CNTRLPLANE-4635",
 	"openshift-network-console":                        "CNTRLPLANE-4620",
 	"openshift-network-diagnostics":                    "CNTRLPLANE-4620",
-	"openshift-network-node":                           "CNTRLPLANE-4616",
+	"openshift-node":                                   "CNTRLPLANE-4616",
 	"openshift-route-controller-manager":               "CNTRLPLANE-4630",
 	"openshift-service-ca":                             "CNTRLPLANE-4637",
 	"openshift-service-ca-operator":                    "CNTRLPLANE-4637",
@@ -155,13 +155,25 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) CollectData(ctx context.Co
 		if ns.GenerateName != "" {
 			continue
 		}
+		// The include hypershift annotation allows namespaces to be included on HyperShift without HyperShift
+		// actually creating them. We would like to filter these out to focus on HyperShift created namespaces
+		// in HyperShift monitor tests.
 		isHyperShiftIncludedNamespace := ns.Annotations["include.release.openshift.io/hypershift"] == "true"
+
+		// The additional check here for the "openshift" and "openshift-node"namespace is to
+		// allow us to filter out these namespaces since it is handled by openshift-apiserver
+		// when it is deployed in HyperShift. https://github.com/openshift/hypershift/blob/main
+		// /control-plane-operator/controllers/hostedcontrolplane/v2/assets/openshift-apiserver/
+		// deployment.yaml. They are being handled in exceptions elsewhere. See https://redhat
+		// .atlassian.net/browse/CNTRLPLANE-4616 for reference.
+		isOpenShiftAPIServerManaged := ns.Name == "openshift" || ns.Name == "openshift-node"
+
 		_, isException := exceptedNamespaces[ns.Name]
 
 		// Any namespaces that have include.release.openshift.io/hypershift == true annotation, are excepted,
 		// and the test case in question is ran on HyperShift platform, we can filter these results so we can
 		// focus on special OpenShift managed namespaces on HyperShift to reduce duplicate work and findings.
-		if isHyperShift && isHyperShiftIncludedNamespace && isException {
+		if isHyperShift && isHyperShiftIncludedNamespace && isOpenShiftAPIServerManaged && isException {
 			continue
 		}
 
