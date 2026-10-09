@@ -514,23 +514,16 @@ func executeNodeResourceTests(
 		return
 	}
 
-	logrus.Infof("NodeResource bucket: %d test(s) on %d pool node(s)",
-		len(tests), len(pool.nodeNames))
+	parallelism := len(pool.nodeNames)
+	logrus.Infof("NodeResource bucket: %d test(s) on %d pool node(s), parallelism=%d",
+		len(tests), parallelism, parallelism)
 
-	// Honor [Serial]: run parallel tests first with pool-wide parallelism,
-	// then serial tests one at a time — same pattern as queue.go execute().
-	serial, parallel := splitTests(tests, isSerialTest)
-
-	if len(parallel) > 0 {
-		logrus.Infof("NodeResource parallel phase: %d test(s), parallelism=%d", len(parallel), len(pool.nodeNames))
-		runNodeResourceSchedulerPhase(ctx, parallel, len(pool.nodeNames), kubeClient, pool.nodeNames,
-			commandContext, testOutput, maybeAbortOnFailureFn)
-	}
-	if len(serial) > 0 {
-		logrus.Infof("NodeResource serial phase: %d test(s)", len(serial))
-		runNodeResourceSchedulerPhase(ctx, serial, 1, kubeClient, pool.nodeNames,
-			commandContext, testOutput, maybeAbortOnFailureFn)
-	}
+	// Run on the dedicated pool with pool-wide parallelism. Mutual exclusion is
+	// enforced by the scheduler (NodeResourceName, node count), not openshift's
+	// global [Serial] name tag — [Disruptive] tests still carry [Serial] for
+	// other suites but must overlap here to use the pool efficiently.
+	runNodeResourceSchedulerPhase(ctx, tests, parallelism, kubeClient, pool.nodeNames,
+		commandContext, testOutput, maybeAbortOnFailureFn)
 }
 
 func isNodeResourceTest(test *testCase) bool {
