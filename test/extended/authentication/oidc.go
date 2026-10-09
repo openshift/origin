@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/pod-security-admission/api"
 
 	"github.com/openshift/library-go/pkg/operator/condition"
@@ -1520,29 +1521,33 @@ func hotReloadExternalClaimsAndWait(ctx context.Context, client *exutil.CLI, exp
 
 // updateExistingOIDCProvider applies modifier to the first configured OIDC provider in place.
 // Unlike configureOIDCAuthentication, this does not regenerate the whole provider from scratch.
+// Retries on conflict: CAO/status writers can update Authentication between Get and Update.
 func updateExistingOIDCProvider(ctx context.Context, client *exutil.CLI, modifier func(*configv1.OIDCProvider)) error {
-	authConfig, err := client.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("getting authentications.config.openshift.io/cluster: %w", err)
-	}
-	if authConfig.Spec.Type != configv1.AuthenticationTypeOIDC {
-		return fmt.Errorf("expected Authentication type OIDC, got %q", authConfig.Spec.Type)
-	}
-	if len(authConfig.Spec.OIDCProviders) == 0 {
-		return fmt.Errorf("expected at least one oidcProvider on Authentication/cluster")
-	}
+	cli := client.AdminConfigClient().ConfigV1().Authentications()
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		authConfig, err := cli.Get(ctx, "cluster", metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("getting authentications.config.openshift.io/cluster: %w", err)
+		}
+		if authConfig.Spec.Type != configv1.AuthenticationTypeOIDC {
+			return fmt.Errorf("expected Authentication type OIDC, got %q", authConfig.Spec.Type)
+		}
+		if len(authConfig.Spec.OIDCProviders) == 0 {
+			return fmt.Errorf("expected at least one oidcProvider on Authentication/cluster")
+		}
 
-	provider := authConfig.Spec.OIDCProviders[0].DeepCopy()
-	// Clear fields each phase fully replaces so stale UserValidationRules/sources do not linger.
-	provider.ExternalClaimsSources = nil
-	provider.UserValidationRules = nil
-	if modifier != nil {
-		modifier(provider)
-	}
-	authConfig.Spec.OIDCProviders[0] = *provider
+		provider := authConfig.Spec.OIDCProviders[0].DeepCopy()
+		// Clear fields each phase fully replaces so stale UserValidationRules/sources do not linger.
+		provider.ExternalClaimsSources = nil
+		provider.UserValidationRules = nil
+		if modifier != nil {
+			modifier(provider)
+		}
+		authConfig.Spec.OIDCProviders[0] = *provider
 
-	_, err = client.AdminConfigClient().ConfigV1().Authentications().Update(ctx, authConfig, metav1.UpdateOptions{})
-	return err
+		_, err = cli.Update(ctx, authConfig, metav1.UpdateOptions{})
+		return err
+	})
 }
 
 // waitForAuthConfigSync polls auth-config ConfigMaps until contents include mustContain
