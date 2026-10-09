@@ -31,6 +31,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/kubelet/containerfailures"
 	"github.com/openshift/origin/pkg/monitortests/machines/watchmachines"
 	"github.com/openshift/origin/pkg/monitortests/monitoring/disruptionmetricsapi"
+	"github.com/openshift/origin/pkg/monitortests/monitoring/hapolicymanagement"
 	"github.com/openshift/origin/pkg/monitortests/monitoring/statefulsetsrecreation"
 	"github.com/openshift/origin/pkg/monitortests/network/disruptioningress"
 	"github.com/openshift/origin/pkg/monitortests/network/disruptionpodnetwork"
@@ -218,6 +219,9 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 
 	// CLI
 	monitorTestRegistry.AddMonitorTestOrDie("oc-adm-upgrade-status", "oc / update", admupgradestatus.NewOcAdmUpgradeStatusChecker())
+
+	// High Availability
+	monitorTestRegistry.AddMonitorTestOrDie("ha-policy-management-checker", "High Availability", hapolicymanagement.NewAnalyzer())
 
 	return monitorTestRegistry
 }
