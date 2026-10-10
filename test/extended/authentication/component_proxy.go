@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/url"
 	"strings"
 	"time"
@@ -32,77 +33,121 @@ import (
 var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authentication\"][OCPFeatureGate:AuthenticationComponentProxy][Serial]", func() {
 	oc := exutil.NewCLIWithoutNamespace("component-proxy")
 
-	var (
-		ctx            context.Context
-		httpProxyURL   string
-		httpsProxyURL  string
-		caCertPEM      []byte
-		proxyNamespace string
-		kcSetup        *keycloakProxySetup
-		cleanups       []removalFunc
-	)
+	g.Describe("with full proxy and Keycloak setup - positive tests", func() {
+		var (
+			ctx            context.Context
+			httpProxyURL   string
+			httpsProxyURL  string
+			caCertPEM      []byte
+			proxyNamespace string
+			kcSetup        *keycloakProxySetup
+			cleanups       []removalFunc
+		)
 
-	g.BeforeEach(func() {
-		ctx = context.Background()
-		cleanups = nil
+		g.BeforeEach(func() {
+			ctx = context.Background()
+			cleanups = nil
 
-		g.By("Saving auth state for restore after test")
-		authRestore, err := saveAndRestoreAuthState(ctx, oc)
-		cleanups = append(cleanups, authRestore)
-		o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("Saving auth state for restore after test")
+			authRestore, err := saveAndRestoreAuthState(ctx, oc)
+			cleanups = append(cleanups, authRestore)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("Deploying Squid forward proxy")
-		var proxyCleanup removalFunc
-		httpProxyURL, httpsProxyURL, caCertPEM, proxyNamespace, proxyCleanup, err = deploySquidProxy(ctx, oc)
-		cleanups = append(cleanups, proxyCleanup)
-		o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("Deploying Squid forward proxy")
+			var proxyCleanup removalFunc
+			httpProxyURL, httpsProxyURL, caCertPEM, proxyNamespace, proxyCleanup, err = deploySquidProxy(ctx, oc)
+			cleanups = append(cleanups, proxyCleanup)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("Deploying Keycloak (without registering IdP yet)")
-		var kcCleanups []removalFunc
-		kcSetup, kcCleanups, err = deployKeycloakForProxy(ctx, oc)
-		cleanups = append(cleanups, kcCleanups...)
-		o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("Deploying Keycloak (without registering IdP yet)")
+			var kcCleanups []removalFunc
+			kcSetup, kcCleanups, err = deployKeycloakForProxy(ctx, oc)
+			cleanups = append(cleanups, kcCleanups...)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("Waiting for operators to be stable before test")
-		err = operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
-		o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("Waiting for operators to be stable before test")
+			err = operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("Waiting for OAuth server deployment to be stable before test")
-		err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, "", "", "", false)
-		o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("Waiting for OAuth server deployment to be stable before test")
+			err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, "", "", "", false)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.GinkgoWriter.Printf("Squid proxy URL: http=%s https=%s\n", httpProxyURL, httpsProxyURL)
-		g.GinkgoWriter.Printf("Keycloak issuer URL: %s\n", kcSetup.issuerURL)
-		g.GinkgoWriter.Printf("Keycloak namespace: %s\n", kcSetup.namespace)
+			g.GinkgoWriter.Printf("Squid proxy URL: http=%s https=%s\n", httpProxyURL, httpsProxyURL)
+			g.GinkgoWriter.Printf("Keycloak issuer URL: %s\n", kcSetup.issuerURL)
+			g.GinkgoWriter.Printf("Keycloak namespace: %s\n", kcSetup.namespace)
+		})
+
+		g.AfterEach(func() {
+			// Note that we are doing cleanup in a FIFO manner here.
+			// This works better in this case as it resets authentication/cluster firstly.
+			_ = removeResources(ctx, cleanups...)
+
+			g.By("Waiting for operators to be stable after test")
+			err := operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.It("operator should validate OIDC IdP through component proxy", func() {
+			testOIDCIdPThroughComponentProxy(ctx, oc, kcSetup, httpProxyURL, nil, proxyNamespace)
+		})
+		g.It("operator should validate OIDC IdP through component proxy with trustedCA", func() {
+			testOIDCIdPThroughComponentProxy(ctx, oc, kcSetup, httpsProxyURL, caCertPEM, proxyNamespace)
+		})
+		g.It("operator should fall back to original configuration on spec.proxy removal", func() {
+			testFallbackOnProxyRemoval(ctx, oc, kcSetup, httpProxyURL, proxyNamespace)
+		})
+		g.It("oauth-server should perform full OIDC login flow through the proxy when auth proxy config is applied", func() {
+			testProxyConfigPerformOIDCLogin(ctx, oc, &cleanups, kcSetup, httpProxyURL, proxyNamespace)
+		})
+		g.It("oauth-server/operator should hot-reload mounted CA file on change when spec.proxy.trustedCA is set", func() {
+			testHotReloadCAFileChange(ctx, oc, &cleanups, caCertPEM, kcSetup, httpsProxyURL, proxyNamespace)
+		})
+		g.It("oauth-server should bypass proxy by directly connecting to idp to perform OIDC login flow when spec.proxy.noProxy contains idp", func() {
+			testBypassProxyNoProxyHost(ctx, oc, &cleanups, caCertPEM, kcSetup, httpProxyURL, httpsProxyURL, proxyNamespace)
+		})
 	})
 
-	g.AfterEach(func() {
-		// Note that we are doing cleanup in a FIFO manner here.
-		// This works better in this case as it resets authentication/cluster firstly.
-		_ = removeResources(ctx, cleanups...)
+	g.Describe("operator resilience - negative tests (minimal setup)", func() {
+		var (
+			ctx      context.Context
+			cleanups []removalFunc
+		)
 
-		g.By("Waiting for operators to be stable after test")
-		err := operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
+		g.BeforeEach(func() {
+			ctx = context.Background()
+			cleanups = nil
 
-	g.It("operator should validate OIDC IdP through component proxy", func() {
-		testOIDCIdPThroughComponentProxy(ctx, oc, kcSetup, httpProxyURL, nil, proxyNamespace)
-	})
-	g.It("operator should validate OIDC IdP through component proxy with trustedCA", func() {
-		testOIDCIdPThroughComponentProxy(ctx, oc, kcSetup, httpsProxyURL, caCertPEM, proxyNamespace)
-	})
-	g.It("operator should fall back to original configuration on spec.proxy removal", func() {
-		testFallbackOnProxyRemoval(ctx, oc, kcSetup, httpProxyURL, proxyNamespace)
-	})
-	g.It("oauth-server should perform full OIDC login flow through the proxy when auth proxy config is applied", func() {
-		testProxyConfigPerformOIDCLogin(ctx, oc, &cleanups, kcSetup, httpProxyURL, proxyNamespace)
-	})
-	g.It("oauth-server/operator should hot-reload mounted CA file on change when spec.proxy.trustedCA is set", func() {
-		testHotReloadCAFileChange(ctx, oc, &cleanups, caCertPEM, kcSetup, httpsProxyURL, proxyNamespace)
-	})
-	g.It("oauth-server should bypass proxy by directly connecting to idp to perform OIDC login flow when spec.proxy.noProxy contains idp", func() {
-		testBypassProxyNoProxyHost(ctx, oc, &cleanups, caCertPEM, kcSetup, httpProxyURL, httpsProxyURL, proxyNamespace)
+			g.By("Saving auth state for restore after test")
+			authRestore, err := saveAndRestoreAuthState(ctx, oc)
+			cleanups = append(cleanups, authRestore)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Waiting for operators to be stable before test")
+			err = operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Verifying initial OAuth server deployment is stable")
+			err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, "", "", "", false)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.AfterEach(func() {
+			// Note that we are doing cleanup in a FIFO manner here.
+			// This works better in this case as it resets authentication/cluster firstly.
+			_ = removeResources(ctx, cleanups...)
+
+			g.By("Waiting for operators to be stable after test")
+			err := operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.It("operator should report degraded condition when configured with invalid proxy port", func() {
+			testInvalidProxyPortConfiguration(ctx, oc)
+		})
+		g.It("operator should handle proxy DNS resolution failure and report appropriate conditions", func() {
+			testProxyDNSResolutionFailure(ctx, oc)
+		})
 	})
 })
 
@@ -588,4 +633,158 @@ func podFileContentMatches(oc *exutil.CLI, pod v1.Pod, container, caFilePath str
 		return false, nil
 	}
 	return true, nil
+}
+
+// testInvalidProxyPortConfiguration validates that the operator reports degraded when
+// configured with a proxy URL whose port exceeds the valid TCP range (1-65535).
+func testInvalidProxyPortConfiguration(ctx context.Context, oc *exutil.CLI) {
+	g.By("Recording operator pod restart counts before test")
+	baselineRestarts := getOperatorPodRestartCounts(ctx, oc)
+
+	g.By("Setting component-scoped proxy with port > 65535 that passes API validation but fails at dial time")
+	invalidProxyURL := "http://proxy.example.com:99999999"
+	err := updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{
+		HTTPSProxy: invalidProxyURL,
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(), "should be able to set invalid proxy URL")
+
+	g.DeferCleanup(func() {
+		cleanupErr := updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{})
+		o.Expect(cleanupErr).NotTo(o.HaveOccurred(), "should be able to remove proxy config during cleanup")
+
+		waitErr := wait.PollUntilContextTimeout(ctx, 5*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
+			co, getErr := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "authentication", metav1.GetOptions{})
+			if getErr != nil {
+				return false, getErr
+			}
+
+			var degradedOk, availableOk bool
+			for _, cond := range co.Status.Conditions {
+				if cond.Type == "Degraded" && cond.Status == "False" {
+					degradedOk = true
+				}
+				if cond.Type == "Available" && cond.Status == "True" {
+					availableOk = true
+				}
+			}
+			return degradedOk && availableOk, nil
+		})
+		o.Expect(waitErr).NotTo(o.HaveOccurred(), "operator should recover after invalid proxy URL is removed during cleanup")
+	})
+
+	g.By("Waiting for operator to detect the invalid proxy and report degraded status")
+	err = wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
+		co, getErr := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "authentication", metav1.GetOptions{})
+		if getErr != nil {
+			return false, getErr
+		}
+
+		for _, cond := range co.Status.Conditions {
+			if cond.Type == "Degraded" && cond.Status == "True" {
+				g.GinkgoWriter.Printf("Degraded condition found: %s\n", cond.Message)
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(), "operator should detect invalid proxy URL and report degraded status")
+
+	g.By("Verifying operator remains stable (no crash loops)")
+	assertNoNewRestarts(ctx, oc, baselineRestarts)
+}
+
+// testProxyDNSResolutionFailure validates that the operator reports degraded when
+// configured with a proxy whose hostname cannot be resolved by DNS.
+func testProxyDNSResolutionFailure(ctx context.Context, oc *exutil.CLI) {
+	g.By("Recording operator pod restart counts before test")
+	baselineRestarts := getOperatorPodRestartCounts(ctx, oc)
+
+	g.By("Setting component-scoped proxy with hostname that won't resolve")
+	unresolvedHostname := "this-hostname-will-not-resolve-" + rand.String(8) + ".invalid"
+	invalidProxyURL := "http://" + net.JoinHostPort(unresolvedHostname, "8080")
+
+	err := updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{
+		HTTPSProxy: invalidProxyURL,
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(), "should be able to set proxy with unresolvable hostname")
+
+	g.DeferCleanup(func() {
+		cleanupErr := updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{})
+		o.Expect(cleanupErr).NotTo(o.HaveOccurred(), "should be able to remove proxy config during cleanup")
+
+		g.By("Waiting for operator to recover to healthy state during cleanup")
+		waitErr := wait.PollUntilContextTimeout(ctx, 5*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
+			co, getErr := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "authentication", metav1.GetOptions{})
+			if getErr != nil {
+				return false, getErr
+			}
+
+			var degradedOk, availableOk bool
+			for _, cond := range co.Status.Conditions {
+				if cond.Type == "Degraded" && cond.Status == "False" {
+					degradedOk = true
+				}
+				if cond.Type == "Available" && cond.Status == "True" {
+					availableOk = true
+				}
+			}
+			return degradedOk && availableOk, nil
+		})
+		o.Expect(waitErr).NotTo(o.HaveOccurred(), "operator should recover after DNS issue is resolved during cleanup")
+	})
+
+	g.By("Waiting for operator to detect DNS resolution failure and report degraded status")
+	err = wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
+		co, getErr := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "authentication", metav1.GetOptions{})
+		if getErr != nil {
+			return false, getErr
+		}
+
+		for _, cond := range co.Status.Conditions {
+			if cond.Type == "Degraded" && cond.Status == "True" {
+				lowerMsg := strings.ToLower(cond.Message)
+				if strings.Contains(lowerMsg, strings.ToLower(unresolvedHostname)) &&
+					(strings.Contains(lowerMsg, "no such host") ||
+						strings.Contains(lowerMsg, "lookup") ||
+						strings.Contains(lowerMsg, "dns")) {
+					g.GinkgoWriter.Printf("Degraded condition found with DNS resolution failure: %s\n", cond.Message)
+					return true, nil
+				}
+			}
+		}
+		return false, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(), "operator should detect DNS resolution failure and report degraded status")
+
+	g.By("Verifying operator remains stable (no crash loops)")
+	assertNoNewRestarts(ctx, oc, baselineRestarts)
+}
+
+func getOperatorPodRestartCounts(ctx context.Context, oc *exutil.CLI) map[string]int32 {
+	pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-authentication-operator").List(ctx, metav1.ListOptions{
+		LabelSelector: "app=authentication-operator",
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	restarts := make(map[string]int32, len(pods.Items))
+	for _, pod := range pods.Items {
+		if len(pod.Status.ContainerStatuses) > 0 {
+			restarts[pod.Name] = pod.Status.ContainerStatuses[0].RestartCount
+		}
+	}
+	return restarts
+}
+
+func assertNoNewRestarts(ctx context.Context, oc *exutil.CLI, baseline map[string]int32) {
+	pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-authentication-operator").List(ctx, metav1.ListOptions{
+		LabelSelector: "app=authentication-operator",
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(pods.Items).NotTo(o.BeEmpty())
+	for _, pod := range pods.Items {
+		o.Expect(pod.Status.ContainerStatuses).NotTo(o.BeEmpty())
+		current := pod.Status.ContainerStatuses[0].RestartCount
+		before := baseline[pod.Name]
+		o.Expect(current-before).To(o.BeNumerically("<=", 0),
+			fmt.Sprintf("pod %s restarted during test (before=%d, after=%d)", pod.Name, before, current))
+	}
 }
