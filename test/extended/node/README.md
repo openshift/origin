@@ -82,6 +82,14 @@ Test fixtures are referenced via `exutil.FixturePath` from:
 - `testdata/node/kubeletconfig/` - Kubelet config fixtures
 - `testdata/node/zstd-chunked/`, `testdata/node/nested_container/` - Custom build fixtures
 
+### Test Plans
+
+Test Plans for Node Features are kept under `testplan/`:
+
+| Document | Description |
+|---|---|
+| [testplan/kerberos-test-plan.md](testplan/kerberos-test-plan.md) | Kerberos authentication on OpenShift (OCP 5.1): SPO SELinux/seccomp profiles, `kerberos-restricted` SCC, kernel keyring (`KEYRING:session`). |
+
 ## Running Tests
 
 ### Running Long-Running Disruptive Tests
