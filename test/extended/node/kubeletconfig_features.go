@@ -29,77 +29,81 @@ var (
 // These tests verify KubeletConfig application with various kubelet configuration features.
 // The primary purpose is to test applying KubeletConfig objects to nodes and verifying that
 // the kubelet configuration changes are properly applied and take effect.
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive]", func() {
-	defer g.GinkgoRecover()
-	var (
-		NodeKubeletConfigBaseDir = exutil.FixturePath("testdata", "node", "kubeletconfig")
-		customLoggingKCFixture   = filepath.Join(NodeKubeletConfigBaseDir, "loggingKC.yaml")
+var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node][Disruptive] KubeletConfig Features",
+	g.Label("NodeResource", "NodeResourceNumNodes=1", "NodeResourceName=kubeletconfig_features"),
+	func() {
+		defer g.GinkgoRecover()
+		var (
+			NodeKubeletConfigBaseDir = exutil.FixturePath("testdata", "node", "kubeletconfig")
+			customLoggingKCFixture   = filepath.Join(NodeKubeletConfigBaseDir, "loggingKC.yaml")
 
-		oc = exutil.NewCLIWithoutNamespace("node-kubeletconfig")
-	)
+			oc = exutil.NewCLIWithoutNamespace("node-kubeletconfig")
+		)
 
-	// This test is also considered `Slow` because it takes longer than 5 minutes to run.
-	g.It("[Slow]should apply KubeletConfig with logging verbosity to custom pool [apigroup:machineconfiguration.openshift.io]", func(ctx context.Context) {
-		// Skip this test on single node and two-node platforms since custom MCPs are not supported
-		// for clusters with only a master MCP
-		skipOnSingleNodeTopology(oc)
-		skipOnTwoNodeTopology(oc)
+		// This test is also considered `Slow` because it takes longer than 5 minutes to run.
+		g.It("[Slow]should apply KubeletConfig with logging verbosity to custom pool [apigroup:machineconfiguration.openshift.io]", func(ctx context.Context) {
+			// Skip this test on single node and two-node platforms since custom MCPs are not supported
+			// for clusters with only a master MCP
+			skipOnSingleNodeTopology(oc)
+			skipOnTwoNodeTopology(oc)
+			EnsureNodeResourceNodesReady(ctx, oc, "kubeletconfig_features")
 
-		kcFixture := customLoggingKCFixture
+			kcFixture := customLoggingKCFixture
 
-		kubeClient, err := kubernetes.NewForConfig(oc.KubeFramework().ClientConfig())
-		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error getting kube client: %v", err))
+			kubeClient, err := kubernetes.NewForConfig(oc.KubeFramework().ClientConfig())
+			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error getting kube client: %v", err))
 
-		testNode := GetFirstReadyWorkerNode(oc)
+			testNode, err := GetNodeResource(ctx, oc, "kubeletconfig_features")
+			o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 
-		mcClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
-		o.Expect(err).NotTo(o.HaveOccurred(), "Error creating machine config client")
+			mcClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+			o.Expect(err).NotTo(o.HaveOccurred(), "Error creating machine config client")
 
-		var mcpConfig *CustomMCPConfig
-		g.DeferCleanup(func() {
-			cleanupCtx := context.Background()
-			if err := CleanupCustomMCP(cleanupCtx, mcpConfig); err != nil {
-				framework.Logf("Warning: cleanup had errors: %v", err)
-			}
+			var mcpConfig *CustomMCPConfig
+			g.DeferCleanup(func() {
+				cleanupCtx := context.Background()
+				if err := CleanupCustomMCP(cleanupCtx, mcpConfig); err != nil {
+					framework.Logf("Warning: cleanup had errors: %v", err)
+				}
+			})
+
+			mcpConfig, err = CreateCustomMCPForNode(ctx, oc, mcClient, "custom", testNode)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Error creating custom MCP")
+
+			framework.Logf("Waiting for node %s to be ready in custom MCP", testNode)
+			waitTillNodeReadyWithConfig(kubeClient, testNode, customConfigPrefix)
+
+			node, err := kubeClient.CoreV1().Nodes().Get(ctx, testNode, metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error getting node: %v", err))
+			originalConfig := node.Annotations["machineconfiguration.openshift.io/currentConfig"]
+			framework.Logf("Node %s has original config: %s", testNode, originalConfig)
+
+			// Apply KubeletConfig with logging verbosity
+			g.DeferCleanup(func() {
+				cleanupCtx := context.Background()
+				if err := CleanupKubeletConfig(cleanupCtx, mcClient, "custom-logging-config", ""); err != nil {
+					framework.Logf("Warning: KubeletConfig cleanup failed: %v", err)
+				}
+			})
+			err = oc.Run("apply").Args("-f", kcFixture).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error applying KubeletConfig: %v", err))
+
+			// Wait for the node to reboot after applying KubeletConfig
+			// KubeletConfig changes require a node reboot to take effect
+			framework.Logf("Waiting for node %s to reboot after applying KubeletConfig", testNode)
+			waitForReboot(kubeClient, testNode)
+
+			// Verify the node has been updated with new config
+			framework.Logf("Verifying node %s has updated config after reboot", testNode)
+			node, err = kubeClient.CoreV1().Nodes().Get(ctx, testNode, metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error getting node after update: %v", err))
+			o.Expect(node.Annotations["machineconfiguration.openshift.io/state"]).To(o.Equal("Done"), "Node should be in Done state after reboot")
+			newConfig := node.Annotations["machineconfiguration.openshift.io/currentConfig"]
+			o.Expect(newConfig).NotTo(o.Equal(originalConfig), "Node config should have changed from %s to %s", originalConfig, newConfig)
+
+			framework.Logf("Successfully applied KubeletConfig with logging verbosity to node %s, config changed from %s to %s", testNode, originalConfig, newConfig)
 		})
-
-		mcpConfig, err = CreateCustomMCPForNode(ctx, oc, mcClient, "custom", testNode)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Error creating custom MCP")
-
-		framework.Logf("Waiting for node %s to be ready in custom MCP", testNode)
-		waitTillNodeReadyWithConfig(kubeClient, testNode, customConfigPrefix)
-
-		node, err := kubeClient.CoreV1().Nodes().Get(ctx, testNode, metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error getting node: %v", err))
-		originalConfig := node.Annotations["machineconfiguration.openshift.io/currentConfig"]
-		framework.Logf("Node %s has original config: %s", testNode, originalConfig)
-
-		// Apply KubeletConfig with logging verbosity
-		g.DeferCleanup(func() {
-			cleanupCtx := context.Background()
-			if err := CleanupKubeletConfig(cleanupCtx, mcClient, "custom-logging-config", ""); err != nil {
-				framework.Logf("Warning: KubeletConfig cleanup failed: %v", err)
-			}
-		})
-		err = oc.Run("apply").Args("-f", kcFixture).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error applying KubeletConfig: %v", err))
-
-		// Wait for the node to reboot after applying KubeletConfig
-		// KubeletConfig changes require a node reboot to take effect
-		framework.Logf("Waiting for node %s to reboot after applying KubeletConfig", testNode)
-		waitForReboot(kubeClient, testNode)
-
-		// Verify the node has been updated with new config
-		framework.Logf("Verifying node %s has updated config after reboot", testNode)
-		node, err = kubeClient.CoreV1().Nodes().Get(ctx, testNode, metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error getting node after update: %v", err))
-		o.Expect(node.Annotations["machineconfiguration.openshift.io/state"]).To(o.Equal("Done"), "Node should be in Done state after reboot")
-		newConfig := node.Annotations["machineconfiguration.openshift.io/currentConfig"]
-		o.Expect(newConfig).NotTo(o.Equal(originalConfig), "Node config should have changed from %s to %s", originalConfig, newConfig)
-
-		framework.Logf("Successfully applied KubeletConfig with logging verbosity to node %s, config changed from %s to %s", testNode, originalConfig, newConfig)
 	})
-})
 
 // `waitForReboot` waits for up to 5 minutes for the input node to start a reboot and then up to 15
 // minutes for the node to complete its reboot.
