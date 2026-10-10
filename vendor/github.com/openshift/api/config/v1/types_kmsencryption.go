@@ -2,25 +2,29 @@ package v1
 
 // KMSPluginConfig defines the configuration for the KMS instance
 // that will be used with KMS encryption
-// +kubebuilder:validation:XValidation:rule="self.type == 'Vault' ? has(self.vault) : !has(self.vault)",message="vault config is required when kms provider type is Vault, and forbidden otherwise"
-// +union
 type KMSPluginConfig struct {
-	// type defines the kind of platform for the KMS provider.
-	// Allowed values are Vault.
-	// When set to Vault, the plugin connects to a HashiCorp Vault server for key management.
+	// --- TOMBSTONE ---
+	// type was the kind of platform for the KMS provider.
+	// The field has been replaced by the provider-specific pluginConfig resource.
+	// The field name is reserved to prevent reuse.
 	//
-	// +unionDiscriminator
 	// +required
-	Type KMSProviderType `json:"type"`
+	// Type KMSProviderType `json:"type"`
 
-	// vault defines the configuration for the Vault KMS plugin.
-	// The plugin connects to a Vault Enterprise server that is managed
-	// by the user outside the purview of the control plane.
-	// This field must be set when type is Vault, and must be unset otherwise.
+	// pluginConfig is a required reference to a cluster-scoped resource with a status subresource
+	// that satisfies the OpenShift KMS plugin configuration status interface.
+	//
+	// +required
+	PluginConfig KMSPluginConfigReference `json:"pluginConfig,omitzero"`
+
+	// --- TOMBSTONE ---
+	// vault defined inline Vault-specific KMS plugin configuration.
+	// It has been replaced by pluginConfig which references a provider-managed custom resource.
+	// The field name is reserved to prevent reuse.
 	//
 	// +unionMember
 	// +optional
-	Vault VaultKMSPluginConfig `json:"vault,omitempty,omitzero"`
+	// Vault VaultKMSPluginConfig `json:"vault,omitempty,omitzero"`
 
 	// --- TOMBSTONE ---
 	// aws was a field that allowed configuring AWS KMS.
@@ -29,6 +33,43 @@ type KMSPluginConfig struct {
 	//
 	// +optional
 	// AWS *AWSKMSConfig `json:"aws,omitempty"`
+}
+
+// KMSPluginConfigReference identifies a cluster-scoped KMS plugin configuration custom resource.
+type KMSPluginConfigReference struct {
+	// apiVersion is required and identifies the API version of the referenced KMS plugin configuration resource.
+	// The value must be in the format <group>/<version>, where group is a DNS subdomain
+	// and version is a Kubernetes API version (for example, v1 or v1alpha1).
+	// It must contain between 1 and 64 characters.
+	//
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=64
+	// +kubebuilder:validation:XValidation:rule="self.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)+/v[0-9]+([a-z0-9]+)*$')",message="apiVersion must be in the format <group>/<version>"
+	// +required
+	APIVersion string `json:"apiVersion,omitempty"`
+
+	// resource is required and is the resource name of the referenced KMS plugin configuration custom resource.
+	// This is the plural name used in the Kubernetes API (for example, vaultkmsconfigs),
+	// not the Kind (for example, VaultKMSConfig).
+	// The value must be between 1 and 63 characters, contain only lowercase alphanumeric
+	// characters or '-', and start and end with an alphanumeric character.
+	//
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:XValidation:rule="self.matches('^[a-z0-9]([a-z0-9\\\\-]*[a-z0-9])?$')",message="resource must be a valid Kubernetes resource name: contain no more than 63 characters, contain only lowercase alphanumeric characters or '-', and start and end with an alphanumeric character"
+	// +required
+	Resource string `json:"resource,omitempty"`
+
+	// name is required and is the metadata.name of the referenced KMS plugin configuration resource.
+	// The referenced resource must be cluster-scoped.
+	// The name must be a valid DNS subdomain name: it must contain between 1 and 253 characters,
+	// contain only lowercase alphanumeric characters, '-' or '.', and start and end with an alphanumeric character.
+	//
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:XValidation:rule="self.matches('^[a-z0-9]([a-z0-9\\\\-]*[a-z0-9])?(\\\\.[a-z0-9]([a-z0-9\\\\-]*[a-z0-9])?)*$')",message="name must be a valid DNS subdomain name: contain no more than 253 characters, contain only lowercase alphanumeric characters, '-' or '.', and start and end with an alphanumeric character"
+	// +required
+	Name string `json:"name,omitempty"`
 }
 
 // --- TOMBSTONE ---

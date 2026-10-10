@@ -8,7 +8,7 @@ package v1
 // PrefixedClaimMapping configures a claim mapping
 // that allows for an optional prefix.
 type PrefixedClaimMappingApplyConfiguration struct {
-	TokenClaimMappingApplyConfiguration `json:",inline"`
+	TokenClaimMappingApplyConfiguration `json:""`
 	// prefix is an optional field that configures the prefix that will be applied to the cluster identity attribute during the process of mapping JWT claims to cluster identity attributes.
 	//
 	// When omitted or set to an empty string (""), no prefix is applied to the cluster identity attribute.

@@ -10,7 +10,7 @@ import (
 // OLMSpecApplyConfiguration represents a declarative configuration of the OLMSpec type for use
 // with apply.
 type OLMSpecApplyConfiguration struct {
-	OperatorSpecApplyConfiguration `json:",inline"`
+	OperatorSpecApplyConfiguration `json:""`
 }
 
 // OLMSpecApplyConfiguration constructs a declarative configuration of the OLMSpec type for use with

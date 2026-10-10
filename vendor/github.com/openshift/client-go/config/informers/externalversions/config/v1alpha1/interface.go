@@ -9,15 +9,15 @@ import (
 // Interface provides access to all the informers in this group version.
 type Interface interface {
 	// Backups returns a BackupInformer.
-	Backups() BackupInformer
+	Backups() TypedBackupInformer
 	// CRIOCredentialProviderConfigs returns a CRIOCredentialProviderConfigInformer.
-	CRIOCredentialProviderConfigs() CRIOCredentialProviderConfigInformer
+	CRIOCredentialProviderConfigs() TypedCRIOCredentialProviderConfigInformer
 	// ClusterMonitorings returns a ClusterMonitoringInformer.
-	ClusterMonitorings() ClusterMonitoringInformer
+	ClusterMonitorings() TypedClusterMonitoringInformer
 	// InsightsDataGathers returns a InsightsDataGatherInformer.
-	InsightsDataGathers() InsightsDataGatherInformer
+	InsightsDataGathers() TypedInsightsDataGatherInformer
 	// PKIs returns a PKIInformer.
-	PKIs() PKIInformer
+	PKIs() TypedPKIInformer
 }
 
 type version struct {
@@ -31,27 +31,27 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// Backups returns a BackupInformer.
-func (v *version) Backups() BackupInformer {
+// Backups returns a TypedBackupInformer.
+func (v *version) Backups() TypedBackupInformer {
 	return &backupInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// CRIOCredentialProviderConfigs returns a CRIOCredentialProviderConfigInformer.
-func (v *version) CRIOCredentialProviderConfigs() CRIOCredentialProviderConfigInformer {
+// CRIOCredentialProviderConfigs returns a TypedCRIOCredentialProviderConfigInformer.
+func (v *version) CRIOCredentialProviderConfigs() TypedCRIOCredentialProviderConfigInformer {
 	return &cRIOCredentialProviderConfigInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// ClusterMonitorings returns a ClusterMonitoringInformer.
-func (v *version) ClusterMonitorings() ClusterMonitoringInformer {
+// ClusterMonitorings returns a TypedClusterMonitoringInformer.
+func (v *version) ClusterMonitorings() TypedClusterMonitoringInformer {
 	return &clusterMonitoringInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// InsightsDataGathers returns a InsightsDataGatherInformer.
-func (v *version) InsightsDataGathers() InsightsDataGatherInformer {
+// InsightsDataGathers returns a TypedInsightsDataGatherInformer.
+func (v *version) InsightsDataGathers() TypedInsightsDataGatherInformer {
 	return &insightsDataGatherInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// PKIs returns a PKIInformer.
-func (v *version) PKIs() PKIInformer {
+// PKIs returns a TypedPKIInformer.
+func (v *version) PKIs() TypedPKIInformer {
 	return &pKIInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

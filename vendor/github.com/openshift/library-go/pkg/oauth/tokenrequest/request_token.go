@@ -5,15 +5,17 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
+	"runtime"
 	"slices"
 	"strings"
 
-	"github.com/RangelReale/osincli"
+	"github.com/openshift/osincli"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +45,7 @@ const (
 	// openShiftCLIBrowserClientID the name of the CLI client for logging in through a browser
 	openShiftCLIBrowserClientID = "openshift-cli-client"
 
-	// pkce_s256 is sha256 hash per RFC7636, copied from github.com/RangelReale/osincli/pkce.go
+	// pkce_s256 is sha256 hash per RFC7636, copied from github.com/openshift/osincli/pkce.go
 	pkce_s256 = "S256"
 
 	// token fakes the missing osin.TOKEN const
@@ -551,6 +553,7 @@ func transportWithSystemRoots(issuer string, clientConfig *restclient.Config) (h
 	resp.Body.Close()
 
 	_, err = verifyServerCertChain(issuerURL.Hostname(), resp.TLS.PeerCertificates)
+
 	switch err.(type) {
 	case nil:
 		// copy the config so we can freely mutate it
@@ -584,6 +587,13 @@ func transportWithSystemRoots(issuer string, clientConfig *restclient.Config) (h
 			klog.V(4).Infof("falling back to kubeconfig CA due to possible IO error: %v", err)
 			return restclient.TransportFor(clientConfig)
 		}
+		// could be string based x509 error...
+		err = convertErrorIfUnknownX509(runtime.GOOS, err)
+		var target unknownX509VerificationError
+		if errors.As(err, &target) {
+			klog.V(4).Infof("falling back to kubeconfig CA due to possible unknown x509 error: %v", err)
+			return restclient.TransportFor(clientConfig)
+		}
 		// unknown error, fail (ideally should never occur)
 		klog.V(4).Infof("unexpected error during system roots probe: %v", err)
 		return nil, err
@@ -607,3 +617,28 @@ func verifyServerCertChain(dnsName string, chain []*x509.Certificate) ([][]*x509
 		DNSName:       dnsName,
 	})
 }
+
+// convertErrorIfUnknownX509 normalizes certificate verification errors on macOS.
+// root_darwin.go in the Go standard library has insufficient typed errors for the
+// macOS platform, leading to a generic string based "x509:" error rather than a
+// typed one. This wraps such an error in an unknownX509VerificationError so callers
+// can react to it the same way they do on Linux/Windows (e.g. falling back to the
+// kubeconfig CA), keeping the approach consistent across platforms. The original
+// error is preserved and remains recoverable via errors.Unwrap/errors.Is.
+//
+// goos is passed in (rather than read from runtime.GOOS) so the darwin branch can
+// be exercised in tests regardless of the platform they run on.
+// https://github.com/golang/go/blob/5a6340ff28c87e099f33c941e3d73e50d715ddf7/src/crypto/x509/root_darwin.go#L74
+func convertErrorIfUnknownX509(goos string, err error) error {
+	if goos == "darwin" && err != nil && strings.HasPrefix(err.Error(), "x509:") {
+		return unknownX509VerificationError{err}
+	}
+	return err
+}
+
+// unknownX509VerificationError wraps an opaque, string based x509 verification
+// error (see convertErrorIfUnknownX509) so it can be matched by type while still
+// preserving the underlying error.
+type unknownX509VerificationError struct{ error }
+
+func (e unknownX509VerificationError) Unwrap() error { return e.error }

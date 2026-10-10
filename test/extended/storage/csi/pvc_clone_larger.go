@@ -48,19 +48,20 @@ func (s *pvcCloneLargerCSISuite) GetTestSuiteInfo() storageframework.TestSuiteIn
 	return s.tsInfo
 }
 
-func (s *pvcCloneLargerCSISuite) SkipUnsupportedTests(driver storageframework.TestDriver, pattern storageframework.TestPattern) {
+func (s *pvcCloneLargerCSISuite) SkipUnsupportedTests(driver storageframework.TestDriver, pattern storageframework.TestPattern) string {
 	dInfo := driver.GetDriverInfo()
 	if !dInfo.Capabilities[storageframework.CapPVCDataSource] {
-		e2eskipper.Skipf("Driver %q does not support cloning - skipping", dInfo.Name)
+		return fmt.Sprintf("Driver %q does not support cloning - skipping", dInfo.Name)
 	}
 	if pattern.VolMode == v1.PersistentVolumeBlock && !dInfo.Capabilities[storageframework.CapBlock] {
-		e2eskipper.Skipf("Driver %s doesn't support %v -- skipping", dInfo.Name, pattern.VolMode)
+		return fmt.Sprintf("Driver %s doesn't support %v -- skipping", dInfo.Name, pattern.VolMode)
 	}
 	// Cloning to a larger filesystem volume requires the driver to expand the
 	// filesystem when presenting the volume (same requirement as snapshot restore).
 	if pattern.VolMode != v1.PersistentVolumeBlock && dInfo.Capabilities[storageframework.CapFSResizeFromSourceNotSupported] {
-		e2eskipper.Skipf("Driver %q does not support filesystem resizing from source - skipping", dInfo.Name)
+		return fmt.Sprintf("Driver %q does not support filesystem resizing from source - skipping", dInfo.Name)
 	}
+	return ""
 }
 
 func (s *pvcCloneLargerCSISuite) DefineTests(driver storageframework.TestDriver, pattern storageframework.TestPattern) {

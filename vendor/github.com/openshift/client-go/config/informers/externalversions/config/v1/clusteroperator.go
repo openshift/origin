@@ -18,11 +18,39 @@ import (
 )
 
 // ClusterOperatorInformer provides access to a shared informer and lister for
-// ClusterOperators.
+// ClusterOperators. Prefer using the type-safe variant (see [TypedClusterOperatorInformer]).
 type ClusterOperatorInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1.ClusterOperatorLister
 }
+
+// TypedClusterOperatorInformer provides access to a shared informer and lister for
+// ClusterOperators, including the type-safe TypedInformer variant.
+// It is a superset of ClusterOperatorInformer.
+type TypedClusterOperatorInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() ClusterOperatorIndexInformer
+	Lister() configv1.ClusterOperatorLister
+}
+
+// ClusterOperatorIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type ClusterOperatorIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1.ClusterOperator]
+
+// ClusterOperatorHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for ClusterOperator.
+type ClusterOperatorHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1.ClusterOperator]
+
+// ClusterOperatorDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for ClusterOperator.
+type ClusterOperatorDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1.ClusterOperator]
+
+// ClusterOperatorFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for ClusterOperator.
+type ClusterOperatorFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1.ClusterOperator]
+
+// ClusterOperatorIndexers is a specialization of [cache.TypedIndexers] for ClusterOperator.
+type ClusterOperatorIndexers = cache.TypedIndexers[*apiconfigv1.ClusterOperator]
+
+// DeletedClusterOperator is a specialization of [cache.DeletedObject] for ClusterOperator.
+type DeletedClusterOperator = cache.DeletedObject[*apiconfigv1.ClusterOperator]
 
 type clusterOperatorInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type clusterOperatorInformer struct {
 // NewClusterOperatorInformer constructs a new informer for ClusterOperator type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedClusterOperatorInformer]).
 func NewClusterOperatorInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewClusterOperatorInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedClusterOperatorInformer constructs a new informer for ClusterOperator type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedClusterOperatorInformer(client versioned.Interface, resyncPeriod time.Duration, indexers ClusterOperatorIndexers) ClusterOperatorIndexInformer {
+	return NewTypedClusterOperatorInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredClusterOperatorInformer constructs a new informer for ClusterOperator type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredClusterOperatorInformer]).
 func NewFilteredClusterOperatorInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewClusterOperatorInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedClusterOperatorInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredClusterOperatorInformer constructs a new informer for ClusterOperator type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredClusterOperatorInformer(client versioned.Interface, resyncPeriod time.Duration, indexers ClusterOperatorIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) ClusterOperatorIndexInformer {
+	return NewTypedClusterOperatorInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewClusterOperatorInformerWithOptions constructs a new informer for ClusterOperator type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedClusterOperatorInformerWithOptions]).
 func NewClusterOperatorInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedClusterOperatorInformerWithOptions(client, options)
+}
+
+// NewTypedClusterOperatorInformerWithOptions constructs a new informer for ClusterOperator type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedClusterOperatorInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) ClusterOperatorIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "clusteroperators"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ClusterOperator](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewClusterOperatorInformerWithOptions(client versioned.Interface, options i
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *clusterOperatorInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewClusterOperatorInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedClusterOperatorInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *clusterOperatorInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1.ClusterOperator{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *clusterOperatorInformer) TypedInformer() ClusterOperatorIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ClusterOperator](f.factory.InformerFor(&apiconfigv1.ClusterOperator{}, f.defaultInformer))
 }
 
 func (f *clusterOperatorInformer) Lister() configv1.ClusterOperatorLister {
 	return configv1.NewClusterOperatorLister(f.Informer().GetIndexer())
+}
+
+// ToTypedClusterOperatorInformer converts an untyped informer into a TypedClusterOperatorInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ClusterOperator. If that is not the case, calling type-safe methods of the returned
+// TypedClusterOperatorInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedClusterOperatorInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedClusterOperatorInformer(informer ClusterOperatorInformer) TypedClusterOperatorInformer {
+	if informer, ok := informer.(TypedClusterOperatorInformer); ok {
+		return informer
+	}
+	return &clusterOperatorTypedInformerAdapter{informer}
+}
+
+type clusterOperatorTypedInformerAdapter struct {
+	ClusterOperatorInformer
+}
+
+func (a *clusterOperatorTypedInformerAdapter) TypedInformer() ClusterOperatorIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ClusterOperator](a.Informer())
+}
+
+// ToClusterOperatorIndexInformer converts an untyped informer into a ClusterOperatorIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ClusterOperator. If that is not the case, calling type-safe methods of the returned
+// ClusterOperatorIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a ClusterOperatorIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToClusterOperatorIndexInformer(informer cache.SharedIndexInformer) ClusterOperatorIndexInformer {
+	if informer, ok := informer.(ClusterOperatorIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ClusterOperator](informer)
 }

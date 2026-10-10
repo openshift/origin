@@ -1,0 +1,8 @@
+coverage.out
+*~
+coverage.txt
+profile.out
+.tmp/
+.git-dist/
+.vscode
+build/tools/

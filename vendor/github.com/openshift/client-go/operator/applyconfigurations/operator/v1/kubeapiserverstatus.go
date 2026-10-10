@@ -5,7 +5,7 @@ package v1
 // KubeAPIServerStatusApplyConfiguration represents a declarative configuration of the KubeAPIServerStatus type for use
 // with apply.
 type KubeAPIServerStatusApplyConfiguration struct {
-	StaticPodOperatorStatusApplyConfiguration `json:",inline"`
+	StaticPodOperatorStatusApplyConfiguration `json:""`
 	// serviceAccountIssuers tracks history of used service account issuers.
 	// The item without expiration time represents the currently used service account issuer.
 	// The other items represents service account issuers that were used previously and are still being trusted.

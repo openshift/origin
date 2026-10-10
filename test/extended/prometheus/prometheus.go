@@ -94,6 +94,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 		// With network policies bypassed, targets should still reject unauthenticated requests.
 		g.By("deploying network policies to allow test pods through existing ones")
 		ports := []networkPolicyTarget{
+			{Namespace: "openshift-console", Port: 8443},
 			{Namespace: "openshift-dns", Port: 9154},
 			{Namespace: "openshift-dns-operator", Port: 9393},
 			{Namespace: "openshift-ingress-operator", Port: 9393},
@@ -108,6 +109,9 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 		networkPolicies := BuildNetworkPolicies(oc.Namespace(), ports)
 		for _, networkPolicy := range networkPolicies {
 			_, err := oc.AdminKubeClient().NetworkingV1().NetworkPolicies(networkPolicy.Namespace).Create(context.Background(), &networkPolicy, metav1.CreateOptions{})
+			if err != nil && kapierrs.IsAlreadyExists(err) {
+				continue
+			}
 			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Create networkpolicy %s/%s", networkPolicy.Namespace, networkPolicy.Name))
 		}
 		defer func() {

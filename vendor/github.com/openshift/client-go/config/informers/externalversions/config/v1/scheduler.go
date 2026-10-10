@@ -18,11 +18,39 @@ import (
 )
 
 // SchedulerInformer provides access to a shared informer and lister for
-// Schedulers.
+// Schedulers. Prefer using the type-safe variant (see [TypedSchedulerInformer]).
 type SchedulerInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1.SchedulerLister
 }
+
+// TypedSchedulerInformer provides access to a shared informer and lister for
+// Schedulers, including the type-safe TypedInformer variant.
+// It is a superset of SchedulerInformer.
+type TypedSchedulerInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() SchedulerIndexInformer
+	Lister() configv1.SchedulerLister
+}
+
+// SchedulerIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type SchedulerIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1.Scheduler]
+
+// SchedulerHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for Scheduler.
+type SchedulerHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1.Scheduler]
+
+// SchedulerDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for Scheduler.
+type SchedulerDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1.Scheduler]
+
+// SchedulerFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for Scheduler.
+type SchedulerFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1.Scheduler]
+
+// SchedulerIndexers is a specialization of [cache.TypedIndexers] for Scheduler.
+type SchedulerIndexers = cache.TypedIndexers[*apiconfigv1.Scheduler]
+
+// DeletedScheduler is a specialization of [cache.DeletedObject] for Scheduler.
+type DeletedScheduler = cache.DeletedObject[*apiconfigv1.Scheduler]
 
 type schedulerInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type schedulerInformer struct {
 // NewSchedulerInformer constructs a new informer for Scheduler type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedSchedulerInformer]).
 func NewSchedulerInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewSchedulerInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedSchedulerInformer constructs a new informer for Scheduler type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedSchedulerInformer(client versioned.Interface, resyncPeriod time.Duration, indexers SchedulerIndexers) SchedulerIndexInformer {
+	return NewTypedSchedulerInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredSchedulerInformer constructs a new informer for Scheduler type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredSchedulerInformer]).
 func NewFilteredSchedulerInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewSchedulerInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedSchedulerInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredSchedulerInformer constructs a new informer for Scheduler type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredSchedulerInformer(client versioned.Interface, resyncPeriod time.Duration, indexers SchedulerIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) SchedulerIndexInformer {
+	return NewTypedSchedulerInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewSchedulerInformerWithOptions constructs a new informer for Scheduler type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedSchedulerInformerWithOptions]).
 func NewSchedulerInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedSchedulerInformerWithOptions(client, options)
+}
+
+// NewTypedSchedulerInformerWithOptions constructs a new informer for Scheduler type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedSchedulerInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) SchedulerIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "schedulers"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Scheduler](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewSchedulerInformerWithOptions(client versioned.Interface, options interna
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *schedulerInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewSchedulerInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedSchedulerInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *schedulerInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1.Scheduler{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *schedulerInformer) TypedInformer() SchedulerIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Scheduler](f.factory.InformerFor(&apiconfigv1.Scheduler{}, f.defaultInformer))
 }
 
 func (f *schedulerInformer) Lister() configv1.SchedulerLister {
 	return configv1.NewSchedulerLister(f.Informer().GetIndexer())
+}
+
+// ToTypedSchedulerInformer converts an untyped informer into a TypedSchedulerInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Scheduler. If that is not the case, calling type-safe methods of the returned
+// TypedSchedulerInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedSchedulerInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedSchedulerInformer(informer SchedulerInformer) TypedSchedulerInformer {
+	if informer, ok := informer.(TypedSchedulerInformer); ok {
+		return informer
+	}
+	return &schedulerTypedInformerAdapter{informer}
+}
+
+type schedulerTypedInformerAdapter struct {
+	SchedulerInformer
+}
+
+func (a *schedulerTypedInformerAdapter) TypedInformer() SchedulerIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Scheduler](a.Informer())
+}
+
+// ToSchedulerIndexInformer converts an untyped informer into a SchedulerIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Scheduler. If that is not the case, calling type-safe methods of the returned
+// SchedulerIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a SchedulerIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToSchedulerIndexInformer(informer cache.SharedIndexInformer) SchedulerIndexInformer {
+	if informer, ok := informer.(SchedulerIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Scheduler](informer)
 }
