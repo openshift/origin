@@ -300,6 +300,220 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 		})
 	})
 
+	// CNTRLPLANE-4404 / CNTRLPLANE-4366: External OIDC as a webhook (ExternalOIDCAsWebhook).
+	// Behavioral coverage mirrors [OCPFeatureGate:ExternalOIDC]; architecture assertions expect
+	// KAS WebhookTokenAuthenticator + standalone oauth-apiserver rather than direct structured auth.
+	// See https://github.com/openshift/enhancements/pull/2104.
+	g.Describe("[OCPFeatureGate:ExternalOIDCAsWebhook]", g.Ordered, func() {
+		g.BeforeAll(func() {
+			_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, nil)
+			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
+
+			waitForRollout(ctx, oc)
+			waitForHealthyOIDCClients(ctx, oc)
+		})
+
+		g.Describe("external IdP is configured", g.Ordered, func() {
+			g.It("should configure kube-apiserver to use the webhook authenticator", func() {
+				kas, err := oc.AdminOperatorClient().OperatorV1().KubeAPIServers().Get(ctx, "cluster", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting the kubeapiservers.operator.openshift.io/cluster")
+
+				observedConfig := map[string]interface{}{}
+				err = json.Unmarshal(kas.Spec.ObservedConfig.Raw, &observedConfig)
+				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error unmarshalling the KAS observed configuration")
+
+				apiServerArgs := observedConfig["apiServerArguments"].(map[string]interface{})
+
+				// Webhook architecture: KAS must call oauth-apiserver via webhook, not consume
+				// External OIDC structured authentication-config directly.
+				o.Expect(apiServerArgs["authentication-token-webhook-config-file"]).NotTo(o.BeNil(),
+					"authentication-token-webhook-config-file should be set when ExternalOIDCAsWebhook is enabled")
+				o.Expect(apiServerArgs["authentication-token-webhook-version"]).NotTo(o.BeNil(),
+					"authentication-token-webhook-version should be set when ExternalOIDCAsWebhook is enabled")
+				o.Expect(apiServerArgs["authentication-config"]).To(o.BeNil(),
+					"authentication-config must not be set on KAS when External OIDC runs as a webhook")
+			})
+
+			g.It("should keep the oauth-apiserver webhook implementation available", func() {
+				o.Eventually(func(gomega o.Gomega) {
+					deploy, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-oauth-apiserver").Get(ctx, "apiserver", metav1.GetOptions{})
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "standalone ExternalOIDCAsWebhook reuses openshift-oauth-apiserver/apiserver")
+					gomega.Expect(deploy.Status.AvailableReplicas).To(o.BeNumerically(">=", 1),
+						"oauth-apiserver deployment should have available replicas")
+
+					_, err = oc.AdminKubeClient().CoreV1().Services("openshift-oauth-apiserver").Get(ctx, "api", metav1.GetOptions{})
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "oauth-apiserver Service api should exist for KAS webhook calls")
+
+					cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-oauth-apiserver").Get(ctx, "auth-config", metav1.GetOptions{})
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "oauth-apiserver auth-config ConfigMap should exist")
+					gomega.Expect(authConfigMapContent(cm)).NotTo(o.BeEmpty(), "auth-config should contain External OIDC configuration")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+
+			g.It("should remove the OpenShift OAuth stack", func() {
+				o.Eventually(func(gomega o.Gomega) {
+					_, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+					gomega.Expect(err).NotTo(o.BeNil(), "should not be able to get the integrated oauth stack")
+					gomega.Expect(apierrors.IsNotFound(err)).To(o.BeTrue(), "integrated oauth stack should not be present when OIDC authentication is configured")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+
+			g.It("should not accept tokens provided by the OAuth server", func() {
+				o.Eventually(func(gomega o.Gomega) {
+					clientset, err := kubernetes.NewForConfig(oauthUserConfig)
+					gomega.Expect(err).NotTo(o.HaveOccurred())
+
+					_, err = clientset.AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", username),
+						},
+					}, metav1.CreateOptions{})
+					gomega.Expect(err).ShouldNot(o.BeNil(), "should not be able to create SelfSubjectReview using OAuth client token")
+					gomega.Expect(apierrors.IsUnauthorized(err)).To(o.BeTrue(), "should receive an unauthorized error when trying to create SelfSubjectReview using OAuth client token")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+
+			g.It("should accept authentication via a certificate-based kubeconfig (break-glass)", func() {
+				_, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(ctx, metav1.ListOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred(), "should be able to list pods using certificate-based authentication")
+			})
+
+			g.It("should map cluster identities correctly", func() {
+				o.Eventually(func(gomega o.Gomega) {
+					err := keycloakCli.Authenticate("admin-cli", username, password)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
+
+					copiedOC := *oc
+					tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+					ssr, err := tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", username),
+						},
+					}, metav1.CreateOptions{})
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should be able to create a SelfSubjectReview")
+
+					gomega.Expect(ssr.Status.UserInfo.Username).To(o.Equal(fmt.Sprintf("%s@payload.openshift.io", username)))
+					gomega.Expect(ssr.Status.UserInfo.Groups).To(o.ContainElement(group))
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+
+			g.It("should apply External OIDC configuration updates without a kube-apiserver revision", func() {
+				// Graduation criterion from enhancements#2104: ordinary External OIDC config
+				// updates are handled by the webhook without requiring a KAS rollout.
+				baselineRevision := kubeAPIServerLatestRevision(ctx, oc)
+				// Unique accepted audience (additive) so auth-config sync is observable without
+				// requiring CEL/expression feature gates or changing identity mapping.
+				marker := fmt.Sprintf("webhook-cfg-update-%s", rand.String(8))
+
+				err := updateExistingOIDCProvider(ctx, oc, func(provider *configv1.OIDCProvider) {
+					provider.Issuer.Audiences = append(append([]configv1.TokenAudience{}, provider.Issuer.Audiences...),
+						configv1.TokenAudience(marker))
+				})
+				o.Expect(err).NotTo(o.HaveOccurred(), "should update existing OIDC provider audiences")
+
+				waitForAuthConfigSync(ctx, oc, marker, "")
+				expectKubeAPIServerRevisionUnchanged(ctx, oc, baselineRevision, "after External OIDC config update under ExternalOIDCAsWebhook")
+
+				o.Eventually(func(gomega o.Gomega) {
+					err := keycloakCli.Authenticate("admin-cli", username, password)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should authenticate after webhook-side config update")
+
+					copiedOC := *oc
+					tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+					ssr, err := tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", username),
+						},
+					}, metav1.CreateOptions{})
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should create SelfSubjectReview after webhook-side config update")
+					gomega.Expect(ssr.Status.UserInfo.Groups).To(o.ContainElement(group))
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+		})
+
+		g.Describe("reverting to IntegratedOAuth", g.Ordered, func() {
+			g.BeforeAll(func() {
+				o.Eventually(func(gomega o.Gomega) {
+					err := keycloakCli.Authenticate("admin-cli", username, password)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
+
+					copiedOC := *oc
+					tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+
+					_, err = tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", username),
+						},
+					}, metav1.CreateOptions{})
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should be able to create a SelfSubjectReview")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+
+				err, modified := resetAuthentication(ctx, oc, originalAuth)
+				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
+
+				if modified {
+					waitForRollout(ctx, oc)
+				}
+			})
+
+			g.It("should rollout configuration on the kube-apiserver successfully", func() {
+				kas, err := oc.AdminOperatorClient().OperatorV1().KubeAPIServers().Get(ctx, "cluster", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting the kubeapiservers.operator.openshift.io/cluster")
+
+				observedConfig := map[string]interface{}{}
+				err = json.Unmarshal(kas.Spec.ObservedConfig.Raw, &observedConfig)
+				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error unmarshalling the KAS observed configuration")
+
+				o.Expect(observedConfig["authConfig"]).ToNot(o.BeNil(), "authConfig should be specified when reverting to IntegratedOAuth")
+
+				apiServerArgs := observedConfig["apiServerArguments"].(map[string]interface{})
+
+				o.Expect(apiServerArgs["authentication-token-webhook-config-file"]).NotTo(o.BeNil(), "authentication-token-webhook-config-file argument should be specified for IntegratedOAuth")
+				o.Expect(apiServerArgs["authentication-token-webhook-version"]).NotTo(o.BeNil(), "authentication-token-webhook-version argument should be specified for IntegratedOAuth")
+				o.Expect(apiServerArgs["authentication-config"]).To(o.BeNil(), "authentication-config argument should not be specified for IntegratedOAuth")
+			})
+
+			g.It("should rollout the OpenShift OAuth stack", func() {
+				o.Eventually(func(gomega o.Gomega) {
+					_, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+					gomega.Expect(err).Should(o.BeNil(), "should be able to get the integrated oauth stack")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+
+			g.It("should not accept tokens provided by an external IdP", func() {
+				o.Eventually(func(gomega o.Gomega) {
+					err := keycloakCli.Authenticate("admin-cli", username, password)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
+
+					copiedOC := *oc
+					tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+
+					_, err = tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", username),
+						},
+					}, metav1.CreateOptions{})
+					gomega.Expect(err).To(o.HaveOccurred(), "should not be able to create a SelfSubjectReview")
+					gomega.Expect(apierrors.IsUnauthorized(err)).To(o.BeTrue(), "external IdP token should be unauthorized")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+
+			g.It("should accept tokens provided by the OpenShift OAuth server", func() {
+				o.Eventually(func(gomega o.Gomega) {
+					clientset, err := kubernetes.NewForConfig(oauthUserConfig)
+					gomega.Expect(err).NotTo(o.HaveOccurred())
+
+					_, err = clientset.AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", username),
+						},
+					}, metav1.CreateOptions{})
+					gomega.Expect(err).ShouldNot(o.HaveOccurred(), "should be able to create SelfSubjectReview using OAuth client token")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+		})
+	})
+
 	g.Describe("[OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings]", g.Ordered, func() {
 		g.Describe("external IdP is configured", func() {
 			g.Describe("without specified UID or Extra claim mappings", func() {
