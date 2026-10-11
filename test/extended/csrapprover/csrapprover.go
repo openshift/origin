@@ -17,6 +17,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -130,13 +131,22 @@ var _ = g.Describe("[sig-cluster-lifecycle]", func() {
 				},
 			},
 		}, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		if err != nil {
+			// on STS clusters the apiserver can reject the node-bootstrapper token
+			// outright before the CSR is created (openshift/origin#31163), which
+			// still means nothing can be approved
+			if apierrors.IsUnauthorized(err) {
+				g.By("rejecting the node-bootstrapper token outright; the CSR was never created and cannot be approved")
+				return
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
 
 		csrClient := oc.AdminKubeClient().CertificatesV1().CertificateSigningRequests()
 		defer cleanupCSR(csrClient, csrName)
 
 		err = waitCSRStatus(csrClient, csrName)
-		// if status did not change in 30 sec, the CSR is still in pending
+		// if the wait times out, the CSR is still in pending
 		// which is fine as the machine-approver does not deny
 		if err != wait.ErrWaitTimeout {
 			o.Expect(err).NotTo(o.HaveOccurred())
