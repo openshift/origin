@@ -288,8 +288,8 @@ var _ = g.Describe("[sig-auth][Feature:LDAP][Serial] ldap group sync", func() {
 			// PAGING
 			g.By("Sync all LDAP groups from LDAP server using paged queries")
 			err = oc.Run("adm", "groups", "sync").Args("--sync-config="+path.Join(currentDir, "sync-config-paging.yaml"), "--confirm").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred(), "sync LDAP groups using paged queries for schema %q", schema)
 			compareAndCleanup(scope, path.Join(currentDir, "valid_all_ldap_sync.yaml"))
-			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// SPECIAL SNOWFLAKES
 			if schema == "rfc2307" {
