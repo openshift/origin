@@ -82,10 +82,11 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 	g.AfterEach(func() {
 		// Note that we are doing cleanup in a FIFO manner here.
 		// This works better in this case as it resets authentication/cluster firstly.
-		_ = removeResources(ctx, cleanups...)
+		cleanupErr := removeResources(ctx, cleanups...)
 
 		g.By("Waiting for operators to be stable after test")
 		err := operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
+		o.Expect(cleanupErr).NotTo(o.HaveOccurred())
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -115,7 +116,7 @@ func testProxyConfigPerformOIDCLogin(ctx context.Context, oc *exutil.CLI, cleanu
 	o.Expect(err).NotTo(o.HaveOccurred(), "direct access grant should be enabled")
 
 	g.By("Setting up Keycloak user/group")
-	kcUser, kcPass, err := createKeycloakUserPassword(kcSetup)
+	kcUser, kcPass, err := createKeycloakUserPassword(ctx, oc, cleanups, kcSetup)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Updating Auth Proxy Config")
@@ -160,7 +161,7 @@ func testHotReloadCAFileChange(ctx context.Context, oc *exutil.CLI, cleanups *[]
 	o.Expect(err).NotTo(o.HaveOccurred(), "direct access grant should be enabled")
 
 	g.By("Setting up Keycloak user/group")
-	kcUser, kcPass, err := createKeycloakUserPassword(kcSetup)
+	kcUser, kcPass, err := createKeycloakUserPassword(ctx, oc, cleanups, kcSetup)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	kubeClient := oc.AdminKubeClient()
 
@@ -307,7 +308,7 @@ func testBypassProxyNoProxyHost(ctx context.Context, oc *exutil.CLI, cleanups *[
 	o.Expect(err).NotTo(o.HaveOccurred(), "direct access grant should be enabled")
 
 	g.By("Setting up Keycloak user/group")
-	kcUser, kcPass, err := createKeycloakUserPassword(kcSetup)
+	kcUser, kcPass, err := createKeycloakUserPassword(ctx, oc, cleanups, kcSetup)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	issuerURL, err := url.Parse(kcSetup.issuerURL)
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -448,13 +449,19 @@ func testFallbackOnProxyRemoval(ctx context.Context, oc *exutil.CLI, kcSetup *ke
 // createKeycloakUserPassword creates a Keycloak user for the login flows. The user is
 // placed in a group so the "groups" claim the IdP asks for is non-empty, keeping the
 // oauth-server's claim retrieval from Keycloak part of the traffic the proxy must carry.
-func createKeycloakUserPassword(kcSetup *keycloakProxySetup) (kcUser, kcPass string, err error) {
+func createKeycloakUserPassword(ctx context.Context, oc *exutil.CLI, cleanups *[]removalFunc, kcSetup *keycloakProxySetup) (kcUser, kcPass string, err error) {
 	g.GinkgoHelper()
 	testID := rand.String(8)
 
 	kcGroup := fmt.Sprintf("e2e-proxy-kc-group-%s", testID)
 	kcUser = fmt.Sprintf("e2e-proxy-kc-user-%s", testID)
 	kcPass = fmt.Sprintf("e2e-proxy-kc-pass-%s", testID)
+
+	cleanup, err := newComponentProxyUserCleanup(ctx, oc.AdminUserClient().UserV1(), kcSetup.idpName, kcUser, kcGroup)
+	if err != nil {
+		return "", "", err
+	}
+	*cleanups = append(*cleanups, cleanup)
 
 	if err := kcSetup.client.CreateGroup(kcGroup); err != nil {
 		return "", "", fmt.Errorf("unable to create group %q: %v", kcGroup, err)
