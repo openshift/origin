@@ -28,7 +28,7 @@ func newComponentProxyUserCleanup(ctx context.Context, client userv1client.UserV
 		var errs []error
 		identities, err := client.Identities().List(ctx, metav1.ListOptions{})
 		if err != nil {
-			errs = append(errs, fmt.Errorf("listing proxy test identities: %w", err))
+			errs = append(errs, fmt.Errorf("could not establish proxy test identity cleanup: %v", err))
 		} else {
 			for _, identity := range identities.Items {
 				if identity.ProviderName != idpName {
