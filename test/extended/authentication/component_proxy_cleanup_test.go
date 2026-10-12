@@ -259,3 +259,37 @@ func TestComponentProxyUserCleanupPreflightErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestComponentProxyUserCleanupReportsIdentityDiscoveryFailure(t *testing.T) {
+	t.Parallel()
+	client := newComponentProxyTestClient(t)
+	ctx := context.Background()
+	cleanup, err := newComponentProxyUserCleanup(ctx, client.UserV1(), "test-idp", "test-user", "test-group")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, object := range []runtime.Object{
+		&userv1.User{ObjectMeta: metav1.ObjectMeta{Name: "test-user"}},
+		&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "test-group"}},
+		&userv1.Identity{ObjectMeta: metav1.ObjectMeta{Name: "test-idp:subject"}, ProviderName: "test-idp"},
+	} {
+		if err := client.Tracker().Add(object); err != nil {
+			t.Fatal(err)
+		}
+	}
+	client.PrependReactor("list", "identities", func(action clienttesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apierrors.NewNotFound(schema.GroupResource{Group: userv1.GroupName, Resource: "identities"}, "")
+	})
+	err = removeResources(ctx, cleanup)
+	if err == nil || !strings.Contains(err.Error(), "could not establish proxy test identity cleanup") {
+		t.Fatalf("identity discovery failure must survive teardown's NotFound filtering, got %v", err)
+	}
+	for resource, name := range map[string]string{"users": "test-user", "groups": "test-group"} {
+		if _, err := client.Tracker().Get(userv1.SchemeGroupVersion.WithResource(resource), "", name); !apierrors.IsNotFound(err) {
+			t.Errorf("%s was not deleted after identity discovery failed: %v", resource, err)
+		}
+	}
+	if _, err := client.Tracker().Get(userv1.SchemeGroupVersion.WithResource("identities"), "", "test-idp:subject"); err != nil {
+		t.Errorf("undiscovered identity must not be blindly deleted: %v", err)
+	}
+}
