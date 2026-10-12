@@ -42,7 +42,19 @@ const (
 // CreateLDAPTestServer deploys an LDAP server on the service network and then confirms StartTLS connectivity with an
 // ldapsearch against it. It returns the ldapserver host and the ldap CA, or an error.
 func CreateLDAPTestServer(oc *CLI) (svcNs, svcName, svcHostname string, caPem []byte, err error) {
+	return CreateLDAPTestServerWithOptions(oc, LDAPTestServerOptions{})
+}
+
+type LDAPTestServerOptions struct {
+	GroupSyncLDIF         string
+	AdditionalServerNames []string
+}
+
+func CreateLDAPTestServerWithOptions(oc *CLI, options LDAPTestServerOptions) (svcNs, svcName, svcHostname string, caPem []byte, err error) {
 	deploy, ldapService, ldif, scripts := ReadLDAPServerTestData()
+	if options.GroupSyncLDIF != "" {
+		ldif.Data["groupsync.ldif"] = options.GroupSyncLDIF
+	}
 	certDir, err := ioutil.TempDir("", "testca")
 	if err != nil {
 		return "", "", "", nil, err
@@ -80,7 +92,9 @@ func CreateLDAPTestServer(oc *CLI) (svcNs, svcName, svcHostname string, caPem []
 	svcNs = oc.Namespace()
 	svcName = ldapService.Name
 	svcHostname = svcName + "." + svcNs + ".svc"
-	serverCertConfig, err := ca.MakeServerCert(sets.New("localhost", "127.0.0.1", svcHostname), 100*24*time.Hour)
+	serverNames := sets.New("localhost", "127.0.0.1", svcHostname)
+	serverNames.Insert(options.AdditionalServerNames...)
+	serverCertConfig, err := ca.MakeServerCert(serverNames, 100*24*time.Hour)
 	if err != nil {
 		return "", "", "", nil, err
 	}
