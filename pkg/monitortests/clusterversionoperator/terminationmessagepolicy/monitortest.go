@@ -135,7 +135,10 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 		),
 		// per TRT-2084 these were erroneously allowed to flake, so grandfather them in for now.
 		// they should be fixed and removed from here:
-		"openshift-backplane": sets.NewString("pods/osd-delete-backplane-serviceaccounts"), // filed OCPBUGS-84527 to fix
+		"openshift-backplane": sets.NewString( // filed OCPBUGS-84527 to fix
+			"pods/osd-delete-backplane-serviceaccounts",
+			"pods/osd-delete-backplane-remediation-rbacs", // ROSA Classic; ROSAENG-74405 to fix
+		),
 		"openshift-cnv": sets.NewString( // filed OCPBUGS-84522 to fix
 			"pods/hostpath-provisioner-operator",
 			"pods/virt-platform-autopilot",
@@ -158,6 +161,23 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 			"pods/sriov-network-config-daemon",
 			"pods/sriov-network-operator",
 		),
+		// ROSA/OSD managed-service components surfaced by rosa-aws-sts-conformance (ROSA Classic
+		// topology runs these on the cluster under test). Each needs an OCPBUGS filed against its
+		// owning managed-services repo and removal from here once the component sets the policy.
+		"openshift-addon-operator": sets.NewString( // ROSAENG-74405 to fix (openshift/addon-operator)
+			"pods/addon-operator-manager",
+			"pods/addon-operator-webhooks",
+		),
+		"openshift-backplane-srep":         sets.NewString("pods/osd-delete-ownerrefs-serviceaccounts"), // ROSAENG-74405 to fix (managed-cluster-config)
+		"openshift-monitoring":             sets.NewString("pods/osd-rebalance-infra-nodes"),            // ROSAENG-74405 to fix (managed-cluster-config)
+		"openshift-ocm-agent-operator":     sets.NewString("pods/ocm-agent"),                            // ROSAENG-74405 to fix (openshift/ocm-agent)
+		"openshift-package-operator":       sets.NewString("pods/package-operator-manager"),             // ROSAENG-74405 to fix (package-operator/package-operator)
+		"openshift-route-monitor-operator": sets.NewString("pods/blackbox-exporter"),                    // ROSAENG-74405 tofix (openshift/route-monitor-operator)
+		"openshift-security": sets.NewString( // TODO file OCPBUGS (managed-cluster-config + splunk-forwarder-operator)
+			"pods/audit-exporter",
+			"pods/splunkforwarder-ds",
+		),
+		"openshift-splunk-forwarder-operator": sets.NewString("pods/olm-cleanup"), // ROSAENG-74405 to fix (openshift/splunk-forwarder-operator)
 	}
 
 	observedNamespace := map[string]bool{}
