@@ -1,0 +1,37 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: banp-template
+objects:
+- apiVersion: policy.networking.k8s.io/v1alpha1
+  kind: BaselineAdminNetworkPolicy
+  metadata:
+    name: default
+  spec:
+    ingress:
+    - action: Deny
+      name: default-deny-ingress1
+      from:
+      - namespaces:
+          namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${CLIENT1_NS}
+    - action: Deny
+      name: default-deny-ingress2
+      from:
+      - namespaces:
+          namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${CLIENT2_NS}
+      name: default-deny-ns
+    subject:
+      namespaces:
+        matchLabels:
+          kubernetes.io/metadata.name: ${SERVER_NS}
+parameters:
+- name: CLIENT1_NS
+  value: test-client1
+- name: CLIENT2_NS
+  value: test-client2
+- name: SERVER_NS
+  value: test-server

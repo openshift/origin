@@ -1,0 +1,11 @@
+---
+# Use the 'create api' subcommand to add watches to this file.
+- version: v1
+  group: ansiblebase.qetest.com
+  kind: Basetest
+  role: basetest
+  blacklist:
+    - group: ""
+      version: v1
+      kind: ConfigMap
+#+kubebuilder:scaffold:watch

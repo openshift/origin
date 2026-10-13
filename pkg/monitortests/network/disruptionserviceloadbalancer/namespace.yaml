@@ -1,0 +1,17 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  generateName: e2e-service-lb-test-
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+    # we must update our namespace to bypass SCC so that we can avoid default mutation of our pod and SCC evaluation.
+    # technically we could also choose to bind an SCC, but I don't see a lot of value in doing that and we have to wait
+    # for a secondary cache to fill to reflect that.  If we miss that cache filling, we'll get assigned a restricted on
+    # and fail.
+    security.openshift.io/disable-securitycontextconstraints: "true"
+    # don't let the PSA labeller mess with our namespace.
+    security.openshift.io/scc.podSecurityLabelSync: "false"
+  annotations:
+    workload.openshift.io/allowed: management

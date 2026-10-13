@@ -1,0 +1,33 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: operator-template
+objects:
+- apiVersion: olm.operatorframework.io/v1
+  kind: ClusterExtension
+  metadata:
+    name: "${NAME}"
+  spec:
+    namespace: "${INSTALLNAMESPACE}"
+    serviceAccount:
+      name: "${SANAME}"
+    source:
+      sourceType: "${SOURCETYPE}"
+      catalog:
+        packageName: "${PACKAGE}"
+        channels:
+          - "${CHANNEL}"
+        version: "${VERSION}"
+        upgradeConstraintPolicy: "${POLICY}"
+parameters:
+- name: NAME
+- name: INSTALLNAMESPACE
+- name: PACKAGE
+- name: CHANNEL
+- name: VERSION
+- name: SANAME
+- name: POLICY
+  value: "CatalogProvided"
+- name: SOURCETYPE
+  value: "Catalog"
+

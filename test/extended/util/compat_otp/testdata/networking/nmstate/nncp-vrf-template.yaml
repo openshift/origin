@@ -1,0 +1,35 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: nncp-vrf-template
+objects:
+- kind: NodeNetworkConfigurationPolicy
+  apiVersion: nmstate.io/v1
+  metadata:
+    name: "${NAME}"
+    annotations:
+      description: Interface and VRF on Transport node LEFT
+  spec:
+    nodeSelector:
+      kubernetes.io/hostname: "${NODENAME}"
+    desiredState:
+      interfaces:
+        - name: "${NAME}"
+          state: up
+          type: vrf
+          vrf:
+            port:
+              - "${INTFNAME}"
+            route-table-id: ${{TABLEID}}
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            metric: 150
+            next-hop-address: 172.22.0.1
+            next-hop-interface: "${INTFNAME}"
+            table-id: ${{TABLEID}}
+parameters:
+- name: NAME
+- name: INTFNAME
+- name: NODENAME
+- name: TABLEID

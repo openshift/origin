@@ -1,0 +1,13 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfigPool
+metadata:
+  name: wrscan
+  labels:
+    pools.operator.machineconfiguration.openshift.io/wrscan: ''
+spec:
+  machineConfigSelector:
+    matchExpressions:
+      - {key: machineconfiguration.openshift.io/role, operator: In, values: [worker,wrscan]}
+  nodeSelector:
+    matchLabels:
+      node-role.kubernetes.io/wrscan: ""

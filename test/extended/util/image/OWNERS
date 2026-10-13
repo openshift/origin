@@ -1,0 +1,15 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+reviewers:
+- bertinatto
+- ingvagabund
+- soltysh
+- tkashem
+approvers:
+- bertinatto
+- ingvagabund
+- soltysh
+- tkashem
+labels:
+- "e2e-images-update"
+options:
+  no_parent_owners: true

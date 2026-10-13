@@ -1,0 +1,59 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: external-log-store-template
+objects:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+    labels:
+      provider: aosqe
+      component: ${NAME}
+      logging-infra: ${NAME}
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        provider: aosqe
+        component: ${NAME}
+        logging-infra: ${NAME}
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          logging-infra: ${NAME}
+          provider: aosqe
+          component: ${NAME}
+      spec:
+        containers:
+        - name: "fluentdserver"
+          image: "quay.io/openshifttest/fluentd:1.2.2"
+          imagePullPolicy: "IfNotPresent"
+          ports:
+          - containerPort: 24224
+            name: fluentdserver
+          volumeMounts:
+          - mountPath: /fluentd/etc
+            name: config
+            readOnly: true
+          - mountPath: /etc/fluentd/secrets
+            name: certs
+            readOnly: true
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: ${NAME}
+          name: config
+        - name: certs
+          secret:
+            defaultMode: 420
+            secretName: ${NAME}
+parameters:
+- name: NAME
+  value: fluentdserver
+- name: NAMESPACE
+  value: openshift-logging

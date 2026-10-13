@@ -1,0 +1,26 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: loki-infra-recording-rule-template
+objects:
+- apiVersion: loki.grafana.com/v1
+  kind: RecordingRule
+  metadata:
+    labels:
+      openshift.io/cluster-monitoring: 'true'
+    name: ${RECORDING_RULE_NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    groups:
+      - interval: 1m
+        name: LokiOperatorLogsAreHigh1m
+        rules:
+          - expr: >
+              count_over_time({kubernetes_namespace_name="${NAMESPACE}"}[1m]) > 10
+            record: 'loki:operator:infralogs:rate1m'
+    tenantID: infrastructure
+parameters:
+- name: NAMESPACE
+  value: "openshift-operators-redhat"
+- name: RECORDING_RULE_NAME
+  value: "my-infra-workload-record"

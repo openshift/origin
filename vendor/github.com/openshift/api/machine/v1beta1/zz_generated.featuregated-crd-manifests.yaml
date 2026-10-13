@@ -1,0 +1,140 @@
+machines.machine.openshift.io:
+  Annotations:
+    exclude.release.openshift.io/internal-openshift-hosted: "true"
+    include.release.openshift.io/self-managed-high-availability: "true"
+  ApprovedPRNumber: https://github.com/openshift/api/pull/948
+  CRDName: machines.machine.openshift.io
+  Capability: MachineAPI
+  Category: ""
+  FeatureGates:
+  - MachineAPIMigration
+  FilenameOperatorName: machine-api
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_10"
+  GroupName: machine.openshift.io
+  HasStatus: true
+  KindName: Machine
+  Labels: {}
+  PluralName: machines
+  PrinterColumns:
+  - description: Phase of machine
+    jsonPath: .status.phase
+    name: Phase
+    type: string
+  - description: Type of instance
+    jsonPath: .metadata.labels['machine\.openshift\.io/instance-type']
+    name: Type
+    type: string
+  - description: Region associated with machine
+    jsonPath: .metadata.labels['machine\.openshift\.io/region']
+    name: Region
+    type: string
+  - description: Zone associated with machine
+    jsonPath: .metadata.labels['machine\.openshift\.io/zone']
+    name: Zone
+    type: string
+  - description: Machine age
+    jsonPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+  - description: Node associated with machine
+    jsonPath: .status.nodeRef.name
+    name: Node
+    priority: 1
+    type: string
+  - description: Provider ID of machine created in cloud provider
+    jsonPath: .spec.providerID
+    name: ProviderID
+    priority: 1
+    type: string
+  - description: State of instance
+    jsonPath: .metadata.annotations['machine\.openshift\.io/instance-state']
+    name: State
+    priority: 1
+    type: string
+  Scope: Namespaced
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1beta1
+
+machinehealthchecks.machine.openshift.io:
+  Annotations:
+    exclude.release.openshift.io/internal-openshift-hosted: "true"
+    include.release.openshift.io/self-managed-high-availability: "true"
+  ApprovedPRNumber: https://github.com/openshift/api/pull/1032
+  CRDName: machinehealthchecks.machine.openshift.io
+  Capability: MachineAPI
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: machine-api
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_10"
+  GroupName: machine.openshift.io
+  HasStatus: true
+  KindName: MachineHealthCheck
+  Labels: {}
+  PluralName: machinehealthchecks
+  PrinterColumns:
+  - description: Maximum number of unhealthy machines allowed
+    jsonPath: .spec.maxUnhealthy
+    name: MaxUnhealthy
+    type: string
+  - description: Number of machines currently monitored
+    jsonPath: .status.expectedMachines
+    name: ExpectedMachines
+    type: integer
+  - description: Current observed healthy machines
+    jsonPath: .status.currentHealthy
+    name: CurrentHealthy
+    type: integer
+  Scope: Namespaced
+  ShortNames:
+  - mhc
+  - mhcs
+  TopLevelFeatureGates: []
+  Version: v1beta1
+
+machinesets.machine.openshift.io:
+  Annotations:
+    exclude.release.openshift.io/internal-openshift-hosted: "true"
+    include.release.openshift.io/self-managed-high-availability: "true"
+  ApprovedPRNumber: https://github.com/openshift/api/pull/1032
+  CRDName: machinesets.machine.openshift.io
+  Capability: MachineAPI
+  Category: ""
+  FeatureGates:
+  - MachineAPIMigration
+  FilenameOperatorName: machine-api
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_10"
+  GroupName: machine.openshift.io
+  HasStatus: true
+  KindName: MachineSet
+  Labels: {}
+  PluralName: machinesets
+  PrinterColumns:
+  - description: Desired Replicas
+    jsonPath: .spec.replicas
+    name: Desired
+    type: integer
+  - description: Current Replicas
+    jsonPath: .status.replicas
+    name: Current
+    type: integer
+  - description: Ready Replicas
+    jsonPath: .status.readyReplicas
+    name: Ready
+    type: integer
+  - description: Observed number of available replicas
+    jsonPath: .status.availableReplicas
+    name: Available
+    type: string
+  - description: Machineset age
+    jsonPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+  Scope: Namespaced
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1beta1
+

@@ -1,0 +1,70 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: "observability.openshift.io/v1"
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    outputs:
+    - name: azure-app
+      type: azureMonitor
+      azureMonitor:
+        customerId: ${CUSTOMER_ID}
+        logType: ${PREFIX_OR_NAME}app_log
+        authentication:
+          sharedKey:
+            key: shared_key
+            secretName: ${SECRET_NAME}
+    - name: azure-infra
+      type: azureMonitor
+      azureMonitor:
+        customerId: ${CUSTOMER_ID}
+        logType: ${PREFIX_OR_NAME}infra_log
+        authentication:
+          sharedKey:
+            key: shared_key
+            secretName: ${SECRET_NAME}
+    - name: azure-audit
+      type: azureMonitor
+      azureMonitor:
+        customerId: ${CUSTOMER_ID}
+        logType: ${PREFIX_OR_NAME}audit_log
+        authentication:
+          sharedKey:
+            key: shared_key
+            secretName: ${SECRET_NAME}
+    pipelines:
+    - name: pipe1
+      inputRefs: 
+      - application
+      outputRefs:
+      - azure-app
+    - name: pipe2
+      inputRefs: 
+      - infrastructure
+      outputRefs:
+      - azure-infra
+    - name: pipe3
+      inputRefs: 
+      - audit
+      outputRefs:
+      - azure-audit
+    serviceAccount: 
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: SECRET_NAME
+  value: ""
+- name: PREFIX_OR_NAME
+  value: ""
+- name: CUSTOMER_ID
+  value: ""
+- name: SERVICE_ACCOUNT_NAME
+  value: ""

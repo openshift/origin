@@ -1,0 +1,12 @@
+apiVersion: mirror.openshift.io/v1alpha2
+kind: ImageSetConfiguration
+storageConfig:
+  local:
+    path: /tmp/46770test
+mirror:
+  operators:
+    - catalog: quay.io/redhatgov/oc-mirror-dev:test-catalog-latest
+      packages:
+        - name: foo
+          channels:
+          - name: beta

@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: sriovnetwork-options-template
+objects:
+- kind: SriovNetwork
+  apiVersion: sriovnetwork.openshift.io/v1
+  metadata:
+    name: ${SRIOVNETNAME}
+    namespace: ${NAMESPACE}
+  spec:
+    linkState: auto
+    networkNamespace: ${TARGETNS}
+    resourceName: ${SRIOVNETPOLICY}
+    spoofChk: "on"
+    trust: "on"
+    maxTxRate: 199
+    vlan: 5  
+    capabilities: '{ "mac": true, "ips": true }'
+    ipam: '{ "type": "static" }'
+parameters:
+- name: SRIOVNETNAME 
+- name: TARGETNS
+- name: SRIOVNETPOLICY
+- name: NAMESPACE

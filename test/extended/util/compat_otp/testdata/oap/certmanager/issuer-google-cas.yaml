@@ -1,0 +1,22 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: issuer-google-cas-template
+objects:
+  - apiVersion: cas-issuer.jetstack.io/v1beta1
+    kind: GoogleCASIssuer
+    metadata:
+      name: "${ISSUER_NAME}"
+    spec:
+      project: "${PROJECT}"
+      location: "${LOCATION}"
+      caPoolId: "${CAPOOL_ID}"
+      credentials:
+        name: "${SA_SECRET}"
+        key: key.json
+parameters:
+  - name: ISSUER_NAME
+  - name: PROJECT
+  - name: LOCATION
+  - name: CAPOOL_ID
+  - name: SA_SECRET

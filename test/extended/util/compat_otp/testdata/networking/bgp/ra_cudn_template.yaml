@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ra-cudn-template
+objects:
+- kind: RouteAdvertisements
+  apiVersion: k8s.ovn.org/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    networkSelectors:
+      - networkSelectionType: ClusterUserDefinedNetworks
+        clusterUserDefinedNetworkSelector:
+          networkSelector:
+            matchLabels:
+             "${NETWORKSELECTORKEY}": "${NETWORKSELECTORVALUE}"
+    nodeSelector: {}
+    frrConfigurationSelector: {}
+    advertisements:
+    - "${ADVERTISETYPE}"
+parameters:
+- name: NAME
+- name: NETWORKSELECTORKEY
+- name: NETWORKSELECTORVALUE
+- name: ADVERTISETYPE

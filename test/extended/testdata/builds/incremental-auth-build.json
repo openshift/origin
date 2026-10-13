@@ -1,0 +1,69 @@
+{
+  "kind": "Template",
+  "apiVersion": "template.openshift.io/v1",
+  "metadata": {
+    "name": "push-pull-builder",
+    "creationTimestamp": null,
+    "annotations": {
+      "description": "This defines a build which pulls from and pushes to the internal registry",
+      "iconClass": "icon-ruby",
+      "tags": "instant-app,ruby,mysql"
+    }
+  },
+  "objects": [
+    {
+      "kind": "ImageStream",
+      "apiVersion": "image.openshift.io/v1",
+      "metadata": {
+        "name": "incremental-image",
+        "creationTimestamp": null
+      },
+      "spec": {}
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "build.openshift.io/v1",
+      "metadata": {
+        "name": "incremental-build",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "incremental-build"
+        }
+      },
+      "spec": {
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "https://github.com/openshift/incremental-app.git"
+          }
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "env": [
+              {
+                "name": "BUILD_LOGLEVEL",
+                "value": "5"
+              }
+            ],
+            "from": {
+              "kind": "DockerImage",
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5-ubi8"
+            },
+            "incremental": true
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "incremental-image:latest"
+          }
+        }
+      }
+    }
+  ],
+  "parameters": [],
+  "labels": {
+    "template": "application-template-stibuild"
+  }
+}

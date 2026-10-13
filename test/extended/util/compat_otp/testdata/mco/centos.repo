@@ -1,0 +1,25 @@
+# [baseos-8]
+# name=CentOS-$releasever - Base
+# baseurl=http://mirror.centos.org/centos/$releasever-stream/BaseOS/$basearch/os/
+# gpgcheck=0
+# enabled=1
+#
+# [appstream-8]
+# name=CentOS-$releasever - AppStream
+# baseurl=http://mirror.centos.org/centos/$releasever-stream/AppStream/$basearch/os/
+# gpgcheck=0
+# enabled=1
+
+[baseos-9]
+name=CentOS-$releasever - Base
+baseurl=http://mirror.stream.centos.org/$releasever-stream/BaseOS/$basearch/os/
+gpgcheck=0
+enabled=1
+proxy=
+
+[appstream-9]
+name=CentOS-$releasever - AppStream
+baseurl=http://mirror.stream.centos.org/$releasever-stream/AppStream/$basearch/os/
+gpgcheck=0
+enabled=1
+proxy=

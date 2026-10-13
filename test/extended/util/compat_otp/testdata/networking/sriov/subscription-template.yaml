@@ -1,0 +1,26 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: operatorgroup-subscription-template
+objects:
+- kind: Subscription
+  apiVersion: operators.coreos.com/v1alpha1
+  metadata:
+    name: "${SUBSCRIPTIONNAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    name: sriov-network-operator
+    channel: "${CHANNEL}"
+    installPlanApproval: Automatic
+    source: "${CATALOGSOURCE}"
+    config:
+      nodeSelector:
+        node-role.kubernetes.io/worker: ""   
+    sourceNamespace: "${CATALOGSOURCENAMESPACE}"
+
+parameters:
+- name: SUBSCRIPTIONNAME
+- name: NAMESPACE
+- name: CHANNEL
+- name: CATALOGSOURCE
+- name: CATALOGSOURCENAMESPACE

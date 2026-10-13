@@ -1,0 +1,23 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: history-limit
+spec:
+  replicas: 1
+  strategy:
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        name: history-limit
+    spec:
+      containers:
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
+        imagePullPolicy: IfNotPresent
+        name: myapp
+        command:
+        - /bin/sleep
+        - "infinity"
+  triggers:
+  - type: ConfigChange
+  revisionHistoryLimit: 3

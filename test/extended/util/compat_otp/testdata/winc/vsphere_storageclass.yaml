@@ -1,0 +1,8 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: <name>
+provisioner: csi.vsphere.vmware.com
+parameters:
+  csi.storage.k8s.io/fstype: "ntfs"
+

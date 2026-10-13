@@ -1,0 +1,3 @@
+# Disables from the UI, and forces people to read the alternatives for GH issues
+# Issues are still reportable from the API, which is needed for ci automation
+blank_issues_enabled: false

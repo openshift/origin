@@ -1,0 +1,51 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: clusterdeployment-temp
+objects:
+- apiVersion: hive.openshift.io/v1
+  kind: ClusterDeployment
+  metadata:
+    annotations:
+      "hive.openshift.io/fake-cluster": "${FAKE}"
+      "hive.openshift.io/cli-domain-from-installer-image": "${COPYCLIDOMAIN}"
+    creationTimestamp: null
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    baseDomain: "${BASEDOMAIN}"
+    clusterName: "${CLUSTERNAME}"
+    controlPlaneConfig:
+      servingCertificates: {}
+    installed: false
+    platform:
+      "${PLATFORMTYPE}":
+        credentialsSecretRef:
+          name: "${CREDREF}"
+        region: "${REGION}"
+        baseDomainResourceGroupName: "${RESGROUP}"
+        cloudName: "${AZURETYPE}"
+    provisioning:
+      imageSetRef:
+        name: "${IMAGESETREF}"
+      installConfigSecretRef:
+        name: "${INSTALLCONFIGSECRET}"
+      installerImageOverride: "${INSTALLERIMAGEOVERRIDE}"
+    pullSecretRef:
+      name: "${PULLSECRETREF}"
+parameters:
+- name: FAKE
+- name: COPYCLIDOMAIN
+- name: NAME
+- name: NAMESPACE
+- name: BASEDOMAIN
+- name: CLUSTERNAME
+- name: PLATFORMTYPE
+- name: CREDREF
+- name: REGION
+- name: RESGROUP
+- name: AZURETYPE
+- name: IMAGESETREF
+- name: INSTALLCONFIGSECRET
+- name: INSTALLERIMAGEOVERRIDE
+- name: PULLSECRETREF

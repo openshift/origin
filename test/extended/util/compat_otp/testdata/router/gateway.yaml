@@ -1,0 +1,28 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+- apiVersion: gateway.networking.k8s.io/v1
+  kind: Gateway
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    gatewayClassName: openshift-default
+    listeners:
+    - name: demo
+      hostname: ${HOSTNAME}
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              app: gwapi
+parameters:
+- name: NAME
+  value: gateway-default
+- name: NAMESPACE
+  value: openshift-ingress
+- name: HOSTNAME
+  value: gwapi.example.com

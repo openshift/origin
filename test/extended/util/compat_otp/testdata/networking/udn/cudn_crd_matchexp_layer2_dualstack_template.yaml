@@ -1,0 +1,35 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: cudn-crd-matchexp-layer2-dualstack-template
+objects:
+  - apiVersion: k8s.ovn.org/v1
+    kind: ClusterUserDefinedNetwork
+    metadata:
+      name: "${CRDNAME}"
+    spec:
+      namespaceSelector:
+        matchExpressions:
+          - key: "${KEY}"
+            operator: "${OPERATOR}"
+            values:
+              - "${VALUE1}"
+              - "${VALUE2}"
+      network:
+        topology: Layer2
+        layer2:
+          role: "${ROLE}"
+          mtu: ${{MTU}}
+          subnets: ["${IPv4CIDR}", "${IPv6CIDR}"]
+parameters:
+- name: CRDNAME
+- name: VALUE1
+- name: VALUE2
+- name: KEY
+- name: OPERATOR
+- name: MTU
+- name: PREFIX
+- name: ROLE
+- name: IPv4CIDR
+- name: IPv6CIDR
+

@@ -1,0 +1,28 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: plugin-template
+objects:
+- kind: Plugin
+  apiVersion: config.openshift.io/v1alpha1
+  kind: Plugin
+  metadata:
+    name: "${NAME}"
+  spec:
+    description: oc mirror plugin
+    homepage: https://github.com/openshift/oc-mirror
+    platforms:
+    - bin: oc-mirror
+      caBundle: "${CABUNDLE}"
+      files:
+      - from: /usr/bin/oc-mirror
+        to: .
+      image: "${IMAGE}"
+      imagePullSecret: openshift-config/pull-secret
+      platform: linux/amd64
+    shortDescription: oc mirror plugin
+    version: v4.17.0
+parameters:
+- name: NAME
+- name: IMAGE
+- name: CABUNDLE

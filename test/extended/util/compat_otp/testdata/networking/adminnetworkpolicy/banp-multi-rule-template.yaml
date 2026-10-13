@@ -1,0 +1,52 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: banp_multi_rule_template
+objects:
+- kind: BaselineAdminNetworkPolicy
+  apiVersion: policy.networking.k8s.io/v1alpha1
+  metadata:
+    name: "${NAME}"
+  spec:
+    subject:
+      namespaces:
+        matchLabels:
+          "${SUBJECTKEY}": "${SUBJECTVAL}"
+    "${POLICYTYPE}":
+    - name: "${RULENAME1}"
+      action: "${RULEACTION1}"
+      "${DIRECTION}":
+      - namespaces:
+          matchLabels:
+            "${RULEKEY1}": "${RULEVAL1}"
+    - name: "${RULENAME2}"
+      action: "${RULEACTION2}"
+      "${DIRECTION}":
+      - namespaces:
+          matchLabels:
+            "${RULEKEY2}": "${RULEVAL2}"
+    - name: "${RULENAME3}"
+      action: "${RULEACTION3}"
+      "${DIRECTION}":
+      - namespaces:
+          matchLabels:
+            "${RULEKEY3}": "${RULEVAL3}"
+parameters:
+- name: NAME 
+  value: "default"
+- name: SUBJECTKEY
+- name: SUBJECTVAL
+- name: POLICYTYPE
+- name: DIRECTION
+- name: RULENAME1
+- name: RULEACTION1
+- name: RULEKEY1
+- name: RULEVAL1
+- name: RULENAME2
+- name: RULEACTION2
+- name: RULEKEY2
+- name: RULEVAL2
+- name: RULENAME3
+- name: RULEACTION3
+- name: RULEKEY3
+- name: RULEVAL3

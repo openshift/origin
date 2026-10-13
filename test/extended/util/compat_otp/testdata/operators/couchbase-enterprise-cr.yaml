@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cb-example-auth
+type: Opaque
+data:
+  username: QWRtaW5pc3RyYXRvcg==
+  password: cGFzc3dvcmQ=
+---
+apiVersion: couchbase.com/v2
+kind: CouchbaseCluster
+metadata:
+  name: cb-example
+spec:
+  image: registry.hub.docker.com/couchbase/server:6.5.1
+  cluster:
+    clusterName: cb-example
+    dataServiceMemoryQuota: 256Mi
+    indexServiceMemoryQuota: 256Mi
+    searchServiceMemoryQuota: 256Mi
+    eventingServiceMemoryQuota: 256Mi
+    analyticsServiceMemoryQuota: 1Gi
+    indexStorageSetting: memory_optimized
+    autoFailoverTimeout: 120s
+    autoFailoverMaxCount: 3
+    autoFailoverOnDataDiskIssues: true
+    autoFailoverOnDataDiskIssuesTimePeriod: 120s
+    autoFailoverServerGroup: false
+    autoCompaction:
+      databaseFragmentationThreshold:
+        percent: 30
+        size: 1Gi
+      viewFragmentationThreshold:
+        percent: 30
+        size: 1Gi
+      parallelCompaction: false
+      timeWindow:
+        start: '02:00'
+        end: '06:00'
+        abortCompactionOutsideWindow: true
+      tombstonePurgeInterval: 72h
+  security:
+    adminSecret: cb-example-auth
+    rbac:
+      managed: true
+      selector:
+        matchLabels:
+          cluster: cb-example
+  xdcr:
+    managed: false
+    selector:
+      matchLabels:
+        cluster: cb-example
+  backup:
+    image: registry.hub.docker.com/couchbase/operator-backup:6.5.1-104
+    managed: false
+    serviceAccountName: couchbase-backup
+    selector:
+      matchLabels:
+        cluster: cb-example
+  monitoring:
+    prometheus:
+      enabled: false
+      image: registry.hub.docker.com/couchbase/exporter:1.0.2
+  networking:
+    exposeAdminConsole: true
+    adminConsoleServices:
+    - data
+    exposedFeatures:
+    - xdcr
+    exposedFeatureServiceType: NodePort
+    adminConsoleServiceType: NodePort
+  buckets:
+    managed: true
+    selector:
+      matchLabels:
+        cluster: cb-example
+  logRetentionTime: 604800s
+  logRetentionCount: 20
+  servers:
+  - size: 3
+    name: all_services
+    services:
+    - data
+    - index
+    - query
+    - search
+    - eventing
+    - analytics
+status: {}

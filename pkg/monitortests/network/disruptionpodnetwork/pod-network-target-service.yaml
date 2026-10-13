@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pod-network-service
+spec:
+  selector:
+    network.openshift.io/disruption-target: pod-network
+    network.openshift.io/disruption-actor: target
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

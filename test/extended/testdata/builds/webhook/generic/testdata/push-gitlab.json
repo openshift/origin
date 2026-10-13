@@ -1,0 +1,34 @@
+{
+  "object_kind":"push",
+  "before":"cf1fa898d2a78685ccde72f14b4922b474f73cd1",
+  "after":"2602ace61490de0513dfbd7c7de949356cf9bd17",
+  "ref":"refs/heads/master",
+  "checkout_sha":"2602ace61490de0513dfbd7c7de949356cf9bd17",
+  "message":null,
+  "user_id":12345,
+  "user_name":"Jon Doe",
+  "user_email":"jondoe@email.com",
+  "project_id":12345,
+  "repository":{
+    "name":"ruby-hello-world",
+    "url":"git@gitlab.com:jondoe/repo.git",
+    "description":"",
+    "homepage":"https://gitlab.com/jondoe/repo",
+    "git_http_url":"https://gitlab.com/jondoe/repo",
+    "git_ssh_url":"git@gitlab.com:jondoe/repo",
+    "visibility_level":20
+  },
+  "commits":[
+    {
+      "id":"2602ace61490de0513dfbd7c7de949356cf9bd17",
+      "message":"Random act of kindness",
+      "timestamp":"2015-03-17T09:23:58+01:00",
+      "url":"https://gitlab.com/jondoe/repo/commit/2602ace61490de0513dfbd7c7de949356cf9bd17",
+      "author":{
+        "name":"Jon Doe",
+        "email":"jondoe@email.com"
+      }
+    }
+  ],
+  "total_commits_count":3
+}

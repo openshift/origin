@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: operatorgroup-upgradestrategy-template
+objects:
+- kind: OperatorGroup
+  apiVersion: operators.coreos.com/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    upgradeStrategy: "${UPGRADESTRATEGY}"
+    targetNamespaces:
+    - "${NAMESPACE}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: UPGRADESTRATEGY
+

@@ -1,0 +1,33 @@
+apiVersion: config.openshift.io/v1
+kind: ImageDigestMirrorSet
+metadata:
+  name: netobserv-image-digest-mirror-set
+spec:
+  imageDigestMirrors:
+    - mirrors:
+      - quay.io/redhat-user-workloads/ocp-network-observab-tenant/network-observability-operator-ystream
+      - quay.io/redhat-user-workloads/ocp-network-observab-tenant/network-observability-operator-zstream
+      source: registry.redhat.io/network-observability/network-observability-rhel9-operator
+    - mirrors:
+      - quay.io/redhat-user-workloads/ocp-network-observab-tenant/flowlogs-pipeline-ystream
+      - quay.io/redhat-user-workloads/ocp-network-observab-tenant/flowlogs-pipeline-zstream
+      source: registry.redhat.io/network-observability/network-observability-flowlogs-pipeline-rhel9
+    - mirrors:
+      - quay.io/redhat-user-workloads/ocp-network-observab-tenant/netobserv-ebpf-agent-ystream
+      - quay.io/redhat-user-workloads/ocp-network-observab-tenant/netobserv-ebpf-agent-zstream
+      source: registry.redhat.io/network-observability/network-observability-ebpf-agent-rhel9
+    - mirrors:
+      - quay.io/redhat-user-workloads/ocp-network-observab-tenant/network-observability-console-plugin-ystream
+      - quay.io/redhat-user-workloads/ocp-network-observab-tenant/network-observability-console-plugin-zstream
+      source: registry.redhat.io/network-observability/network-observability-console-plugin-rhel9
+    - mirrors:
+      - quay.io/redhat-user-workloads/ocp-network-observab-tenant/network-observability-cli-ystream
+      - quay.io/redhat-user-workloads/ocp-network-observab-tenant/network-observability-cli-zstream
+      source: registry.redhat.io/network-observability/network-observability-cli-rhel9
+    - mirrors:
+      - quay.io/redhat-user-workloads/ocp-network-observab-tenant/network-observability-operator-bundle-ystream
+      - quay.io/redhat-user-workloads/ocp-network-observab-tenant/network-observability-operator-bundle-zstream
+      source: registry.redhat.io/network-observability/network-observability-operator-bundle
+    - mirrors:
+      - quay.io/redhat-user-workloads/ocp-network-observab-tenant/network-observability-console-plugin-pf4-ystream
+      source: registry.redhat.io/network-observability/network-observability-console-plugin-compat-rhel9

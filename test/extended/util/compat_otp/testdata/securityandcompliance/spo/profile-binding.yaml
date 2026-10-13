@@ -1,0 +1,22 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: spo-profile-recording-template
+objects:
+- apiVersion: security-profiles-operator.x-k8s.io/v1alpha1
+  kind: ProfileBinding
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    profileRef:
+      kind: "${KIND}"
+      name: "${PROFILENAME}"
+    image: "${IMAGE}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: KIND
+- name: PROFILENAME
+- name: IMAGE

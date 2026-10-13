@@ -1,0 +1,41 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: common-pod-template
+objects:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: "${NAME}"
+      labels:
+        app: "${NAME}"
+    spec:
+      runtimeClassName: "${RUNTIMECLASSNAME}"
+      containers:
+        - name: "${NAME}"
+          image: "${IMAGE}"
+          ports:
+            - containerPort: ${{PORT}}
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1001
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+
+# oc process --ignore-unknown-parameters=true -f $L/workload-pod-securityContext.yaml -p NAME=$NAME RUNTIMECLASSNAME=$RUNTIMECLASSNAME IMAGE=$IMAGE PORT=$PORT > pod.yaml
+
+parameters:
+  - name: NAME
+    value: "hello-openshift"
+  - name: RUNTIMECLASSNAME
+    value: "kata"
+  - name: IMAGE
+    value: "quay.io/openshift/origin-hello-openshift"
+  - name: PORT
+    value: "8888"

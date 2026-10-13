@@ -1,0 +1,37 @@
+kind: List
+apiVersion: v1
+metadata: {}
+items:
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    name: simple-s2i-build
+  spec:
+    source:
+      git:
+        uri: https://github.com/sclorg/nodejs-ex
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: quay.io/redhat-developer/test-build-simples2i:1.2
+      type: Source
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    name: verbose-s2i-build
+  spec:
+    source:
+      git:
+        uri: https://github.com/sclorg/nodejs-ex
+      type: Git
+    strategy:
+      sourceStrategy:
+        env:
+        - name: BUILD_LOGLEVEL
+          value: "5"
+        from:
+          kind: DockerImage
+          name: quay.io/redhat-developer/test-build-simples2i:1.2
+      type: Source

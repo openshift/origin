@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+- apiVersion: operator.openshift.io/v1
+  kind: IngressController
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    tuningOptions: 
+      headerBufferBytes: 16385
+      headerBufferMaxRewriteBytes: 4097
+      threadCount: 4
+      maxConnections: -1
+    domain: ${DOMAIN}
+    replicas: 1
+    endpointPublishingStrategy:
+      type: NodePortService
+    nodePlacement:
+      nodeSelector:
+        matchLabels:
+          beta.kubernetes.io/os: linux
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+parameters:
+- name: NAME
+- name: NAMESPACE
+  value: openshift-ingress-operator
+- name: DOMAIN

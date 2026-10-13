@@ -1,0 +1,44 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: mydockertest
+  labels:
+    name: test
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: mydockerstream:latest
+  postCommit:
+    script: cat /var/run/secrets/some-secret/key; cat /var/run/configmaps/some-configmap/key
+  triggers: []
+  runPolicy: Serial
+  source:
+    dockerfile:
+      'FROM quay.io/redhat-developer/test-build-simples2i:1.2'
+  strategy:
+    type: Docker
+    dockerStrategy:
+      env:
+        - name: BUILD_LOGLEVEL
+          value: "5"
+      volumes:
+      - mounts:
+        - destinationPath: "/var/run/secrets/some-secret"
+        name: this-secret
+        source:
+          secret:
+            defaultMode: 420
+            secretName: my-secret
+          type: Secret
+      - mounts:
+        - destinationPath: "/var/run/configmaps/some-configmap"
+        name: this-configmap
+        source:
+          configMap:
+            defaultMode: 420
+            name: my-configmap
+          type: ConfigMap
+  resources: {}
+  nodeSelector: null
+status: {}

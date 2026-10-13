@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: operatorgroup-template
+objects:
+- kind: OperatorGroup
+  apiVersion: operators.coreos.com/v1
+  metadata:
+    annotations:
+      olm.providedAPIs: CliManager.v1.operator.openshift.io,Plugin.v1alpha1.config.openshift.io
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    targetNamespaces:
+    - "${NAMESPACE}"
+    upgradeStrategy: Default
+
+parameters:
+- name: NAME
+- name: NAMESPACE

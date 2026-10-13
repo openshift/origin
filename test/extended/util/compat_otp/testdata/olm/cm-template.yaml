@@ -1,0 +1,16 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: cm-sub-template
+objects:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  data:
+    special.how: very
+    special.type: charm
+parameters:
+- name: NAME
+- name: NAMESPACE

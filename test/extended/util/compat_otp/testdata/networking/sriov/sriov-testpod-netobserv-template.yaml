@@ -1,0 +1,22 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: sriovpod-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: ${PODNAME}
+    annotations:
+      k8s.v1.cni.cncf.io/networks:  "${SRIOVNETNAME}"
+  spec:
+    containers:
+    - name: samplecontainer
+      imagePullPolicy: IfNotPresent
+      image: quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4
+      command:  ["/bin/sh", "-ec", "while :; do ping ${PING_IP}; sleep 1 ; done"]
+
+parameters:
+- name: PODNAME
+- name: SRIOVNETNAME
+- name: PING_IP

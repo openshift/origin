@@ -1,0 +1,23 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: create-quota
+objects:
+  - apiVersion: v1
+    kind: ResourceQuota
+    metadata:
+      name: "${NAME}"
+    spec:
+      hard:
+        pods: ${{POD_LIMIT}}
+        resourcequotas: ${{RQ_LIMIT}}
+        secrets: ${{SECRET_LIMIT}}
+        services: ${{SERVICE_LIMIT}}
+        configmaps: ${{CM_LIMIT}}
+parameters:
+  - name: NAME
+  - name: POD_LIMIT
+  - name: RQ_LIMIT
+  - name: SECRET_LIMIT
+  - name: SERVICE_LIMIT
+  - name: CM_LIMIT

@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: test-app
+  name: test-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-app
+  template:
+    metadata:
+      labels:
+        app: test-app
+        type: keda-testing
+    spec:
+      containers:
+      - name: prom-test-app
+        image: quay.io/zroubalik/prometheus-app:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+              - ALL
+          seccompProfile:
+            type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: test-app
+  annotations:
+    prometheus.io/scrape: "true"
+  name: test-app
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    type: keda-testing
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+  name: keda-testing-sm
+spec:
+  endpoints:
+  - scheme: http
+    port: http
+  namespaceSelector: {}
+  selector:
+    matchLabels:
+       app: test-app
+

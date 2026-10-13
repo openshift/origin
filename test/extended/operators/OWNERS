@@ -1,0 +1,12 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+
+reviewers:
+- bparees
+- deads2k
+- mfojtik
+- sdodson
+approvers:
+- bparees
+- deads2k
+- mfojtik
+- sdodson

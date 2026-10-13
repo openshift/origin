@@ -1,0 +1,6 @@
+apiVersion: cache5.cotentcollect.com/v1
+kind: CollectionTest
+metadata:
+  name: collectiontest-sample
+spec:
+  size: 1

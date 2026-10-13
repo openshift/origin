@@ -1,0 +1,39 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: deployment-guaranteed
+objects:
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    replicas: ${{REPLICAS}}
+    selector:
+      matchLabels:
+        app: rhel-ubi
+    template:
+      metadata:
+        labels:
+          app: rhel-ubi
+      spec:
+        containers:
+        - name: rhel-ubi
+          stdin: true
+          tty: true
+          image: registry.access.redhat.com/ubi7/ubi:latest
+          imagePullPolicy: Always
+          resources:
+           limits:
+             cpu: 2
+             memory: 200Mi
+           requests:
+             cpu: 2
+             memory: 200Mi
+        nodeName: "${NODENAME}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: REPLICAS
+- name: NODENAME 

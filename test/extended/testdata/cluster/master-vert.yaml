@@ -1,0 +1,53 @@
+provider: local
+ClusterLoader:
+  cleanup: true
+  ifexists: delete
+  projects:
+    - num: 1
+      basename: clusterloader-cakephp-mysql
+      ifexists: delete
+      tuning: default
+      templates:
+        - num: 1
+          file: ./quickstarts/cakephp-mysql.json
+  
+    - num: 1
+      basename: clusterloader-dancer-mysql
+      ifexists: delete
+      tuning: default
+      templates:
+        - num: 1
+          file: ./quickstarts/dancer-mysql.json
+  
+    - num: 1
+      basename: clusterloader-django-postgresql
+      ifexists: delete
+      tuning: default
+      templates:
+        - num: 1
+          file: ./quickstarts/django-postgresql.json
+  
+    - num: 1
+      basename: clusterloader-nodejs-postgresql
+      ifexists: delete
+      tuning: default
+      templates:
+        - num: 1
+          file: ./quickstarts/nodejs-postgresql.json
+  
+    - num: 1
+      basename: clusterloader-rails-postgresql
+      ifexists: delete
+      tuning: default
+      templates:
+        - num: 1
+          file: ./quickstarts/rails-postgresql.json
+  
+  tuningsets:
+    - name: default
+      pods:
+        stepping:
+          stepsize: 5
+          pause: 0 min
+        rate_limit:
+          delay: 0 ms

@@ -1,0 +1,24 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: metallb-cr-template
+objects:
+- kind: MetalLB
+  apiVersion: metallb.io/v1beta1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    nodeSelector:
+      "${NODESELECTORKEY}": "${NODESELECTORVAL}"
+    controllerNodeSelector:
+      "${CONTROLLERSELECTORKEY}": "${CONTROLLERSELECTORVAL}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: NODESELECTORKEY
+- name: NODESELECTORVAL
+- name: CONTROLLERSELECTORKEY
+- name: CONTROLLERSELECTORVAL
+

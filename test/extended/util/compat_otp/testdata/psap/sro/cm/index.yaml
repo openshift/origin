@@ -1,0 +1,15 @@
+apiVersion: v1
+entries:
+  multi-build:
+  - apiVersion: v2
+    appVersion: 1.0.0
+    created: "2021-11-01T03:46:29.392670244Z"
+    description: Showcase how to use multiple Builds with different DTKs
+    digest: d01df59b3e2a3a1bfa2c94e47b1d68188ab6610a20662ba2ee4ea7120e42e6ca
+    icon: https://avatars.githubusercontent.com/u/55542927
+    name: multi-build
+    type: application
+    urls:
+    - cm://multi-build/multi-build-chart/multi-build-0.0.1.tgz
+    version: 0.0.1
+generated: "2021-11-01T03:46:29.392258295Z"

@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-nodeselector-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      "${LABELKEY}": "${LABELVALUE}"
+  spec:
+    nodeSelector:
+      "${NODEKEY}": "${NODEVALUE}"
+    containers:
+    - image: "quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339"
+      name: hello-pod
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: NODEKEY
+- name: NODEVALUE
+- name: LABELKEY
+- name: LABELVALUE

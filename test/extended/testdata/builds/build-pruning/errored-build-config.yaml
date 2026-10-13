@@ -1,0 +1,24 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: myphp
+spec:
+  failedBuildsHistoryLimit: 2
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/sclorg/cakephp-ex.git'
+      ref: master
+  strategy:
+    type: Source
+    sourceStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
+        - name: FIELDREF_ENV
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.nofield
+      from:
+        kind: DockerImage
+        name: registry.redhat.io/ubi8/php-74:latest

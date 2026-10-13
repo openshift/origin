@@ -1,0 +1,21 @@
+cloudprivateipconfigs.cloud.network.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/859
+  CRDName: cloudprivateipconfigs.cloud.network.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: ""
+  FilenameOperatorOrdering: "001"
+  FilenameRunLevel: ""
+  GroupName: cloud.network.openshift.io
+  HasStatus: true
+  KindName: CloudPrivateIPConfig
+  Labels: {}
+  PluralName: cloudprivateipconfigs
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1
+

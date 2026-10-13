@@ -1,0 +1,48 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: multihoming-pod
+objects:
+- kind: ReplicationController
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    labels:
+      name: "${PODLABEL}"
+  spec:
+    replicas: "${{REPLICAS}}"
+    template:
+      metadata:
+        labels:
+          name: "${PODLABEL}"
+        namespace: "${NAMESPACE}"
+        annotations:
+          k8s.v1.cni.cncf.io/networks: "${NADNAME}"
+      spec:
+        securityContext:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        containers:
+        - name: "${NAME}"
+          image: quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4
+          imagePullPolicy: IfNotPresent
+          env:
+           - name: RESPONSE
+             value: "${PODENVNAME}"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]  
+        nodeName: "${NODENAME}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: PODLABEL
+- name: NADNAME
+- name: PODENVNAME
+- name: NODENAME
+- name: REPLICAS
+  displayName: Replicas
+  value: '1'

@@ -1,0 +1,29 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: create-pod
+objects:
+  - kind: Pod
+    apiVersion: v1
+    metadata:
+      labels:
+        app: "${NAME}"
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: "${NAME}"
+          image: "${IMAGE}"
+          imagePullPolicy: Always
+          securityContext:
+            runAsUser: ${{USERID}}
+            capabilities: {}
+parameters:
+  - name: NAME
+  - name: IMAGE
+  - name: USERID
+  - name: NAMESPACE

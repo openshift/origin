@@ -1,0 +1,31 @@
+{
+  "metadata": {
+    "creationTimestamp": null,
+    "name": "installer-9-ci-op-97t906zm-db044-bwrrn-master-0",
+    "namespace": "openshift-etcd",
+    "uid": "6fb10c53-7ed9-4f51-88db-f8a689050f21"
+  },
+  "spec": {
+    "containers": null,
+    "restartPolicy": "Never"
+  },
+  "status": {
+    "containerStatuses": [
+      {
+        "name": "",
+        "state": {
+          "terminated": {
+            "exitCode": 0,
+            "startedAt": null,
+            "finishedAt": "2022-03-21T21:37:56Z"
+          }
+        },
+        "lastState": {},
+        "ready": false,
+        "restartCount": 0,
+        "image": "",
+        "imageID": ""
+      }
+    ]
+  }
+}

@@ -1,0 +1,634 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>EVENT_INTERVAL_TITLE_GOES_HERE</title>
+    <script src="https://cdn.jsdelivr.net/npm/timelines-chart"></script>
+    <script src="https://d3js.org/d3-array.v1.min.js"></script>
+    <script src="https://d3js.org/d3-collection.v1.min.js"></script>
+    <script src="https://d3js.org/d3-color.v1.min.js"></script>
+    <script src="https://d3js.org/d3-format.v1.min.js"></script>
+    <script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+    <script src="https://d3js.org/d3-time.v1.min.js"></script>
+    <script src="https://d3js.org/d3-time-format.v2.min.js"></script>
+    <script src="https://d3js.org/d3-scale.v2.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"></script>
+</head>
+<body>
+
+<div id="search" class="form-control-lg">
+    <form>
+        <input class="form-control" type="text" id="filterInput" placeholder="RegExp Filter">
+    </form>
+</div>
+
+<div id="chart"></div>
+
+<div class="modal" id="myModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Resource</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <pre><code id="myModalContent"></code></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var eventIntervals = EVENT_INTERVAL_JSON_GOES_HERE
+</script>
+
+<script>
+    // Re-render the chart with input as a regexp. Timeout for event debouncing.
+    $('#filterInput').on('input', (e) => {
+        var $this = $(this);
+        clearTimeout($this.data('timeout'));
+        $this.data('timeout', setTimeout(() => {
+            document.getElementById("chart").innerHTML = "";
+            renderChart(new RegExp(e.target.value))
+        }, 250));
+    });
+
+    // Prevent page refresh from pressing enter in input box
+    $('#filterInput').keypress((e) => {
+        if (event.which == '13') {
+            event.preventDefault();
+        }
+    });
+
+    function isOperatorAvailable(eventInterval) {
+        return eventInterval.locator.type === "ClusterOperator" &&
+            eventInterval.message.annotations["condition"] === "Available" &&
+            eventInterval.message.annotations["status"] === "False";
+    }
+
+    function isOperatorDegraded(eventInterval) {
+        return eventInterval.locator.type === "ClusterOperator" &&
+            eventInterval.message.annotations["condition"] === "Degraded" &&
+            eventInterval.message.annotations["status"] === "True";
+    }
+
+    function isOperatorProgressing(eventInterval) {
+        return eventInterval.locator.type === "ClusterOperator" &&
+            eventInterval.message.annotations["condition"] === "Progressing" &&
+            eventInterval.message.annotations["status"] === "True";
+    }
+
+    // When an interval in the openshift-etcd namespace had a reason of LeaderFound, LeaderLost,
+    // LeaderElected, or LeaderMissing, source was set to 'EtcdLeadership'.
+    function isEtcdLeadership(eventInterval) {
+        return eventInterval.source === 'EtcdLeadership';
+
+    }
+
+    function isEtcdBootstrap(eventInterval) {
+        return eventInterval.source === 'PodLog' && eventInterval.message.reason === "EtcdBootstrap";
+
+    }
+
+    function isPodLog(eventInterval) {
+        if (eventInterval.source === 'PodLog') {
+            return true
+        }
+        return eventInterval.source === 'EtcdLog';
+
+    }
+
+    function isInterestingOrPathological(eventInterval) {
+        return eventInterval.source === 'KubeEvent' && eventInterval.message.annotations["pathological"] === "true";
+    }
+
+    function isE2EFailed(eventInterval) {
+        if (eventInterval.source === "E2ETest" && eventInterval.message.annotations["status"] === "Failed") {
+            return true
+        }
+        return false
+    }
+
+    function isE2EFlaked(eventInterval) {
+        if (eventInterval.source === "E2ETest" && eventInterval.message.annotations["status"] === "Flaked") {
+            return true
+        }
+        return false
+    }
+
+    function isE2EPassed(eventInterval) {
+        if (eventInterval.source === "E2ETest" && eventInterval.message.annotations["status"] === "Passed") {
+            return true
+        }
+        return false
+    }
+
+    function isGracefulShutdownActivity(eventInterval) {
+        return (eventInterval.source === "APIServerGracefulShutdown")
+    }
+
+    function isAPIUnreachableFromClientActivity(eventInterval) {
+        return (eventInterval.source === "APIUnreachableFromClient")
+    }
+
+    function isStaticPodInstallMonitorActivity(eventInterval) {
+        return (eventInterval.source === "StaticPodInstallMonitor")
+    }
+
+    function isEndpointConnectivity(eventInterval) {
+        if (eventInterval.message.reason !== "DisruptionBegan" && eventInterval.message.reason !== "DisruptionSamplerOutageBegan") {
+            return false
+        }
+        if (eventInterval.source === "Disruption") {
+            return true
+        }
+        if (eventInterval.locator.keys["namespace"] === "e2e-k8s-service-lb-available") {
+            return true
+        }
+        if (eventInterval.locator.keys.has("route")) {
+            return true
+        }
+
+        return false
+    }
+
+    function isNodeState(eventInterval) {
+        return eventInterval.source === "NodeState"
+    }
+
+    function isCloudMetrics(eventInterval) {
+        return eventInterval.source === "CloudMetrics";
+    }
+
+    function isAlert(eventInterval) {
+        return eventInterval.source === "Alert"
+    }
+
+    function isHighCPU(eventInterval) {
+      return eventInterval.source === "CPUMonitor" && eventInterval.message.reason === "HighCPUUsage"
+    }
+
+    function isTestBucket(eventInterval) {
+        return eventInterval.source === "TestBucket"
+    }
+
+    function testBucketValue(item) {
+        const bucketName = item.locator.keys['test-bucket'] || 'Unknown'
+        return [bucketName, "", "TestBucket"]
+    }
+
+    function pathologicalEvents(item) {
+        if (item.message.annotations["pathological"] === "true") {
+            if (item.message.annotations["interesting"] === "true") {
+                return [buildLocatorDisplayString(item.locator), ` (pathological known)`, "PathologicalKnown"];
+            } else {
+                return [buildLocatorDisplayString(item.locator), ` (pathological new)`, "PathologicalNew"];
+            }
+        }
+        // TODO: hack that can likely be removed when we get to structured intervals for these
+        // Always show pod sandbox events even if they didn't make it to pathological
+        if (item.message.annotations["interesting"] === "true" && item.message.humanMessage.includes("pod sandbox")) {
+            return [buildLocatorDisplayString(item.locator), ` (pod sandbox)`, "PodSandbox"];
+        }
+	}
+
+    function podLogs(item) {
+        if (item.level == "Warning") {
+            return [buildLocatorDisplayString(item.locator), ` (pod log)`, "PodLogWarning"];
+        }
+        if (item.level == "Error") {
+            return [buildLocatorDisplayString(item.locator), ` (pod log)`, "PodLogError"];
+        }
+        return [buildLocatorDisplayString(item.locator), ` (pod log)`, "PodLogInfo"];
+    }
+
+
+    const rePhase = new RegExp("(^| )phase/([^ ]+)")
+    function nodeStateValue(item) {
+        let roles = ""
+        if (item.message.annotations.hasOwnProperty('roles')) {
+            roles = item.message.annotations.roles
+        }
+
+        if (item.message.reason === 'NotReady') {
+            return [buildLocatorDisplayString(item.locator), ` (${roles})`, "NodeNotReady"]
+        }
+        let m = item.message.annotations.phase;
+        return [buildLocatorDisplayString(item.locator), ` (${roles})`, m];
+    }
+
+    function etcdLeadershipLogsValue(item) {
+
+        // If source is isEtcdLeadership, the term is always there.
+        const term = item.message.annotations['term']
+
+        // We are only charting the intervals with a node.
+        const nodeVal = item.locator.keys['node']
+
+        // Get etcd-member value (this will be present for a leader change).
+        let etcdMemberVal = item.locator.keys['etcd-member'] || ''
+        if (etcdMemberVal.length > 0) {
+            etcdMemberVal = `etcd-member/${etcdMemberVal} `
+        }
+
+        let reason = item.message.reason
+        let color = 'EtcdOther'
+        if (reason.length > 0) {
+            color = reason
+            reason = `reason/${reason}`
+        }
+        return [`node/${nodeVal} ${etcdMemberVal} term/${term}`, ` ${reason}`, color ]
+    }
+
+    function cloudMetricsValue(item) {
+        return [buildLocatorDisplayString(item.locator), "", "CloudMetric"];
+    }
+
+    function alertSeverity(item) {
+        // the other types can be pending, so check pending first
+        if (item.message.annotations["alertstate"] === "pending") {
+            return [buildLocatorDisplayString(item.locator), "", "AlertPending"]
+        }
+
+        if (item.message.annotations["severity"] === "info") {
+            return [buildLocatorDisplayString(item.locator), "", "AlertInfo"]
+        }
+        if (item.message.annotations["severity"] === "warning") {
+            return [buildLocatorDisplayString(item.locator), "", "AlertWarning"]
+        }
+        if (item.message.annotations["severity"] === "critical") {
+            return [buildLocatorDisplayString(item.locator), "", "AlertCritical"]
+        }
+
+        // color as critical if nothing matches so that we notice that something has gone wrong
+        return [buildLocatorDisplayString(item.locator), "", "AlertCritical"]
+    }
+
+    function apiserverDisruptionValue(item) {
+        // TODO: isolate DNS error into CIClusterDisruption
+        return [buildLocatorDisplayString(item.locator), "", "Disruption"]
+    }
+
+    function apiserverShutdownValue(item) {
+        // TODO: isolate DNS error into CIClusterDisruption
+        return [buildLocatorDisplayString(item.locator), "", "GracefulShutdownInterval"]
+    }
+
+    function isAPIUnreachableFromClientValue(item) {
+        return [buildLocatorDisplayString(item.locator), "", "APIUnreachableFromClientMetrics"]
+    }
+
+    function isStaticPodInstallMonitorValue(item) {
+        return [buildLocatorDisplayString(item.locator), "", item.message.reason]
+    }
+
+    function disruptionValue(item) {
+        // We classify these disruption samples with this message if it thinks
+        // it looks like a problem in the CI cluster running the tests, not the cluster under test.
+        // (typically DNS lookup problems)
+        if (item.message.reason === "DisruptionSamplerOutageBegan") {
+            return [buildLocatorDisplayString(item.locator), "", "CIClusterDisruption"]
+        }
+        return [buildLocatorDisplayString(item.locator), "", "Disruption"]
+    }
+
+    function apiserverShutdownEventsValue(item) {
+        // TODO: isolate DNS error into CIClusterDisruption
+        return [buildLocatorDisplayString(item.locator), "", "GracefulShutdownWindow"]
+    }
+
+    function getDurationString(durationSeconds) {
+        const seconds = durationSeconds % 60;
+        const minutes = Math.floor(durationSeconds/60);
+        var durationString = "[";
+        if (minutes !== 0) {
+            durationString += minutes + "m"
+        }
+        durationString += seconds + "s]";
+        return durationString;
+    }
+
+    function defaultToolTip(item) {
+        if (!item.message || !item.message.annotations) {
+            return '';
+        }
+
+        const structuredMessage = item.message;
+        const annotations = structuredMessage.annotations;
+
+        const keyValuePairs = Object.entries(annotations).map(([key, value]) => {
+            return `${key}/${value}`;
+        });
+
+        let tt = keyValuePairs.join(' ') + ' ' + structuredMessage.humanMessage;
+
+        // TODO: can probably remove this once we're confident all displayed intervals have it set
+        if ('display' in item) {
+            tt = "display/" + item.display + " " + tt
+        }
+        if ('source' in item) {
+            tt = "source/" + item.source + " " + tt
+        }
+        tt = tt + " " + getDurationString(((new Date(item.to)).getTime() - (new Date(item.from).getTime()))/1000);
+        return tt
+    }
+
+
+    // Used for the actual locators displayed on the right hand side of the chart. Based on the origin go code that does
+    // similar for whenever we serialize a locator to display.
+    function buildLocatorDisplayString(i) {
+        let keys = Object.keys(i.keys);
+        keys = sortKeys(keys);
+
+        let annotations = [];
+        for (let k of keys) {
+            let v = i.keys[k];
+            if (k === 'LocatorE2ETestKey') {
+                annotations.push(`${k}/${JSON.stringify(v)}`);
+            } else {
+                annotations.push(`${k}/${v}`);
+            }
+        }
+
+        return annotations.join(' ');
+    }
+
+    function sortKeys(keys) {
+        // Ensure these keys appear in this order. Other keys can be mixed in and will appear at the end in alphabetical order.
+        const orderedKeys = ["namespace", "node", "pod", "uid", "server", "container", "shutdown", "row"];
+
+        // Create a map to store the indices of keys in the orderedKeys array.
+        // This will allow us to efficiently check if a key is in orderedKeys and find its position.
+        const orderedKeyIndices = {};
+        orderedKeys.forEach((key, index) => {
+            orderedKeyIndices[key] = index;
+        });
+
+        // Define a custom sorting function that orders the keys based on the orderedKeys array.
+        keys.sort((a, b) => {
+            // Get the indices of keys a and b in orderedKeys.
+            const indexA = orderedKeyIndices[a];
+            const indexB = orderedKeyIndices[b];
+
+            // If both keys exist in orderedKeys, sort them based on their order.
+            if (indexA !== undefined && indexB !== undefined) {
+                return indexA - indexB;
+            }
+
+            // If only one of the keys exists in orderedKeys, move it to the front.
+            if (indexA !== undefined) {
+                return -1;
+            } else if (indexB !== undefined) {
+                return 1;
+            }
+
+            // If neither key is in orderedKeys, sort alphabetically so we have predictable ordering.
+            return a.localeCompare(b);
+        });
+
+        return keys;
+    }
+
+    function segmentTooltipFunc(d) {
+        return '<span style="max-inline-size: min-content; display: inline-block;">'
+        + '<strong>' + d.labelVal + '</strong><br/>'
+        + '<strong>From: </strong>' + new Date(d.timeRange[0]).toUTCString() + '<br>'
+        + '<strong>To: </strong>' + new Date(d.timeRange[1]).toUTCString() + '</span>';
+    }
+
+    function createTimelineData(timelineVal, timelineData, rawEventIntervals, preconditionFunc, regex) {
+        const data = {}
+        var now = new Date();
+        var earliest = rawEventIntervals.items.reduce(
+            (accumulator, currentValue) => !currentValue.from || accumulator < new Date(currentValue.from) ? accumulator : new Date(currentValue.from),
+            new Date(now.getTime() + 1),
+        );
+        var latest = rawEventIntervals.items.reduce(
+            (accumulator, currentValue) => !currentValue.to || accumulator > new Date(currentValue.to) ? accumulator : new Date(currentValue.to),
+            new Date(now.getTime() - 1),
+        );
+        rawEventIntervals.items.forEach((item) => {
+            if (!preconditionFunc(item)) {
+                return
+            }
+            var startDate = new Date(item.from)
+            if (!item.from) {
+                startDate = earliest;
+            }
+            var endDate = new Date(item.to)
+            if (!item.to) {
+                endDate = latest
+            }
+            let label = buildLocatorDisplayString(item.locator)
+            let sub = ""
+            let val = timelineVal
+            if (typeof val === "function") {
+                [label, sub, val] = timelineVal(item)
+            }
+            let section = data[label]
+            if (!section) {
+                section = {};
+                data[label] = section
+            }
+            let ranges = section[sub]
+            if (!ranges) {
+                ranges = [];
+                section[sub] = ranges
+            }
+            ranges.push({
+                timeRange: [startDate, endDate],
+                val: val,
+                labelVal: defaultToolTip(item)
+            });
+        });
+        for (const label in data) {
+            const section = data[label]
+            for (const sub in section) {
+                if (regex == null || (regex != null && regex.test(label))) {
+                    const data = section[sub];
+                    const totalDurationSeconds = data.reduce(
+                        (prev, curr) => prev + (curr.timeRange[1].getTime() - curr.timeRange[0].getTime())/1000,
+                        0);
+
+                    timelineData.push({label: label + sub + " " + getDurationString(totalDurationSeconds), data: data})
+                }
+            }
+        }
+    }
+
+    function isEtcdLeadershipAndNotEmpty(item) {
+        if (isEtcdLeadership(item)) {
+
+            // Don't chart the ones where the node is empty.
+            const node = item.locator.keys['node'] || ''
+            if (node.length > 0) {
+                return true
+            }
+        }
+        return false
+    }
+
+    function renderChart(regex) {
+        var loc = window.location.href;
+
+        var timelineGroups = []
+        timelineGroups.push({group: "test-buckets", data: []})
+        createTimelineData(testBucketValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isTestBucket, regex)
+
+        timelineGroups.push({group: "operator-unavailable", data: []})
+        createTimelineData("OperatorUnavailable", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorAvailable, regex)
+
+        timelineGroups.push({group: "operator-degraded", data: []})
+        createTimelineData("OperatorDegraded", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorDegraded, regex)
+
+        timelineGroups.push({group: "operator-progressing", data: []})
+        createTimelineData("OperatorProgressing", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorProgressing, regex)
+
+        timelineGroups.push({group: "node-state", data: []})
+        createTimelineData(nodeStateValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isNodeState, regex)
+        // Sort the node-state intervals so rows are grouped by node
+        timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
+            return e1.label < e2.label ? -1 : e1.label > e2.label;
+        })
+
+        timelineGroups.push({group: "high-cpu", data: []})
+        createTimelineData("HighCPU", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isHighCPU, regex)
+
+        timelineGroups.push({group: "disruption", data: []})
+        createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
+
+        timelineGroups.push({group: "apiserver-shutdown", data: []})
+        createTimelineData(apiserverShutdownValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isGracefulShutdownActivity, regex)
+
+        timelineGroups.push({group: "api-unreachable", data: []})
+        createTimelineData(isAPIUnreachableFromClientValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAPIUnreachableFromClientActivity, regex)
+
+        timelineGroups.push({group: "staticpod-install", data: []})
+        createTimelineData(isStaticPodInstallMonitorValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isStaticPodInstallMonitorActivity, regex)
+
+        timelineGroups.push({ group: "etcd-leaders", data: [] })
+        createTimelineData(etcdLeadershipLogsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEtcdLeadershipAndNotEmpty, regex)
+        createTimelineData("Bootstrap", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEtcdBootstrap, regex)
+
+        timelineGroups.push({group: "cloud-metrics", data: []})
+        createTimelineData(cloudMetricsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isCloudMetrics, regex)
+
+        timelineGroups.push({group: "pod-logs", data: []})
+        createTimelineData(podLogs, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isPodLog, regex)
+
+        timelineGroups.push({group: "alerts", data: []})
+        createTimelineData(alertSeverity, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAlert, regex)
+        // leaving this for posterity so future me (or someone else) can try it, but I think ordering by name makes the
+        // patterns shown by timing hide and timing appears more relevant to my eyes.
+        // sort alerts alphabetically for display purposes, but keep the json itself ordered by time.
+        // timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
+        //     if (e1.label.includes("alert") && e2.label.includes("alert")) {
+        //         return e1.label < e2.label ? -1 : e1.label > e2.label;
+        //     }
+        //     return 0
+        // })
+
+        timelineGroups.push({group: "e2e-test-failed", data: []})
+        createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFailed, regex)
+
+        timelineGroups.push({group: "e2e-test-flaked", data: []})
+        createTimelineData("Flaked", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFlaked, regex)
+
+        timelineGroups.push({group: "e2e-test-passed", data: []})
+        createTimelineData("Passed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EPassed, regex)
+
+        timelineGroups.push({group: "pathological-events", data: []})
+        createTimelineData(pathologicalEvents, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isInterestingOrPathological, regex)
+
+        var segmentFunc = function (segment) {
+            // Copy label to clipboard
+            navigator.clipboard.writeText(segment.labelVal);
+
+            // for (var i in data) {
+            //     if (data[i].group == segment.group) {
+            //         var groupdata = data[i].data
+            //         for (var j in groupdata) {
+            //             if (groupdata[j].label == segment.label) {
+            //                 labeldata = groupdata[j].data
+            //                 for (var k in labeldata) {
+            //                     var startDate = new Date(labeldata[k].timeRange[0])
+            //                     var endDate = new Date(labeldata[k].timeRange[1])
+            //                     if (startDate.getTime() == segment.timeRange[0].getTime() &&
+            //                         endDate.getTime() == segment.timeRange[1].getTime()) {
+            //                         $('#myModalContent').text(labeldata[k].extended)
+            //                         $('#myModal').modal()
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
+        }
+
+        const el = document.querySelector('#chart');
+        const myChart = TimelinesChart();
+        var ordinalScale = d3.scaleOrdinal()
+            .domain([
+                'TestBucket', // test bucket intervals
+                'InterestingEvent', 'PathologicalKnown', "PathologicalNew", "PodSandbox", // interesting and pathological events
+                'AlertInfo', 'AlertPending', 'AlertWarning', 'AlertCritical', // alerts
+                'OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', // operators
+                'Update', 'Drain', 'Reboot', 'OperatingSystemUpdate', 'NodeNotReady', // nodes
+                'Passed', 'Skipped', 'Flaked', 'Failed',  // tests
+                'PodCreated', 'PodScheduled', 'PodTerminating','ContainerWait', 'ContainerStart', 'ContainerNotReady', 'ContainerReady', 'ContainerReadinessFailed', 'ContainerReadinessErrored',  'StartupProbeFailed', // pods
+                'CIClusterDisruption', 'Disruption', // disruption
+                'Degraded', 'Upgradeable', 'False', 'Unknown',
+                'PodLogInfo', 'PodLogWarning', 'PodLogError',
+                'EtcdOther', 'EtcdLeaderFound', 'EtcdLeaderLost', 'EtcdLeaderElected', 'EtcdLeaderMissing'])
+            .range([
+                '#9370DB', // test bucket intervals - medium purple
+                '#6E6E6E', '#0000ff', '#d0312d', '#ffa500', // pathological and interesting events
+                '#fada5e','#fada5e','#ffa500', '#d0312d',  // alerts
+                '#d0312d', '#ffa500', '#fada5e', // operators
+                '#1e7bd9', '#4294e6', '#6aaef2', '#96cbff', '#fada5e', // nodes
+                '#3cb043', '#ceba76', '#ffa500', '#d0312d', // tests
+                '#96cbff', '#1e7bd9', '#ffa500', '#ca8dfd', '#9300ff', '#fada5e','#3cb043', '#d0312d', '#d0312d', '#c90076', // pods
+                '#96cbff', '#d0312d', // disruption
+                '#b65049', '#32b8b6', '#ffffff', '#bbbbbb',
+                '#96cbff', '#fada5e', '#d0312d',
+                '#d3d3de', '#03fc62', '#fc0303', '#fada5e', '#8c5efa']); // EtcdLeadership
+        myChart.
+        data(timelineGroups).
+        useUtc(true).
+        zQualitative(true).
+        enableAnimations(false).
+        leftMargin(240).
+        rightMargin(1550).
+        maxLineHeight(20).
+        maxHeight(10000).
+        zColorScale(ordinalScale).
+        zoomX([new Date(eventIntervals.items[0].from), new Date(eventIntervals.items[eventIntervals.items.length - 1].to)]).
+        onSegmentClick(segmentFunc).
+        segmentTooltipContent(segmentTooltipFunc)
+        (el);
+
+
+        // force a minimum width for smaller devices (which otherwise get an unusable display)
+        setTimeout(() => { if (myChart.width() < 3100) { myChart.width(3100) }}, 1)
+    }
+
+    renderChart(null)
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+properties:
+- type: olm.type1
+  value:
+    testname1: testvalue1
+    testname2: testvalue2
+- type: olm.type2
+  value:
+    testname3: 
+    testname4: 'testvalue4'
+- type: olm.type3
+  value: "type3_test"
+- type: olm.type4
+  value: 
+- type: type5.type5
+  value: '''
+version is 5.0.4
+'''
+

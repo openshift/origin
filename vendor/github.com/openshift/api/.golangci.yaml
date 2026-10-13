@@ -1,0 +1,134 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - kubeapilinter
+  settings:
+    custom:
+      kubeapilinter:
+        path: tools/_output/bin/kube-api-linter.so
+        description: kubeapilinter is the Kube-API-Linter and lints Kube like APIs based on API conventions and best practices.
+        settings:
+          linters:
+            enable:
+              - forbiddenmarkers
+              - maxlength
+              - minlength
+              - namingconventions
+              - nobools
+              - nomaps
+              - preferredmarkers
+              - statussubresource
+            disable:
+              - statusoptional # This is legacy and not something we currently recommend.
+              - nonpointerstructs # This is intended for native types, not CRD types.
+          lintersConfig:
+            conditions:
+              isFirstField: Warn
+              usePatchStrategy: Ignore
+              useProtobuf: Ignore
+            forbiddenmarkers:
+              markers:
+              - identifier: "openshift:enable:FeatureSets"
+              - identifier: "openshift:validation:FeatureSetAwareEnum"
+              - identifier: "openshift:validation:FeatureSetAwareXValidation"
+              - identifier: "kubebuilder:validation:UniqueItems"
+            optionalfields:
+              pointers:
+                preference: WhenRequired
+                policy: SuggestFix
+              omitEmpty:
+                # This will force omitempty on optional fields.
+                # This is in line with upstream guidance where optional fields should be omitted
+                # from the serialized output unless they are non-zero.
+                policy: SuggestFix
+              omitzero:
+                # This will force omitzero on optional struct fields.
+                # This means they can be omitted correctly and prevents the need for pointers to structs.
+                policy: SuggestFix
+            preferredmarkers:
+              markers:
+              - preferredIdentifier: "kubebuilder:validation:XValidation"
+                equivalentIdentifiers:
+                - identifier: "kubebuilder:validation:Pattern" # Use CEL expressions instead to allow more expressive error messages.
+            requiredfields:
+              pointers:
+                # This will force pointers when the field is required, but only when the zero
+                # value is a valid user choice, and has a semantic difference to being omitted (e.g. replicas allows 0).
+                policy: SuggestFix
+              omitempty:
+                # This will force omitempty on required fields.
+                # We do this so that the behaviour of not setting a value for the field is the same between
+                # both structured and unstructured clients.
+                policy: SuggestFix
+              omitzero:
+                # This will force omitzero on required struct fields.
+                # This means they can be omitted correctly and prevents the need for pointers to structs.
+                policy: SuggestFix
+            namingconventions:
+              conventions:
+              - name: nokind
+                violationMatcher: "^Kind$"
+                operation: Replacement
+                replacement: "Resource"
+                message: "API Kinds can be ambiguous and should be replaced with Resource"
+            noreferences:
+              policy: NoReferences
+            uniquemarkers:
+              customMarkers:
+              - identifier: "openshift:validation:FeatureGateAwareEnum"
+                attributes:
+                - featureGate
+                - requiredFeatureGate
+              - identifier: "openshift:validation:FeatureGateMaxItems"
+                attributes:
+                - featureGate
+                - requiredFeatureGate
+              - identifier: "openshift:validation:FeatureGateAwareXValidation"
+                attributes:
+                - featureGate
+                - requiredFeatureGate
+                - rule
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+    rules:
+      - linters:
+        - kubeapilinter
+        # This regex must always be updated in tandem with the regex in .golangci.go-validated.yaml that prevents `optionalfields` from being applied to the files in the path.
+        path: machine/v1beta1/(types_awsprovider.go|types_azureprovider.go|types_gcpprovider.go|types_vsphereprovider.go)|machine/v1alpha1/types_openstack.go
+        text: "optionalfields"
+      - linters:
+        - kubeapilinter
+        # Silence norefs lint for `Ref` field in ClusterAPI as it refers to an OCI image reference, not a kube object reference.
+        path: operator/v1alpha1/types_clusterapi.go
+        text: "noreferences: naming convention \"no-references\": field ClusterAPIInstallerComponentImage.Ref: field names should not contain reference-related words"
+      - linters:
+        - kubeapilinter
+        # PacemakerCluster intentionally marks Conditions as required with XValidation rules
+        # to enforce specific condition types are always present.
+        path: etcd/v1/types_pacemakercluster.go
+        text: "conditions: Conditions field in (PacemakerClusterStatus|PacemakerClusterNodeStatus|PacemakerClusterFencingAgentStatus|PacemakerClusterResourceStatus) is missing the following markers: optional"
+      - linters:
+        - kubeapilinter
+        path: features|payload-command/*.go
+issues:
+  # We have a lot of existing issues.
+  # Want to make sure that those adding new fields have an
+  # opportunity to fix them when running the linter locally.
+  max-issues-per-linter: 1000
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

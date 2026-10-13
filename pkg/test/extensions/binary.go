@@ -1,0 +1,1164 @@
+package extensions
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"path"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+
+	"github.com/onsi/ginkgo/v2"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
+	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
+	originVersion "github.com/openshift/origin/pkg/version"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/mod/semver"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
+	k8simage "k8s.io/kubernetes/test/utils/image"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
+	"github.com/openshift/origin/pkg/clioptions/imagesetup"
+	"github.com/openshift/origin/pkg/clioptions/upgradeoptions"
+	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
+)
+
+// InitializeOpenShiftTestsExtensionFramework creates and initializes the extension registry with the origin tests extension.
+func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extension.Extension, error) {
+	// Create the origin extension
+	ov := originVersion.Get()
+	originExtension := &Extension{
+		Extension: &extension.Extension{
+			Component: extension.Component{
+				Product: "openshift",
+				Kind:    "payload",
+				Name:    "origin",
+			},
+			APIVersion: extension.CurrentExtensionAPIVersion,
+		},
+		Source: Source{
+			Source: &extension.Source{
+				Commit:       ov.GitCommit,
+				GitTreeState: ov.GitTreeState,
+				BuildDate:    ov.BuildDate,
+				SourceURL:    "https://github.com/openshift/origin",
+			},
+			SourceBinary: os.Args[0],
+			SourceImage:  "tests",
+		},
+	}
+
+	// Create our registry of openshift-tests extensions
+	extensionRegistry := extension.NewRegistry()
+	extensionRegistry.Register(originExtension.Extension)
+
+	err := clusterdiscovery.InitCSITests()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Build our specs from ginkgo
+	specs, err := g.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to build extension test specs: %w", err)
+	}
+
+	klog.Infof("Found %d test specs", len(specs))
+	// Filter out kube tests (while retaining CSI tests), vendor filtering isn't working within origin
+	csiPrefix := "External Storage"
+	specs = specs.Select(func(spec *extensiontests.ExtensionTestSpec) bool {
+		// The CSI tests all have the same prefix, and we need to retain them all
+		if strings.HasPrefix(spec.Name, csiPrefix) {
+			return true
+		}
+		for _, cl := range spec.CodeLocations {
+			// If there is a CodeLocation for origin, that isn't simply "framework" it is not a vendored test
+			if strings.Contains(cl, "github.com/openshift/origin/") &&
+				!strings.Contains(cl, "github.com/openshift/origin/test/extended/util/framework.go") {
+				return true
+			}
+		}
+		return false
+	})
+	klog.Infof("%d test specs remain, after filtering out k8s", len(specs))
+
+	// Filter out tests that are always disabled based on name matching
+	specs = filterOutDisabledSpecs(specs)
+	// Add environment selectors that include or exclude tests in specific environments
+	addEnvironmentSelectors(specs)
+	addLabelsToSpecs(specs)
+	appendSuiteNames(specs)
+
+	// frameworkInitError stores any error that occurs during framework initialization.
+	// Since ginkgo.Fail() doesn't work in AddBeforeAll context, we store the error
+	// and check it in AddBeforeEach where ginkgo.Fail() works properly.
+	var frameworkInitError error
+
+	specs.AddBeforeAll(func() {
+		config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), false, false, nil)
+		if err != nil {
+			frameworkInitError = fmt.Errorf("unable to decode test provider: %v", err)
+			return
+		}
+		if err := clusterdiscovery.InitializeTestFramework(exutil.TestContext, config, false); err != nil {
+			frameworkInitError = fmt.Errorf("unable to initialize test framework (cluster may be unavailable): %v", err)
+			return
+		}
+		// Redact the bearer token exposure
+		testContextString := fmt.Sprintf("%#v", exutil.TestContext)
+		redactedTestContext := exutil.RedactBearerToken(testContextString)
+		klog.V(4).Infof("Loaded test configuration: %s", redactedTestContext)
+
+		exutil.TestContext.ReportDir = os.Getenv("TEST_JUNIT_DIR")
+
+		image.InitializeImages(os.Getenv("KUBE_TEST_REPO"))
+
+		if err := imagesetup.VerifyImages(); err != nil {
+			frameworkInitError = fmt.Errorf("unable to verify images: %v", err)
+			return
+		}
+
+		// Handle upgrade options
+		upgradeOptionsYAML := os.Getenv("TEST_UPGRADE_OPTIONS")
+		upgradeOptions, err := upgradeoptions.NewUpgradeOptionsFromYAML(upgradeOptionsYAML)
+		if err != nil {
+			frameworkInitError = fmt.Errorf("unable to parse upgrade options: %v", err)
+			return
+		}
+
+		if err := upgradeOptions.SetUpgradeGlobals(); err != nil {
+			frameworkInitError = fmt.Errorf("unable to set upgrade globals: %v", err)
+			return
+		}
+	})
+
+	// Check for framework initialization errors before each test.
+	// This ensures each test produces proper JUnit output when init fails,
+	// and allows other test binaries to continue running.
+	specs.AddBeforeEach(func(_ extensiontests.ExtensionTestSpec) {
+		if frameworkInitError != nil {
+			ginkgo.Fail(fmt.Sprintf("FRAMEWORK INITIALIZATION FAILED: %v", frameworkInitError))
+		}
+	})
+
+	originExtension.Extension.AddSpecs(specs)
+
+	return extensionRegistry, originExtension.Extension, nil
+}
+
+// TestBinary implements the openshift-tests extension interface (Info, ListTests, RunTests, etc).
+type TestBinary struct {
+	// The payload image tag in which an external binary path can be found
+	imageTag string
+	// The binary path to extract from the image
+	binaryPath string
+
+	// Cache the info after gathering it
+	info *Extension
+}
+
+// UnpermittedExtension describes a discovered non-payload extension that is not permitted by any TestExtensionAdmission.
+// Used to generate a synthetic skip test.
+type UnpermittedExtension struct {
+	Namespace   string
+	ImageStream string
+	Tag         string
+	Component   string
+}
+
+// nonPayloadSource describes a discovered ImageStreamTag that advertises an extension binary (permitted or not).
+type nonPayloadSource struct {
+	Namespace   string
+	ImageStream string
+	Tag         string
+	ImageRef    string
+	BinaryPath  string
+	Component   string
+	BinaryArgs  string
+}
+
+// ImageSet maps a Kubernetes image ID to its corresponding configuration.
+// It represents a collection of container images with their registry, name, and version.
+type ImageSet map[k8simage.ImageID]k8simage.Config
+
+// Image represents a single container image generated by the "images" command.
+type Image struct {
+	Index    int    `json:"index"`
+	Registry string `json:"registry"`
+	Name     string `json:"name"`
+	Version  string `json:"version"`
+}
+
+// extensionBinaries is the registry of additional test binaries to use as extension tests. Members
+// of the registry must be part of the release payload.
+var extensionBinaries = []TestBinary{
+	// Self reference for origin's own internal extension
+	{
+		imageTag:   "tests",
+		binaryPath: os.Args[0],
+	},
+
+	// Extensions in other payload images
+	{
+		imageTag:   "aws-machine-controllers",
+		binaryPath: "/machine-api-provider-aws-tests-ext.gz",
+	},
+	{
+		imageTag:   "cli",
+		binaryPath: "/usr/bin/oc-tests-ext.gz",
+	},
+	{
+		imageTag:   "cloud-credential-operator",
+		binaryPath: "/usr/bin/cloud-credential-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-authentication-operator",
+		binaryPath: "/usr/bin/cluster-authentication-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-cloud-controller-manager-operator",
+		binaryPath: "/usr/bin/cloud-controller-manager-aws-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-cloud-controller-manager-operator",
+		binaryPath: "/usr/bin/cloud-controller-manager-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-config-operator",
+		binaryPath: "/usr/bin/cluster-config-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-control-plane-machine-set-operator",
+		binaryPath: "/cluster-control-plane-machine-set-operator-ext.gz",
+	},
+	{
+		imageTag:   "cluster-etcd-operator",
+		binaryPath: "/usr/bin/cluster-etcd-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-image-registry-operator",
+		binaryPath: "/usr/bin/cluster-image-registry-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-ingress-operator",
+		binaryPath: "/usr/bin/cluster-ingress-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-kube-apiserver-operator",
+		binaryPath: "/usr/bin/cluster-kube-apiserver-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-kube-controller-manager-operator",
+		binaryPath: "/usr/bin/cluster-kube-controller-manager-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-kube-scheduler-operator",
+		binaryPath: "/usr/bin/cluster-kube-scheduler-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-kube-storage-version-migrator-operator",
+		binaryPath: "/usr/bin/cluster-kube-storage-version-migrator-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-monitoring-operator",
+		binaryPath: "/usr/bin/cluster-monitoring-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-node-tuning-operator",
+		binaryPath: "/usr/bin/cluster-node-tuning-operator-test-ext.gz",
+	},
+	{
+		imageTag:   "cluster-openshift-apiserver-operator",
+		binaryPath: "/usr/bin/cluster-openshift-apiserver-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-openshift-controller-manager-operator",
+		binaryPath: "/usr/bin/cluster-openshift-controller-manager-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-storage-operator",
+		binaryPath: "/usr/bin/cluster-storage-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-version-operator",
+		binaryPath: "/usr/bin/cluster-version-operator-tests.gz",
+	},
+	{
+		imageTag:   "hyperkube",
+		binaryPath: "/usr/bin/k8s-tests-ext.gz",
+	},
+	{
+		imageTag:   "machine-api-operator",
+		binaryPath: "/machine-api-tests-ext.gz",
+	},
+	{
+		imageTag:   "machine-config-operator",
+		binaryPath: "/usr/bin/machine-config-tests-ext.gz",
+	},
+	{
+		imageTag:   "oauth-apiserver",
+		binaryPath: "/usr/bin/oauth-apiserver-tests-ext.gz",
+	},
+	{
+		imageTag:   "olm-operator-controller",
+		binaryPath: "/usr/bin/olmv1-tests-ext.gz",
+	},
+	{
+		imageTag:   "openshift-apiserver",
+		binaryPath: "/usr/bin/openshift-apiserver-tests-ext.gz",
+	},
+	{
+		imageTag:   "openshift-controller-manager",
+		binaryPath: "/usr/bin/openshift-controller-manager-tests-ext.gz",
+	},
+	{
+		imageTag:   "operator-lifecycle-manager",
+		binaryPath: "/usr/bin/olmv0-tests-ext.gz",
+	},
+	{
+		imageTag:   "ovn-kubernetes",
+		binaryPath: "/usr/bin/ovn-kubernetes-tests-ext.gz",
+	},
+	{
+		imageTag:   "service-ca-operator",
+		binaryPath: "/usr/bin/service-ca-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "vsphere-csi-driver-operator",
+		binaryPath: "/usr/bin/vmware-vsphere-csi-driver-operator-tests-ext.gz",
+	},
+}
+
+// extractJSON finds the first JSON object or array in output, skipping any non-JSON log lines
+// that precede it. This is necessary because some extension binaries output warnings or debug
+// logging to stdout before the JSON payload.
+func extractJSON(output []byte) ([]byte, error) {
+	jsonBegins := -1
+	lines := bytes.Split(output, []byte("\n"))
+	for i, line := range lines {
+		trimmed := bytes.TrimSpace(line)
+		if len(trimmed) > 0 && (trimmed[0] == '{' || trimmed[0] == '[') {
+			jsonBegins = 0
+			for j := 0; j < i; j++ {
+				jsonBegins += len(lines[j]) + 1 // +1 for the newline character
+			}
+			jsonBegins += len(line) - len(trimmed) // Add any leading whitespace
+			break
+		}
+	}
+
+	if jsonBegins == -1 {
+		return nil, fmt.Errorf("no valid JSON found in output: %s", string(output))
+	}
+
+	var raw json.RawMessage
+	dec := json.NewDecoder(bytes.NewReader(output[jsonBegins:]))
+	if err := dec.Decode(&raw); err != nil {
+		return nil, fmt.Errorf("no valid JSON found in output: %w", err)
+	}
+	return raw, nil
+}
+
+// Info returns information about this particular extension.
+func (b *TestBinary) Info(ctx context.Context) (*Extension, error) {
+	if b.info != nil {
+		return b.info, nil
+	}
+
+	start := time.Now()
+	binName := filepath.Base(b.binaryPath)
+
+	logrus.Infof("Fetching info for %s", binName)
+	command := exec.Command(b.binaryPath, "info")
+	infoJson, err := runWithTimeout(ctx, command, 10*time.Minute)
+	if err != nil {
+		logrus.Errorf("Failed to fetch info for %s: %v", binName, err)
+		logrus.Errorf("Command output for %s: %s", binName, string(infoJson))
+		return nil, fmt.Errorf("failed running '%s info': %w\nOutput: %s", b.binaryPath, err, infoJson)
+	}
+	jsonData, err := extractJSON(infoJson)
+	if err != nil {
+		logrus.Errorf("No valid JSON found in output from %s info command", binName)
+		logrus.Errorf("Raw output from %s: %s", binName, string(infoJson))
+		return nil, fmt.Errorf("no valid JSON found in output from '%s info' command", binName)
+	}
+	var info Extension
+	err = json.Unmarshal(jsonData, &info)
+	if err != nil {
+		logrus.Errorf("Failed to unmarshal JSON from %s: %v", binName, err)
+		logrus.Errorf("JSON data from %s: %s", binName, string(jsonData))
+		return nil, errors.Wrapf(err, "couldn't unmarshal extension info from %s: %s", binName, string(jsonData))
+	}
+	b.info = &info
+
+	// Set fields origin knows or calculates:
+	b.info.Binary = b
+	b.info.Source.SourceBinary = binName
+	b.info.Source.SourceImage = b.imageTag
+	b.info.ExtensionArtifactDir = path.Join(os.Getenv("ARTIFACT_DIR"), safeComponentPath(&b.info.Component))
+
+	logrus.Infof("Fetched info for %s in %v", binName, time.Since(start))
+	return b.info, nil
+}
+
+// ListTests takes a list of EnvironmentFlags to pass to the command so it can determine for itself which tests are relevant.
+// returns which tests this binary advertises.
+func (b *TestBinary) ListTests(ctx context.Context, envFlags EnvironmentFlags) (ExtensionTestSpecs, error) {
+	var tests ExtensionTestSpecs
+	start := time.Now()
+	binName := filepath.Base(b.binaryPath)
+
+	binLogger := logrus.WithField("binary", binName)
+	binLogger.Info("Listing tests")
+	binLogger.Infof("OTE API version is: %s", b.info.APIVersion)
+	envFlags = b.filterToApplicableEnvironmentFlags(envFlags)
+	command := exec.Command(b.binaryPath, "list", "-o", "jsonl")
+	binLogger.Infof("Adding the following applicable flags to the list command: %s", envFlags.String())
+	command.Args = append(command.Args, envFlags.ArgStrings()...)
+	testList, err := runWithTimeout(ctx, command, 10*time.Minute)
+	if err != nil {
+		return nil, fmt.Errorf("failed running '%s list': %w\nOutput: %s", b.binaryPath, err, testList)
+	}
+	buf := bytes.NewBuffer(testList)
+	for {
+		line, err := buf.ReadString('\n')
+		if err == io.EOF {
+			break
+		}
+		if !strings.HasPrefix(line, "{") {
+			continue
+		}
+
+		extensionTestSpec := new(ExtensionTestSpec)
+		err = json.Unmarshal([]byte(line), extensionTestSpec)
+		if err != nil {
+			return nil, errors.Wrapf(err, "line: %s", line)
+		}
+		extensionTestSpec.Binary = b
+		tests = append(tests, extensionTestSpec)
+	}
+	binLogger.Infof("Listed %d tests in %v", len(tests), time.Since(start))
+	return tests, nil
+}
+
+// RunTests executes the named tests and returns the results.
+func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []string,
+	names ...string) []*ExtensionTestResult {
+	var results []*ExtensionTestResult
+	expectedTests := sets.New[string](names...)
+	binName := filepath.Base(b.binaryPath)
+
+	// Configure EXTENSION_ARTIFACTS_DIR -- extension is responsible for MkdirAll if they want
+	// to produce artifacts.
+	info, err := b.Info(ctx)
+	if err != nil {
+		// unlikely to happen in reality, we'll have always run info and cached it before running tests
+		logrus.Warningf("Failed to fetch info for %s: %v", binName, err)
+	}
+	// Example: k8s-tests-ext's extension will be $ARTIFACT_DIR/openshift/payload/hyperkube
+	env = append(env, fmt.Sprintf("EXTENSION_ARTIFACT_DIR=%s", info.ExtensionArtifactDir))
+
+	// Build command
+	args := []string{"run-test"}
+	for _, name := range names {
+		args = append(args, "-n", name)
+	}
+	args = append(args, "-o", "jsonl")
+	command := exec.Command(b.binaryPath, args...)
+	if len(env) == 0 {
+		env = os.Environ()
+	}
+	command.Env = env
+
+	// Run test
+	testResult, _ := runWithTimeout(ctx, command, timeout) // error is ignored because external binaries return non-zero when a test fails, we only need to process the output
+
+	// Parse results backwards from the end of output. Test results are JSONL lines at the end
+	// of the output, and we stop when we encounter a non-result line. This avoids parsing
+	// stray JSON output (like etcd client logs) that may appear earlier in the output.
+	lines := strings.Split(string(testResult), "\n")
+	foundResults := false
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := lines[i]
+		if !strings.HasPrefix(line, "{") {
+			// If we've already found results and hit a non-JSON line, stop parsing
+			if foundResults {
+				break
+			}
+			continue
+		}
+		result := new(ExtensionTestResult)
+		err := json.Unmarshal([]byte(line), &result)
+		if err != nil {
+			// If we've already found results and hit an unparseable line, stop parsing
+			if foundResults {
+				break
+			}
+			continue
+		}
+		// Validate this looks like a real test result (has required fields)
+		// This filters out stray JSON like etcd client logs that have different fields
+		if result.Name == "" || result.Result == "" {
+			if foundResults {
+				break
+			}
+			logrus.Warnf("Ignoring JSON line missing required fields (name/result): %s", truncateLine(line, 200))
+			continue
+		}
+		foundResults = true
+
+		// expectedTests starts with the list of test names we expect, and as we see them, we
+		// remove them from the set. If we encounter a test result that's not in expectedTests,
+		// then it means either:
+		//  - we already saw a result for this test, which breaks the invariant that run-test
+		//    returns one result for each test
+		//  - we got a test result we didn't expect at all (maybe the external binary improperly
+		//    mutated the name, or otherwise did something weird)
+		if !expectedTests.Has(result.Name) {
+			result.Result = extensiontests.ResultFailed
+			result.Error = fmt.Sprintf("test binary %q returned unexpected result: %s", binName, result.Name)
+		}
+		expectedTests.Delete(result.Name)
+
+		result.Source = b.info.Source
+		results = append(results, result)
+	}
+
+	// If we end up with anything left in expected tests, generate failures for them because
+	// we didn't get results for them.
+	for _, expectedTest := range expectedTests.UnsortedList() {
+		// Check if this was a framework initialization failure - provide a clearer error message
+		errorMsg := "external binary did not produce a result for this test"
+		output := string(testResult)
+		if strings.Contains(output, "FRAMEWORK INITIALIZATION FAILED:") {
+			// Extract the initialization failure reason for a clearer error message
+			if idx := strings.Index(output, "FRAMEWORK INITIALIZATION FAILED:"); idx >= 0 {
+				// Find the end of the line containing the error
+				endIdx := strings.Index(output[idx:], "\n")
+				if endIdx > 0 {
+					errorMsg = output[idx : idx+endIdx]
+				} else {
+					errorMsg = output[idx:]
+				}
+			}
+		}
+		results = append(results, &ExtensionTestResult{
+			&extensiontests.ExtensionTestResult{
+				Name:   expectedTest,
+				Result: extensiontests.ResultFailed,
+				Output: output,
+				Error:  errorMsg,
+			},
+			b.info.Source,
+		})
+	}
+
+	return results
+}
+
+func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
+	start := time.Now()
+	binName := filepath.Base(b.binaryPath)
+
+	logrus.Infof("Listing images for %q", binName)
+	command := exec.Command(b.binaryPath, "images")
+	output, err := runWithTimeout(ctx, command, 10*time.Minute)
+	if err != nil {
+		return nil, fmt.Errorf("failed running '%s images': %w\nOutput: %s", b.binaryPath, err, output)
+	}
+
+	jsonData, err := extractJSON(output)
+	if err != nil {
+		// Extensions that have no images may output "null" instead of an array
+		if bytes.Contains(output, []byte("null")) {
+			logrus.Infof("Extension %q reported null images, treating as empty", binName)
+			return ImageSet{}, nil
+		}
+		logrus.Errorf("No valid JSON found in output from %s images command", binName)
+		logrus.Errorf("Raw output from %s: %s", binName, string(output))
+		return nil, fmt.Errorf("no valid JSON found in output from '%s images' command", binName)
+	}
+
+	var images []Image
+	err = json.Unmarshal(jsonData, &images)
+	if err != nil {
+		logrus.Errorf("Failed to unmarshal JSON from %s: %v", binName, err)
+		logrus.Errorf("JSON data from %s: %s", binName, string(jsonData))
+		return nil, errors.Wrapf(err, "couldn't unmarshal extension images from %s: %s", binName, string(jsonData))
+	}
+
+	result := make(ImageSet, len(images))
+	for _, image := range images {
+		imageConfig := k8simage.Config{}
+		imageConfig.SetName(image.Name)
+		imageConfig.SetVersion(image.Version)
+		imageConfig.SetRegistry(image.Registry)
+		result[k8simage.ImageID(image.Index)] = imageConfig
+	}
+
+	logrus.Infof("Listed %d test images for %q in %v", len(images), binName, time.Since(start))
+	return result, nil
+}
+
+// ExtractAllTestBinaries determines the optimal release payload to use, and extracts all the external
+// test binaries from it (payload + permitted non-payload), and returns cleanup, binaries, and any
+// unpermitted non-payload extensions for synthetic skip tests.
+func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestBinaries, []UnpermittedExtension, error) {
+	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) > 0 {
+		logrus.Warning("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
+		var internalBinaries []*TestBinary
+		for _, b := range extensionBinaries {
+			if b.binaryPath == os.Args[0] {
+				internalBinaries = append(internalBinaries, &b)
+			}
+		}
+
+		return func() {}, internalBinaries, nil, nil
+	}
+
+	if parallelism < 1 {
+		return nil, nil, nil, errors.New("parallelism must be greater than zero")
+	}
+
+	// Filter extension binaries based on environment variables
+	filteredBinaries := filterExtensionBinariesByTags(extensionBinaries)
+
+	releaseImage, err := DetermineReleasePayloadImage()
+	if err != nil {
+		return nil, nil, nil, errors.WithMessage(err, "couldn't determine release image")
+	}
+
+	tmpDir, err := os.MkdirTemp("", "external-binary")
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to create temporary directory: %w", err)
+	}
+
+	defer os.RemoveAll(tmpDir)
+
+	oc := exutil.NewCLIWithoutNamespace("default")
+	registryAuthFilePath, err := DetermineRegistryAuthFilePath(tmpDir, oc)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to determine registry auth file path: %w", err)
+	}
+
+	externalBinaryProvider, err := NewExternalBinaryProvider(releaseImage, registryAuthFilePath)
+	if err != nil {
+		return nil, nil, nil, errors.WithMessage(err, "could not create external binary provider")
+	}
+
+	permitPatterns, err := DiscoverNonPayloadBinaryAdmission(ctx, oc.AdminConfig())
+	if err != nil {
+		logrus.Warnf("Skipping non-payload extension discovery (admission check failed): %v", err)
+		permitPatterns = nil
+	}
+	permittedNonPayload, unpermittedNonPayload, err := discoverNonPayloadExtensions(ctx, oc, permitPatterns)
+	if err != nil {
+		logrus.Warnf("Non-payload extension discovery failed: %v", err)
+	}
+
+	var (
+		binaries []*TestBinary
+		mu       sync.Mutex
+		wg       sync.WaitGroup
+		errCh    = make(chan error, len(filteredBinaries))
+		jobCh    = make(chan TestBinary)
+	)
+
+	// Producer: sends jobs to the jobCh channel
+	go func() {
+		defer close(jobCh)
+		for _, b := range filteredBinaries {
+			select {
+			case <-ctx.Done():
+				return // Exit if context is cancelled
+			case jobCh <- b:
+			}
+		}
+	}()
+
+	// Consumer workers: extract test binaries concurrently
+	for i := 0; i < parallelism; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return // Context is cancelled
+				case b, ok := <-jobCh:
+					if !ok {
+						return // Channel is closed
+					}
+
+					// Self reference, no need to extract
+					if b.binaryPath == os.Args[0] {
+						mu.Lock()
+						binaries = append(binaries, &b)
+						mu.Unlock()
+						continue
+					}
+
+					testBinary, err := externalBinaryProvider.ExtractBinaryFromReleaseImage(b.imageTag, b.binaryPath)
+					if err != nil {
+						errCh <- err
+						continue
+					}
+					mu.Lock()
+					binaries = append(binaries, testBinary)
+					mu.Unlock()
+				}
+			}
+
+		}()
+	}
+
+	// Wait for all workers to finish
+	wg.Wait()
+	close(errCh)
+
+	// Check if any errors were reported
+	var errs []string
+	for err := range errCh {
+		errs = append(errs, err.Error())
+	}
+	if len(errs) > 0 {
+		externalBinaryProvider.Cleanup()
+		return nil, nil, nil, fmt.Errorf("encountered errors while extracting binaries: %s", strings.Join(errs, ";"))
+	}
+
+	for _, src := range permittedNonPayload {
+		tb, err := externalBinaryProvider.ExtractBinaryFromImage(src.ImageRef, src.BinaryPath, src.imageTag())
+		if err != nil {
+			logrus.Warnf("Failed to extract non-payload extension from %s: %v", src.imageTag(), err)
+			continue
+		}
+		binaries = append(binaries, tb)
+	}
+
+	return externalBinaryProvider.Cleanup, binaries, unpermittedNonPayload, nil
+}
+
+type TestBinaries []*TestBinary
+
+// Info fetches the info from all TestBinaries using the specified parallelism.
+func (binaries TestBinaries) Info(ctx context.Context, parallelism int) ([]*Extension, error) {
+	var (
+		infos []*Extension
+		mu    sync.Mutex
+		wg    sync.WaitGroup
+		errCh = make(chan error, len(binaries))
+		jobCh = make(chan *TestBinary)
+	)
+
+	// Producer: sends jobs to the jobCh channel
+	go func() {
+		defer close(jobCh)
+		for _, binary := range binaries {
+			select {
+			case <-ctx.Done():
+				return // Exit when context is cancelled
+			case jobCh <- binary:
+			}
+		}
+	}()
+
+	// Consumer workers: extract tests concurrently
+	for i := 0; i < parallelism; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return // Exit when context is cancelled
+				case binary, ok := <-jobCh:
+					if !ok {
+						return // Channel was closed
+					}
+					info, err := binary.Info(ctx)
+					if err != nil {
+						binName := filepath.Base(binary.binaryPath)
+						logrus.Errorf("Failed to get info from binary %s: %v", binName, err)
+						errCh <- fmt.Errorf("binary %s: %w", binName, err)
+					}
+					mu.Lock()
+					infos = append(infos, info)
+					mu.Unlock()
+				}
+			}
+		}()
+	}
+
+	// Wait for all workers to finish
+	wg.Wait()
+	close(errCh)
+
+	// Check if any errors were reported
+	var errs []string
+	for err := range errCh {
+		errs = append(errs, err.Error())
+	}
+	if len(errs) > 0 {
+		logrus.Errorf("Failed to fetch info from %d binaries", len(errs))
+		return nil, fmt.Errorf("encountered errors while fetching info: %s", strings.Join(errs, "; "))
+	}
+
+	return infos, nil
+}
+
+func (binaries TestBinaries) ListImages(ctx context.Context, parallelism int) ([]ImageSet, error) {
+	var (
+		allImages []ImageSet
+		mu        sync.Mutex
+		wg        sync.WaitGroup
+		errCh     = make(chan error, len(binaries))
+		jobCh     = make(chan *TestBinary)
+	)
+
+	// Producer: sends jobs to the jobCh channel
+	go func() {
+		defer close(jobCh)
+		for _, binary := range binaries {
+			select {
+			case <-ctx.Done():
+				return // Exit when context is cancelled
+			case jobCh <- binary:
+			}
+		}
+	}()
+
+	// Consumer workers: extract tests concurrently
+	for i := 0; i < parallelism; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return // Exit when context is cancelled
+				case binary, ok := <-jobCh:
+					if !ok {
+						return // Channel was closed
+					}
+					if binary.binaryPath == os.Args[0] {
+						continue // Skip self - only external binaries need to be queried for images
+					}
+
+					imageConfig, err := binary.ListImages(ctx)
+					if err != nil {
+						errCh <- err
+					}
+					mu.Lock()
+					allImages = append(allImages, imageConfig)
+					mu.Unlock()
+				}
+			}
+		}()
+	}
+
+	// Wait for all workers to finish
+	wg.Wait()
+	close(errCh)
+
+	// Check if any errors were reported
+	var errs []string
+	for err := range errCh {
+		errs = append(errs, err.Error())
+	}
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("encountered errors while listing tests: %s", strings.Join(errs, ";"))
+	}
+
+	return allImages, nil
+}
+
+// ListTests extracts the tests from all TestBinaries using the specified parallelism,
+// and passes the provided EnvironmentFlags for proper filtering of results.
+func (binaries TestBinaries) ListTests(ctx context.Context, parallelism int, envFlags EnvironmentFlags) (ExtensionTestSpecs, error) {
+	var (
+		allTests ExtensionTestSpecs
+		mu       sync.Mutex
+		wg       sync.WaitGroup
+		errCh    = make(chan error, len(binaries))
+		jobCh    = make(chan *TestBinary)
+	)
+
+	// Producer: sends jobs to the jobCh channel
+	go func() {
+		defer close(jobCh)
+		for _, binary := range binaries {
+			select {
+			case <-ctx.Done():
+				return // Exit when context is cancelled
+			case jobCh <- binary:
+			}
+		}
+	}()
+
+	// Consumer workers: extract tests concurrently
+	for i := 0; i < parallelism; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return // Exit when context is cancelled
+				case binary, ok := <-jobCh:
+					if !ok {
+						return // Channel was closed
+					}
+					tests, err := binary.ListTests(ctx, envFlags)
+					if err != nil {
+						errCh <- err
+					}
+					mu.Lock()
+					allTests = append(allTests, tests...)
+					mu.Unlock()
+				}
+			}
+		}()
+	}
+
+	// Wait for all workers to finish
+	wg.Wait()
+	close(errCh)
+
+	// Check if any errors were reported
+	var errs []string
+	for err := range errCh {
+		errs = append(errs, err.Error())
+	}
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("encountered errors while listing tests: %s", strings.Join(errs, ";"))
+	}
+
+	return allTests, nil
+}
+
+func runWithTimeout(ctx context.Context, c *exec.Cmd, timeout time.Duration) ([]byte, error) {
+	if timeout > 0 {
+		go func() {
+			select {
+			// interrupt tests after timeout, and abort if they don't complete quick enough
+			case <-time.After(timeout):
+				if c.Process != nil {
+					c.Process.Signal(syscall.SIGINT)
+				}
+				// if the process appears to be hung a significant amount of time after the timeout
+				// send an ABRT so we get a stack dump
+				select {
+				case <-time.After(time.Minute):
+					if c.Process != nil {
+						c.Process.Signal(syscall.SIGABRT)
+					}
+				}
+			case <-ctx.Done():
+				if c.Process != nil {
+					c.Process.Signal(syscall.SIGINT)
+				}
+			}
+
+		}()
+	}
+	return c.CombinedOutput()
+}
+
+var safePathRegexp = regexp.MustCompile(`[<>:"/\\|?*\s]+`)
+
+// safeComponentPath sanitizes a component identifier to be safe for use as a file or directory name.
+func safeComponentPath(c *extension.Component) string {
+	return path.Join(
+		safePathRegexp.ReplaceAllString(c.Product, "_"),
+		safePathRegexp.ReplaceAllString(c.Kind, "_"),
+		safePathRegexp.ReplaceAllString(c.Name, "_"),
+	)
+}
+
+// filterExtensionBinariesByTags filters the extension binaries based on environment variables:
+// - EXTENSION_BINARY_OVERRIDE_EXCLUDE_TAGS: comma-separated list of image tags to exclude
+// - EXTENSION_BINARY_OVERRIDE_INCLUDE_TAGS: comma-separated list of image tags to include (use only these)
+func filterExtensionBinariesByTags(binaries []TestBinary) []TestBinary {
+	excludeTags := os.Getenv("EXTENSION_BINARY_OVERRIDE_EXCLUDE_TAGS")
+	includeTags := os.Getenv("EXTENSION_BINARY_OVERRIDE_INCLUDE_TAGS")
+
+	// If neither environment variable is set, return all binaries
+	if excludeTags == "" && includeTags == "" {
+		return binaries
+	}
+
+	var filtered []TestBinary
+
+	// Parse exclude tags
+	var excludeSet sets.Set[string]
+	if excludeTags != "" {
+		excludeList := strings.Split(excludeTags, ",")
+		excludeSet = sets.New[string]()
+		for _, tag := range excludeList {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				excludeSet.Insert(tag)
+			}
+		}
+		logrus.Infof("Excluding extension binaries with image tags: %v", excludeSet.UnsortedList())
+	}
+
+	// Parse include tags
+	var includeSet sets.Set[string]
+	if includeTags != "" {
+		includeList := strings.Split(includeTags, ",")
+		includeSet = sets.New[string]()
+		for _, tag := range includeList {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				includeSet.Insert(tag)
+			}
+		}
+		logrus.Infof("Including only extension binaries with image tags: %v", includeSet.UnsortedList())
+	}
+
+	// Filter binaries
+	for _, binary := range binaries {
+		imageTag := binary.imageTag
+
+		// If include tags are specified, only include binaries with those tags
+		if includeSet != nil {
+			if includeSet.Has(imageTag) {
+				filtered = append(filtered, binary)
+				logrus.Infof("Including extension binary with image tag: %s", imageTag)
+			} else {
+				logrus.Infof("Excluding extension binary with image tag: %s (not in include list)", imageTag)
+			}
+			continue
+		}
+
+		// If exclude tags are specified, exclude binaries with those tags
+		if excludeSet != nil && excludeSet.Has(imageTag) {
+			logrus.Infof("Excluding extension binary with image tag: %s", imageTag)
+			continue
+		}
+
+		// Include the binary
+		filtered = append(filtered, binary)
+	}
+
+	logrus.Infof("Filtered extension binaries: %d out of %d binaries will be processed", len(filtered), len(binaries))
+	return filtered
+}
+
+// filterToApplicableEnvironmentFlags filters the provided envFlags to only those that are applicable to the
+// APIVersion of OTE within the external binary.
+func (b *TestBinary) filterToApplicableEnvironmentFlags(envFlags EnvironmentFlags) EnvironmentFlags {
+	apiVersion := b.info.APIVersion
+	filtered := EnvironmentFlags{}
+	for _, flag := range envFlags {
+		if semver.Compare(apiVersion, flag.SinceVersion) >= 0 {
+			filtered = append(filtered, flag)
+		}
+	}
+
+	return filtered
+}
+
+func (s nonPayloadSource) imageTag() string {
+	return fmt.Sprintf("%s/%s:%s", s.Namespace, s.ImageStream, s.Tag)
+}
+
+// discoverNonPayloadExtensions lists ImageStreamTags with ComponentAnnotation in all namespaces,
+// parses binary annotation and image ref, and splits into permitted vs unpermitted by the admission result.
+func discoverNonPayloadExtensions(ctx context.Context, oc *exutil.CLI, permitPatterns []PermitPattern) (permitted []nonPayloadSource, unpermitted []UnpermittedExtension, err error) {
+	if len(permitPatterns) == 0 {
+		return nil, nil, nil
+	}
+	imageClient := oc.AdminImageClient().ImageV1()
+	// Search all namespaces
+	list, err := imageClient.ImageStreamTags("").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to list ImageStreamTags in all namespaces: %v", err)
+	}
+	for i := range list.Items {
+		ist := &list.Items[i]
+		component := ist.Annotations[ComponentAnnotation]
+		if component == "" {
+			continue
+		}
+		binAnnot := ist.Annotations[BinaryAnnotation]
+		if binAnnot == "" {
+			continue
+		}
+		binPath, binArgs := parseBinaryAnnotation(binAnnot)
+		if binPath == "" {
+			continue
+		}
+		imageRef := ist.Image.DockerImageReference
+		namespace := ist.Namespace
+		if imageRef == "" {
+			logrus.Warnf("ImageStreamTag %s/%s has no image reference", namespace, ist.Name)
+			continue
+		}
+		streamName, tagName := splitImageStreamTagName(ist.Name)
+		if streamName == "" || tagName == "" {
+			continue
+		}
+		source := nonPayloadSource{
+			Namespace:   namespace,
+			ImageStream: streamName,
+			Tag:         tagName,
+			ImageRef:    imageRef,
+			BinaryPath:  binPath,
+			Component:   component,
+			BinaryArgs:  binArgs,
+		}
+		if MatchesAnyPermit(namespace, streamName, permitPatterns) {
+			permitted = append(permitted, source)
+		} else {
+			unpermitted = append(unpermitted, UnpermittedExtension{
+				Namespace:   namespace,
+				ImageStream: streamName,
+				Tag:         tagName,
+				Component:   component,
+			})
+		}
+	}
+
+	return permitted, unpermitted, nil
+}
+
+func parseBinaryAnnotation(v string) (path, args string) {
+	v = strings.TrimSpace(v)
+	idx := strings.Index(v, " ")
+	if idx < 0 {
+		return v, ""
+	}
+	return strings.TrimSpace(v[:idx]), strings.TrimSpace(v[idx+1:])
+}
+
+func splitImageStreamTagName(name string) (stream, tag string) {
+	idx := strings.LastIndex(name, ":")
+	if idx < 0 {
+		return "", ""
+	}
+	return name[:idx], name[idx+1:]
+}
+
+// truncateLine truncates a string to maxLen characters, adding "..." if truncated.
+func truncateLine(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
+}

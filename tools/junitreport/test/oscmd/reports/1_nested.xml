@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+	<testsuite name="package" tests="2" skipped="0" failures="0" time="11.245">
+		<testsuite name="package/name" tests="2" skipped="0" failures="0" time="11.245">
+			<testcase name="package/name/file.sh:23: executing &#39;some command&#39; expecting success" time="0.123"></testcase>
+			<testcase name="package/name/file.sh:24: executing &#39;some other command&#39; expecting success" time="11.123"></testcase>
+		</testsuite>
+	</testsuite>
+</testsuites>

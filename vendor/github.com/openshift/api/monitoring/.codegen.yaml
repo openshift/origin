@@ -1,0 +1,8 @@
+schemapatch:
+  requiredFeatureSets:
+  - ""
+  - "Default"
+  - "TechPreviewNoUpgrade"
+swaggerdocs:
+  disabled: false
+  commentPolicy: Enforce

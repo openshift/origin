@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+	<testsuite name="k8s.io" tests="2" skipped="1" failures="0" time="0.077">
+		<testsuite name="k8s.io/kubernetes" tests="2" skipped="1" failures="0" time="0.077">
+			<testsuite name="k8s.io/kubernetes/plugin" tests="2" skipped="1" failures="0" time="0.077">
+				<testsuite name="k8s.io/kubernetes/plugin/pkg" tests="2" skipped="1" failures="0" time="0.077">
+					<testsuite name="k8s.io/kubernetes/plugin/pkg/auth" tests="2" skipped="1" failures="0" time="0.077">
+						<testsuite name="k8s.io/kubernetes/plugin/pkg/auth/authorizer" tests="2" skipped="1" failures="0" time="0.077">
+							<testsuite name="k8s.io/kubernetes/plugin/pkg/auth/authorizer/node" tests="2" skipped="1" failures="0" time="0.077">
+								<testcase name="TestAuthorizer" time="0"></testcase>
+								<testcase name="TestPopulationMemoryUsage" time="0">
+									<skipped message="=== RUN   TestPopulationMemoryUsage&#xA;--- SKIP: TestPopulationMemoryUsage (0.00s)&#xA;&#x9;node_authorizer_test.go:169: Skipping large population test. Run with TEST_POPULATION_MEMORY_USAGE=true to output memory profiles.&#xA;PASS"></skipped>
+								</testcase>
+							</testsuite>
+						</testsuite>
+					</testsuite>
+				</testsuite>
+			</testsuite>
+		</testsuite>
+	</testsuite>
+</testsuites>

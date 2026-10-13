@@ -1,0 +1,15 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: myphp
+spec:
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/sclorg/cakephp-ex.git'
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: registry.redhat.io/ubi8/php-74:latest

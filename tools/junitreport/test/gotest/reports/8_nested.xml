@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+	<testsuite name="package" tests="2" skipped="0" failures="0" time="0.05">
+		<testsuite name="package/name" tests="2" skipped="0" failures="0" time="0.05">
+			<testcase name="TestOne" time="0.02"></testcase>
+			<testcase name="TestTwo" time="0.03"></testcase>
+		</testsuite>
+	</testsuite>
+</testsuites>

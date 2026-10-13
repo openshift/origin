@@ -1,0 +1,21 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: test-buildconfig
+spec:
+  output: {}
+  runPolicy: Serial
+  source:
+    git:
+      uri: https://github.com/openshift/ruby-hello-world.git
+    secrets: null
+    type: Git
+  strategy:
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: registry.access.redhat.com/ubi8/ruby-27
+    type: Source
+  triggers: []
+status:
+  lastVersion: 0

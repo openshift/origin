@@ -1,0 +1,88 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    annotations:
+      observability.openshift.io/tech-preview-otlp-output: "enabled"
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    managementState: ${MANAGEMENT_STATE}
+    filters:
+      - name: detect-multiline-exception
+        type: detectMultilineException
+    outputs:
+    - name: apps
+      type: otlp
+      otlp:
+        authentication:
+          token:
+            from: serviceAccount
+        url: ${URL}/api/logs/v1/application/otlp/v1/logs
+      tls:
+        ca:
+          key: ca-bundle.crt
+          secretName: ${SECRET_NAME}
+    - name: audit
+      type: otlp
+      otlp:
+        authentication:
+          token:
+            from: serviceAccount
+        url: ${URL}/api/logs/v1/audit/otlp/v1/logs
+      tls:
+        ca:
+          key: ca-bundle.crt
+          secretName: ${SECRET_NAME}
+    - name: infra
+      type: otlp
+      otlp:
+        authentication:
+          token:
+            from: serviceAccount
+        url: ${URL}/api/logs/v1/infrastructure/otlp/v1/logs
+      tls:
+        ca:
+          key: service-ca.crt
+          configMapName: ${CM_NAME}
+    pipelines:
+    - inputRefs:
+      - application
+      name: apps
+      filterRefs:
+      - detect-multiline-exception
+      outputRefs:
+      - apps
+    - inputRefs:
+      - audit
+      name: audit
+      outputRefs:
+      - audit
+    - inputRefs:
+      - infrastructure
+      filterRefs:
+      - detect-multiline-exception
+      name: infra
+      outputRefs:
+      - infra
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: MANAGEMENT_STATE
+  value: "Managed"
+- name: SECRET_NAME
+  value: ""
+- name: CM_NAME
+  value: "openshift-service-ca.crt"
+- name: URL
+  value: "https://logging-loki-gateway-http.openshift-logging.svc.cluster.local:8080"

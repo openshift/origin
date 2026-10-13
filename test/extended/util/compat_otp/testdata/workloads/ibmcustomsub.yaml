@@ -1,0 +1,13 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  labels:
+    operators.coreos.com/ibm-zcon-zosconnect.openshift-operators: ""
+  name: ibm-bts-operator
+  namespace: openshift-operators
+spec:
+  channel: v3
+  installPlanApproval: Automatic
+  name: ibm-bts-operator
+  source: cs-ibm-catalog-latest
+  sourceNamespace: openshift-marketplace

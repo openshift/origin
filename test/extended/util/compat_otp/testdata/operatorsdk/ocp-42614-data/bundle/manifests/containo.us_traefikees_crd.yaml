@@ -1,0 +1,21 @@
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: traefikees.containo.us
+spec:
+  group: containo.us
+  names:
+    kind: Traefikee
+    listKind: TraefikeeList
+    plural: traefikees
+    singular: traefikee
+  preserveUnknownFields: false
+  scope: Namespaced
+  subresources:
+    status: {}
+  version: v1alpha1
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true

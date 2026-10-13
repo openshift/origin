@@ -1,0 +1,39 @@
+{
+  "kind": "BuildConfig",
+  "apiVersion": "build.openshift.io/v1",
+  "metadata": {
+    "name": "s2i-build-quota",
+    "creationTimestamp": null,
+    "labels": {
+      "name": "s2i-build-quota"
+    }
+  },
+  "spec": {
+    "resources": {
+      "limits": {
+        "cpu": "400m",
+        "memory": "400Mi"
+      }
+    },
+    "source": {
+      "binary": {
+        "asFile": ""
+      }
+    },
+    "strategy": {
+      "type": "Source",
+      "sourceStrategy": {
+        "from": {
+          "kind": "DockerImage",
+          "name": "quay.io/redhat-developer/test-build-simples2i:1.2"
+        },
+        "env": [
+          {
+            "name": "BUILD_LOGLEVEL",
+            "value": "6"
+          }
+        ]
+      }
+    }
+  }
+}

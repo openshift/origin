@@ -1,0 +1,36 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: deploy-nodeselect-template
+objects:
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    labels:
+      app: "${DNAME}"
+    name: "${DNAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    replicas: ${{REPLICASNUM}}
+    selector:
+      matchLabels:
+        app: "${DNAME}"
+    template:
+      metadata:
+        labels:
+          app: "${DNAME}"
+          "${LABELKEY}": "${LABELVALUE}"
+      spec:
+        nodeSelector:
+          "${NODEKEY}": "${NODEVALUE}"
+        containers:
+        - image: "quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339"
+          name: hello-openshift
+parameters:
+- name: DNAME
+- name: NAMESPACE
+- name: REPLICASNUM
+- name: LABELKEY
+- name: LABELVALUE
+- name: NODEKEY
+- name: NODEVALUE

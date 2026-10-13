@@ -1,0 +1,26 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: busybox
+  namespace: default
+spec:
+  replicas: 100
+  selector:
+    matchLabels:
+      scaling-app: busybox
+  template:
+    metadata:
+      labels:
+        scaling-app: busybox
+    spec:
+      containers:
+      - command:
+        - sleep
+        - "3600"
+        image: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f
+        imagePullPolicy: Always
+        name: sleep
+        resources:
+          requests:
+            cpu: "1"

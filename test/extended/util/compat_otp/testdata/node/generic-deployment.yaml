@@ -1,0 +1,41 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: deployment-hello
+objects:
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      app: myapp
+  spec:
+    replicas: ${{REPLICAS}}
+    selector:
+      matchLabels:
+        app: myapp
+    template:
+      metadata:
+        labels:
+          app: myapp
+        name: myapp
+      spec:
+        securityContext:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        containers:
+        - name: myapp
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+          image: "${IMAGE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: REPLICAS
+- name: IMAGE
+  value: "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83"

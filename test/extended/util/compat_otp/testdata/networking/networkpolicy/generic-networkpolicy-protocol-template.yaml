@@ -1,0 +1,39 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: generic_networkpolicy_protocol_template
+objects:
+- kind: NetworkPolicy
+  apiVersion: networking.k8s.io/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    podSelector: {}
+    "${POLICY}": 
+    - "${DIRECTION}":
+         - namespaceSelector: 
+              "${NAMESPACESEL}":
+                  "${NAMESPACESELKEY}": "${NAMESPACESELVAL}"
+           podSelector:
+              "${PODSEL}":
+                  "${PODSELKEY}": "${PODSELVAL}"
+      ports:
+        - protocol: "${PROTOCOL}"
+          port: ${{PORT}}
+    policyTypes:
+    - "${POLICYTYPE}"
+parameters:
+- name: NAME 
+- name: NAMESPACE
+- name: POLICY
+- name: POLICYTYPE
+- name: DIRECTION
+- name: NAMESPACESEL
+- name: NAMESPACESELKEY
+- name: NAMESPACESELVAL
+- name: PODSEL
+- name: PODSELKEY
+- name: PODSELVAL
+- name: PROTOCOL
+- name: PORT

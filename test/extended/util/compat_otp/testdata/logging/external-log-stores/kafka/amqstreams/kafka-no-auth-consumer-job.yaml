@@ -1,0 +1,28 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: kafka-template
+objects:
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: ${NAME}
+  spec:
+    ttlSecondsAfterFinished: 60
+    template:
+      spec:
+        containers:
+        - name: kakfa-consumer
+          image: "registry.redhat.io/amq7/amq-streams-kafka-25-rhel7@sha256:e719f662bd4d6b8c54b1ee2e47c51f8d75a27a238a51d9ee38007187b3a627a4"
+          command: ["bin/kafka-console-consumer.sh","--bootstrap-server", "${CLUSTER_NAME}-kafka-bootstrap:9092", "--topic", "${TOPIC_NAME}", "--from-beginning"]
+        restartPolicy: Never
+        nodeSelector:
+          kubernetes.io/arch: amd64
+          kubernetes.io/os: linux
+parameters:
+- name: NAME
+  value: "topic-logging-app-consumer"
+- name: CLUSTER_NAME
+  value: "my-cluster"
+- name: TOPIC_NAME
+  value: "topic-logging-app"

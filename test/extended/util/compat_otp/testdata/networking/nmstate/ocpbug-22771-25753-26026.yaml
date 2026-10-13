@@ -1,0 +1,462 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: bond-70-vlans-policy-template
+objects:
+- kind: NodeNetworkConfigurationPolicy
+  apiVersion: nmstate.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    nodeSelector:
+      "${NODELABEL}": "${LABELVALUE}"
+    desiredState:
+      interfaces:
+      - name: "${PORT1}"
+        type: dummy
+        state: "${STATE}"
+      - name: "${PORT2}"
+        type: dummy
+        state: "${STATE}"
+      - name: "${IFACENAME}"
+        description: "${DESCR}"
+        type: bond
+        state: "${STATE}"
+        link-aggregation:
+          mode: 802.3ad
+          options:
+            miimon: '140'
+          port:
+          - "${PORT1}"
+          - "${PORT2}"
+      - name: "${IFACENAME}.101"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 101
+      - name: "${IFACENAME}.102"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 102
+      - name: "${IFACENAME}.103"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 103
+      - name: "${IFACENAME}.104"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 104
+      - name: "${IFACENAME}.105"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 105
+      - name: "${IFACENAME}.106"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 106
+      - name: "${IFACENAME}.107"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 107
+      - name: "${IFACENAME}.108"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 108
+      - name: "${IFACENAME}.109"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 109
+      - name: "${IFACENAME}.110"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 110
+      - name: "${IFACENAME}.111"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 111
+      - name: "${IFACENAME}.112"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 112
+      - name: "${IFACENAME}.113"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 113
+      - name: "${IFACENAME}.114"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 114
+      - name: "${IFACENAME}.115"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 115
+      - name: "${IFACENAME}.116"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 116
+      - name: "${IFACENAME}.117"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 117
+      - name: "${IFACENAME}.118"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 118
+      - name: "${IFACENAME}.119"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 119
+      - name: "${IFACENAME}.120"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 120
+      - name: "${IFACENAME}.121"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 121
+      - name: "${IFACENAME}.122"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 122
+      - name: "${IFACENAME}.123"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 123
+      - name: "${IFACENAME}.124"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 124
+      - name: "${IFACENAME}.125"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 125
+      - name: "${IFACENAME}.126"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 126
+      - name: "${IFACENAME}.127"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 127
+      - name: "${IFACENAME}.128"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 128
+      - name: "${IFACENAME}.129"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 129
+      - name: "${IFACENAME}.130"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 130
+      - name: "${IFACENAME}.131"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 131
+      - name: "${IFACENAME}.132"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 132
+      - name: "${IFACENAME}.133"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 133
+      - name: "${IFACENAME}.134"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 134
+      - name: "${IFACENAME}.135"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 135
+      - name: "${IFACENAME}.136"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 136
+      - name: "${IFACENAME}.137"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 137
+      - name: "${IFACENAME}.138"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 138
+      - name: "${IFACENAME}.139"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 139
+      - name: "${IFACENAME}.140"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 140
+      - name: "${IFACENAME}.141"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 141
+      - name: "${IFACENAME}.142"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 142
+      - name: "${IFACENAME}.143"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 143
+      - name: "${IFACENAME}.144"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 144
+      - name: "${IFACENAME}.145"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 145
+      - name: "${IFACENAME}.146"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 146
+      - name: "${IFACENAME}.147"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 147
+      - name: "${IFACENAME}.148"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 148
+      - name: "${IFACENAME}.149"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 149
+      - name: "${IFACENAME}.150"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 150
+      - name: "${IFACENAME}.151"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 151
+      - name: "${IFACENAME}.152"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 152
+      - name: "${IFACENAME}.153"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 153
+      - name: "${IFACENAME}.154"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 154
+      - name: "${IFACENAME}.155"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 155
+      - name: "${IFACENAME}.156"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 156
+      - name: "${IFACENAME}.157"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 157
+      - name: "${IFACENAME}.158"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 158
+      - name: "${IFACENAME}.159"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 159
+      - name: "${IFACENAME}.160"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 160
+      - name: "${IFACENAME}.161"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 161
+      - name: "${IFACENAME}.162"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 162
+      - name: "${IFACENAME}.163"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 163
+      - name: "${IFACENAME}.164"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 164
+      - name: "${IFACENAME}.165"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 165
+      - name: "${IFACENAME}.166"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 166
+      - name: "${IFACENAME}.167"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 167
+      - name: "${IFACENAME}.168"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 168
+      - name: "${IFACENAME}.169"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 169
+      - name: "${IFACENAME}.170"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${IFACENAME}"
+          id: 170
+parameters:
+- name: NAME
+- name: NODELABEL
+  value: "node-role.kubernetes.io/worker"
+- name: LABELVALUE
+  value: ""
+- name: IFACENAME
+- name: DESCR
+- name: STATE
+- name: PORT1
+- name: PORT2

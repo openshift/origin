@@ -1,0 +1,269 @@
+{
+	"kind": "Template",
+	"apiVersion": "template.openshift.io/v1",
+	"metadata": {
+		"name": "httpd-example",
+		"creationTimestamp": null,
+		"annotations": {
+			"description": "An example Apache HTTP Server (httpd) application that serves static content. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/httpd-ex/blob/master/README.md.",
+			"iconClass": "icon-apache",
+			"openshift.io/display-name": "Apache HTTP Server",
+			"openshift.io/documentation-url": "https://github.com/sclorg/httpd-ex",
+			"openshift.io/long-description": "This template defines resources needed to develop a static application served by Apache HTTP Server (httpd), including a build configuration and application deployment configuration.",
+			"openshift.io/provider-display-name": "Red Hat, Inc.",
+			"openshift.io/support-url": "https://access.redhat.com",
+			"tags": "quickstart,httpd",
+			"template.openshift.io/bindable": "false"
+		}
+	},
+	"message": "The following service(s) have been created in your project: ${NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/httpd-ex/blob/master/README.md.",
+	"objects": [
+		{
+			"apiVersion": "v1",
+			"kind": "Service",
+			"metadata": {
+				"annotations": {
+					"description": "Exposes and load balances the application pods"
+				},
+				"name": "${NAME}"
+			},
+			"spec": {
+				"ports": [
+					{
+						"name": "web",
+						"port": 8080,
+						"targetPort": 8080
+					}
+				],
+				"selector": {
+					"name": "${NAME}"
+				}
+			}
+		},
+		{
+			"apiVersion": "route.openshift.io/v1",
+			"kind": "Route",
+			"metadata": {
+				"name": "${NAME}"
+			},
+			"spec": {
+				"host": "${APPLICATION_DOMAIN}",
+				"to": {
+					"kind": "Service",
+					"name": "${NAME}"
+				}
+			}
+		},
+		{
+			"apiVersion": "image.openshift.io/v1",
+			"kind": "ImageStream",
+			"metadata": {
+				"annotations": {
+					"description": "Keeps track of changes in the application image"
+				},
+				"name": "${NAME}"
+			}
+		},
+		{
+			"apiVersion": "build.openshift.io/v1",
+			"kind": "BuildConfig",
+			"metadata": {
+				"annotations": {
+					"description": "Defines how to build the application",
+					"template.alpha.openshift.io/wait-for-ready": "true"
+				},
+				"name": "${NAME}"
+			},
+			"spec": {
+				"output": {
+					"to": {
+						"kind": "ImageStreamTag",
+						"name": "${NAME}:latest"
+					}
+				},
+				"source": {
+					"contextDir": "${CONTEXT_DIR}",
+					"git": {
+						"ref": "${SOURCE_REPOSITORY_REF}",
+						"uri": "${SOURCE_REPOSITORY_URL}"
+					},
+					"type": "Git"
+				},
+				"strategy": {
+					"sourceStrategy": {
+						"from": {
+							"kind": "ImageStreamTag",
+							"name": "httpd:2.4-el8",
+							"namespace": "${NAMESPACE}"
+						}
+					},
+					"type": "Source"
+				},
+				"triggers": [
+					{
+						"type": "ImageChange"
+					},
+					{
+						"type": "ConfigChange"
+					},
+					{
+						"github": {
+							"secret": "${GITHUB_WEBHOOK_SECRET}"
+						},
+						"type": "GitHub"
+					},
+					{
+						"generic": {
+							"secret": "${GENERIC_WEBHOOK_SECRET}"
+						},
+						"type": "Generic"
+					}
+				]
+			}
+		},
+		{
+			"apiVersion": "apps.openshift.io/v1",
+			"kind": "DeploymentConfig",
+			"metadata": {
+				"annotations": {
+					"description": "Defines how to deploy the application server",
+					"template.alpha.openshift.io/wait-for-ready": "true"
+				},
+				"name": "${NAME}"
+			},
+			"spec": {
+				"replicas": 1,
+				"selector": {
+					"name": "${NAME}"
+				},
+				"strategy": {
+					"type": "Rolling"
+				},
+				"template": {
+					"metadata": {
+						"labels": {
+							"name": "${NAME}"
+						},
+						"name": "${NAME}"
+					},
+					"spec": {
+						"containers": [
+							{
+								"env": [],
+								"image": " ",
+								"livenessProbe": {
+									"httpGet": {
+										"path": "/",
+										"port": 8080
+									},
+									"initialDelaySeconds": 30,
+									"timeoutSeconds": 3
+								},
+								"name": "httpd-example",
+								"ports": [
+									{
+										"containerPort": 8080
+									}
+								],
+								"readinessProbe": {
+									"httpGet": {
+										"path": "/",
+										"port": 8080
+									},
+									"initialDelaySeconds": 3,
+									"timeoutSeconds": 3
+								},
+								"resources": {
+									"limits": {
+										"memory": "${MEMORY_LIMIT}"
+									}
+								}
+							}
+						]
+					}
+				},
+				"triggers": [
+					{
+						"imageChangeParams": {
+							"automatic": true,
+							"containerNames": [
+								"httpd-example"
+							],
+							"from": {
+								"kind": "ImageStreamTag",
+								"name": "${NAME}:latest"
+							}
+						},
+						"type": "ImageChange"
+					},
+					{
+						"type": "ConfigChange"
+					}
+				]
+			}
+		}
+	],
+	"parameters": [
+		{
+			"name": "NAME",
+			"displayName": "Name",
+			"description": "The name assigned to all of the frontend objects defined in this template.",
+			"value": "httpd-example",
+			"required": true
+		},
+		{
+			"name": "NAMESPACE",
+			"displayName": "Namespace",
+			"description": "The OpenShift Namespace where the ImageStream resides.",
+			"value": "openshift",
+			"required": true
+		},
+		{
+			"name": "MEMORY_LIMIT",
+			"displayName": "Memory Limit",
+			"description": "Maximum amount of memory the container can use.",
+			"value": "512Mi",
+			"required": true
+		},
+		{
+			"name": "SOURCE_REPOSITORY_URL",
+			"displayName": "Git Repository URL",
+			"description": "The URL of the repository with your application source code.",
+			"value": "https://github.com/sclorg/httpd-ex.git",
+			"required": true
+		},
+		{
+			"name": "SOURCE_REPOSITORY_REF",
+			"displayName": "Git Reference",
+			"description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
+		},
+		{
+			"name": "CONTEXT_DIR",
+			"displayName": "Context Directory",
+			"description": "Set this to the relative path to your project if it is not in the root of your repository."
+		},
+		{
+			"name": "APPLICATION_DOMAIN",
+			"displayName": "Application Hostname",
+			"description": "The exposed hostname that will route to the httpd service, if left blank a value will be defaulted."
+		},
+		{
+			"name": "GITHUB_WEBHOOK_SECRET",
+			"displayName": "GitHub Webhook Secret",
+			"description": "Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.",
+			"generate": "expression",
+			"from": "[a-zA-Z0-9]{40}"
+		},
+		{
+			"name": "GENERIC_WEBHOOK_SECRET",
+			"displayName": "Generic Webhook Secret",
+			"description": "A secret string used to configure the Generic webhook.",
+			"generate": "expression",
+			"from": "[a-zA-Z0-9]{40}"
+		}
+	],
+	"labels": {
+		"app": "httpd-example",
+		"template": "httpd-example"
+	}
+}

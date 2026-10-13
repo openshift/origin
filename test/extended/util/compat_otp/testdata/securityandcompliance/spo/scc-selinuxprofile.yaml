@@ -1,0 +1,50 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: scc-selinux-template
+objects:
+- priority: 100
+  allowHostDirVolumePlugin: false
+  allowHostIPC: false
+  allowHostNetwork: false
+  allowHostPID: false
+  allowHostPorts: false
+  allowPrivilegeEscalation: false
+  allowPrivilegedContainer: false
+  allowedCapabilities:
+  - NET_BIND_SERVICE
+  apiVersion: security.openshift.io/v1
+  defaultAddCapabilities: null
+  fsGroup:
+    type: MustRunAs
+  groups: []
+  kind: SecurityContextConstraints
+  metadata:
+    name: "${NAME}"
+  readOnlyRootFilesystem: false
+  requiredDropCapabilities:
+  - ALL
+  runAsUser:
+    type: MustRunAsRange
+  seLinuxContext:
+    type: RunAsAny
+  seccompProfiles:
+  - "*"
+  supplementalGroups:
+    type: RunAsAny
+  users:
+  - "${USER}"
+  volumes:
+  - configMap
+  - csi
+  - downwardAPI
+  - emptyDir
+  - ephemeral
+  - persistentVolumeClaim
+  - projected
+  - secret
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: USER

@@ -1,0 +1,25 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: 99-workers-linked-log
+spec:
+  config:
+    ignition:
+      config: {}
+      security:
+        tls: {}
+      timeouts: {}
+      version: 3.1.0
+    networkd: {}
+    passwd: {}
+    storage:
+      files:
+      - contents:
+          source: data:text/plain;charset=utf-8;base64,W2NyaW8ucnVudGltZS53b3JrbG9hZHMubGlua2VkXQphY3RpdmF0aW9uX2Fubm90YXRpb24gPSAiaW8ua3ViZXJuZXRlcy5jcmktby5MaW5rTG9ncyIgCmFsbG93ZWRfYW5ub3RhdGlvbnMgPSBbICJpby5rdWJlcm5ldGVzLmNyaS1vLkxpbmtMb2dzIiBdCg==
+        mode: 420
+        overwrite: true
+        path: /etc/crio/crio.conf.d/99-linked-log.conf
+  osImageURL: ""
+

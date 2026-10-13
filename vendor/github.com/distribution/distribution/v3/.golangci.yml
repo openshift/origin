@@ -1,0 +1,26 @@
+linters:
+  enable:
+    - staticcheck
+    - unconvert
+    - gofmt
+    - goimports
+    - revive
+    - ineffassign
+    - vet
+    - unused
+    - misspell
+  disable:
+    - errcheck
+
+linters-settings:
+  revive:
+    rules:
+      # TODO(thaJeztah): temporarily disabled the "unused-parameter" check.
+      # It produces many warnings, and some of those may need to be looked at.
+      - name: unused-parameter
+        disabled: true
+
+run:
+  deadline: 2m
+  skip-dirs:
+    - vendor

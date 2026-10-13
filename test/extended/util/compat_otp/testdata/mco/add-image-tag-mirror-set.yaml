@@ -1,0 +1,17 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: imaa-tag-mirror-set
+objects:
+  - kind: ImageTagMirrorSet
+    apiVersion: config.openshift.io/v1
+    metadata:
+      name: "${NAME}"
+    spec:
+      imageTagMirrors:
+      - mirrors:
+        - mirror.example.com/redhat
+        source: registry.redhat.io/openshift4
+        mirrorSourcePolicy: AllowContactingSource
+parameters:
+  - name: NAME

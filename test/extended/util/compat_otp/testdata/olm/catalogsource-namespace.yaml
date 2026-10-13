@@ -1,0 +1,11 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: scenario3
+  namespace: scenario3
+spec:
+  sourceType: internal
+  configMap: scenario3
+  displayName: Scenario 3 Operators
+  publisher: Red Hat

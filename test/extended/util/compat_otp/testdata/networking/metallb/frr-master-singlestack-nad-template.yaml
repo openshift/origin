@@ -1,0 +1,26 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: frr-master-singlestack-nad-template
+objects:
+- kind: NetworkAttachmentDefinition
+  apiVersion: "k8s.cni.cncf.io/v1"
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    config: '{
+       "cniVersion": "0.3.1",
+       "name": "${NAME}",
+       "type": "macvlan",
+       "master": "${INTERFACE}",
+       "mode": "bridge",
+       "ipam": {
+         "type": "static",
+         "ranges": [[{"subnet": "192.168.111.0/24"}]]
+        }
+    }'
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: INTERFACE

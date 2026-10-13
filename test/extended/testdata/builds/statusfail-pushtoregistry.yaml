@@ -1,0 +1,22 @@
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: statusfail-pushtoregistry
+spec:
+  source:
+    git:
+      uri: "https://github.com/openshift/ruby-hello-world.git"
+  output:
+    to:
+      kind: DockerImage
+      # Bug 1746499: Image without tag should push with <imageid>:latest
+      name: bogus.registry/image
+  strategy:
+    sourceStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
+      from:
+        kind: DockerImage
+        name: quay.io/redhat-developer/test-build-simples2i:1.2
+    type: Source

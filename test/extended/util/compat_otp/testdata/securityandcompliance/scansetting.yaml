@@ -1,0 +1,38 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: scansetting-template
+objects:
+- apiVersion: compliance.openshift.io/v1alpha1
+  kind: ScanSetting
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}" 
+  # Suite-specific settings
+  autoApplyRemediations: ${{AUTOAPPLYREMEDIATIONS}}
+  schedule: "${SCHEDULE}"
+  priorityClass: "${PRIORITYCLASSNAME}"
+  debug: ${{DEBUG}}
+  # Scan-specific settings
+  rawResultStorage:
+    size: "${SIZE}"
+    rotation: ${{ROTATION}}
+  # For each role, a separate scan will be created pointing
+  # to a node-role specified in roles
+  roles:
+    - "${ROLES1}"
+    - "${ROLES2}"
+  suspend: ${{SUSPEND}}
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: AUTOAPPLYREMEDIATIONS
+- name: SCHEDULE
+- name: SIZE
+- name: ROTATION
+- name: ROLES1
+- name: ROLES2
+- name: PRIORITYCLASSNAME
+- name: DEBUG
+- name: SUSPEND

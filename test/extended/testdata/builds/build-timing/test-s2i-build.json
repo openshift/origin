@@ -1,0 +1,38 @@
+{
+  "kind": "BuildConfig",
+  "apiVersion": "build.openshift.io/v1",
+  "metadata": {
+    "name": "test",
+    "labels": {
+      "name": "test"
+    }
+  },
+  "spec": {
+    "triggers": [],
+    "source": {
+      "type": "Binary",
+      "binary": {}
+    },
+    "strategy": {
+      "type": "Source",
+      "sourceStrategy": {
+        "from": {
+          "kind": "DockerImage",
+          "name": "quay.io/redhat-developer/test-build-simples2i:1.2"
+        },
+        "env": [
+          {
+            "name": "BUILD_LOGLEVEL",
+            "value": "5"
+          }
+        ]
+      }
+    },
+    "output": {
+      "to": {
+        "kind": "ImageStreamTag",
+        "name": "test:latest"
+      }
+    }
+  }
+}

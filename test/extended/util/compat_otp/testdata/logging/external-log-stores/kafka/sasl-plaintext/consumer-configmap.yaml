@@ -1,0 +1,40 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: consumer-configmap-template
+objects:
+- apiVersion: v1
+  data:
+    client.properties: |
+      bootstrap.servers=kafka:9092
+      #group.id=test-consumer-group
+      sasl.mechanism=PLAIN
+      security.protocol=SASL_PLAINTEXT
+      sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
+         username="admin" \
+         password="admin-secret";
+    kafka_client_jaas.conf: |
+      KafkaClient {
+         org.apache.kafka.common.security.plain.PlainLoginModule required
+         username="admin"
+         password="admin-secret";
+      };
+    sasl-consumer.properties: |
+      #export KAFKA_OPTS="-Djava.security.auth.login.config=/etc/kafka-configmap/kafka_client_jaas.conf"
+      #/opt/kafka/bin/kafka-console-producer.sh --broker-list kafka:9092 --producer.config=/etc/kafka-config/sasl-producer.properties  --topic  clo-topic
+      bootstrap.servers=kafka:9092
+      compression.type=none
+      ### SECURITY ######
+      security.protocol=SASL_PLANTEXT
+      sasl.mechanism=PLAIN
+      sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret";
+      ssl.truststore.location=/etc/kafkacert/ca-bundle.jks
+  kind: ConfigMap
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+parameters:
+- name: NAME
+  value: "kafka-client"
+- name: NAMESPACE
+  value: "openshift-logging"

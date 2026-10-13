@@ -1,0 +1,171 @@
+{
+    "items": [
+        {
+            "level": "Info",
+            "source": "PodState",
+            "locator": {
+                "type": "Pod",
+                "keys": {
+                    "namespace": "openshift-apiserver-operator",
+                    "pod": "openshift-apiserver-operator-845779f5d-975gr",
+                    "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
+                }
+            },
+            "message": {
+                "reason": "Created",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": {
+                    "constructed": "pod-lifecycle-constructor",
+                    "reason": "Created"
+                }
+            },
+            "from": "2022-03-22T21:41:54Z",
+            "to": "2022-03-22T22:02:53Z"
+        },
+        {
+            "level": "Info",
+            "source": "PodState",
+            "locator": {
+                "type": "Container",
+                "keys": {
+                    "container": "openshift-apiserver-operator",
+                    "namespace": "openshift-apiserver-operator",
+                    "pod": "openshift-apiserver-operator-845779f5d-975gr",
+                    "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
+                }
+            },
+            "message": {
+                "reason": "NotReady",
+                "cause": "",
+                "humanMessage": "missed real \"NotReady\"",
+                "annotations": {
+                    "constructed": "pod-lifecycle-constructor",
+                    "reason": "NotReady"
+                }
+            },
+            "from": "2022-03-22T21:41:54Z",
+            "to": "2022-03-22T22:02:53Z"
+        },
+        {
+            "level": "Info",
+            "source": "PodState",
+            "locator": {
+                "type": "Container",
+                "keys": {
+                    "container": "openshift-apiserver-operator",
+                    "namespace": "openshift-apiserver-operator",
+                    "pod": "openshift-apiserver-operator-845779f5d-975gr",
+                    "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
+                }
+            },
+            "message": {
+                "reason": "ContainerWait",
+                "cause": "",
+                "humanMessage": "missed real \"ContainerWait\"",
+                "annotations": {
+                    "constructed": "pod-lifecycle-constructor",
+                    "reason": "ContainerWait"
+                }
+            },
+            "from": "2022-03-22T21:41:54Z",
+            "to": "2022-03-22T22:29:35Z"
+        },
+        {
+            "level": "Info",
+            "source": "PodState",
+            "locator": {
+                "type": "Pod",
+                "keys": {
+                    "namespace": "openshift-apiserver-operator",
+                    "pod": "openshift-apiserver-operator-845779f5d-975gr",
+                    "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
+                }
+            },
+            "message": {
+                "reason": "Scheduled",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": {
+                    "constructed": "pod-lifecycle-constructor",
+                    "node": "ci-op-ckiwry67-db044-lzjpd-master-0",
+                    "reason": "Scheduled"
+                }
+            },
+            "from": "2022-03-22T22:02:53Z",
+            "to": "2022-03-22T22:29:35Z"
+        },
+        {
+            "level": "Info",
+            "source": "PodState",
+            "locator": {
+                "type": "Container",
+                "keys": {
+                    "container": "openshift-apiserver-operator",
+                    "namespace": "openshift-apiserver-operator",
+                    "pod": "openshift-apiserver-operator-845779f5d-975gr",
+                    "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
+                }
+            },
+            "message": {
+                "reason": "Ready",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": {
+                    "constructed": "pod-lifecycle-constructor",
+                    "reason": "Ready"
+                }
+            },
+            "from": "2022-03-22T22:02:53Z",
+            "to": "2022-03-22T22:29:35Z"
+        },
+        {
+            "level": "Info",
+            "source": "PodState",
+            "locator": {
+                "type": "Container",
+                "keys": {
+                    "container": "openshift-apiserver-operator",
+                    "namespace": "openshift-apiserver-operator",
+                    "pod": "openshift-apiserver-operator-845779f5d-975gr",
+                    "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
+                }
+            },
+            "message": {
+                "reason": "NotReady",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": {
+                    "constructed": "pod-lifecycle-constructor",
+                    "reason": "NotReady"
+                }
+            },
+            "from": "2022-03-22T22:29:35Z",
+            "to": "2022-03-22T22:29:35Z"
+        },
+        {
+            "level": "Info",
+            "source": "PodState",
+            "locator": {
+                "type": "Pod",
+                "keys": {
+                    "namespace": "openshift-apiserver-operator",
+                    "pod": "openshift-apiserver-operator-845779f5d-975gr",
+                    "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
+                }
+            },
+            "message": {
+                "reason": "GracefulDelete",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": {
+                    "constructed": "pod-lifecycle-constructor",
+                    "duration": "30s",
+                    "reason": "GracefulDelete"
+                }
+            },
+            "from": "2022-03-22T22:29:35Z",
+            "to": "2022-03-22T22:29:36Z"
+        }
+    ]
+}

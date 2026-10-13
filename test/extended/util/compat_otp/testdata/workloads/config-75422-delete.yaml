@@ -1,0 +1,14 @@
+apiVersion: mirror.openshift.io/v2alpha1
+kind: DeleteImageSetConfiguration
+delete:
+  operators:
+  - catalog: oci:///tmp/case75422/ibm-catalog
+  - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.15
+    packages:
+    - name: windows-machine-config-operator
+  - catalog: registry.redhat.io/redhat/certified-operator-index:v4.15
+    packages:
+    - name: nvidia-network-operator
+  - catalog: registry.redhat.io/redhat/community-operator-index:v4.15
+    packages:
+    - name: skupper-operator

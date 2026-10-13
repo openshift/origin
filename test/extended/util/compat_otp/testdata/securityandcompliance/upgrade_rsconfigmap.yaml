@@ -1,0 +1,21 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: tailoredprofile-template
+objects:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  data:
+     rule: ${RULE}
+     variable: ${VARIABLE}
+     profile: ${PROFILE}
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: RULE
+- name: VARIABLE
+- name: PROFILE

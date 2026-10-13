@@ -1,0 +1,14 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: myruby
+spec:
+  tags:
+  - from:
+      kind: ImageStreamTag
+      name: "3.3"
+    name: "latest"
+  - from:
+      kind: ImageStreamTag
+      name: ruby:3.3-ubi8
+    name: "3.3"

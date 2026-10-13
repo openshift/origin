@@ -1,0 +1,29 @@
+apiVersion: k8s.ovn.org/v1
+kind: EgressFirewall
+metadata:
+  name: default
+spec:
+  egress:
+  - type: Allow
+    to:
+      dnsName: redhat.com
+  - type: Allow
+    to:
+      dnsName: AMAZON.COM
+  - type: Allow
+    to:
+      dnsName: "*.google.com"
+  - type: Allow
+    to:
+      cidrSelector: 8.8.8.8/32
+  - type: Allow
+    to:
+      nodeSelector:
+        matchLabels:
+          node-role.kubernetes.io/control-plane: ''
+  - type: Deny        # IPv4 default deny-all
+    to:
+      cidrSelector: 0.0.0.0/0
+  - type: Deny        # IPv6 default deny-all
+    to:
+      cidrSelector: ::/0

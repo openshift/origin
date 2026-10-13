@@ -1,0 +1,17 @@
+apiVersion: tuned.openshift.io/v1
+kind: Tuned
+metadata:
+  name: openshift-node-postgresql
+spec:
+  profile:
+  - data: |
+      [main]
+      summary=Custom OpenShift node profile for PostgreSQL server
+      include=openshift-node,postgresql
+    name: openshift-node-postgresql
+
+  recommend:
+  - match:
+    - label: tuned.openshift.io/openshift-node-postgresql
+    priority: 18
+    profile: openshift-node-postgresql

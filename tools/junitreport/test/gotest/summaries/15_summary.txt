@@ -1,0 +1,41 @@
+Of 23 tests executed in 0.025s, 12 succeeded, 11 failed, and 0 were skipped.
+
+In suite "parser/gotest", test case "TestSubTestWithFailures" failed:
+
+
+In suite "parser/gotest", test case "TestSubTestWithFailures/subtest-fail-1" failed:
+data_parser_test.go:14: log line
+data_parser_test.go:14: failed
+
+In suite "github.com/openshift/origin/tools/junitreport/pkg/parser/gotest/example", test case "TestSubTestWithFailures" failed:
+
+
+In suite "github.com/openshift/origin/tools/junitreport/pkg/parser/gotest/example", test case "TestSubTestWithFailures/subtest-fail-1" failed:
+example_test.go:11: log line
+example_test.go:11: failed
+
+In suite "github.com/openshift/origin/tools/junitreport/pkg/parser/gotest/example", test case "TestSubTestWithFirstFailures" failed:
+
+
+In suite "github.com/openshift/origin/tools/junitreport/pkg/parser/gotest/example", test case "TestSubTestWithFirstFailures/subtest-fail-1" failed:
+example_test.go:15: log line
+example_test.go:15: failed
+
+In suite "github.com/openshift/origin/tools/junitreport/pkg/parser/gotest/example", test case "TestSubTestWithSubTestFailures" failed:
+
+
+In suite "github.com/openshift/origin/tools/junitreport/pkg/parser/gotest/example", test case "TestSubTestWithSubTestFailures/subtest-fail-1" failed:
+example_test.go:25: log line before
+
+In suite "github.com/openshift/origin/tools/junitreport/pkg/parser/gotest/example", test case "TestSubTestWithSubTestFailures/subtest-fail-1/sub-subtest-fail-1" failed:
+example_test.go:28: log line
+example_test.go:28: failed
+example_test.go:29: log line after
+
+In suite "github.com/openshift/origin/tools/junitreport/pkg/parser/gotest/example", test case "TestSubTestWithMiddleFailures" failed:
+
+
+In suite "github.com/openshift/origin/tools/junitreport/pkg/parser/gotest/example", test case "TestSubTestWithMiddleFailures/subtest-fail-1" failed:
+example_test.go:35: log line
+example_test.go:35: failed
+

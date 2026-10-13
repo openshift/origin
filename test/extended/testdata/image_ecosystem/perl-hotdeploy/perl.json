@@ -1,0 +1,122 @@
+{
+  "kind": "Template",
+  "apiVersion": "template.openshift.io/v1",
+  "metadata": {
+    "name": "perl-hotdeploy-example"
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "port": 8080,
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "name": "${NAME}"
+        }
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "image.openshift.io/v1",
+      "metadata": {
+        "name": "${NAME}",
+        "annotations": {
+          "description": "Keeps track of changes in the application image"
+        }
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "build.openshift.io/v1",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "spec": {
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "namespace": "openshift",
+              "name": "perl:5.32-ubi9"
+            }
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "${NAME}:latest"
+          }
+        }
+      }
+    },
+    {
+      "kind": "Deployment",
+      "apiVersion": "apps/v1",
+      "metadata": {
+        "name": "${NAME}",
+        "annotations": {
+          "image.openshift.io/triggers": "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"${NAME}:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "RollingUpdate"
+        },
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "name": "${NAME}"
+          }
+        },
+        "template": {
+          "metadata": {
+            "name": "${NAME}",
+            "labels": {
+              "name": "${NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "perl",
+                "image": " ",
+                "ports": [
+                  {
+                    "containerPort": 8080
+                  }
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 3,
+                  "httpGet": {
+                    "path": "/",
+                    "port": 8080
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "NAME",
+      "displayName": "Name",
+      "description": "The name assigned to all of the frontend objects defined in this template.",
+      "required": true,
+      "value": "perl"
+    }
+  ]
+}

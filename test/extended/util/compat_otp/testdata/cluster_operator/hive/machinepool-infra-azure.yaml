@@ -1,0 +1,32 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: machinepool-infra-azure-temp
+objects:
+- apiVersion: hive.openshift.io/v1
+  kind: MachinePool
+  metadata:
+    creationTimestamp: null
+    name: "${CLUSTERNAME}-infra"
+    namespace: "${NAMESPACE}"
+  spec:
+    clusterDeploymentRef:
+      name: ${CLUSTERNAME}
+    labels: 
+      node-role.kubernetes.io: infra
+      node-role.kubernetes.io/infra: ""
+    name: infra
+    platform:
+      azure:
+        osDisk:
+          diskSizeGB: 128
+        type: Standard_D4s_v3
+    replicas: 1
+    taints: 
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/infra
+  status: {}
+parameters:
+- name: CLUSTERNAME
+- name: NAMESPACE
+

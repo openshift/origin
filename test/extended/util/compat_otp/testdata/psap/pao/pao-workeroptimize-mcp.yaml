@@ -1,0 +1,18 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfigPool
+metadata:
+  name: worker-optimize
+  labels:
+    machineconfiguration.openshift.io/role: worker-optimize
+spec:
+  machineConfigSelector:
+    matchExpressions:
+      - {
+           key: machineconfiguration.openshift.io/role,
+           operator: In,
+           values: [worker, worker-optimize],
+        }
+  paused: false
+  nodeSelector:
+    matchLabels:
+      node-role.kubernetes.io/worker-optimize: ""

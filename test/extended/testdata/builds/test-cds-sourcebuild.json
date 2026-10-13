@@ -1,0 +1,48 @@
+{
+  "kind": "List",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "kind": "ImageStream",
+      "apiVersion": "image.openshift.io/v1",
+      "metadata": {
+        "name": "origin-ruby-sample"
+      },
+      "spec": {},
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "build.openshift.io/v1",
+      "metadata": {
+        "name": "source-build"
+      },
+      "spec": {
+        "completionDeadlineSeconds": 5,
+        "triggers": [],
+        "source":{
+          "type":"Dockerfile",
+          "dockerfile":"FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest\nRUN sleep 10m"
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "env":[
+              {
+                 "name":"BUILD_LOGLEVEL",
+                 "value":"2"
+              }
+           ],
+            "from": {
+              "kind": "DockerImage",
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

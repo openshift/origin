@@ -1,0 +1,43 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: spo-workload-job-template
+objects:
+- apiVersion: batch/v1
+  kind: "${WORKLOADKIND}"
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    manualSelector: true
+    selector:
+      matchLabels:
+        "${LABELKEY}": "${LABELVALUE}"
+    parallelism: 1    
+    completions: 1    
+    activeDeadlineSeconds: 1800 
+    backoffLimit: 6   
+    template:         
+      metadata:
+        labels:
+          "${LABELKEY}": "${LABELVALUE}"
+      spec:
+        serviceAccount: "${SANAME}"
+        containers:
+        - name: hello-openshift
+          image: quay.io/openshifttest/nginx-unprivileged:1.27.5
+          ports:
+          - containerPort: 80
+        - name: redis
+          image: quay.io/openshifttest/redis:6.2.18
+          ports:
+          - containerPort: 6379
+        restartPolicy: Never
+
+parameters:
+- name: WORKLOADKIND
+- name: NAME
+- name: NAMESPACE
+- name: LABELKEY
+- name: LABELVALUE
+- name: SANAME

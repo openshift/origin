@@ -1,0 +1,58 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+    annotations:
+      observability.openshift.io/tech-preview-otlp-output: "enabled"
+  spec:
+    managementState: ${MANAGEMENT_STATE}
+    outputs:
+    - name: lokistack
+      type: lokiStack
+      lokiStack:
+        authentication:
+          token:
+            from: serviceAccount
+        dataModel: ${DATAMODEL}
+        target:
+          name: ${LOKISTACK_NAME}
+          namespace: ${LOKISTACK_NAMESPACE}
+        tuning: ${{TUNING}}
+      tls:
+        ca:
+          key: ca-bundle.crt
+          secretName: ${SECRET_NAME}
+    pipelines:
+    - name: forward-to-lokistack
+      inputRefs: ${{INPUT_REFS}}
+      outputRefs:
+      - lokistack
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: INPUT_REFS
+  value: "[\"infrastructure\", \"audit\", \"application\"]"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: LOKISTACK_NAME
+  value: "logging-loki"
+- name: LOKISTACK_NAMESPACE
+  value: "openshift-logging"
+- name: MANAGEMENT_STATE
+  value: "Managed"
+- name: TUNING
+  value: "{}"
+- name: SECRET_NAME
+  value: ""
+- name: DATAMODEL
+  value: "Viaq"

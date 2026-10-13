@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: lvmcluster-without-thinpool-device-template
+objects:
+# LVMCluster
+- kind: LVMCluster
+  apiVersion: lvm.topolvm.io/v1alpha1
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    storage:
+      deviceClasses:
+      - name: ${DEVICECLASSNAME}
+        fsType: ${FSTYPE}
+        deviceSelector:
+          paths:
+          - ${PATH}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: DEVICECLASSNAME
+- name: FSTYPE
+- name: PATH

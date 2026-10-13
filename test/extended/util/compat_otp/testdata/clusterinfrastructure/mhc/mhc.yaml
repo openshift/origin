@@ -1,0 +1,33 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: mhc-template
+objects:
+  - apiVersion: "machine.openshift.io/v1beta1"
+    kind: "MachineHealthCheck"
+    metadata:
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+    spec:
+      selector:
+        matchLabels:
+          machine.openshift.io/cluster-api-cluster: ${CLUSTERID}
+          machine.openshift.io/cluster-api-machine-role: ${MACHINE_ROLE}
+          machine.openshift.io/cluster-api-machine-type: ${MACHINE_ROLE}
+          machine.openshift.io/cluster-api-machineset: ${MACHINESET_NAME}
+      unhealthyConditions:
+      - type: Ready
+        status: "False"
+        timeout: 300s
+      - type: Ready
+        status: Unknown
+        timeout: 300s
+      maxUnhealthy: ${MAXUNHEALTHY}
+parameters:
+- name: MACHINESET_NAME
+- name: MACHINE_ROLE
+- name: NAMESPACE
+- name: CLUSTERID
+- name: MAXUNHEALTHY
+- name: NAME
+

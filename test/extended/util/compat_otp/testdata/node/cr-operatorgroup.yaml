@@ -1,0 +1,9 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: clusterresourceoverride-operator
+  namespace: clusterresourceoverride-operator
+spec:
+  targetNamespaces:
+    - clusterresourceoverride-operator
+

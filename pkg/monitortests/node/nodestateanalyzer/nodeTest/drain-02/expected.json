@@ -1,0 +1,54 @@
+{
+    "items": [
+        {
+            "level": "Info",
+            "source": "NodeState",
+            "display": true,
+            "locator": {
+                "type": "Node",
+                "keys": {
+                    "node": "ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
+                    "row": "NodeUpdatePhases"
+                }
+            },
+            "message": {
+                "reason": "NodeUpdate",
+                "cause": "",
+                "humanMessage": "drained node",
+                "annotations": {
+                    "constructed": "node-lifecycle-constructor",
+                    "phase": "Drain",
+                    "reason": "NodeUpdate",
+                    "roles": "worker"
+                }
+            },
+            "from": "2023-07-18T16:40:16Z",
+            "to": "2023-07-18T16:41:49Z"
+        },
+        {
+            "level": "Warning",
+            "source": "NodeState",
+            "display": true,
+            "locator": {
+                "type": "Node",
+                "keys": {
+                    "node": "ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
+                    "row": "NodeUpdatePhases"
+                }
+            },
+            "message": {
+                "reason": "NodeUpdate",
+                "cause": "",
+                "humanMessage": "never completed",
+                "annotations": {
+                    "constructed": "node-lifecycle-constructor",
+                    "reason": "NodeUpdate",
+                    "roles": "worker",
+                    "state": "OperatingSystemUpdate"
+                }
+            },
+            "from": "2023-07-18T16:41:49Z",
+            "to": "2023-07-19T23:58:52Z"
+        }
+    ]
+}

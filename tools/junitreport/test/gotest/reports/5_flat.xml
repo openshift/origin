@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+	<testsuite name="package/name1" tests="2" skipped="0" failures="0" time="0.16">
+		<testcase name="TestOne" time="0.06"></testcase>
+		<testcase name="TestTwo" time="0.1"></testcase>
+	</testsuite>
+	<testsuite name="package/name2" tests="2" skipped="0" failures="1" time="0.15">
+		<testcase name="TestOne" time="0.02">
+			<failure message="">file_test.go:11: Error message&#xA;file_test.go:11: Longer&#xA;error&#xA;message.</failure>
+		</testcase>
+		<testcase name="TestTwo" time="0.13"></testcase>
+	</testsuite>
+</testsuites>

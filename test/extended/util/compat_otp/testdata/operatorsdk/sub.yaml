@@ -1,0 +1,28 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: subscription-template
+objects:
+  - apiVersion: operators.coreos.com/v1alpha1
+    kind: Subscription
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    spec:
+      channel: "${CHANNEL}"
+      installPlanApproval: "${APPROVAL}"
+      name: "${OPERATORNAME}"
+      source: "${SOURCENAME}"
+      sourceNamespace: "${SOURCENAMESPACE}"
+      startingCSV: "${STARTINGCSV}"
+parameters:
+  - name: NAME
+  - name: NAMESPACE
+  - name: SOURCENAME
+  - name: OPERATORNAME
+  - name: SOURCENAMESPACE
+  - name: STARTINGCSV
+  - name: CHANNEL
+    value: "alpha"
+  - name: APPROVAL
+    value: "Automatic"

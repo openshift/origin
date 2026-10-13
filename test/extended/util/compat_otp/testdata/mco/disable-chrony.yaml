@@ -1,0 +1,50 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: disable-chrony
+objects:
+  - apiVersion: machineconfiguration.openshift.io/v1
+    kind: MachineConfig
+    metadata:
+      labels:
+        machineconfiguration.openshift.io/role: "${POOL}"
+      name: "${NAME}"
+    spec:
+      config:
+        ignition:
+          version: 3.2.0
+        systemd:
+          units:
+            - contents: |
+                [Unit]
+                Description=NTP client/server
+                Documentation=man:chronyd(8) man:chrony.conf(5)
+                After=ntpdate.service sntp.service ntpd.service
+                Conflicts=ntpd.service systemd-timesyncd.service
+                ConditionCapability=CAP_SYS_TIME
+                [Service]
+                Type=forking
+                PIDFile=/run/chrony/chronyd.pid
+                EnvironmentFile=-/etc/sysconfig/chronyd
+                ExecStart=/usr/sbin/chronyd $OPTIONS
+                ExecStartPost=/usr/libexec/chrony-helper update-daemon
+                PrivateTmp=yes
+                ProtectHome=yes
+                ProtectSystem=full
+                [Install]
+                WantedBy=multi-user.target
+              enabled: false
+              name: "chronyd.service"
+            - name: "kubelet-dependencies.target"
+              contents: |
+                [Unit]
+                Description=Dependencies necessary to run kubelet
+                Documentation=https://github.com/openshift/machine-config-operator/
+                Requires=basic.target network-online.target
+                Wants=NetworkManager-wait-online.service crio-wipe.service
+                Wants=rpc-statd.service
+
+parameters:
+  - name: NAME
+  - name: POOL
+    value: worker

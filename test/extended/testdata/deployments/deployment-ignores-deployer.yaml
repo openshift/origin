@@ -1,0 +1,23 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  annotations:
+    deploy.openshift.io/deployer-pod.ignore: "true"
+  name: database
+spec:
+  replicas: 1
+  selector:
+    name: database
+  template:
+    metadata:
+      labels:
+        name: database
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
+        imagePullPolicy: IfNotPresent
+        name: myapp
+        command:
+        - /bin/sleep
+        - "infinity"

@@ -1,0 +1,19 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: metallb-ipaddresspool-cr-template
+objects:
+- kind: IPAddressPool
+  apiVersion: metallb.io/v1beta1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    autoAssign: false
+    addresses:
+    - "${ADDRESS}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: ADDRESS
+

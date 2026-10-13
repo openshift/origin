@@ -1,0 +1,27 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ocp-istream-template
+objects:
+  - apiVersion: tuned.openshift.io/v1
+    kind: Tuned
+    metadata:
+      name: openshift-realtime
+    spec:
+      profile:
+      - data: |
+          [main]
+          summary=Custom OpenShift realtime profile
+          #include=openshift-node,realtime
+          include=${INCLUDE}
+          [variables]
+          isolated_cores=1
+        name: openshift-realtime
+    
+      recommend:
+      - machineConfigLabels:
+          machineconfiguration.openshift.io/role: "worker-rt"
+        priority: 18
+        profile: openshift-realtime
+parameters:
+- name: INCLUDE        

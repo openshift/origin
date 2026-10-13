@@ -1,0 +1,16 @@
+#!/usr/bin/expect
+
+spawn su
+expect "Password:" {
+    send "redhat\r"
+}
+
+expect "#" {
+    send "adduser mytestuser\r"
+}
+
+expect "#" {
+    send "exit\r"
+}
+
+expect "$" {}

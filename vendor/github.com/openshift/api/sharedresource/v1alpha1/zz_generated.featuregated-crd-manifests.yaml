@@ -1,0 +1,46 @@
+sharedconfigmaps.sharedresource.openshift.io:
+  Annotations:
+    description: Extension for sharing ConfigMaps across Namespaces
+    displayName: SharedConfigMap
+  ApprovedPRNumber: https://github.com/openshift/api/pull/979
+  CRDName: sharedconfigmaps.sharedresource.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: ""
+  FilenameOperatorOrdering: ""
+  FilenameRunLevel: ""
+  GroupName: sharedresource.openshift.io
+  HasStatus: true
+  KindName: SharedConfigMap
+  Labels: {}
+  PluralName: sharedconfigmaps
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1alpha1
+
+sharedsecrets.sharedresource.openshift.io:
+  Annotations:
+    description: Extension for sharing Secrets across Namespaces
+    displayName: SharedSecret
+  ApprovedPRNumber: https://github.com/openshift/api/pull/979
+  CRDName: sharedsecrets.sharedresource.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: ""
+  FilenameOperatorOrdering: ""
+  FilenameRunLevel: ""
+  GroupName: sharedresource.openshift.io
+  HasStatus: true
+  KindName: SharedSecret
+  Labels: {}
+  PluralName: sharedsecrets
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1alpha1
+

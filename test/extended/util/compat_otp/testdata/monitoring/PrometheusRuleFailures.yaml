@@ -1,0 +1,11 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: example-alert
+  namespace: openshift-monitoring
+spec:
+  groups:
+  - name: example
+    rules:
+    - record: test:record
+      expr: sum(irate(container_network_receive_bytes_total{pod!=""}[5m])) BY (pod, interface) + on(pod, interface) group_left(network_name) pod_network_name_info

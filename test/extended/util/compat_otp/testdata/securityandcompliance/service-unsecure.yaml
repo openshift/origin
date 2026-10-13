@@ -1,0 +1,24 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: service-template
+objects:
+- apiVersion: v1
+  kind: "${PROFILEKIND}"
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    ports:
+    - name: http
+      port: 27017
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      name: web-server
+
+parameters:
+- name: NAMESPACE
+- name: NAME
+- name: PROFILEKIND
+

@@ -1,0 +1,64 @@
+{
+  "kind": "BuildConfig",
+  "apiVersion": "build.openshift.io/v1",
+  "metadata": {
+    "name": "test",
+    "labels": {
+      "name": "test"
+    }
+  },
+  "spec": {
+    "triggers": [],
+    "source": {
+      "type": "Binary",
+      "binary": {},
+      "secrets": [
+        {
+          "secret": {
+            "name": "testsecret"
+          },
+          "destinationDir": "secret-dir"
+        },
+        {
+          "secret": {
+            "name": "testsecret2"
+          }
+        }
+      ],
+      "configMaps": [
+        {
+          "configMap": {
+            "name": "test-configmap"
+          },
+          "destinationDir": "config-dir"
+        },
+        {
+          "configMap": {
+            "name": "test-configmap-2"
+          }
+        }
+      ]
+    },
+    "strategy": {
+      "type": "Docker",
+      "dockerStrategy": {
+        "from": {
+          "kind": "DockerImage",
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
+        },
+        "env": [
+          {
+            "name": "BUILD_LOGLEVEL",
+            "value": "5"
+          }
+        ]
+      }
+    },
+    "output": {
+      "to": {
+        "kind": "ImageStreamTag",
+        "name": "test:latest"
+      }
+    }
+  }
+}

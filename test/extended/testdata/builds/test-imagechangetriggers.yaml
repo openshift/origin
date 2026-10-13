@@ -1,0 +1,102 @@
+kind: List
+apiVersion: v1
+items:
+- kind: ImageStream
+  apiVersion: image.openshift.io/v1
+  metadata:
+    name: nodejs-ex
+  spec:
+    tags:
+    - name: latest
+      from:
+        kind: DockerImage
+        name: registry.redhat.io/ubi8/nodejs-12:latest
+
+- kind: BuildConfig
+  apiVersion: build.openshift.io/v1
+  metadata:
+    name: bc-source
+  spec:
+    source:
+      type: Git
+      git:
+        uri: https://github.com/sclorg/nodejs-ex.git
+    strategy:
+      type: Source
+      sourceStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
+        from:
+          kind: ImageStreamTag
+          name: nodejs-ex:latest
+    triggers:
+    - type: ImageChange
+      imageChange:
+        from:
+          kind: ImageStreamTag
+          name: nodejs-ex:latest
+
+- kind: BuildConfig
+  apiVersion: build.openshift.io/v1
+  metadata:
+    name: bc-docker
+  spec:
+    source:
+      type: Dockerfile
+      dockerfile: FROM nodejs
+    strategy:
+      type: Docker
+      dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
+        from:
+          kind: ImageStreamTag
+          name: nodejs-ex:latest
+    triggers:
+    - type: ImageChange
+      imageChange:
+        from:
+          kind: ImageStreamTag
+          name: nodejs-ex:latest
+
+- kind: BuildConfig
+  apiVersion: build.openshift.io/v1
+  metadata:
+    name: bc-custom
+  spec:
+    strategy:
+      type: Custom
+      customStrategy:
+        env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
+        from:
+          kind: ImageStreamTag
+          name: nodejs-ex:latest
+    triggers:
+    - type: ImageChange
+      imageChange:
+        from:
+          kind: ImageStreamTag
+          name: nodejs-ex:latest
+
+- kind: BuildConfig
+  apiVersion: build.openshift.io/v1
+  metadata:
+    name: bc-jenkins
+  spec:
+    strategy:
+      type: Jenkins
+      jenkinsPipelineStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
+        jenkinsfile: node {}
+    triggers:
+    - type: ImageChange
+      imageChange:
+        from:
+          kind: ImageStreamTag
+          name: nodejs-ex:latest

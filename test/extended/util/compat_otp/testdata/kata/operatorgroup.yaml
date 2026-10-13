@@ -1,0 +1,19 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: operator-group-template
+objects:
+  - apiVersion: operators.coreos.com/v1
+    kind: OperatorGroup
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    spec:
+      targetNamespaces:
+      - "${NAMESPACE}"
+
+parameters:
+  - name: NAME
+    value: "openshift-sandboxed-containers-operator"
+  - name: NAMESPACE
+    value: "openshift-sandboxed-containers-operator"

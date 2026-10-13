@@ -1,0 +1,27 @@
+apiVersion: crunchydata.com/v1
+kind: Pgcluster
+metadata:
+  name: example
+  labels:
+    archive: 'false'
+  namespace: crunchy
+spec:
+  port: '5432'
+  exporterport: '9187'
+  clustername: example
+  usersecretname: example-primaryuser
+  pgbadgerport: '10000'
+  userlabels:
+    archive: 'false'
+  name: example
+  ccpimage: crunchy-postgres-ha
+  ccpimagetag: ubi7-12.4-4.5.0
+  PrimaryStorage:
+    accessmode: ReadWriteOnce
+    size: 1G
+    storageclass: standard
+    storagetype: dynamic
+  database: example
+  primarysecretname: example-primaryuser
+  rootsecretname: example-postgresuser
+

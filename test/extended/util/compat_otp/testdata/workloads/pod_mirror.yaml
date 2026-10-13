@@ -1,0 +1,42 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-adm-mirror
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      name: admmirror
+  spec:
+    restartPolicy: OnFailure
+    containers:
+    - args:
+      - |-
+        timeout 3m /bin/bash -exuo pipefail -c 'while [ ls /etc/foo/.dockerconfigjson ]; do sleep 1; done'
+        exec oc adm release mirror --insecure ${IMAGEPULLSECRET} ${IMAGESOURCE} ${IMAGETO} ${IMAGETORELEASE}
+      command:
+      - /bin/bash
+      - -euxo
+      - pipefail
+      - -c
+      name: cli
+      image: "${CLIIMAGEID}"
+      volumeMounts:
+        - name: foo
+          mountPath: "/etc/foo"
+          readOnly: true
+    volumes:
+    - name: foo
+      secret:
+        secretName: my-secret  
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: CLIIMAGEID
+- name: IMAGEPULLSECRET
+- name: IMAGESOURCE
+- name: IMAGETO
+- name: IMAGETORELEASE

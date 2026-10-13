@@ -1,0 +1,16 @@
+spec:
+  webhookOptions:
+    - name: recording.spo.io
+      failurePolicy: Ignore
+      namespaceSelector:
+        matchExpressions:
+          - key: spo.x-k8s.io/record-here
+            operator: In
+            values:
+              - "true"
+      objectSelector:
+        matchExpressions:
+          - key: app
+            operator: In
+            values:
+              - "my-app"

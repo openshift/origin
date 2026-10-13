@@ -1,0 +1,21 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: egressnetworkpolicy
+objects:
+- kind: EgressNetworkPolicy
+  apiVersion: network.openshift.io/v1
+  metadata:
+    name: ${NAME}
+    namespace: "${NAMESPACE}"
+  spec:
+    egress:
+    - type: "${RULETYPE}"
+      to:
+        "${RULENAME}" : "${RULEVALUE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: RULETYPE
+- name: RULENAME
+- name: RULEVALUE

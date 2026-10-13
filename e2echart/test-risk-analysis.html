@@ -1,0 +1,163 @@
+<html lang="en">
+<head>
+    <title>Risk Analysis</title>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <meta name="description"
+          content="Risk analysis is performed by Sippy to attempt to determine if the failures in this job are abnormal when compared to results for similar jobs over the past week, and amidst on-going incidents in the CI infrastructure. Risk analysis API will not catch everything and is a relatively simple implementation today, please reach out to the Technical Release Team if you spot abnormalities or have suggestions.">
+</head>
+<body onLoad="buildTestCaseTable('#test_case_results'); buildDisruptionTable('#disruption_results')">
+<p>
+    <a target="_blank" href="TEST_RISK_ANALYSIS_SIPPY_URL_GOES_HERE">Link to Sippy</a>
+</p>
+
+<table id="test_case_results" border="1" width="100%">
+</table>
+<p>&nbsp;</p>
+
+<h1>Disruption Analysis</h1>
+
+Disruption unit testing on individual job runs is relatively forgiving as it can generate a lot of noise.
+This table attempts to highlight
+risky results by color coding the observed disruption for this run against the percentiles over the past several
+weeks. Red indicates this job run exceeded the 99th percentile, yellow the 95th.<p/>
+
+If you're getting red results here, it might be a good idea to investigate the intervals chart for this job run,
+available in the spyglass panels on the prow job. This will show when the disruption occurred, the exact error
+messages returned, and what else was going on in the cluster at that time. Additional runs may help provide a clearer
+picture if the chart does not provide any insight. Feel free to reach out to TRT if you think you're seeing something
+alarming.<p/>
+
+
+<table id="disruption_results" border="1" width="100%">
+</table>
+<p>&nbsp;</p>
+
+<script>
+    var testResult = TEST_RISK_ANALYSIS_JSON_GOES_HERE
+    var disruptionResult = TEST_DISRUPTION_ANALYSIS_JSON_GOES_HERE
+    var testLinkPrefix = "https://sippy.dptools.openshift.org/sippy-ng/tests/"
+    var testLinkSuffix = "/analysis?test="
+
+    function buildOpenBugs(openBugs) {
+        td$ = $('<td/>')
+        if (openBugs.length > 0) {
+            cell$ = $('<ul/>')
+            for (var i = 0; i < openBugs.length; i++) {
+                li$ = $('<li>')
+                bug = "<a target=\"_blank\" href=" + openBugs[i].url + ">" + openBugs[i].key + "</a>: " + openBugs[i].summary
+                li$.append($('<li>').html(bug))
+                cell$.append(li$)
+            }
+            td$.append(cell$)
+        }
+        return td$
+    }
+
+    function buildRiskReasons(reasons) {
+        td$ = $('<td/>')
+        if (reasons.length > 0) {
+            cell$ = $('<ul/>')
+            for (var i = 0; i < reasons.length; i++) {
+                li$ = $('<li>')
+                li$.append($('<li>').html(reasons[i]))
+                cell$.append(li$)
+            }
+            td$.append(cell$)
+        }
+        return td$
+    }
+
+    function buildRiskLevel(level) {
+        td$ = $('<td/>')
+        if (level.Level >= 10) {
+            td$.css("background-color", "pink");
+        } else if (level.Level >= 5) {
+            td$.css("background-color", "lightyellow");
+        } else {
+            td$.css("background-color", "lightgreen");
+        }
+        td$.append(level.Name)
+        return td$
+    }
+
+    // Build Test Case Table
+    function buildTestCaseTable(selector) {
+        if (!testResult.hasOwnProperty('OverallRisk')) {
+            return;
+        }
+
+        // Add table headers
+        addColumnHeaders(selector);
+
+        // Build Overall Row
+        var row$ = $('<tr/>');
+        row$.append($('<td/>').html("Overall"));
+        row$.append(buildRiskLevel(testResult.OverallRisk.Level))
+        row$.append(buildRiskReasons(testResult.OverallRisk.Reasons))
+        row$.append(buildOpenBugs(testResult.OpenBugs))
+        $(selector).append(row$);
+
+        // First sort the tests by risk factor
+        testResult.Tests.sort(function(a, b){return b.Risk.Level.Level - a.Risk.Level.Level})
+        // Build rows for all tests
+        for (var i = 0; i < testResult.Tests.length; i++) {
+            var row$ = $('<tr/>');
+            testUrl = encodeURI(testLinkPrefix + testResult.CompareRelease + testLinkSuffix + testResult.Tests[i].Name)
+            row$.append($('<td/>').html("<a target=\"_blank\" href=" + testUrl + ">" + testResult.Tests[i].Name + "</a>"));
+            row$.append(buildRiskLevel(testResult.Tests[i].Risk.Level))
+            row$.append(buildRiskReasons(testResult.Tests[i].Risk.Reasons))
+            row$.append(buildOpenBugs(testResult.Tests[i].OpenBugs))
+            $(selector).append(row$);
+        }
+    }
+
+    function addColumnHeaders(selector) {
+        var headerTr$ = $('<tr/>');
+        headerTr$.append($('<th/>').html("Test Name"));
+        headerTr$.append($('<th/>').html("Risk Level"));
+        headerTr$.append($('<th/>').html("Risk Reason"));
+        headerTr$.append($('<th/>').html("Open Bugs"));
+
+        $(selector).append(headerTr$);
+    }
+
+    function buildDisruptionTable(selector) {
+        addDisruptionColumnHeaders(selector);
+
+        for (var i = 0; i < disruptionResult.Backends.length; i++) {
+            var row$ = $('<tr/>');
+
+            row$.css("background-color", disruptionResult.Backends[i].RiskColor);
+            row$.append(addSimpleCell(disruptionResult.Backends[i].BackendName))
+            row$.append(addSimpleCell(disruptionResult.Backends[i].ObservedDisruption))
+            row$.append(addSimpleCell(disruptionResult.Backends[i].P50.toFixed(2)))
+            row$.append(addSimpleCell(disruptionResult.Backends[i].P75.toFixed(2)))
+            row$.append(addSimpleCell(disruptionResult.Backends[i].P95.toFixed(2)))
+            row$.append(addSimpleCell(disruptionResult.Backends[i].P99.toFixed(2)))
+            row$.append(addSimpleCell(disruptionResult.Backends[i].JobRuns))
+            $(selector).append(row$);
+        }
+    }
+    function addDisruptionColumnHeaders(selector) {
+        var headerTr$ = $('<tr/>');
+        headerTr$.append($('<th/>').html("Backend Name"));
+        headerTr$.append($('<th/>').html("Observed Disruption"));
+        headerTr$.append($('<th/>').html("P50"));
+        headerTr$.append($('<th/>').html("P75"));
+        headerTr$.append($('<th/>').html("P95"));
+        headerTr$.append($('<th/>').html("P99"));
+        headerTr$.append($('<th/>').html("JobRuns"));
+
+        $(selector).append(headerTr$);
+    }
+
+    function addSimpleCell(v) {
+        td$ = $('<td/>')
+        td$.append(v)
+        return td$
+    }
+
+</script>
+
+</body>
+</html>

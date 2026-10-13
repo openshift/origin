@@ -1,0 +1,23 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: duplicated-kernel-argument
+objects:
+  - kind: MachineConfig
+    apiVersion: machineconfiguration.openshift.io/v1
+    metadata:
+      labels:
+        machineconfiguration.openshift.io/role: "${POOL}"
+      name: "${NAME}"
+    spec:
+      config:
+        ignition:
+          version: 3.2.0
+      kernelArguments:
+        - y=0
+        - z=4
+        - y=1
+        - z=4
+parameters:
+  - name: NAME
+  - name: POOL

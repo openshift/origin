@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  generateName: e2e-collect-certificate-
+  namespace: e2e-collect-certificate
+spec:
+  initContainers:
+  - name: collector
+    command:
+    - openshift-tests
+    - collect-disk-certificates
+    - --output-file=/tmp/shared/pkiList.json
+    - --collect-dir=/rootfs/etc/kubernetes
+    - --collect-dir=/rootfs/etc/cni
+    - --collect-dir=/rootfs/etc/pki/tls
+    - --collect-dir=/rootfs/etc/docker/certs.d
+    - --collect-dir=/rootfs/var/lib/ovn-ic/etc
+    - --collect-dir=/rootfs/var/lib/openvswitch/pki
+    - --collect-dir=/rootfs/var/lib/kubelet/pki
+    - --root-fs-mountpoint=/rootfs
+    image: "image-registry.openshift-image-registry.svc:5000/openshift/tests:latest"
+    imagePullPolicy: Always
+    securityContext:
+      privileged: true
+      runAsUser: 0
+    volumeMounts:
+    - mountPath: /rootfs
+      name: rootfs
+    - mountPath: /tmp/shared
+      name: shared-dir
+  containers:
+  - image: "registry.redhat.io/ubi8/ubi:latest"
+    name: pause
+    command:
+    - sleep
+    - infinity
+    volumeMounts:
+    - mountPath: /tmp/shared
+      name: shared-dir
+  securityContext:
+    runAsUser: 0
+  volumeMounts:
+  - mountPath: /tmp/shared
+    name: shared-dir
+  hostNetwork: true
+  restartPolicy: Never
+  serviceAccountName: collect-certificate-sa
+  volumes:
+  - hostPath:
+      path: /
+      type: DirectoryOrCreate
+    name: rootfs
+  - emptyDir: {}
+    name: shared-dir
+  tolerations:
+  # Ensure pod can be scheduled on master nodes
+  - key: node-role.kubernetes.io/master
+    effect: NoSchedule
+  # Ensure pod can be scheduled on edge nodes
+  - key: node-role.kubernetes.io/edge
+    effect: NoSchedule

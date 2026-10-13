@@ -1,0 +1,27 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: nwpolicy-template
+objects:
+- apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    name: ${NAME}
+    namespace: ${SERVER_NS}
+  spec:
+    podSelector: {}
+    policyTypes:
+      - Ingress
+    ingress:
+      - from:
+          - podSelector: {}
+            namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: ${ALLOW_NS}
+parameters:
+- name: NAME
+  value: allow-ingress
+- name: SERVER_NS
+  value: test-server
+- name: ALLOW_NS
+  value: test-client2

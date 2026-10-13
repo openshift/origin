@@ -1,0 +1,16 @@
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+mirror:
+  operators:
+    - catalog: oci:///tmp/case72971/redhat-operator-index
+      packages:
+        - name: aws-load-balancer-operator
+    - catalog: registry.redhat.io/redhat/redhat-marketplace-index:v4.16
+      packages:
+      - name: aerospike-kubernetes-operator-rhmp
+    - catalog: registry.redhat.io/redhat/certified-operator-index:v4.16
+      packages:
+      - name: nginx-ingress-operator
+    - catalog: registry.redhat.io/redhat/community-operator-index:v4.16
+      packages:
+      - name: seldon-operator

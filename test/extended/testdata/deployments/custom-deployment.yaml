@@ -1,0 +1,46 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: custom-deployment
+spec:
+  replicas: 2
+  selector:
+    name: custom-deployment
+  strategy:
+    type: Rolling
+    rollingParams:
+      pre:
+        failurePolicy: Abort
+        execNewPod:
+          containerName: myapp
+          volumes:
+          - non-existing-volume
+          command:
+          - /bin/echo
+          - test pre hook executed
+    customParams:
+      command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        sleep 15  # give tests time to set up
+        openshift-deploy --until=50%
+        echo Halfway
+        openshift-deploy
+        echo Finished
+  template:
+    metadata:
+      labels:
+        name: custom-deployment
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
+        imagePullPolicy: IfNotPresent
+        name: myapp
+        command:
+        - /bin/sleep
+        - "infinity"
+  triggers:
+  - type: ConfigChange

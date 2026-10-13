@@ -1,0 +1,32 @@
+{
+  "kind": "BuildConfig",
+  "apiVersion": "build.openshift.io/v1",
+  "metadata": {
+    "name": "test-docker",
+    "labels": {
+      "name": "test-docker"
+    }
+  },
+  "spec": {
+    "triggers": [],
+    "source": {
+      "type": "Git",
+      "dockerfile": "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
+    },
+    "strategy": {
+      "type": "Docker",
+      "dockerStrategy": {
+        "env": [
+          {
+            "name": "BUILD_LOGLEVEL",
+            "value": "5"
+          }
+        ],
+        "from": {
+          "kind": "DockerImage",
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
+        }
+      }
+    }
+  }
+}

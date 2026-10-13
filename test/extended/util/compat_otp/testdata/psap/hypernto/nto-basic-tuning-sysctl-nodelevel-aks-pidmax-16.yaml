@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hc-nodepool-pidmax
+data:
+  tuning: |
+    apiVersion: tuned.openshift.io/v1
+    kind: Tuned
+    metadata:
+      name: hc-nodepool-pidmax
+      namespace: openshift-cluster-node-tuning-operator
+    spec:
+      profile:
+      - data: |
+          [main]
+          summary=Custom OpenShift profile
+          include=openshift-node,hc-nodepool-vmdratio
+          
+          [sysctl]   # Section with minimum changes
+           kernel.pid_max=868686
+        name: hc-nodepool-pidmax
+      recommend:
+        - priority: 16
+          profile: hc-nodepool-pidmax

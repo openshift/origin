@@ -1,0 +1,59 @@
+kind: Template
+apiversion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+    annotations:
+      observability.openshift.io/log-level: ${LOG_LEVEL}
+  spec:
+    inputs:
+    - application:
+        includes:
+        - namespace: ${NAMESPACE_PATTERN}
+      name: app-input-namespace
+      type: application
+    outputs:
+    - name: syslog-out
+      type: syslog
+      syslog:
+        enrichment: KubernetesMinimal
+        rfc: ${RFC}
+        url: ${URL}
+    pipelines:
+    - inputRefs: 
+        - app-input-namespace
+      name: pipe1
+      outputRefs:
+        - syslog-out
+    - inputRefs: 
+        - infrastructure
+      name: pipe2
+      outputRefs:
+        - syslog-out
+    - inputRefs: 
+        - audit
+      name: pipe3
+      outputRefs:
+        - syslog-out
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: NAMESPACE_PATTERN
+  value: "e2e*"
+- name: URL
+  value: "udp://rsyslogserver.openshift-logging.svc:514"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: RFC
+  value: RFC5424
+- name: LOG_LEVEL
+  value: "off"

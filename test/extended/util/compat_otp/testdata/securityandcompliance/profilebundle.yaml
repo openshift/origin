@@ -1,0 +1,19 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: profilebundle-template
+objects:
+- apiVersion: compliance.openshift.io/v1alpha1
+  kind: ProfileBundle
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    contentImage: "${CONTENIMAGE}"
+    contentFile: "${CONTENTFILE}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: CONTENIMAGE
+- name: CONTENTFILE

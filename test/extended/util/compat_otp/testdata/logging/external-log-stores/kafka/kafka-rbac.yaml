@@ -1,0 +1,43 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: kafkaserver-template
+objects:
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: ${NAME}
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - nodes
+    verbs:
+    - get
+  - apiGroups:
+    - ""
+    resources:
+    - pods
+    verbs:
+    - get
+    - create
+    - update
+    - patch
+    - delete
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: ${NAME}
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: ${NAME}
+  subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: ${NAMESPACE}
+parameters:
+- name: NAME
+  value: "kafka-node-reader"
+- name: NAMESPACE
+  value: "openshift-logging"

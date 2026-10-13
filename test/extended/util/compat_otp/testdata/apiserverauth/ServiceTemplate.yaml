@@ -1,0 +1,23 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: servicetemplate
+objects:
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+    spec:
+      selector:
+        docker-registry: default
+      clusterIP: ${CLUSTERIP}
+      ports:
+      - nodePort: 0
+        port: 5000
+        protocol: TCP
+        targetPort: 5000
+parameters:
+ - name: NAME
+ - name: NAMESPACE
+ - name: CLUSTERIP

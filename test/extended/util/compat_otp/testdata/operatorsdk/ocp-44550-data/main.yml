@@ -1,0 +1,47 @@
+---
+# tasks file for Ansiblehttp
+- name: start ansiblehttp
+  k8s:
+    definition:
+      kind: Deployment
+      apiVersion: apps/v1
+      metadata:
+        name: '{{ ansible_operator_meta.name }}-ansiblehttp'
+        namespace: '{{ ansible_operator_meta.namespace }}'
+      spec:
+        replicas: "{{size}}"
+        selector:
+          matchLabels:
+            app: ansiblehttp
+        template:
+          metadata:
+            labels:
+              app: ansiblehttp
+          spec:
+            containers:
+            - name: ansiblehttp
+              command:
+              - memcached
+              - -m=64
+              - -o
+              - modern
+              - -v
+              image: "quay.io/olmqe/memcached:1.4"
+              ports:
+                - containerPort: 11211
+              env:
+                - name: HTTP_PROXY
+                  value: '{{ lookup("env", "HTTP_PROXY") | default("", True) }}'
+                - name: http_proxy
+                  value: '{{ lookup("env", "HTTP_PROXY") | default("", True) }}'
+- name: Create ConfigMap to test blacklisted watches
+  k8s:
+    definition:
+      kind: ConfigMap
+      apiVersion: v1
+      metadata:
+        name: test-blacklist-watches
+        namespace: "{{ ansible_operator_meta.namespace }}"
+      data:
+        arbitrary: afdasdfsajsafj
+    state: present

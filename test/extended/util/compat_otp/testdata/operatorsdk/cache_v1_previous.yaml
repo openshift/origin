@@ -1,0 +1,13 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: previous-template
+objects:
+- apiVersion: cache.previous.com/v1
+  kind: Previous
+  metadata:
+    name: "${NAME}"
+  spec:
+    size: 2
+parameters:
+- name: NAME

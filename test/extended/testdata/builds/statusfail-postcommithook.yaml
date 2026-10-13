@@ -1,0 +1,20 @@
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: statusfail-postcommithook
+spec:
+  source:
+    git:
+      uri: "https://github.com/openshift/ruby-hello-world.git"
+  postCommit:
+    args:
+      - failme
+  strategy:
+    sourceStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
+      from:
+        kind: DockerImage
+        name: quay.io/redhat-developer/test-build-simples2i:1.2
+    type: Source

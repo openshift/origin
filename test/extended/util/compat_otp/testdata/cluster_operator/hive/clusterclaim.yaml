@@ -1,0 +1,16 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: clusterclaim-temp
+objects:
+- apiVersion: hive.openshift.io/v1
+  kind: ClusterClaim
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    clusterPoolName: "${CLUSTERPOOLNAME}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: CLUSTERPOOLNAME

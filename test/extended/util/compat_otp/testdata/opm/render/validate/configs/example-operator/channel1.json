@@ -1,0 +1,10 @@
+{
+    "schema": "olm.channel",
+    "name": "stable",
+    "package": "example-operator",
+    "entries": [
+        {
+            "name": "example-operator.v0.1.0"
+        }
+    ]
+}

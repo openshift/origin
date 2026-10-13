@@ -1,0 +1,26 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: common-pod-template
+objects:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: "${NAME}"
+    spec:
+      containers:
+        - name: kbs-client
+          image: "${IMAGE}"
+          imagePullPolicy: IfNotPresent
+          command:
+            - sleep
+            - "360000"
+          env:
+            - name: RUST_LOG
+              value: none
+
+parameters:
+  - name: NAME
+    value: "kbs-client"
+  - name: IMAGE
+    value: "quay.io/confidential-containers/kbs-client:v0.11.0"

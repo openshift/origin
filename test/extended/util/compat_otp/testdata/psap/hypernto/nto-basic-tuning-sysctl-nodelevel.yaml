@@ -1,0 +1,35 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: hypernto-template
+objects:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: ${TUNEDPROFILENAME}
+    data:
+      tuning: |
+        apiVersion: tuned.openshift.io/v1
+        kind: Tuned
+        metadata:
+          name: ${TUNEDPROFILENAME}
+          namespace: openshift-cluster-node-tuning-operator
+        spec:
+          profile:
+          - data: |
+              [main]
+              summary=Custom OpenShift profile
+              include=${INCLUDE}
+              
+              [sysctl]   # Section with minimum changes
+              ${SYSCTLPARM}=${SYSCTLVALUE}
+            name: ${TUNEDPROFILENAME}
+          recommend:
+            - priority: ${PRIORITY}
+              profile: ${TUNEDPROFILENAME}
+parameters:
+- name: TUNEDPROFILENAME
+- name: SYSCTLPARM
+- name: SYSCTLVALUE  
+- name: PRIORITY
+- name: INCLUDE

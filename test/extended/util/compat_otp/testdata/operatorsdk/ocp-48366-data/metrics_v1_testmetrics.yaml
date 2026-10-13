@@ -1,0 +1,6 @@
+apiVersion: metrics.testmetrics.com/v1
+kind: Testmetrics
+metadata:
+  name: testmetrics-sample
+spec:
+  size: 1

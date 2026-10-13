@@ -1,0 +1,11 @@
+apiVersion: operator.openshift.io/v1
+kind: MachineConfiguration
+metadata:
+  name: cluster
+  namespace: openshift-machine-config-operator
+spec:
+  nodeDisruptionPolicy:
+    files:
+      - path: /home/core/test
+        actions:
+          - type: None

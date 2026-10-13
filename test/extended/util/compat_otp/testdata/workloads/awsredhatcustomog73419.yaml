@@ -1,0 +1,10 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  annotations:
+    olm.providedAPIs: AWSLoadBalancerController.v1.networking.olm.openshift.io,AWSLoadBalancerController.v1alpha1.networking.olm.openshift.io,IngressClassParams.v1beta1.elbv2.k8s.aws,TargetGroupBinding.v1alpha1.elbv2.k8s.aws,TargetGroupBinding.v1beta1.elbv2.k8s.aws
+  generateName: aws-load-balancer-operator-
+  name: aws-load-balancer-operator-rzmt4
+  namespace: aws-load-balancer-operator
+spec:
+  upgradeStrategy: Default

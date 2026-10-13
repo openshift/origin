@@ -1,0 +1,18 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: netattachdef-template
+objects:
+- kind: NetworkAttachmentDefinition
+  apiVersion: "k8s.cni.cncf.io/v1"
+  metadata:
+    name: ${NETNAME}
+    namespace: ${NAMESPACE}
+    annotations:
+      k8s.v1.cni.cncf.io/resourceName: openshift.io/${SRIOVNETPOLICY}
+  spec:
+    config: '{"cniVersion":"0.3.1","name":"ovn-kubernetes","type":"ovn-k8s-cni-overlay","ipam":{},"dns":{}}'
+parameters:
+- name: NETNAME 
+- name: NAMESPACE
+- name: SRIOVNETPOLICY

@@ -1,0 +1,122 @@
+{
+    "kind": "List",
+    "apiVersion": "v1",
+    "metadata": {},
+    "items": [
+      {
+        "kind": "ImageStream",
+        "apiVersion": "image.openshift.io/v1",
+        "metadata": {
+          "name": "ruby-20-centos7-buildcli",
+          "creationTimestamp": null
+        },
+        "spec": {
+          "dockerImageRepository": "image-registry.openshift-image-registry.svc:5000/openshift/ruby",
+          "tags": [
+            {
+              "name": "valid"
+            }
+          ]
+        },
+        "status": {
+          "dockerImageRepository": ""
+        }
+      },
+      {
+        "kind": "BuildConfig",
+        "apiVersion": "build.openshift.io/v1",
+        "metadata": {
+          "name": "ruby-sample-build-validtag",
+          "creationTimestamp": null
+        },
+        "spec": {
+          "triggers": [
+            {
+              "type": "imageChange",
+              "imageChange": {}
+            }
+          ],
+          "source": {
+            "type": "Git",
+            "git": {
+              "uri": "https://github.com/openshift/ruby-hello-world.git"
+            }
+          },
+          "strategy": {
+            "type": "Source",
+            "sourceStrategy": {
+              "env":[
+                {
+                   "name":"BUILD_LOGLEVEL",
+                   "value":"2"
+                }
+             ],
+              "from": {
+                "kind": "DockerImage",
+                "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby"
+              },
+              "incremental": true
+            }
+          },
+          "output": {
+            "to": {
+              "kind": "ImageStreamTag",
+              "name": "origin-ruby-sample:latest"
+            }
+          },
+          "resources": {}
+        },
+        "status": {
+          "lastVersion": 0
+        }
+      },
+      {
+        "kind": "BuildConfig",
+        "apiVersion": "build.openshift.io/v1",
+        "metadata": {
+          "name": "ruby-sample-build-invalidtag",
+          "creationTimestamp": null
+        },
+        "spec": {
+          "triggers": [
+            {
+              "type": "imageChange",
+              "imageChange": {}
+            }
+          ],
+          "source": {
+            "type": "Git",
+            "git": {
+              "uri": "https://github.com/openshift/ruby-hello-world.git"
+            }
+          },
+          "strategy": {
+            "type": "Source",
+            "sourceStrategy": {
+              "env":[
+                {
+                   "name":"BUILD_LOGLEVEL",
+                   "value":"2"
+                }
+             ],
+              "from": {
+                "kind": "DockerImage",
+                "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby"
+              },
+              "incremental": true
+            }
+          },
+          "output": {
+            "to": {
+              "kind": "ImageStreamTag",
+              "name": "origin-ruby-sample:latest"
+            }
+          },
+          "resources": {}
+        },
+        "status": {
+          "lastVersion": 0
+        }
+      }
+    ]
+  }

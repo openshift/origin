@@ -1,0 +1,34 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: cudn-crd-dualstack-template
+objects:
+  - apiVersion: k8s.ovn.org/v1
+    kind: ClusterUserDefinedNetwork
+    metadata:
+      name: "${CRDNAME}"
+    spec:
+      namespaceSelector:
+        matchLabels:
+          "${LABELKEY}": "${LABELVALUE}"
+      network:
+        topology: Layer3
+        layer3:
+          role: "${ROLE}"
+          mtu: ${{MTU}}
+          subnets:
+            - cidr: "${IPv4CIDR}"
+              hostSubnet: ${{IPv4PREFIX}}
+            - cidr: "${IPv6CIDR}"
+              hostSubnet: ${{IPv6PREFIX}}
+parameters:
+- name: CRDNAME
+- name: LABELVALUE
+- name: LABELKEY
+- name: MTU
+- name: ROLE
+- name: IPv4CIDR
+- name: IPv4PREFIX
+- name: IPv6CIDR
+- name: IPv6PREFIX
+

@@ -1,0 +1,97 @@
+{
+  "nodes": [
+    {
+      "version": "sourceversion",
+      "payload": "sourcepayload"
+    },
+    {
+      "version": "4.77.777777",
+      "payload": "registry.ci.openshift.org/ocp/release@sha256:7777777777777777777777777777777777777777777777777777777777777777"
+    },
+    {
+      "version": "4.88.888888",
+      "payload": "registry.ci.openshift.org/ocp/release@sha256:8888888888888888888888888888888888888888888888888888888888888888"
+    },
+    {
+      "version": "4.99.999999",
+      "payload": "registry.ci.openshift.org/ocp/release@sha256:9999999999999999999999999999999999999999999999999999999999999999"
+    }
+  ],
+  "edges": [
+    [0,1],
+    [0,2],
+    [0,3]
+  ],
+  "conditionalEdges":[
+    {
+      "edges": [
+        {"from": "sourceversion", "to": "4.77.777777"}
+      ],
+      "risks": [
+        {
+          "url": "https://bug.example.com/a",
+          "name": "SomeInvokerThing",
+          "message": "On clusters on default invoker user, this imaginary bug can happen.",
+          "matchingRules": [
+            {
+              "type": "PromQL",
+              "promql": {
+                "promql": "cluster_installer"
+              }
+            }
+          ]
+        },
+        {
+          "url": "https://bug.example.com/b",
+          "name": "SomeChannelThing",
+          "message": "On clusters with the channel set to 'buggy', this imaginary bug can happen.",
+          "matchingRules": [
+            {
+              "type": "PromQL",
+              "promql": {
+                "promql": "group(cluster_version_available_updates{channel=\"buggy\"})\nor\n0 * group(cluster_version_available_updates{channel!=\"buggy\"})"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "edges": [
+        {"from": "sourceversion", "to": "4.88.888888"}
+      ],
+      "risks": [
+        {
+          "url": "https://openshift-release.apps.ci.l2s4.p1.openshiftapps.com/releasestream/4.10.0-0.nightly/release/4.10.0-0.nightly-2021-11-24-075634",
+          "name": "ReleaseIsRejected!",
+          "message": "Too many CI failures on this release, so do not update to it",
+          "matchingRules": [
+            {
+              "type": "Always"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "edges": [
+        {"from": "sourceversion", "to": "4.99.999999"}
+      ],
+      "risks": [
+        {
+          "url": "https://bug.example.com/c",
+          "name": "SomeInfrastructureThing",
+          "message": "Clusters on nonexist provider, this imaginary bug can happen.",
+          "matchingRules": [
+            {
+              "type": "PromQL",
+              "promql": {
+                "promql": "cluster_infrastructure_provider{type=~\"nonexist\"}\nor\n0 * cluster_infrastructure_provider"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

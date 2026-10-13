@@ -1,0 +1,29 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kbsconfig-template
+objects:
+  - apiVersion: confidentialcontainers.org/v1alpha1
+    kind: KbsConfig
+    metadata:
+      labels:
+        app.kubernetes.io/name: kbsconfig
+        app.kubernetes.io/instance: kbsconfig
+        app.kubernetes.io/part-of: trustee-operator
+        app.kubernetes.io/managed-by: kustomize
+        app.kubernetes.io/created-by: trustee-operator
+      name: kbsconfig
+      namespace: trustee-operator-system
+    spec:
+      kbsConfigMapName: kbs-config-cm
+      kbsAuthSecretName: kbs-auth-public-key
+      kbsDeploymentType: AllInOneDeployment
+      kbsRvpsRefValuesConfigMapName: rvps-reference-values
+      kbsResourcePolicyConfigMapName: resource-policy
+      kbsServiceType: NodePort
+      kbsSecretResources: ${{KBSSECRETRESOURCES}}
+
+parameters:
+  - name: KBSSECRETRESOURCES
+    description: "Array with names of the secrets"
+    value: '["kbsres1", "security-policy", "cosign-public-key"]'

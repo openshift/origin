@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: rvps-reference-values-cm-template
+objects:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: rvps-reference-values
+      namespace: "${NAMESPACE}"
+    data:
+      reference-values.json: |
+        [
+        ]
+
+
+parameters:
+  - name: NAMESPACE
+    description: "namespace to place this cm in"
+    value: "trustee-operator-system"

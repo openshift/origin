@@ -1,0 +1,22 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ocp-48876pod
+objects:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    containers:
+    - name: hello-pod-ocp48876
+      image: quay.io/openshifttest/nfs-server@sha256:505779658a0ed49a09771d958396f5ad2d051f67b9358fd894ccb55d5fe5ee76
+      securityContext:
+        privileged: true
+        capabilities:
+          add: ["NET_RAW"]
+      command: ['sh', '-c', 'echo "Hello, world!" && sleep 3600']
+parameters:      
+- name: NAME
+- name: NAMESPACE

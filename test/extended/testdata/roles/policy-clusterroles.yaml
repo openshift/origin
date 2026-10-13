@@ -1,0 +1,69 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: "policy-roles-template"
+labels:
+  createdBy: "policy-roles-template"
+parameters:
+  - description: "The name for the cluster role."
+    name: ROLE_NAME
+    required: true
+  - description: "The name for the cluster role binding."
+    name: BINDING_NAME
+    required: true
+objects:
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: ${ROLE_NAME}
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resourceNames:
+    - "~"
+    resources:
+    - users
+    verbs:
+    - get
+  - apiGroups:
+    - project.openshift.io
+    attributeRestrictions: null
+    resources:
+    - projectrequests
+    verbs:
+    - list
+  - apiGroups:
+    - rbac.authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - clusterroles
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - project.openshift.io
+    attributeRestrictions: null
+    resources:
+    - projects
+    verbs:
+    - list
+  - apiGroups:
+    - authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - selfsubjectaccessreviews
+    verbs:
+    - create
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: ${BINDING_NAME}
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: ${ROLE_NAME}
+  subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: system:authenticated

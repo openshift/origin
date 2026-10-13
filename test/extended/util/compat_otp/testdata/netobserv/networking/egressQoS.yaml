@@ -1,0 +1,10 @@
+apiVersion: k8s.ovn.org/v1
+kind: EgressQoS
+metadata:
+     name: default
+spec:
+  egress:
+  - dscp: 59
+    podSelector:
+      matchLabels:
+        app: client-dscp

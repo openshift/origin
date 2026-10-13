@@ -1,0 +1,7 @@
+---
+apiVersion: v1
+featureSet: TechPreviewNoUpgrade
+platform:
+  gcp:
+    foo: bar
+    

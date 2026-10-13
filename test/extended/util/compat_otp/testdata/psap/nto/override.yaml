@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: override-template
+objects:
+  - apiVersion: tuned.openshift.io/v1
+    kind: Tuned
+    metadata:
+      name: override
+      namespace: openshift-cluster-node-tuning-operator
+    spec:
+      profile:
+      - data: |
+          [main]
+          summary=Testing no-override of /etc/sysctl.d/*.conf parameters
+          [sysctl]
+          kernel.pid_max=1048576
+          fs.inotify.max_user_watches=163840
+        name: override
+      recommend:
+      - match:
+        - label: tuned.openshift.io/override
+        priority: 18
+        profile: override
+        operand:
+          tunedConfig:
+            reapply_sysctl: ${{REAPPLY_SYSCTL}}
+          debug: false
+parameters:
+- name: REAPPLY_SYSCTL

@@ -1,0 +1,235 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: service-catalog
+objects:
+
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: service-catalog-controller
+
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: service-catalog-apiserver
+
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    labels:
+      app: apiserver
+    name: apiserver
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: apiserver
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 1
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: apiserver
+      spec:
+        serviceAccountName: service-catalog-apiserver
+        containers:
+        - command:
+          - service-catalog
+          args:
+          - apiserver
+          - --enable-admission-plugins
+          - NamespaceLifecycle,DefaultServicePlan,ServiceBindingsLifecycle,ServicePlanChangeValidator,BrokerAuthSarCheck
+          - --storage-type
+          - etcd
+          - --secure-port
+          - "6443"
+          - --etcd-servers
+          - http://localhost:2379
+          - -v
+          - "3"
+          - --cors-allowed-origins
+          - ${CORS_ALLOWED_ORIGIN}
+          - --feature-gates
+          - OriginatingIdentity=true
+          - --feature-gates
+          - NamespacedServiceBroker=true
+          image: ${SERVICE_CATALOG_IMAGE}
+          imagePullPolicy: IfNotPresent
+          name: apiserver
+          ports:
+          - containerPort: 6443
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /var/run/kubernetes-service-catalog
+            name: apiserver-ssl
+            readOnly: true
+        - env:
+          - name: ETCD_DATA_DIR
+            value: /data-dir
+          image: quay.io/coreos/etcd:v3.3
+          imagePullPolicy: IfNotPresent
+          name: etcd
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /data-dir
+            name: data-dir
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: apiserver-ssl
+          secret:
+            defaultMode: 420
+            secretName: apiserver-ssl
+            items:
+            - key: tls.crt
+              path: apiserver.crt
+            - key: tls.key
+              path: apiserver.key
+        - emptyDir: {}
+          name: data-dir
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: apiserver
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: 'apiserver-ssl'
+  spec:
+    type: ClusterIP
+    clusterIP: ${SERVICE_CATALOG_SERVICE_IP}
+    ports:
+    - name: secure
+      port: 443
+      protocol: TCP
+      targetPort: 6443
+    selector:
+      app: apiserver
+    sessionAffinity: None
+
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    labels:
+      app: controller-manager
+    name: controller-manager
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: controller-manager
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 1
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: controller-manager
+      spec:
+        serviceAccountName: service-catalog-controller
+        containers:
+        - command:
+          - service-catalog
+          args:
+          - controller-manager
+          - --secure-port
+          - "6443"
+          - -v
+          - "3"
+          - --cluster-id-configmap-namespace=kube-service-catalog
+          - --leader-election-namespace
+          - kube-service-catalog
+          - --leader-elect-resource-lock
+          - configmaps
+          - --broker-relist-interval
+          - "5m"
+          - --feature-gates
+          - OriginatingIdentity=true
+          - --feature-gates
+          - AsyncBindingOperations=true
+          - --feature-gates
+          - NamespacedServiceBroker=true
+          image: ${SERVICE_CATALOG_IMAGE}
+          imagePullPolicy: IfNotPresent
+          name: controller-manager
+          ports:
+          - containerPort: 6443
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /var/run/kubernetes-service-catalog
+            name: service-catalog-ssl
+            readOnly: true
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: service-catalog-ssl
+          secret:
+            defaultMode: 420
+            secretName: controllermanager-ssl
+            items:
+            - key: tls.crt
+              path: apiserver.crt
+            - key: tls.key
+              path: apiserver.key
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: controller-manager
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: 'controllermanager-ssl'
+      prometheus.io/scrape: "true"
+      prometheus.io/scheme: https
+  spec:
+    type: ClusterIP
+    ports:
+    - name: secure
+      port: 6443
+      protocol: TCP
+      targetPort: 6443
+    selector:
+      app: controller-manager
+    sessionAffinity: None
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1beta1.servicecatalog.k8s.io
+  spec:
+    group: servicecatalog.k8s.io
+    version: v1beta1
+    service:
+      namespace: kube-service-catalog
+      name: apiserver
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 200
+    versionPriority: 20
+
+parameters:
+- description: CORS allowed origin for the API server, if you need to specify multiple modify the Deployment after creation
+  displayName: CORS Allowed Origin
+  name: CORS_ALLOWED_ORIGIN
+  required: true
+  value: 10.192.213.116
+- description: Name of the service catalog image to use for apiserver and controller-manager
+  displayName: Service catalog image name
+  name: SERVICE_CATALOG_IMAGE
+  required: true
+  value: openshift/origin-service-catalog:latest
+- description: Cluster ip address for the service catalog service
+  displayName: Service Catalog Service IP
+  name: SERVICE_CATALOG_SERVICE_IP
+  required: true
+  value: 172.30.1.2

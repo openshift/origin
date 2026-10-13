@@ -1,0 +1,7 @@
+apiVersion: cats.resource.example.com/v1
+kind: ClaimParameters
+metadata:
+  name: large-black-cat-claim-parameters
+spec:
+  color: black
+  size: large

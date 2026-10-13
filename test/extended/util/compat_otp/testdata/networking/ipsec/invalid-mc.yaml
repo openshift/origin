@@ -1,0 +1,13 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: mc-invalid-extension
+spec:
+  config:
+    ignition:
+      version: 3.1.0
+  extensions:
+  - usbguard
+  - zsh

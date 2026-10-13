@@ -1,0 +1,17 @@
+kind: List
+apiVersion: v1
+items:
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: image-registry
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: image-registry
+  spec:
+    template:
+      spec:
+        containers:
+        - name: main
+          image: openshift/origin-image-registry:latest

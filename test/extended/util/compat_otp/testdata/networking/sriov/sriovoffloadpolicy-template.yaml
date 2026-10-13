@@ -1,0 +1,24 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: sriovnetworkpolicy-template
+objects:
+- kind: SriovNetworkNodePolicy
+  apiVersion: sriovnetwork.openshift.io/v1
+  metadata:
+    name: ${SRIOVNETPOLICY}
+  spec:
+    deviceType: netdevice
+    eSwitchMode: "switchdev"
+    nicSelector:
+      pfNames: 
+        - ${PFNAME}
+      vendor: '${VENDOR}'
+    nodeSelector:
+      feature.node.kubernetes.io/sriov-capable: 'true'
+    numVfs: 8
+    resourceName: ${SRIOVNETPOLICY}
+parameters:
+- name: SRIOVNETPOLICY 
+- name: PFNAME
+- name: VENDOR

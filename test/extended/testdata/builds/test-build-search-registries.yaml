@@ -1,0 +1,15 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: ubi
+spec:
+  source:
+    # ubi8/ubi:latest only resolves to an image on registry.redhat.io or registry.access.redhat.com.
+    dockerfile: FROM ubi8/ubi:latest
+    type: Dockerfile
+  strategy:
+    dockerStrategy:
+      env:
+        - name: BUILD_LOGLEVEL
+          value: "10"
+    type: Docker

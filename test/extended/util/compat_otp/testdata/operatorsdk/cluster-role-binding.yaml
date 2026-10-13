@@ -1,0 +1,22 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: clusterrolebinding-template
+objects:
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: "${NAME}"
+  roleRef:
+    apiGroup: ""
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    name: "${SA_NAME}"
+    namespace: "${NAMESPACE}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: SA_NAME

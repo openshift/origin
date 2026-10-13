@@ -1,0 +1,31 @@
+{
+    "apiVersion": "v1",
+    "id": "local-nginx-to-gluster",
+    "kind": "Pod",
+    "metadata": {
+        "name": "local-nginx-to-gluster"
+    },
+    "spec": {
+        "containers": [
+            {
+                "name": "local-nginx-to-gluster",
+                "image": "fedora/nginx",
+                "volumeMounts": [
+                    {
+                        "mountPath": "/usr/share/nginx/html/test",
+                        "name": "localvol"
+                    }
+                ]
+            }
+        ],
+        "volumes": [
+            {
+                "name": "localvol",
+                "hostPath": {
+                    "path": "/mnt/gvol1/glusterfs-nginx-atomichost-mount"
+                }
+            }
+        ]
+    }
+}
+

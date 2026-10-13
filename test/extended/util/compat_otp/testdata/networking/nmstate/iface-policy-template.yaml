@@ -1,0 +1,31 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: iface-policy-template
+objects:
+- kind: NodeNetworkConfigurationPolicy
+  apiVersion: nmstate.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    nodeSelector:
+      "${NODELABEL}": "${LABELVALUE}"
+    desiredState:
+      interfaces: 
+      - name: "${IFACENAME}"
+        description: "${DESCR}"
+        type: "${IFACETYPE}"
+        state: "${STATE}"
+        ipv6:
+          enabled: ${{IPV6FLAG}}
+parameters:
+- name: NAME
+- name: NODELABEL
+  value: "node-role.kubernetes.io/worker"
+- name: LABELVALUE
+  value: ""
+- name: IFACENAME
+- name: DESCR
+- name: IFACETYPE
+- name: STATE
+- name: IPV6FLAG

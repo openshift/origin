@@ -1,0 +1,13 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfigPool
+metadata:
+  name: worker-nohttps
+  labels:
+    worker-nohttps: ""
+spec:
+  machineConfigSelector:
+    matchExpressions:
+      - {key: machineconfiguration.openshift.io/role, operator: In, values: [worker,worker-nohttps]}
+  nodeSelector:
+    matchLabels:
+      node-role.kubernetes.io/worker-nohttps: ""

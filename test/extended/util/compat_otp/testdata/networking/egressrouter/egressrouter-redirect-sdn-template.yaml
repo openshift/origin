@@ -1,0 +1,45 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: egressrouter-redirect-sdn-template
+objects:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      name: "${NAME}"
+    annotations:
+      pod.network.openshift.io/assign-macvlan: "true"
+  spec:
+    initContainers:
+    - name: egressrouter-redirectpod
+      image: registry.redhat.io/openshift4/ose-egress-router
+      imagePullPolicy:  IfNotPresent
+      securityContext:
+        privileged: true
+      env:
+      - name: EGRESS_SOURCE
+        value: ${RESERVEDIP}
+      - name: EGRESS_GATEWAY
+        value: ${GATEWAY}
+      - name: EGRESS_DESTINATION
+        value:  ${DSTIP}
+      - name: EGRESS_ROUTER_MODE
+        value: init
+    containers:
+    - name: egressrouter-redirect-pod
+      image: registry.redhat.io/openshift4/ose-pod
+      imagePullPolicy:  IfNotPresent
+    nodeSelector:
+      ${LABELKEY}:  ${LABELVALUE}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: RESERVEDIP
+- name: GATEWAY
+- name: DSTIP
+  value: "142.250.188.206"
+- name: LABELKEY
+- name: LABELVALUE

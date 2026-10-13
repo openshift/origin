@@ -1,0 +1,45 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: machinetemplate-aws
+objects:
+  - apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    kind: AWSMachineTemplate
+    metadata:
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+    spec:
+      template:
+        spec:
+          uncompressedUserData: true
+          iamInstanceProfile: ${PROFILE}
+          instanceType: ${INSTANCETYPE}
+          failureDomain: ${ZONE}
+          ignition:
+            storageType: UnencryptedUserData
+            version: "3.2"
+          ami:
+            id: ${AMI}
+          subnet:
+            filters:
+            - name: tag:Name
+              values:
+              - ${SUBNETNAME}
+          additionalSecurityGroups:
+          - filters:
+            - name: tag:Name
+              values:
+              - ${SGNAME}
+          placementGroupName: ${PLACEMENTGROUPNAME}
+          placementGroupPartition: ${{PLACEMENTGROUPPARTITION}}              
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: PROFILE
+- name: INSTANCETYPE
+- name: ZONE
+- name: AMI
+- name: SUBNETNAME
+- name: SGNAME
+- name: PLACEMENTGROUPNAME
+- name: PLACEMENTGROUPPARTITION

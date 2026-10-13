@@ -1,0 +1,21 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: cluster-autoscaler-priority-expander
+objects:
+  - apiVersion: batch/v1
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: cluster-autoscaler-priority-expander
+      namespace: ${NAMESPACE}
+    data:
+      priorities: |-
+        10:
+          - ${P10}.*
+        20:
+          - ${P20}.*
+parameters:
+- name: P10
+- name: P20
+- name: NAMESPACE

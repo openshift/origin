@@ -1,0 +1,213 @@
+{
+  "items": [
+    {
+      "level": "Info",
+      "locator": {
+        "type": "Pod",
+        "keys": {
+          "pod": "installer-9-ci-op-97t906zm-db044-bwrrn-master-0",
+          "namespace": "openshift-etcd",
+          "node": "ci-op-97t906zm-db044-bwrrn-master-0",
+          "uid": "6fb10c53-7ed9-4f51-88db-f8a689050f21"
+        }
+      },
+      "message": {
+        "reason": "Created",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "reason": "Created"
+        }
+      },
+      "from": "2022-03-21T21:37:20Z",
+      "to": "2022-03-21T21:37:20Z"
+    },
+    {
+      "level": "Info",
+      "locator": {
+        "type": "Pod",
+        "keys": {
+          "pod": "installer-9-ci-op-97t906zm-db044-bwrrn-master-0",
+          "namespace": "openshift-etcd",
+          "node": "ci-op-97t906zm-db044-bwrrn-master-0",
+          "uid": "6fb10c53-7ed9-4f51-88db-f8a689050f21"
+        }
+      },
+      "message": {
+        "reason": "Scheduled",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "node": "ci-op-97t906zm-db044-bwrrn-master-0",
+          "reason": "Scheduled"
+        }
+      },
+      "from": "2022-03-21T21:37:20Z",
+      "to": "2022-03-21T21:37:20Z"
+    },
+    {
+      "level": "Warning",
+      "locator": {
+        "type": "Container",
+        "keys": {
+          "container": "installer",
+          "pod": "installer-9-ci-op-97t906zm-db044-bwrrn-master-0",
+          "namespace": "openshift-etcd",
+          "node": "ci-op-97t906zm-db044-bwrrn-master-0",
+          "uid": "6fb10c53-7ed9-4f51-88db-f8a689050f21"
+        }
+      },
+      "message": {
+        "reason": "NotReady",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "reason": "NotReady"
+        }
+      },
+      "from": "2022-03-21T21:37:20Z",
+      "to": "2022-03-21T21:37:20Z"
+    },
+    {
+      "level": "Info",
+      "locator": {
+        "type": "Container",
+        "keys": {
+          "container": "installer",
+          "pod": "installer-9-ci-op-97t906zm-db044-bwrrn-master-0",
+          "namespace": "openshift-etcd",
+          "node": "ci-op-97t906zm-db044-bwrrn-master-0",
+          "uid": "6fb10c53-7ed9-4f51-88db-f8a689050f21"
+        }
+      },
+      "message": {
+        "reason": "Ready",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "reason": "Ready"
+        }
+      },
+      "from": "2022-03-21T21:37:23Z",
+      "to": "2022-03-21T21:37:23Z"
+    },
+    {
+      "level": "Info",
+      "locator": {
+        "type": "Container",
+        "keys": {
+          "container": "installer",
+          "pod": "installer-9-ci-op-97t906zm-db044-bwrrn-master-0",
+          "namespace": "openshift-etcd",
+          "node": "ci-op-97t906zm-db044-bwrrn-master-0",
+          "uid": "6fb10c53-7ed9-4f51-88db-f8a689050f21"
+        }
+      },
+      "message": {
+        "reason": "ContainerStart",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "cause": "",
+          "duration": "3.00s",
+          "reason": "ContainerStart"
+        }
+      },
+      "from": "2022-03-21T21:37:23Z",
+      "to": "2022-03-21T21:37:23Z"
+    },
+    {
+      "level": "Warning",
+      "locator": {
+        "type": "Container",
+        "keys": {
+          "container": "installer",
+          "pod": "installer-9-ci-op-97t906zm-db044-bwrrn-master-0",
+          "namespace": "openshift-etcd",
+          "node": "ci-op-97t906zm-db044-bwrrn-master-0",
+          "uid": "6fb10c53-7ed9-4f51-88db-f8a689050f21"
+        }
+      },
+      "message": {
+        "reason": "NotReady",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "reason": "NotReady"
+        }
+      },
+      "from": "2022-03-21T21:37:56Z",
+      "to": "2022-03-21T21:37:56Z"
+    },
+    {
+      "level": "Info",
+      "locator": {
+        "type": "Container",
+        "keys": {
+          "container": "installer",
+          "pod": "installer-9-ci-op-97t906zm-db044-bwrrn-master-0",
+          "namespace": "openshift-etcd",
+          "node": "ci-op-97t906zm-db044-bwrrn-master-0",
+          "uid": "6fb10c53-7ed9-4f51-88db-f8a689050f21"
+        }
+      },
+      "message": {
+        "reason": "ContainerExit",
+        "cause": "Completed",
+        "humanMessage": "",
+        "annotations": {
+          "cause": "Completed",
+          "code": "0",
+          "reason": "ContainerExit"
+        }
+      },
+      "from": "2022-03-21T21:37:56Z",
+      "to": "2022-03-21T21:37:56Z"
+    },
+    {
+      "level": "Info",
+      "locator": {
+        "type": "Container",
+        "keys": {
+          "container": "installer",
+          "pod": "installer-9-ci-op-97t906zm-db044-bwrrn-master-0",
+          "namespace": "openshift-etcd",
+          "node": "ci-op-97t906zm-db044-bwrrn-master-0",
+          "uid": "6fb10c53-7ed9-4f51-88db-f8a689050f21"
+        }
+      },
+      "message": {
+        "reason": "DeletedAfterCompletion",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "reason": "DeletedAfterCompletion"
+        }
+      },
+      "from": "2022-03-21T22:22:32Z",
+      "to": "2022-03-21T22:22:32Z"
+    },
+    {
+      "level": "Info",
+      "locator": {
+        "type": "Pod",
+        "keys": {
+          "pod": "installer-9-ci-op-97t906zm-db044-bwrrn-master-0",
+          "namespace": "openshift-etcd",
+          "node": "ci-op-97t906zm-db044-bwrrn-master-0",
+          "uid": "6fb10c53-7ed9-4f51-88db-f8a689050f21"
+        }
+      },
+      "message": {
+        "reason": "Deleted",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "reason": "Deleted"
+        }
+      },
+      "from": "2022-03-21T22:22:32Z",
+      "to": "2022-03-21T22:22:32Z"
+    }
+  ]
+}

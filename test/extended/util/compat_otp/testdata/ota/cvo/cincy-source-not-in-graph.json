@@ -1,0 +1,22 @@
+{
+  "nodes": [
+    {
+      "version": "4.10.0-0.dummy-fake-payload",
+      "payload": "registry.ci.openshift.org/ocp/release@sha256:11d1687ac41f7e51676b670da3c43889de8bfc1adc86daca7d95d41d66b0c6ec",
+      "metadata": {
+	"io.openshift.upgrades.graph.release.channels": "channel-a,channel-b"
+      }
+    },
+    {
+      "version": "targetversion",
+      "payload": "targetpayload",
+      "metadata": {
+	"io.openshift.upgrades.graph.release.channels": "channel-a,channel-b"
+      }
+    }
+  ],
+  "edges": [
+    [0,1]
+  ]
+}
+

@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Ensure none of the build config inject secrets still exist in the file system
+
+secrets=(secret1 secret2 secret3)
+configMaps=(foo this red)
+
+function checkSecret() {
+    dir=$1
+    file=$2
+    if [[ -e "${dir}/${file}" ]]; then
+        echo "Found secret file which should have been deleted: ${dir}/${file}"
+        exit 1
+    fi
+}
+
+function checkConfigMap() {
+    dir=$1
+    file=$2
+    if [[ -a "${dir}/${file}" ]]; then
+        if [[ ! -s "${dir}/${file}" ]]; then
+            echo "Found empty configMap file which should not have been truncated: ${dir}/${file}"
+            exit 1
+        fi
+    else
+        echo "ConfigMap file ${file} is missing from ${dir}."
+        exit 1
+    fi
+}
+
+for s in ${secrets[@]}; do
+    checkSecret "/tmp" $s
+    checkSecret "." $s
+done
+
+for c in ${configMaps[@]}; do
+    checkConfigMap "/tmp/configmap" $c
+    checkConfigMap "configmap2" $c
+done
+
+# Print out the secrets copied into the image during assemble
+cd "${HOME}"
+for s in testsecret/* testsecret2/* testconfig/* testconfig2/*; do
+    echo -n "${s}=" && cat "${s}"
+done

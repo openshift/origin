@@ -1,0 +1,24 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: role-template
+objects:
+- apiVersion: authorization.openshift.io/v1
+  kind: Role
+  metadata:
+    annotations:
+      openshift.io/description: "A user who thinks they can tag an image."
+      openshift.io/reconcile-protect: "false"
+    name: "${ROLE_NAME}"
+    namespace: "${NAMESPACE}"
+  rules:
+  - apiGroups:
+    - image.openshift.io
+    attributeRestrictions: null
+    resources:
+    - imagestreams
+    verbs:
+    - update
+parameters:
+  - name: NAMESPACE
+  - name: ROLE_NAME

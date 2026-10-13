@@ -1,0 +1,6 @@
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+mirror:
+   additionalImages:
+   - name: quay.io/cilium/cilium-etcd-operator:v2.0.7@sha256:04b8327f7f992693c2cb483b999041ed8f92efc8e14f2a5f3ab95574a65ea2dc
+   - name: quay.io/coreos/etcd:v3.5.4@sha256:a67fb152d4c53223e96e818420c37f11d05c2d92cf62c05ca5604066c37295e9asss

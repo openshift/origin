@@ -1,0 +1,41 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: generic-machine-config-template
+objects:
+  - kind: MachineConfig
+    apiVersion: machineconfiguration.openshift.io/v1
+    metadata:
+      labels:
+        machineconfiguration.openshift.io/role: "${POOL}"
+      name: "${NAME}"
+    spec:
+      kernelArguments: ${{KERNEL_ARGS}}
+      osImageURL: ${OS_IMAGE}
+      extensions: ${{EXTENSIONS}}
+      config:
+        ignition:
+          version: ${IGNITION_VERSION}
+        storage:
+          files: ${{FILES}}
+        systemd:
+          units: ${{UNITS}}
+        passwd:
+          users: ${{PWDUSERS}}
+parameters:
+  - name: NAME
+  - name: POOL
+  - name: IGNITION_VERSION
+    value: 3.5.0
+  - name: FILES
+    value: "[]"
+  - name: UNITS
+    value: "[]"
+  - name: KERNEL_ARGS
+    value: "[]"
+  - name: EXTENSIONS
+    value: "[]"
+  - name: PWDUSERS
+    value: "[]"
+  - name: OS_IMAGE
+    value: ""

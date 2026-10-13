@@ -1,0 +1,23 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: change-policy-json
+objects:
+  - kind: MachineConfig
+    apiVersion: machineconfiguration.openshift.io/v1
+    metadata:
+      name: "${NAME}"
+      labels:
+        machineconfiguration.openshift.io/role: "${POOL}"
+    spec:
+      config:
+        ignition:
+          version: 3.2.0
+        storage:
+          files:
+          - contents:
+              source: data:;base64,eyJkZWZhdWx0IjogW3sidHlwZSI6ICJpbnNlY3VyZUFjY2VwdEFueXRoaW5nIn1dfQo=
+            path: /etc/containers/policy.json
+parameters:
+  - name: NAME
+  - name: POOL

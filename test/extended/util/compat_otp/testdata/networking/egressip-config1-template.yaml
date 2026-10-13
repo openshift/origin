@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: egressip-config1
+objects:
+- kind: EgressIP
+  apiVersion: k8s.ovn.org/v1 
+  metadata:
+    name: "${NAME}"
+  spec:
+    egressIPs:
+      - "${EGRESSIP1}"
+      - "${EGRESSIP2}"
+    namespaceSelector:
+      matchLabels:
+        name: test
+parameters:
+- name: NAME
+- name: EGRESSIP1
+- name: EGRESSIP2

@@ -1,0 +1,20 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: limit-range-template
+objects:
+- apiVersion: "v1"
+  kind: "LimitRange"
+  metadata:
+    name: "${NAME}" 
+    namespace: "${NAMESPACE}"
+  spec:
+    limits:
+      - type: openshift.io/Image
+        max:
+          storage: ${SIZE}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: SIZE
+

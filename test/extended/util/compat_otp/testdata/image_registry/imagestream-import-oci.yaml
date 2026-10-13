@@ -1,0 +1,28 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: imagestream-template
+objects:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStreamImport
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    import: true
+    images:
+    - from:
+        kind: DockerImage
+        name: "${IMAGE}"
+      to:
+        name: latest
+      referencePolicy:
+        type: "${POLICY}"
+      importPolicy:
+        importMode: "${MODE}"
+parameters:
+  - name: NAME
+  - name: NAMESPACE
+  - name: IMAGE
+  - name: POLICY
+  - name: MODE

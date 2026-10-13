@@ -1,0 +1,20 @@
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+mirror:
+  operators:
+  - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.14
+    full: true
+    packages:
+    - name: aws-load-balancer-operator
+      channels:
+      - name: stable
+        minVersion: 5.6.0
+        maxVersion: 6.0.0
+      bundles:
+      - name: aws-load-balancer-operator.v1.1.0
+      - name: aws-load-balancer-operator.v1.1.1
+      - name: aws-load-balancer-operator.v0.2.0
+    - name: 3scale-operator
+      bundles:
+      - name: 3scale-operator.v0.10.0-mas
+      - name: 3scale-operator.v0.11.12

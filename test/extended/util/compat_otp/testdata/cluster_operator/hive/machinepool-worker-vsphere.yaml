@@ -1,0 +1,28 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: machinepool-worker-vsphere-temp
+objects:
+- apiVersion: hive.openshift.io/v1
+  kind: MachinePool
+  metadata:
+    creationTimestamp: null
+    name: "${CLUSTERNAME}-worker"
+    namespace: "${NAMESPACE}"
+  spec:
+    clusterDeploymentRef:
+      name: ${CLUSTERNAME}
+    name: worker
+    platform:
+      vsphere:
+        coresPerSocket: 1
+        cpus: 2
+        memoryMB: 8192
+        osDisk:
+          diskSizeGB: 120
+    replicas: 3
+  status: {}
+parameters:
+- name: CLUSTERNAME
+- name: NAMESPACE
+

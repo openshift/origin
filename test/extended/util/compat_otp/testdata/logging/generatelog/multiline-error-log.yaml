@@ -1,0 +1,76 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: multiline-log-template
+objects:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: ${NAME}
+    labels:
+      name: multiline-log
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        name: multiline-log
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          capabilities: Seamless Upgrades
+          containerImage: quay.io/openshifttest/multiline-log@sha256:31cabe5ffb849e79e12d7105e0d8cba68b9218d302521c8b656bad78987b0502
+          support: OpenShift Logging QE
+        creationTimestamp: null
+        labels:
+          name: multiline-log
+      spec:
+        containers:
+        - args:
+          - /run-go.sh
+          command:
+          - /bin/sh
+          image: quay.io/openshifttest/multiline-log@sha256:31cabe5ffb849e79e12d7105e0d8cba68b9218d302521c8b656bad78987b0502
+          imagePullPolicy: IfNotPresent
+          name: multiline-log
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/logging/multiline-log.cfg
+            subPath: multiline-log.cfg
+            name: config
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext:
+          seccompProfile:
+            type: RuntimeDefault
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: ${NAME}
+          name: config
+- apiVersion: v1
+  data:
+    multiline-log.cfg: |
+      --stream ${OUT_STREAM} --rate ${RATE} --log-type ${LOG_TYPE}
+  kind: ConfigMap
+  metadata:
+    name: ${NAME}
+parameters:
+- name: NAME
+  value: "multiline-log"
+- name: LOG_TYPE
+  value: "all"
+- name: RATE
+  value: "30.00"
+- name: OUT_STREAM
+  value: "stdout"

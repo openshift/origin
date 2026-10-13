@@ -1,0 +1,32 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: custom-ssh-config
+objects:
+  - apiVersion: v1
+    data:
+      config: |
+        apiVersion: machineconfiguration.openshift.io/v1
+        kind: MachineConfig
+        metadata:
+          name: custom-machine-config
+        spec:
+          config:
+            ignition:
+              version: 3.2.0
+            passwd:
+              users:
+              - name: core
+                sshAuthorizedKeys:
+                - ssh-rsa ${SSH_AUTHORIZED_KEYS}
+    kind: ConfigMap
+    metadata:
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+parameters:
+  - name: NAME
+    value: custom-machine-config
+  - name: NAMESPACE
+    value: clusters
+  - name: SSH_AUTHORIZED_KEYS
+    value: "AAAAB3NzaC1yc2EAAAADxQ2c3Tt6GrC+Eg7y6mXQbw59laiGlyA+Qmyg0Dgd7BUVg1r8jRR6Xhf5XbI+tQBhoTQ6BBJKejE6euPRyTHomR4twQj79+shZkN6tjptQOTTSDJJYIZOmaj9TsDN4bLIxqDYWZC0F6+TvBoRV7xxOBU8wbCZN4IyEs6U77G8bQBP2Pjbp5NrG93nvdnLcvCDsnSOFuiay1KNqjOclIlsrb84qN9TFL3PgLoGohz2vInlaTnopCh4m7+xDgu5bdh1B/hNjDHDTHFpHPP8z7vkWM0I4I8q853E4prGRBpyVztcObeDr/0M/Vnwawyb9Lia16J5hSBi0o3UjxE= jiezhao@cube"

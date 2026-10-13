@@ -1,0 +1,5 @@
+kind: Image
+apiVersion: config.openshift.io/v1
+metadata:
+  name: cluster
+spec: {}

@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: cpu-performance-template
+objects:
+- kind: PerformanceProfile
+  apiVersion: performance.openshift.io/v2
+  metadata:
+    name: "${NAME}"
+  spec:
+    cpu:
+      isolated: ${{ISOLATED}}
+      reserved: 1-4
+    machineConfigPoolSelector:
+      pools.operator.machineconfiguration.openshift.io/worker: ""
+    nodeSelector:
+      node-role.kubernetes.io/worker: ""
+parameters:
+- name: NAME
+- name: ISOLATED

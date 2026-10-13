@@ -1,0 +1,12 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: openshift-custom-metrics-autoscaler-operator
+  namespace: openshift-keda
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: openshift-custom-metrics-autoscaler-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+

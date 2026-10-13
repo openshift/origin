@@ -1,0 +1,29 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: example
+  name: example
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: example
+    spec:
+      containers:
+      - imagePullPolicy: Always
+        name: test
+        command:
+        - /bin/sleep
+        - "infinity"
+  test: false
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - test
+      from:
+        kind: ImageStreamTag
+        name: test:v1
+    type: ImageChange

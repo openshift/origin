@@ -1,0 +1,13 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: olmv1-sa-template
+objects:
+  - apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+parameters:
+  - name: NAME
+  - name: NAMESPACE

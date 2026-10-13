@@ -1,0 +1,53 @@
+kind: Template
+apiversion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: "observability.openshift.io/v1"
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    managementState: Managed
+    outputs:
+    - name: cloudwatch
+      type: cloudwatch
+      cloudwatch:
+        authentication:
+          awsAccessKey:
+            keyId:
+              key: aws_access_key_id
+              secretName: ${SECRET_NAME}
+            keySecret:
+              key: aws_secret_access_key
+              secretName: ${SECRET_NAME}
+          type: awsAccessKey
+        groupName: ${GROUP_NAME}
+        region: ${REGION}
+        url: "https://logs.${REGION}.amazonaws.com"
+        tuning: ${{TUNING}}
+    pipelines:
+    - name: to-cloudwatch
+      inputRefs: ${{INPUT_REFS}}
+      outputRefs:
+      - cloudwatch
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: SECRET_NAME
+  value: "cw-secret"
+- name: REGION
+  value: "us-east-2"
+- name: GROUP_NAME
+  value: "{.log_type||\"none-typed-logs\"}"
+- name: INPUT_REFS
+  value: "[\"infrastructure\", \"audit\", \"application\"]"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: TUNING
+  value: "{}"

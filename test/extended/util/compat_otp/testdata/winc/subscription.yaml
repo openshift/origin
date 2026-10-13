@@ -1,0 +1,11 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: windows-machine-config-operator
+  namespace: <namespace>
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: windows-machine-config-operator
+  source: <source>
+  sourceNamespace: openshift-marketplace

@@ -1,0 +1,23 @@
+apiVersion: mirror.openshift.io/v2alpha1
+kind: ImageSetConfiguration
+mirror:
+  operators:
+  - catalog: oci:////tmp/case72947/redhat-operator-index
+    packages:
+    - name: ocs-operator
+      channels:
+      - name: stable-4.15
+        maxVersion: 4.15.0-rhodf
+    - name: devworkspace-operator
+      minVersion: "0.31.1"
+    - name: quay-operator
+      defaultChannel: stable-3.12
+      channels:
+      - name: stable-3.12
+        minVersion: "3.12.3"
+        maxVersion: "3.12.4"
+    - name: compliance-operator
+    - name: multicluster-engine
+      defaultChannel: stable-2.6
+      channels:
+      - name: stable-2.6

@@ -1,0 +1,19 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: myphp
+  labels:
+    app: myphp
+  annotations:
+    openshift.io/generated-by: OpenShiftWebConsole
+spec:
+  successfulBuildsHistoryLimit: 2
+  source:
+    dockerfile: |
+      FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+      RUN touch /php-file
+  strategy:
+    dockerStrategy:
+      env:
+      - name: "BUILD_LOGLEVEL"
+        value: "2"

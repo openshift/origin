@@ -1,0 +1,38 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: operator-template
+objects:
+- apiVersion: olm.operatorframework.io/v1
+  kind: ClusterExtension
+  metadata:
+    name: "${NAME}"
+  spec:
+    namespace: "${INSTALLNAMESPACE}"
+    serviceAccount:
+      name: "${SANAME}"
+    source:
+      sourceType: "${SOURCETYPE}"
+      catalog:
+        packageName: "${PACKAGE}"
+        selector:
+          matchExpressions:
+          - key: "${EXPRESSIONSKEY}"
+            operator: "${EXPRESSIONSOPERATOR}"
+            values: 
+            - "${EXPRESSIONSVALUE1}"
+        upgradeConstraintPolicy: "${POLICY}"
+parameters:
+- name: NAME
+- name: INSTALLNAMESPACE
+- name: PACKAGE
+- name: SANAME
+- name: POLICY
+  value: "CatalogProvided"
+- name: EXPRESSIONSVALUE1
+- name: EXPRESSIONSOPERATOR
+  # suggest to use case id
+- name: EXPRESSIONSKEY
+- name: SOURCETYPE
+  value: "Catalog"
+

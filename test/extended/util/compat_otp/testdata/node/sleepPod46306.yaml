@@ -1,0 +1,34 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: podsleep46306
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    generateName: podsleep46306
+    namespace: "${NAMESPACE}"
+  spec:
+    containers:
+    - command:
+      - "/bin/bash"
+      - "-c"
+      - "sleep 3600 & sleep 3600 & sleep 3600 & sleep 3600 & sleep 3600 & sleep 3600 & sleep 3600 & sleep 3600 & sleep 3600 & sleep 3600"
+      image: quay.io/openshifttest/origin-base@sha256:cbd0e2931e6ae8cbd1522cd7226cff89629c21a3652f6fd57d84f405d432c07a
+      imagePullPolicy: IfNotPresent
+      name: sleep-pod
+      readinessProbe:
+        exec:
+          command:
+          - cat
+          - /proc/1/comm
+    failureThreshold: 5
+    initialDelaySeconds: 4
+    periodSeconds: 2
+    successThreshold: 1
+    timeoutSeconds: 5
+    restartPolicy: Never
+    nodeSelector:
+      app: sleep
+parameters:
+- name: NAMESPACE

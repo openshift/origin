@@ -1,0 +1,39 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: exec-curl-helper-template
+objects:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      labels:
+        name: "${POD_NAME}"
+        pod-name: "${POD_NAME}"
+      name: "${POD_NAME}"
+    spec:
+      volumes:
+        - name: ca-cert
+          secret:
+            secretName: "${SECRET_NAME}"
+      containers:
+        - name: exec-curl
+          image: quay.io/openshifttest/hello-openshift:1.2.0
+          imagePullPolicy: IfNotPresent
+          command:
+            - "sleep"
+            - "600"
+          volumeMounts:
+            - name: ca-cert
+              mountPath: "${SECRET_MOUNT_PATH}"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+      restartPolicy: Never
+parameters:
+  - name: POD_NAME
+  - name: SECRET_NAME
+  - name: SECRET_MOUNT_PATH

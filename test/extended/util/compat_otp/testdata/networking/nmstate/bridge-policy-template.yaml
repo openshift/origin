@@ -1,0 +1,46 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: bridge-policy-template
+objects:
+- kind: NodeNetworkConfigurationPolicy
+  apiVersion: nmstate.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    nodeSelector:
+      "${NODELABEL}": "${LABELVALUE}"
+    desiredState:
+      interfaces:
+      - name: "${PORT}"
+        type: dummy
+        state: "${STATE}"
+      - name: "${IFACENAME}"
+        description: "${DESCR}"
+        type: linux-bridge
+        state: "${STATE}"
+        bridge:
+          port:
+            - name: "${PORT}"
+              stp-hairpin-mode: false
+              stp-path-cost: 100
+              stp-priority: 32
+              vlan:
+                mode: trunk
+                trunk-tags:
+                  - id: 101
+                  - id-range:
+                      min: 500
+                      max: 599
+                tag: 100
+                enable-native: true
+parameters:
+- name: NAME
+- name: NODELABEL
+  value: "node-role.kubernetes.io/worker"
+- name: LABELVALUE
+  value: ""
+- name: IFACENAME
+- name: DESCR
+- name: STATE
+- name: PORT

@@ -1,0 +1,41 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  template: gitauth
+metadata:
+  name: gitauth
+parameters:
+- name: SOURCE_URL
+  required: true
+- name: SOURCE_SECRET
+  required: true
+objects:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: output
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    name: gitauth
+  spec:
+    source:
+      git:
+        uri: ${SOURCE_URL}
+      type: Git
+      sourceSecret:
+        name: ${SOURCE_SECRET}
+    strategy:
+      sourceStrategy:
+        env:
+        - name: BUILD_LOGLEVEL
+          value: "5"
+        from:
+          kind: ImageStreamTag
+          name: nodejs:latest
+          namespace: openshift
+      type: Source
+    output:
+      to:
+        kind: ImageStreamTag
+        name: output:latest

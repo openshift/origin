@@ -1,0 +1,287 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: service-catalog-rbac
+objects:
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: servicecatalog-serviceclass-viewer
+  rules:
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - clusterserviceclasses
+    - clusterserviceplans
+    verbs:
+    - list
+    - watch
+    - get
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: servicecatalog-serviceclass-viewer-binding
+  roleRef:
+    kind: ClusterRole
+    name: servicecatalog-serviceclass-viewer
+  subjects:
+  - kind: Group
+    name: system:authenticated
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: sar-creator
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - subjectaccessreviews.authorization.k8s.io
+    verbs:
+    - create
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: service-catalog-sar-creator-binding
+  roleRef:
+    kind: ClusterRole
+    name: sar-creator
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: namespace-viewer
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - namespaces
+    verbs:
+    - list
+    - watch
+    - get
+  - apiGroups:
+    - "admissionregistration.k8s.io"
+    resources:
+    - validatingwebhookconfigurations
+    - mutatingwebhookconfigurations
+    verbs:
+    - list
+    - watch
+    - get
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: service-catalog-namespace-viewer-binding
+  roleRef:
+    kind: ClusterRole
+    name: namespace-viewer
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: service-catalog-controller-namespace-viewer-binding
+  roleRef:
+    kind: ClusterRole
+    name: namespace-viewer
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-controller
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: service-catalog-controller
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - secrets
+    verbs:
+    - create
+    - update
+    - patch
+    - delete
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - clusterservicebrokers/status
+    - clusterserviceclasses/status
+    - clusterserviceplans/status
+    - serviceinstances/status
+    - servicebindings/status
+    - servicebindings/finalizers
+    - serviceinstances/reference
+    # the below resources are for namespaced brokers
+    - servicebrokers/status
+    - serviceclasses/status
+    - serviceplans/status
+    verbs:
+    - update
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - clusterservicebrokers
+    - serviceinstances
+    - servicebindings
+    # for namespaced brokers
+    - servicebrokers
+    verbs:
+    - list
+    - get
+    - watch
+  - apiGroups:
+    - ""
+    resources:
+    - events
+    verbs:
+    - patch
+    - create
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - clusterserviceclasses
+    - clusterserviceplans
+    # for namespaced brokers
+    - serviceclasses
+    - serviceplans
+    verbs:
+    - create
+    - delete
+    - update
+    - patch
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - settings.k8s.io
+    resources:
+    - podpresets
+    verbs:
+    - create
+    - update
+    - delete
+    - get
+    - list
+    - watch
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: service-catalog-controller-binding
+  roleRef:
+    kind: ClusterRole
+    name: service-catalog-controller
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-controller
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: configmap-accessor
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps
+    verbs:
+    - list
+    - watch
+    - get
+    - create
+    - update
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: cluster-info-configmap
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
+  rules:
+  - apiGroups:     [""]
+    resources:     ["configmaps"]
+    resourceNames: ["cluster-info"]
+    verbs:         ["get","create","list","watch","update"]
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: cluster-info-configmap-binding
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: cluster-info-configmap
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
+    name: service-catalog-controller
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: configmap-accessor-binding
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
+  roleRef:
+    kind: Role
+    name: configmap-accessor
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
+    name: service-catalog-controller
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: extension-apiserver-authentication-reader-binding
+    namespace: ${KUBE_SYSTEM_NAMESPACE}
+  roleRef:
+    kind: Role
+    name: extension-apiserver-authentication-reader
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: system:auth-delegator-binding
+  roleRef:
+    kind: ClusterRole
+    name: system:auth-delegator
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
+
+parameters:
+- description: Do not change this value.
+  displayName: Name of the kube-system namespace
+  name: KUBE_SYSTEM_NAMESPACE
+  required: true
+  value: kube-system
+
+- description: Do not change this value.
+  displayName: Name of the kube-service-catalog namespace
+  name: KUBE_SERVICE_CATALOG_NAMESPACE
+  required: true
+  value: kube-service-catalog

@@ -1,0 +1,42 @@
+helmchartrepositories.helm.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/598
+  CRDName: helmchartrepositories.helm.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: ""
+  FilenameOperatorOrdering: "00"
+  FilenameRunLevel: ""
+  GroupName: helm.openshift.io
+  HasStatus: true
+  KindName: HelmChartRepository
+  Labels: {}
+  PluralName: helmchartrepositories
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1beta1
+
+projecthelmchartrepositories.helm.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/1084
+  CRDName: projecthelmchartrepositories.helm.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: ""
+  FilenameOperatorOrdering: "00"
+  FilenameRunLevel: ""
+  GroupName: helm.openshift.io
+  HasStatus: true
+  KindName: ProjectHelmChartRepository
+  Labels: {}
+  PluralName: projecthelmchartrepositories
+  PrinterColumns: []
+  Scope: Namespaced
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1beta1
+

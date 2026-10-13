@@ -1,0 +1,67 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: external-log-store-template
+objects:
+- apiVersion: v1
+  data:
+    fluent.conf: |
+      <source>
+        @type forward
+        port  24224
+        <transport tls>
+          ca_path /etc/fluentd/secrets/ca-bundle.crt
+          cert_path /etc/fluentd/secrets/tls.crt
+          private_key_path /etc/fluentd/secrets/tls.key
+          client_cert_auth true
+        </transport>
+      </source>
+
+      <match kubernetes.var.log.pods.openshift-*_** kubernetes.var.log.pods.default_** kubernetes.var.log.pods.kube-*_**>
+        @type file
+        append true
+        path /fluentd/log/infra-container.*.log
+        symlink_path /fluentd/log/infra-container.log
+        time_slice_format %Y%m%d
+        time_slice_wait   1m
+        time_format       %Y%m%dT%H%M%S%z
+      </match>
+      <match journal.** system.var.log**>
+        @type file
+        append true
+        path /fluentd/log/infra.*.log
+        symlink_path /fluentd/log/infra.log
+        time_slice_format %Y%m%d
+        time_slice_wait   1m
+        time_format       %Y%m%dT%H%M%S%z
+      </match>
+      <match kubernetes.**>
+        @type file
+        append true
+        path /fluentd/log/app.*.log
+        symlink_path /fluentd/log/app.log
+        time_slice_format %Y%m%d
+        time_slice_wait   1m
+        time_format       %Y%m%dT%H%M%S%z
+      </match>
+      <match linux-audit.log** k8s-audit.log** openshift-audit.log** ovn-audit.log**>
+        @type file
+        append true
+        path /fluentd/log/audit.*.log
+        symlink_path /fluentd/log/audit.log
+        time_slice_format %Y%m%d
+        time_slice_wait   1m
+        time_format       %Y%m%dT%H%M%S%z
+      </match>
+      <match **>
+        @type stdout
+      </match>
+  kind: ConfigMap
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+parameters:
+- name: NAME
+  value: fluentdserver
+- name: NAMESPACE
+  value: openshift-logging

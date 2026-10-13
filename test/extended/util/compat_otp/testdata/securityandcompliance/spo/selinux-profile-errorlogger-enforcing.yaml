@@ -1,0 +1,43 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: selinux-profile-errorlogger-enforcing
+objects:
+- apiVersion: security-profiles-operator.x-k8s.io/v1alpha2
+  kind: SelinuxProfile
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    permissive: ${{PERMISSIVE}}
+    inherit:
+      - name: container
+    allow:
+      var_log_t:
+        dir:
+          - getattr
+          - lock
+          - search
+          - ioctl
+          - add_name
+          - remove_name
+          - write
+        file:
+          - getattr
+          - read
+          - ioctl
+          - lock
+          - map
+          - open
+          - create
+        sock_file:
+          - getattr
+          - read
+          - write
+          - append
+          - open
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: PERMISSIVE

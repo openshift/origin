@@ -1,0 +1,6 @@
+apiVersion: "stable.example.com/v1"
+kind: CronTab72217
+metadata:
+  name: my-new-cron-object
+spec:
+  test: test

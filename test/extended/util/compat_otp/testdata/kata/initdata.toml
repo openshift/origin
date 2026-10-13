@@ -1,0 +1,21 @@
+algorithm = "sha384"
+version = "0.1.0"
+
+[data]
+"aa.toml" = '''
+[token_configs]
+[token_configs.coco_as]
+url = 'TRUSTEE_URL'
+
+[token_configs.kbs]
+url = 'TRUSTEE_URL'
+'''
+
+"cdh.toml"  = '''
+socket = 'unix:///run/confidential-containers/cdh.sock'
+credentials = []
+
+[kbc]
+name = 'cc_kbc'
+url = 'TRUSTEE_URL'
+'''

@@ -1,0 +1,15 @@
+{
+  "kind": "ImageStream",
+  "apiVersion": "image.openshift.io/v1",
+  "metadata": {
+    "name": "test",
+    "creationTimestamp": null,
+    "labels": {
+      "color": "blue"
+    }
+  },
+  "spec": {},
+  "status": {
+    "dockerImageRepository": ""
+  }
+}

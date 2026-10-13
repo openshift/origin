@@ -1,0 +1,10 @@
+apiVersion: authorization.openshift.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: wardle:system:auth-delegator
+roleRef:
+  name: system:auth-delegator
+subjects:
+- kind: ServiceAccount
+  name: apiserver
+  namespace: wardle

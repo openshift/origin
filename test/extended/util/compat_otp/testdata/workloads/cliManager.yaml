@@ -1,0 +1,9 @@
+apiVersion: operator.openshift.io/v1
+kind: CliManager
+metadata:
+  name: cluster
+  namespace: openshift-cli-manager-operator
+spec:
+  logLevel: Normal
+  managementState: Managed
+  operatorLogLevel: Normal

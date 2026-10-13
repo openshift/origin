@@ -1,0 +1,19 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: paused
+spec:
+  paused: true
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: paused
+    spec:
+      containers:
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
+        imagePullPolicy: IfNotPresent
+        name: myapp
+        command:
+        - /bin/sleep
+        - "infinity"

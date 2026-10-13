@@ -1,0 +1,226 @@
+consoleclidownloads.console.openshift.io:
+  Annotations:
+    description: Extension for configuring openshift web console command line interface
+      (CLI) downloads.
+    displayName: ConsoleCLIDownload
+  ApprovedPRNumber: https://github.com/openshift/api/pull/481
+  CRDName: consoleclidownloads.console.openshift.io
+  Capability: Console
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: ""
+  FilenameOperatorOrdering: "00"
+  FilenameRunLevel: ""
+  GroupName: console.openshift.io
+  HasStatus: true
+  KindName: ConsoleCLIDownload
+  Labels: {}
+  PluralName: consoleclidownloads
+  PrinterColumns:
+  - jsonPath: .spec.displayName
+    name: Display name
+    type: string
+  - jsonPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1
+
+consoleexternalloglinks.console.openshift.io:
+  Annotations:
+    description: ConsoleExternalLogLink is an extension for customizing OpenShift
+      web console log links.
+    displayName: ConsoleExternalLogLinks
+  ApprovedPRNumber: https://github.com/openshift/api/pull/481
+  CRDName: consoleexternalloglinks.console.openshift.io
+  Capability: Console
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: ""
+  FilenameOperatorOrdering: "00"
+  FilenameRunLevel: ""
+  GroupName: console.openshift.io
+  HasStatus: true
+  KindName: ConsoleExternalLogLink
+  Labels: {}
+  PluralName: consoleexternalloglinks
+  PrinterColumns:
+  - jsonPath: .spec.text
+    name: Text
+    type: string
+  - jsonPath: .spec.hrefTemplate
+    name: HrefTemplate
+    type: string
+  - jsonPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1
+
+consolelinks.console.openshift.io:
+  Annotations:
+    description: Extension for customizing OpenShift web console links
+    displayName: ConsoleLinks
+  ApprovedPRNumber: https://github.com/openshift/api/pull/481
+  CRDName: consolelinks.console.openshift.io
+  Capability: Console
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: ""
+  FilenameOperatorOrdering: "00"
+  FilenameRunLevel: ""
+  GroupName: console.openshift.io
+  HasStatus: true
+  KindName: ConsoleLink
+  Labels: {}
+  PluralName: consolelinks
+  PrinterColumns:
+  - jsonPath: .spec.text
+    name: Text
+    type: string
+  - jsonPath: .spec.href
+    name: URL
+    type: string
+  - jsonPath: .spec.location
+    name: Location
+    type: string
+  - jsonPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1
+
+consolenotifications.console.openshift.io:
+  Annotations:
+    description: Extension for configuring openshift web console notifications.
+    displayName: ConsoleNotification
+  ApprovedPRNumber: https://github.com/openshift/api/pull/481
+  CRDName: consolenotifications.console.openshift.io
+  Capability: Console
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: ""
+  FilenameOperatorOrdering: "00"
+  FilenameRunLevel: ""
+  GroupName: console.openshift.io
+  HasStatus: true
+  KindName: ConsoleNotification
+  Labels: {}
+  PluralName: consolenotifications
+  PrinterColumns:
+  - jsonPath: .spec.text
+    name: Text
+    type: string
+  - jsonPath: .spec.location
+    name: Location
+    type: string
+  - jsonPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1
+
+consoleplugins.console.openshift.io:
+  Annotations:
+    description: Extension for configuring openshift web console plugins.
+    displayName: ConsolePlugin
+    service.beta.openshift.io/inject-cabundle: "true"
+  ApprovedPRNumber: https://github.com/openshift/api/pull/1186
+  CRDName: consoleplugins.console.openshift.io
+  Capability: Console
+  Category: ""
+  FeatureGates:
+  - ConsolePluginContentSecurityPolicy
+  FilenameOperatorName: ""
+  FilenameOperatorOrdering: "90"
+  FilenameRunLevel: ""
+  GroupName: console.openshift.io
+  HasStatus: false
+  KindName: ConsolePlugin
+  Labels: {}
+  PluralName: consoleplugins
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1
+
+consolequickstarts.console.openshift.io:
+  Annotations:
+    description: Extension for guiding user through various workflows in the OpenShift
+      web console.
+    displayName: ConsoleQuickStart
+  ApprovedPRNumber: https://github.com/openshift/api/pull/750
+  CRDName: consolequickstarts.console.openshift.io
+  Capability: Console
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: ""
+  FilenameOperatorOrdering: "00"
+  FilenameRunLevel: ""
+  GroupName: console.openshift.io
+  HasStatus: false
+  KindName: ConsoleQuickStart
+  Labels: {}
+  PluralName: consolequickstarts
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1
+
+consolesamples.console.openshift.io:
+  Annotations:
+    description: ConsoleSample is an extension to customizing OpenShift web console
+      by adding samples.
+    displayName: ConsoleSample
+  ApprovedPRNumber: https://github.com/openshift/api/pull/481
+  CRDName: consolesamples.console.openshift.io
+  Capability: Console
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: ""
+  FilenameOperatorOrdering: "00"
+  FilenameRunLevel: ""
+  GroupName: console.openshift.io
+  HasStatus: false
+  KindName: ConsoleSample
+  Labels: {}
+  PluralName: consolesamples
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1
+
+consoleyamlsamples.console.openshift.io:
+  Annotations:
+    description: Extension for configuring openshift web console YAML samples.
+    displayName: ConsoleYAMLSample
+  ApprovedPRNumber: https://github.com/openshift/api/pull/481
+  CRDName: consoleyamlsamples.console.openshift.io
+  Capability: Console
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: ""
+  FilenameOperatorOrdering: "00"
+  FilenameRunLevel: ""
+  GroupName: console.openshift.io
+  HasStatus: false
+  KindName: ConsoleYAMLSample
+  Labels: {}
+  PluralName: consoleyamlsamples
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1
+

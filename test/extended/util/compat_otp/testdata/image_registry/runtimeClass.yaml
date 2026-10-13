@@ -1,0 +1,13 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: runtimeclass-template
+objects:
+  - kind: RuntimeClass
+    apiVersion: node.k8s.io/v1
+    metadata:
+      name: "${NAME}"
+    handler: "${HANDLER}"
+parameters:
+  - name: NAME
+  - name: HANDLER

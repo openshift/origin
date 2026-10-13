@@ -1,0 +1,4 @@
+kind: CustomResourceDefinition
+apiVersion: apiextensions/v1
+metadata:
+  name: registry

@@ -1,0 +1,10 @@
+apiVersion: compliance.openshift.io/v1alpha1
+kind: TailoredProfile
+metadata:
+  name: profile-description
+spec:
+  description:
+  title: My modified NIST moderate profile
+  enableRules:
+    - name: ocp4-file-groupowner-cni-conf
+      rationale: Node

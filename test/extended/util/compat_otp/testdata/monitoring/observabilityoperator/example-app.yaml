@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: prometheus-example-app
+  name: prometheus-example-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus-example-app
+  template:
+    metadata:
+      labels:
+        app: prometheus-example-app
+    spec:
+      containers:
+      - image: quay.io/openshifttest/prometheus-example-app@sha256:382dc349f82d730b834515e402b48a9c7e2965d0efbc42388bd254f424f6193e
+        imagePullPolicy: IfNotPresent
+        name: prometheus-example-app
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: prometheus-example-app
+  name: prometheus-example-app
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+    name: web
+  selector:
+    app: prometheus-example-app
+  type: ClusterIP
+---
+apiVersion: monitoring.rhobs/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    k8s-app: prometheus-example-monitor
+  name: prometheus-example-monitor
+spec:
+  endpoints:
+  - interval: 30s
+    port: web
+    scheme: http
+  selector:
+    matchLabels:
+      app: prometheus-example-app

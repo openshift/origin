@@ -1,0 +1,205 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "k8s.k8sevent.com/v1",
+          "kind": "K8sevent",
+          "metadata": {
+            "name": "k8sevent-sample"
+          },
+          "spec": null
+        }
+      ]
+    capabilities: Basic Install
+    operators.operatorframework.io/builder: operator-sdk-v1.20.0-ocp
+    operators.operatorframework.io/project_layout: ansible.sdk.operatorframework.io/v1
+  name: k8sevent.v0.0.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - kind: K8sevent
+      name: k8sevents.k8s.k8sevent.com
+      version: v1
+      description: test 
+  description: kaka
+  displayName: k8sevent
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          - pods
+          - pods/exec
+          - pods/log
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - daemonsets
+          - replicasets
+          - statefulsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - k8s.k8sevent.com
+          resources:
+          - k8sevents
+          - k8sevents/status
+          - k8sevents/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: k8sevent-controller-manager
+      deployments:
+      - label:
+          control-plane: controller-manager
+        name: k8sevent-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=10
+                image: registry.redhat.io/openshift4/ose-kube-rbac-proxy:v4.9
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources: {}
+              - args:
+                - --health-probe-bind-address=:6789
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                - --leader-election-id=k8sevent
+                env:
+                - name: ANSIBLE_GATHERING
+                  value: explicit
+                image: quay.io/olmqe/k8sevent:v4.10
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 6789
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 6789
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources: {}
+                securityContext:
+                  allowPrivilegeEscalation: false
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: k8sevent-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: k8sevent-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - kaka
+  links:
+  - name: K8sevent
+    url: https://k8sevent.domain
+  maturity: alpha
+  provider:
+    name: kaka
+    url: kaka
+  version: 0.0.1

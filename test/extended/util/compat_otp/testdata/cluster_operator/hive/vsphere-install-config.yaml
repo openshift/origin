@@ -1,0 +1,62 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ic-temp
+objects:
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: "${SECRETNAME}"
+    namespace: "${SECRETNS}"
+  stringData:
+    install-config.yaml: |
+      apiVersion: v1
+      baseDomain: "${BASEDOMAIN}"
+      compute:
+      - name: worker
+        platform: {}
+        replicas: 3
+      controlPlane:
+        name: master
+        platform: {}
+        replicas: 3
+      metadata:
+        name: "${ICNAME}"
+      networking:
+        clusterNetwork:
+        - cidr: 10.128.0.0/14
+          hostPrefix: 23
+        machineNetwork:
+        - cidr: "${MACHINENETWORK}"
+        serviceNetwork:
+        - 172.30.0.0/16
+      platform:
+        vsphere:
+          # TODO(fxie): use apiVIPs instead
+          apiVIP: "${APIVIP}"
+          cluster: "${CLUSTER}"
+          datacenter: "${DATACENTER}"
+          defaultDatastore: "${DATASTORE}"
+          # TODO(fxie): use ingressVIPs instead
+          ingressVIP: "${INGRESSVIP}"
+          network: "${NETWORK}"
+          password: "${PASSWORD}"
+          username: "${USERNAME}"
+          vCenter: "${VCENTER}"
+          # resourcePool
+  type: Opaque
+parameters:
+- name: SECRETNAME
+- name: SECRETNS
+- name: BASEDOMAIN
+- name: ICNAME
+- name: MACHINENETWORK
+- name: APIVIP
+- name: CLUSTER
+- name: DATACENTER
+- name: DATASTORE
+- name: INGRESSVIP
+- name: NETWORK
+- name: PASSWORD
+- name: USERNAME
+- name: VCENTER

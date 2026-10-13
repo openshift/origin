@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: nginx-config
+  data:
+    nginx.conf: |
+      events {
+          worker_connections 1024;
+      }
+
+      http {
+          server {
+              listen		8080;
+              location / {
+                  root /data/http;
+              }
+          }
+
+          server {
+              listen           	    8443 ssl http2 default;
+              listen           	    [::]:8443 ssl http2 default;
+              server_name      	    _;
+              ssl_certificate  	    certs/tls.crt;
+              ssl_certificate_key  	certs/tls.key;
+              location / {
+                  root /data/https-default;
+              }
+          }
+      }
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    labels:
+      name: web-server-rc
+    name: web-server-rc
+  spec:
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          name: web-server-rc
+      spec:
+        containers:
+        - name: nginx
+          image: quay.io/openshifttest/nginx-alpine@sha256:04f316442d48ba60e3ea0b5a67eb89b0b667abf1c198a3d0056ca748736336a0
+          volumeMounts:
+          - name: ssl-key
+            mountPath: /etc/nginx/certs/
+          - name: nginx-config
+            mountPath: /etc/nginx/
+        volumes:
+        - name: ssl-key
+          secret:
+            secretName: ssl-key
+        - name: nginx-config
+          configMap:
+            name: nginx-config

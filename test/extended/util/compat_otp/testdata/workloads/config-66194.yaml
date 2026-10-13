@@ -1,0 +1,5 @@
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v1alpha2
+mirror:
+  operators:
+  - catalog: icr.io/cpopen/ibm-zcon-zosconnect-catalog@sha256:6f02ecef46020bcd21bdd24a01f435023d5fc3943972ef0d9769d5276e178e76

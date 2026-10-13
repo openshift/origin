@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-monitoring-config
+  namespace: openshift-monitoring
+data:
+  config.yaml: |
+    enableUserWorkload: true
+    prometheusK8s:
+      remoteWrite:
+      - url: https://test.remotewrite.com/api/write
+        remoteTimeout: 30s
+        oauth2:
+          clientId:
+            secret:
+              name: oauth2-credentials
+              key: id
+          clientSecret:
+            name: oauth2-credentials
+            key: secret
+          tokenUrl: https://example.com/oauth2/token
+          scopes:
+          - scope1
+          - scope2
+          endpointParams:
+            param1: value1
+            param2: value2

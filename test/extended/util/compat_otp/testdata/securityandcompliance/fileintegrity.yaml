@@ -1,0 +1,29 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: fileintegrity-template
+objects:
+- apiVersion: fileintegrity.openshift.io/v1alpha1
+  kind: FileIntegrity
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    config:
+      name: "${CONFNAME}"
+      namespace: "${NAMESPACE}"
+      key: "${CONFKEY}"
+      gracePeriod: ${{GRACEPERIOD}}
+    debug: ${{DEBUG}}
+    nodeSelector:
+      "${NODESELECTORKEY}": "${NODESELECTORVALUE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: CONFNAME
+- name: CONFKEY
+- name: DEBUG
+- name: GRACEPERIOD
+- name: NODESELECTORKEY
+- name: NODESELECTORVALUE
+

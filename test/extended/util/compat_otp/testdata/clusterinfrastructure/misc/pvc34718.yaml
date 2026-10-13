@@ -1,0 +1,18 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pvc-template
+objects:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: pvc-cloud
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: ${STORAGESIZE}
+parameters:
+- name: STORAGESIZE
+  value: "1Gi"

@@ -1,0 +1,15 @@
+{
+  "oauthConfig": {
+    "identityProviders": [{
+      "name": "header",
+      "challenge": true,
+      "mappingMethod": "add",
+      "provider": {
+        "apiVersion": "v1",
+        "kind": "RequestHeaderIdentityProvider",
+        "challengeURL": "http://HOST_NAME/mod_auth/oauth/authorize?${query}",
+        "headers": ["Remote-User"]
+      }
+    }]
+  }
+}

@@ -1,0 +1,11 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: nmstate-cr-template
+objects:
+- kind: NMState
+  apiVersion: nmstate.io/v1
+  metadata:
+    name: "${NAME}"
+parameters:
+- name: NAME

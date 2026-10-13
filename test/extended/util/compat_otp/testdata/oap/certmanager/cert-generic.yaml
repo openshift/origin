@@ -1,0 +1,37 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: certificate-generic-template
+objects:
+  - apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: "${CERT_NAME}"
+    spec:
+      commonName: "${COMMON_NAME}"
+      dnsNames:
+        - "${DNS_NAME}"
+      usages:
+        - server auth
+      issuerRef:
+        group: "${ISSUER_GROUP}"
+        kind: "${ISSUER_KIND}"
+        name: "${ISSUER_NAME}"
+      secretName: "${SECRET_NAME}"
+      duration: "${DURATION}" 
+      renewBefore: "${RENEW_BEFORE}"
+parameters:
+  - name: CERT_NAME
+  - name: COMMON_NAME
+  - name: DNS_NAME
+    value: "svc.cluster.local"
+  - name: SECRET_NAME
+  - name: ISSUER_GROUP
+    value: cert-manager.io
+  - name: ISSUER_KIND
+    value: Issuer
+  - name: ISSUER_NAME
+  - name: DURATION
+    value: 1h
+  - name: RENEW_BEFORE
+    value: 58m

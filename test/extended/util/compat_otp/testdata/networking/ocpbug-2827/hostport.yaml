@@ -1,0 +1,24 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "1800"
+  finalizers:
+  - service.kubernetes.io/load-balancer-cleanup
+  name: test-mtu
+spec:
+  externalTrafficPolicy: Cluster
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - nodePort: 31251
+    port: 9888
+    protocol: TCP
+    targetPort: 9888
+  selector:
+    app: mtu-tester
+  sessionAffinity: None
+  type: NodePort

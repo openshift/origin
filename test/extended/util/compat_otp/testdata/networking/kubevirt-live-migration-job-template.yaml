@@ -1,0 +1,17 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: migration-job
+objects:
+- kind: VirtualMachineInstanceMigration
+  apiVersion: kubevirt.io/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    vmiName: "${VMI}" 
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: VMI
+

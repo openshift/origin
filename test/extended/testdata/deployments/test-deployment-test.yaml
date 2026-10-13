@@ -1,0 +1,37 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: deployment-test
+spec:
+  replicas: 2
+  selector:
+    name: deployment-test
+  strategy:
+    type: Rolling
+    rollingParams:
+      pre:
+        failurePolicy: Abort
+        execNewPod:
+          containerName: myapp
+          command:
+          - /bin/bash
+          - -c
+          - |
+            sleep 15  # give tests time to setup
+            echo 'test pre hook executed'
+  template:
+    metadata:
+      labels:
+        name: deployment-test
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
+        imagePullPolicy: IfNotPresent
+        name: myapp
+        command:
+        - /bin/sleep
+        - "infinity"
+  test: true
+  triggers:
+  - type: ConfigChange

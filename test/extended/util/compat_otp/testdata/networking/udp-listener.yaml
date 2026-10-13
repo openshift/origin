@@ -1,0 +1,28 @@
+---
+kind: Pod
+apiVersion: v1
+metadata:
+  name: udp-pod
+  labels:
+    name: udp-pod
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: udp-pod
+      image: quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4
+      command:
+        - "/usr/bin/ncat"
+        - "-u"
+        - "-l"
+        - '8080'
+        - "--keep-open"
+        - "--exec"
+        - "/bin/cat"
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]    
+  restartPolicy: Always

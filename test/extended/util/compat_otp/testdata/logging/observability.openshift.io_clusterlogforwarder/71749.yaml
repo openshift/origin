@@ -1,0 +1,87 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: "observability.openshift.io/v1"
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    filters:
+    - name: drop-logs-1
+      type: drop
+      drop:
+      - test:
+        - field: .log_type
+          matches: "application"
+        - field: .kubernetes.pod_name
+          notMatches: "logging-centos-logtest.+"
+      - test:
+        - field: .message
+          matches: (?i)\berror\b
+        - field: .level
+          matches: error
+      - test:
+        - field: .kubernetes.labels."test.logging.io/logging.qe-test-label"
+          matches: .+
+    - name: drop-logs-2
+      type: drop
+      drop:
+      - test:
+        - field: .kubernetes.namespace_name
+          matches: "openshift*"
+    - name: drop-logs-3
+      type: drop
+      drop:
+      - test:
+        - field: .log_type
+          matches: "infrastructure"
+        - field: .log_source
+          matches: "container"
+        - field: .kubernetes.namespace_name
+          notMatches: "openshift-cluster*"
+    managementState: ${MANAGEMENT_STATE}
+    outputs:
+    - name: lokistack
+      type: lokiStack
+      lokiStack:
+        authentication:
+          token:
+            from: serviceAccount
+        target:
+          name: ${LOKISTACK_NAME}
+          namespace: ${LOKISTACK_NAMESPACE}
+      tls:
+        ca:
+          key: ca-bundle.crt
+          secretName: ${SECRET_NAME}
+    pipelines:
+    - name: forward-to-lokistack
+      inputRefs: ${{INPUT_REFS}}
+      outputRefs:
+      - lokistack
+      filterRefs:
+      - drop-logs-3
+      - drop-logs-2
+      - drop-logs-1
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: INPUT_REFS
+  value: "[\"infrastructure\", \"audit\", \"application\"]"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: LOKISTACK_NAME
+  value: "logging-loki"
+- name: LOKISTACK_NAMESPACE
+  value: "openshift-logging"
+- name: MANAGEMENT_STATE
+  value: "Managed"
+- name: SECRET_NAME
+  value: ""

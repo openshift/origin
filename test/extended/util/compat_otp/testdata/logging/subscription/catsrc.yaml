@@ -1,0 +1,19 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: catsrc-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: CatalogSource
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    sourceType: grpc
+    image: ${IMAGE}
+parameters:
+- name: NAME
+- name: NAMESPACE
+  value: openshift-marketplace
+- name: IMAGE
+  value: quay.io/openshift-qe-optional-operators/ocp4-index:latest

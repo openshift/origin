@@ -1,0 +1,36 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: kafkaserver-template
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      logging-infra: support
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    ports:
+    - name: client
+      port: 2181
+      protocol: TCP
+      targetPort: 2181
+    - name: peer
+      port: 2888
+      protocol: TCP
+      targetPort: 2888
+    - name: leader-election
+      port: 3888
+      protocol: TCP
+      targetPort: 3888
+    selector:
+      component: zookeeper
+      provider: openshift
+    sessionAffinity: None
+    type: ClusterIP
+parameters:
+- name: NAME
+  value: "zookeeper"
+- name: NAMESPACE
+  value: "openshift-logging"

@@ -1,0 +1,30 @@
+apiVersion: machine.openshift.io/v1beta1
+kind: Machine
+metadata:
+  annotations:
+    metal3.io/BareMetalHost: openshift-machine-api/{BMH_NAME}
+  finalizers:
+  - machine.machine.openshift.io
+  labels:
+    machine.openshift.io/cluster-api-cluster: ostest-{MACHINE_HASH}
+    machine.openshift.io/cluster-api-machine-role: master
+    machine.openshift.io/cluster-api-machine-type: master
+  name: {MACHINE_NAME}
+  namespace: openshift-machine-api
+spec:
+  authoritativeAPI: MachineAPI
+  metadata: {}
+  providerSpec:
+    value:
+      apiVersion: baremetal.cluster.k8s.io/v1alpha1
+      customDeploy:
+        method: install_coreos
+      hostSelector: {}
+      image:
+        checksum: ""
+        url: ""
+      kind: BareMetalMachineProviderSpec
+      metadata:
+        creationTimestamp: null
+      userData:
+        name: master-user-data-managed

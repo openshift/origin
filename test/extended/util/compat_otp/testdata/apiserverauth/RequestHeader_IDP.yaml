@@ -1,0 +1,19 @@
+spec:
+  identityProviders:
+    - mappingMethod: claim
+      name: my-request-header-idp
+      requestHeader:
+        ca:
+          name: my-request-header-idp-configmap
+        challengeURL: https://www.example.com/challenging-proxy/oauth/authorize?${query}
+        emailHeaders:
+          - X-Remote-User-Email
+        headers:
+          - X-Remote-User
+          - SSO-User
+        loginURL: https://www.example.com/login-proxy/oauth/authorize?${query}
+        nameHeaders:
+          - X-Remote-User-Display-Name
+        preferredUsernameHeaders:
+          - X-Remote-User-Login
+      type: RequestHeader

@@ -1,0 +1,10 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  labels:
+    hive.openshift.io/managed: "true"
+  name: observability-operator-og
+  namespace: openshift-observability-operator
+spec:
+  upgradeStrategy: Default
+

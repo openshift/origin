@@ -1,0 +1,30 @@
+kind: List
+apiVersion: v1
+items:
+- kind: ImageStream
+  apiVersion: image.openshift.io/v1
+  metadata:
+    name: sample-custom
+- kind: BuildConfig
+  apiVersion: build.openshift.io/v1
+  metadata:
+    name: sample-custom-build
+    labels:
+      name: sample-custom-build
+    annotations:
+      template.alpha.openshift.io/wait-for-ready: 'true'
+  spec:
+    strategy:
+      type: Custom
+      customStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
+        forcePull: true
+        from:
+          kind: ImageStreamTag
+          name: custom-builder-image:latest
+    output:
+      to:
+        kind: ImageStreamTag
+        name: sample-custom:latest

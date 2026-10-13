@@ -1,0 +1,49 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: example
+  name: example
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: example
+    spec:
+      containers:
+      - imagePullPolicy: IfNotPresent
+        name: ruby
+        command:
+        - /bin/sleep
+        - "100"
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+      - imagePullPolicy: IfNotPresent
+        name: postgresql
+        command:
+        - /bin/sleep
+        - "100"
+        ports:
+        - containerPort: 5000
+          protocol: TCP
+  test: false
+  triggers:
+  - type: ConfigChange
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - ruby
+      from:
+        kind: ImageStreamTag
+        name: ruby-30:latest
+    type: ImageChange
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - postgresql
+      from:
+        kind: ImageStreamTag
+        name: postgresql-13:latest
+    type: ImageChange

@@ -1,0 +1,8 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  spec:
+    strategy:
+      type: foobar

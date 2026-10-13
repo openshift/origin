@@ -1,0 +1,87 @@
+{
+  "nodes": [
+    {
+      "version": "sourceversion",
+      "payload": "sourcepayload"
+    },
+    {
+      "version": "targetversion",
+      "payload": "targetpayload"
+    }
+  ],
+  "edges": [
+    [0,1]
+  ],
+  "conditionalEdges":[
+    {
+      "edges": [
+        {"from": "sourceversion", "to": "targetversion"}
+      ],
+      "risks": [
+        {
+          "url": "// example.com",
+          "name": "InvalidURL",
+          "message": "Invalid URL.",
+          "matchingRules": [
+            {
+              "type": "PromQL",
+              "promql": {
+                "promql": "cluster_installer"
+              }
+            }
+          ]
+        },
+        {
+          "url": "https://bug.example.com/b",
+          "name": "TypeNull",
+          "message": "MatchingRules type is null.",
+          "matchingRules": [
+            {
+              "type": ""
+            }
+          ]
+        },
+        {
+          "url": "https://bug.example.com/c",
+          "name": "InvalidMatchingRulesType",
+          "message": "MatchingRules type is invalid, support Always and PromQL.",
+          "matchingRules": [
+            {
+              "type": "nonexist",
+              "promql": {
+                "promql": "group(cluster_version_available_updates{channel=\"buggy\"})\nor\n0 * group(cluster_version_available_updates{channel!=\"buggy\"})"
+              }
+            }
+          ]
+        },
+        {
+          "url": "https://bug.example.com/d",
+          "name": "InvalidPromQLQueryReturnValue",
+          "message": "PromQL query return value is not supported, support 0 and 1.",
+          "matchingRules": [
+            {
+              "type": "PromQL",
+              "promql": {
+                "promql": "max(cluster_version)"
+              }
+            }
+          ]
+        },
+        {
+          "url": "https://bug.example.com/d",
+          "name": "InvalidPromQLQuery",
+          "message": "Invalid PromQL Query.",
+          "matchingRules": [
+            {
+              "type": "PromQL",
+              "promql": {
+                "promql": "cluster_infrastructure_provider{type=~\"VSphere|None\"}"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

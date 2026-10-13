@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: web-server-deploy
+    labels:
+      name: web-server-deploy
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        name: web-server-deploy
+    template:
+      metadata:
+        labels:
+          name: web-server-deploy
+      spec:
+        containers:
+        - name: nginx
+          image: quay.io/openshifttest/nginx-alpine@sha256:cee6930776b92dc1e93b73f9e5965925d49cff3d2e91e1d071c2f0ff72cbca29
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      name: service-h2c-57001
+    name: service-h2c-57001
+  spec:
+    ports:
+    - appProtocol: h2c
+      name: h2c
+      port: 1110
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      name: web-server-deploy

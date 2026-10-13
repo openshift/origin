@@ -1,0 +1,73 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: multi-container-json-log-template
+objects:
+- apiVersion: v1
+  data:
+    ocp_logtest.cfg: "--raw --file /var/lib/svt/json.example  --text-type input --rate ${RATE}"
+    json.example: "{\"message\": \"MERGE_JSON_LOG=true\", \"level\": \"debug\",\"Layer1\": \"layer1 0\", \"layer2\": {\"name\":\"Layer2 1\", \"tips\":\"Decide by PRESERVE_JSON_LOG\"}, \"StringNumber\":\"10\", \"Number\": 10,\"foo.bar\":\"Dot Item\",\"{foobar}\":\"Brace Item\",\"[foobar]\":\"Bracket Item\", \"foo:bar\":\"Colon Item\",\"foo bar\":\"Space Item\"}"
+  kind: ConfigMap
+  metadata:
+    name: ${CMNAME}
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    name: ${NAME}
+    labels: ${{LABELS}}
+  spec:
+    replicas: ${{REPLICAS}}
+    template:
+      metadata:
+        generateName: logging-logtest-
+        annotations:
+          containerType.logging.openshift.io/${CONTAINER}-0: ${CONTAINER}-0
+          containerType.logging.openshift.io/${CONTAINER}-1: ${CONTAINER}-1
+        labels: ${{LABELS}}
+      spec:
+        containers:
+        - env: []
+          image: quay.io/openshifttest/ocp-logtest@sha256:6e2973d7d454ce412ad90e99ce584bf221866953da42858c4629873e53778606
+          imagePullPolicy: IfNotPresent
+          name: ${CONTAINER}-0
+          resources: {}
+          volumeMounts:
+          - name: config
+            mountPath: /var/lib/svt
+          terminationMessagePath: /dev/termination-log
+        - env: []
+          image: quay.io/openshifttest/ocp-logtest@sha256:6e2973d7d454ce412ad90e99ce584bf221866953da42858c4629873e53778606
+          imagePullPolicy: IfNotPresent
+          name: ${CONTAINER}-1
+          resources: {}
+          volumeMounts:
+          - name: config
+            mountPath: /var/lib/svt
+          terminationMessagePath: /dev/termination-log
+        - env: []
+          image: quay.io/openshifttest/ocp-logtest@sha256:6e2973d7d454ce412ad90e99ce584bf221866953da42858c4629873e53778606
+          imagePullPolicy: IfNotPresent
+          name: ${CONTAINER}-2
+          resources: {}
+          volumeMounts:
+          - name: config
+            mountPath: /var/lib/svt
+          terminationMessagePath: /dev/termination-log
+        volumes:
+        - name: config
+          configMap:
+            name: ${CMNAME}
+parameters:
+- name: REPLICAS
+  value: "1"
+- name: LABELS
+  displayName: labels
+  value: "{\"run\": \"logging-logtest\", \"test\": \"logging-logtest\"}"
+- name: NAME
+  value: logging-logtest
+- name: CMNAME
+  value: multi-containers-logtest-config
+- name: CONTAINER
+  value: centos-logtest-container
+- name: RATE
+  value: "30.0"

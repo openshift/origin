@@ -1,0 +1,62 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: netobserv-flowmetrics
+objects:
+- apiVersion: flows.netobserv.io/v1alpha1
+  kind: FlowMetric
+  metadata:
+    name: port-metrics
+    namespace: ${Namespace}
+  spec:
+    charts:
+      - dashboardName: Custom
+        queries:
+          - legend: '{{DstK8S_Namespace}} / {{DstPort}}'
+            promQL: 'sum(rate($METRIC[2m])) by (DstK8S_Namespace, DstPort)'
+            top: 7
+        title: Traffic across servie ports
+        type: StackArea
+    direction: Egress
+    filters:
+    - field: DstPort
+      matchType: Presence
+      value: "\\d+"
+    labels:
+    - DstPort
+    - DstK8S_Namespace
+    metricName: service_ports_total_bytes
+    type: Counter
+    valueField: Bytes
+- apiVersion: flows.netobserv.io/v1alpha1
+  kind: FlowMetric
+  metadata:
+    name: flowmetric-cluster-external-ingress-traffic
+  spec:
+    metricName: cluster_external_ingress_bytes_total
+    type: Counter
+    valueField: Bytes
+    direction: Ingress
+    labels: [DstK8S_HostName,DstK8S_Namespace,DstK8S_OwnerName,DstK8S_OwnerType]
+    filters:
+    - field: SrcSubnetLabel
+      matchType: Absence
+    charts:
+    - dashboardName: Main
+      title: External ingress traffic
+      unit: Bps
+      type: SingleStat
+      queries:
+      - promQL: "sum(rate($METRIC[2m]))"
+        legend: ""
+    - dashboardName: Main
+      sectionName: External
+      title: Top external ingress traffic per workload
+      unit: Bps
+      type: StackArea
+      queries:
+      - promQL: "sum(rate($METRIC{DstK8S_Namespace!=\"\"}[2m])) by (DstK8S_Namespace, DstK8S_OwnerName)"
+        legend: "{{DstK8S_Namespace}} / {{DstK8S_OwnerName}}"
+parameters:
+- name: Namespace
+  value: netobserv

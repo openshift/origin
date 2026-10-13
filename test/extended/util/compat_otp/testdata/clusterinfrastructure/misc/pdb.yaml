@@ -1,0 +1,17 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-disruption-budget
+objects:
+  - kind: PodDisruptionBudget
+    apiVersion: policy/v1
+    metadata:
+      name: ${NAME}
+    spec:
+      minAvailable: 1
+      selector:
+        matchLabels:
+          app: ${LABEL}
+parameters:
+- name: NAME
+- name: LABEL

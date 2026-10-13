@@ -1,0 +1,45 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: deployment-image-resolution
+spec:
+  strategy:
+    type: Rolling
+    rollingParams:
+  template:
+    metadata:
+      labels:
+        name: deployment-image-resolution
+    spec:
+      containers:
+      - name: first
+        image: ""
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sleep
+          - infinity
+      - name: second
+        image: " "
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sleep
+          - infinity
+  triggers:
+  - type: ConfigChange
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - first
+      from:
+        kind: ImageStreamTag
+        name: deployment-image-resolution:pullthrough
+    type: ImageChange
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - second
+      from:
+        kind: ImageStreamTag
+        name: deployment-image-resolution:direct
+    type: ImageChange
+

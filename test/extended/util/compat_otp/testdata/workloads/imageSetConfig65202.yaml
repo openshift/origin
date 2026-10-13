@@ -1,0 +1,14 @@
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v1alpha2
+storageConfig: 
+ registry:
+   imageURL: localhost:5000/oc-mirror
+   skipTLS: true
+mirror:
+  platform:
+    architectures:
+      - "multi"
+    channels:
+    - name: stable-4.13
+      minVersion: 4.13.5
+      maxVersion: 4.13.6

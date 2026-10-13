@@ -1,0 +1,11 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+    labels:
+       machineconfiguration.openshift.io/role: sriov
+    name: 2m-hugepages
+spec:
+    kernelArguments:
+        - default_hugepagesz=1G
+        - hugepagesz=2m
+        - hugepages=100

@@ -1,0 +1,11 @@
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: default-allow-egress
+spec:
+  podSelector: {}
+  egress:
+    - {}
+  policyTypes:
+  - Egress
+

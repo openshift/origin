@@ -1,0 +1,14 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: template
+objects:
+- kind: User
+  apiVersion: user.openshift.io/v1
+  metadata:
+    name: ${required_param}
+  groups: null
+parameters:
+- name: optional_param
+- name: required_param
+  required: true

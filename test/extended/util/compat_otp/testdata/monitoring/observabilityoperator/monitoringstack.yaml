@@ -1,0 +1,54 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: monitoringstack-template
+objects:
+- apiVersion: monitoring.rhobs/v1alpha1
+  kind: MonitoringStack
+  metadata:
+    labels:
+      hive.openshift.io/managed: "true"
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    alertmanagerConfig:
+      disabled: true
+    logLevel: debug
+    namespaceSelector:
+      matchExpressions:
+      - key: hypershift.openshift.io/hosted-control-plane
+        operator: Exists
+    prometheusConfig:
+      externalLabels:
+        env: staging
+        hypershift_cluster_id: "${CLUSTERID}"
+        region: "${REGION}"
+      remoteWrite:
+      - oauth2:
+          clientId:
+            secret:
+              key: client-id
+              name: "${SECRETNAME}"
+          clientSecret:
+            key: client-secret
+            name: "${SECRETNAME}"
+          tokenUrl: "${TOKENURL}"
+        url: "${URL}"
+      replicas: 2
+    resourceSelector: {}
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 512M
+    retention: 1d
+parameters:
+- name: CLUSTERID
+- name: REGION
+- name: NAME
+- name: NAMESPACE
+- name: SECRETNAME
+- name: TOKENURL
+- name: URL

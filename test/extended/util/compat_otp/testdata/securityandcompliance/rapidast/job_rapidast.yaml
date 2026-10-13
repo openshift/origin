@@ -1,0 +1,59 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rapidast-job
+spec:
+  backoffLimit: 1
+  completionMode: NonIndexed
+  completions: 1
+  parallelism: 1
+  selector:
+    matchLabels:
+      job-name: rapidast-job
+  suspend: false
+  template:
+    metadata:
+      labels:
+        batch.kubernetes.io/job-name: rapidast-job
+        job-name: rapidast-job
+      name: rapidast-job
+    spec:
+      containers:
+      - command: ["/bin/sh"]
+        args:
+        - "-c"
+        - | 
+          export HOME=/home/rapidast 
+          mkdir -p $HOME/.ZAP/policies 
+          cp /opt/rapidast/config/customscan.policy $HOME/.ZAP/policies/custom-scan.policy 
+          rapidast.py --config /opt/rapidast/config/rapidastconfig.yaml --log-level debug
+          echo "--------------- show rapidash result -----------------"  
+          find $HOME/results/ocptest -name zap-report.json -exec cat {} \;
+          echo "--------------- rapidash result end -----------------"  
+        image: quay.io/redhatproductsecurity/rapidast:latest
+        workingDir: "/home/rapidast"
+        imagePullPolicy: Always
+        name: rapidast-chart
+        resources: {}
+        securityContext: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /opt/rapidast/config
+          name: config-volume
+        - mountPath: /home/rapidast
+          name: work-volume
+      dnsPolicy: ClusterFirst
+      restartPolicy: Never
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: rapidast-configmap
+        name: config-volume
+      - name: work-volume
+        emptyDir:
+          sizeLimit: 10Mi

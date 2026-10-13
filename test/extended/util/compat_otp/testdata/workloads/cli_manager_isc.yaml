@@ -1,0 +1,9 @@
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+mirror:
+  operators:
+  - catalog: registry-proxy.engineering.redhat.com/rh-osbs/iib@sha256:bd6382120df0d655b63a5240f4d0ed5df75ba8e53af15560c401f8b8e76d5e1c
+    packages:
+    - name: cli-manager
+      minVersion: 0.1.0
+      maxVersion: 0.1.0

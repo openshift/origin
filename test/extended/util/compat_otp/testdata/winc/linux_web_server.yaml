@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: linux-webserver
+  labels:
+    app: linux-webserver
+spec:
+  ports:
+  # the port that this service should serve on
+  - port: 8080
+    targetPort: 8080
+  selector:
+    app: linux-webserver
+  type: LoadBalancer
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: linux-webserver
+  name: linux-webserver
+spec:
+  selector:
+    matchLabels:
+      app: linux-webserver
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: linux-webserver
+      name: linux-webserver
+    spec:
+      containers:
+      - name: linux-webserver
+        image: quay.io/openshifttest/hello-openshift@sha256:2a3edeadd7aa12a6156e9a27de1daae73d0569cbb0a761a7885944738245f11e
+        ports:
+        - containerPort: 8080

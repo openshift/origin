@@ -1,0 +1,10 @@
+{
+    "schema": "olm.channel",
+    "name": "clusterwide-alpha",
+    "package": "etcd",
+    "entries": [
+        {
+            "name": "etcdoperator.v0.9.0"
+        }
+    ]
+}

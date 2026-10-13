@@ -1,0 +1,50 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: external-log-store-template
+objects:
+- apiVersion: v1
+  data:
+    add-user.sh: |+
+      output = $(/usr/share/elasticsearch/bin/elasticsearch-users useradd ${USERNAME} -p ${PASSWORD} -r superuser)
+      if [[ $output =~ 'already exists' ]]
+      then
+      return 0
+      fi
+
+    elasticsearch.yml: |
+      node.name:  ${NAME}
+      cluster.name: ${NAME}
+      discovery.zen.minimum_master_nodes: 1
+      network.host: 0.0.0.0
+      http.port: 9200
+      http.host: 0.0.0.0
+      transport.host: 127.0.0.1
+      discovery.type: single-node
+      xpack.security.authc.realms:
+        file:
+          test:
+            order: 0
+            enabled: true
+            authentication.enabled: true
+      xpack.security.enabled: true
+      xpack.ml.enabled: ${MACHINE_LEARNING}
+      xpack.security.authc.api_key.enabled: true
+      xpack.monitoring.enabled : false
+      xpack.license.self_generated.type: basic
+      xpack.security.http.ssl.enabled: false
+  kind: ConfigMap
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+parameters:
+- name: NAME
+  value: elasticsearch-server
+- name: NAMESPACE
+  value: openshift-logging
+- name: USERNAME
+  value: "fluentd"
+- name: PASSWORD
+  value: "redhat"
+- name: MACHINE_LEARNING
+  value: "true"

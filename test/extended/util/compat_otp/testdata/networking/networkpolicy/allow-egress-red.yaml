@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-to-red
+spec:
+  podSelector: {}
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          team: qe
+      podSelector:
+        matchLabels:
+          type: red
+  policyTypes:
+  - Egress

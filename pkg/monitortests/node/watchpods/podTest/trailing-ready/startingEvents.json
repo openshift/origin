@@ -1,0 +1,189 @@
+{
+  "items": [
+    {
+      "level": "Info",
+      "locator": {
+        "type": "Pod",
+        "keys": {
+          "pod": "community-operators-sp6lm",
+          "namespace": "openshift-marketplace",
+          "node": "",
+          "uid": "efb1885a-1fe1-4f5b-ad41-044e55f806a9"
+        }
+      },
+      "message": {
+        "reason": "Created",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "reason": "Created"
+        }
+      },
+      "from": "2022-03-07T22:47:04Z",
+      "to": "2022-03-07T22:47:04Z"
+    },
+    {
+      "level": "Warning",
+      "locator": {
+        "type": "Pod",
+        "keys": {
+          "pod": "community-operators-sp6lm",
+          "namespace": "openshift-marketplace",
+          "node": "ip-10-0-154-151.ec2.internal",
+          "uid": "efb1885a-1fe1-4f5b-ad41-044e55f806a9"
+        }
+      },
+      "message": {
+        "reason": "Scheduled",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "node": "ip-10-0-154-151.ec2.internal",
+          "reason": "Scheduled"
+        }
+      },
+      "from": "2022-03-07T22:47:04Z",
+      "to": "2022-03-07T22:47:04Z"
+    },
+    {
+      "level": "Info",
+      "locator": {
+        "type": "Container",
+        "keys": {
+          "container": "registry-server",
+          "pod": "community-operators-sp6lm",
+          "namespace": "openshift-marketplace",
+          "node": "ip-10-0-154-151.ec2.internal",
+          "uid": "efb1885a-1fe1-4f5b-ad41-044e55f806a9"
+        }
+      },
+      "message": {
+        "reason": "ContainerStart",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "duration": "3.00s",
+          "reason": "ContainerStart"
+        }
+      },
+      "from": "2022-03-07T22:47:07Z",
+      "to": "2022-03-07T22:47:07Z"
+    },
+    {
+      "level": "Info",
+      "locator": {
+        "type": "Container",
+        "keys": {
+          "container": "registry-server",
+          "pod": "community-operators-sp6lm",
+          "namespace": "openshift-marketplace",
+          "node": "ip-10-0-154-151.ec2.internal",
+          "uid": "efb1885a-1fe1-4f5b-ad41-044e55f806a9"
+        }
+      },
+      "message": {
+        "reason": "Ready",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "reason": "Ready"
+        }
+      },
+      "from": "2022-03-07T22:47:14Z",
+      "to": "2022-03-07T22:47:14Z"
+    },
+    {
+      "level": "Info",
+      "locator": {
+        "type": "Pod",
+        "keys": {
+          "pod": "community-operators-sp6lm",
+          "namespace": "openshift-marketplace",
+          "node": "ip-10-0-154-151.ec2.internal",
+          "uid": "efb1885a-1fe1-4f5b-ad41-044e55f806a9"
+        }
+      },
+      "message": {
+        "reason": "GracefulDelete",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "duration": "1s",
+          "reason": "GracefulDelete"
+        }
+      },
+      "from": "2022-03-07T22:47:14Z",
+      "to": "2022-03-07T22:47:14Z"
+    },
+    {
+      "level": "Info",
+      "locator": {
+        "type": "Container",
+        "keys": {
+          "container": "registry-server",
+          "pod": "community-operators-sp6lm",
+          "namespace": "openshift-marketplace",
+          "node": "ip-10-0-154-151.ec2.internal",
+          "uid": "efb1885a-1fe1-4f5b-ad41-044e55f806a9"
+        }
+      },
+      "message": {
+        "reason": "ContainerExit",
+        "cause": "Completed",
+        "humanMessage": "",
+        "annotations": {
+          "code": "0",
+          "cause": "Completed",
+          "reason": "ContainerExit"
+        }
+      },
+      "from": "2022-03-07T22:47:15Z",
+      "to": "2022-03-07T22:47:15Z"
+    },
+    {
+      "level": "Warning",
+      "locator": {
+        "type": "Container",
+        "keys": {
+          "container": "registry-server",
+          "pod": "community-operators-sp6lm",
+          "namespace": "openshift-marketplace",
+          "node": "ip-10-0-154-151.ec2.internal",
+          "uid": "efb1885a-1fe1-4f5b-ad41-044e55f806a9"
+        }
+      },
+      "message": {
+        "reason": "NotReady",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "reason": "NotReady"
+        }
+      },
+      "from": "2022-03-07T22:47:15Z",
+      "to": "2022-03-07T22:47:15Z"
+    },
+    {
+      "level": "Info",
+      "locator": {
+        "type": "Pod",
+        "keys": {
+          "pod": "community-operators-sp6lm",
+          "namespace": "openshift-marketplace",
+          "node": "ip-10-0-154-151.ec2.internal",
+          "uid": "efb1885a-1fe1-4f5b-ad41-044e55f806a9"
+        }
+      },
+      "message": {
+        "reason": "Deleted",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "reason": "Deleted"
+        }
+      },
+      "from": "2022-03-07T22:47:15Z",
+      "to": "2022-03-07T22:47:15Z"
+    }
+  ]
+}

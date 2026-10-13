@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: List
+metadata: {}
+items:
+- kind: ImageStream
+  apiVersion: image.openshift.io/v1
+  metadata:
+    name: mydockertest
+- kind: ImageStream
+  apiVersion: image.openshift.io/v1
+  metadata:
+    name: mys2itest

@@ -1,0 +1,13 @@
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: statusfail-assemblescript
+spec:
+  source:
+      type: binary
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: quay.io/redhat-developer/test-build-simples2i:1.2

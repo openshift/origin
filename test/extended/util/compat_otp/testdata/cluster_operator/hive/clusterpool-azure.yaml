@@ -1,0 +1,46 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: clusterpool-temp
+objects:
+- apiVersion: hive.openshift.io/v1
+  kind: ClusterPool
+  metadata:
+    creationTimestamp: null
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    annotations:
+      "hive.openshift.io/fake-cluster": "${FAKE}"
+    baseDomain: "${BASEDOMAIN}"
+    imageSetRef:
+      name: "${IMAGESETREF}"
+    platform:
+      "${PLATFORMTYPE}":
+        credentialsSecretRef:
+          name: "${CREDREF}"
+        region: "${REGION}"
+        baseDomainResourceGroupName: "${RESGROUP}"
+    pullSecretRef:
+      name: "${PULLSECRETREF}"
+    size: ${{SIZE}}
+    maxSize: ${{MAXSIZE}}
+    runningCount: ${{RUNNINGCOUNT}}
+    maxConcurrent: ${{MAXCONCURRENT}}
+    hibernateAfter: "${HIBERNATEAFTER}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: FAKE
+- name: BASEDOMAIN
+- name: IMAGESETREF
+- name: PLATFORMTYPE
+- name: CREDREF
+- name: REGION
+- name: RESGROUP
+- name: PULLSECRETREF
+- name: SIZE
+- name: MAXSIZE
+- name: RUNNINGCOUNT
+- name: MAXCONCURRENT
+- name: HIBERNATEAFTER

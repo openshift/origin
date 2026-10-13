@@ -1,0 +1,37 @@
+skip-godeps: true
+skip-gomod: true
+rules:
+- destination: kubernetes
+  branches:
+  - name: origin-4.5-kubernetes-1.18.3
+    source:
+      branch: release-4.5
+      dir: vendor/k8s.io/kubernetes
+  - name: origin-4.4-kubernetes-1.17.1
+    source:
+      branch: release-4.4
+      dir: vendor/k8s.io/kubernetes
+  - name: origin-4.3-kubernetes-1.16.2
+    source:
+      branch: release-4.3
+      dir: vendor/k8s.io/kubernetes
+  - name: origin-4.2-kubernetes-1.14.6
+    source:
+      branch: release-4.2
+      dir: vendor/k8s.io/kubernetes
+  - name: origin-4.1-kubernetes-1.13.4
+    source:
+      branch: release-4.1
+      dir: vendor/k8s.io/kubernetes
+  - name: origin-3.11-kubernetes-1.11.1
+    source:
+      branch: release-3.11
+      dir: vendor/k8s.io/kubernetes
+  - name: origin-3.10-kubernetes-1.10.2
+    source:
+      branch: release-3.10
+      dir: vendor/k8s.io/kubernetes
+  - name: release-1.9.1
+    source:
+      branch: release-3.9
+      dir: vendor/k8s.io/kubernetes

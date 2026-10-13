@@ -1,0 +1,37 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: dhcp-hostname-policy-template
+objects:
+  - apiVersion: nmstate.io/v1
+    kind: NodeNetworkConfigurationPolicy
+    metadata:
+      name: "${NAME}"
+    spec:
+      nodeSelector:
+        "${NODELABEL}": "${LABELVALUE}"
+      desiredState:
+        interfaces:
+        - name: "${IFACENAME}"
+          type: dummy
+          state: "${STATE}"
+          ipv4:
+            dhcp: true
+            dhcp-client-id: iaid+duid
+            enabled: true
+            dhcp-send-hostname: true
+            dhcp-custom-hostname: c9.example.org
+          ipv6:
+            dhcp: true
+            autoconf: true
+            enabled: true
+            dhcp-send-hostname: true
+            dhcp-custom-hostname: c9.example.net
+
+parameters:
+  - name: NAME
+  - name: NODELABEL
+    value: "kubernetes.io/hostname"
+  - name: LABELVALUE
+  - name: STATE
+  - name: IFACENAME

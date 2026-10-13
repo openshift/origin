@@ -1,0 +1,1513 @@
+package ginkgo
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"math/rand"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"sort"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
+	"golang.org/x/mod/semver"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/pkg/dataloader"
+
+	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
+	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
+	"github.com/openshift/origin/pkg/defaultmonitortests"
+	e2e_analysis "github.com/openshift/origin/pkg/e2eanalysis"
+	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/riskanalysis"
+	"github.com/openshift/origin/pkg/test/extensions"
+	"github.com/openshift/origin/pkg/test/filters"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/openshift/origin/pkg/test/preconditions"
+)
+
+const (
+	// Dump pod displacements with at least 3 instances
+	minChainLen = 3
+
+	setupEvent       = "Setup"
+	upgradeEvent     = "Upgrade"
+	postUpgradeEvent = "PostUpgrade"
+)
+
+// GinkgoRunSuiteOptions is used to run a suite of tests by invoking each test
+// as a call to a child worker (the run-tests command).
+type GinkgoRunSuiteOptions struct {
+	Parallelism int
+	Count       int
+	FailFast    bool
+	Timeout     time.Duration
+	JUnitDir    string
+
+	// ShardCount is the total number of partitions the test suite is divided into.
+	// Each executor runs one of these partitions.
+	ShardCount int
+
+	// ShardStrategy is which strategy we'll use for dividing tests.
+	ShardStrategy string
+
+	// ShardID is the 1-based index of the shard this instance is responsible for running.
+	ShardID int
+
+	// SyntheticEventTests allows the caller to translate events or outside
+	// context into a failure.
+	SyntheticEventTests JUnitsForEvents
+
+	ClusterStabilityDuringTest string
+
+	IncludeSuccessOutput bool
+
+	CommandEnv []string
+
+	DryRun        bool
+	PrintCommands bool
+	genericclioptions.IOStreams
+
+	StartTime time.Time
+
+	ExactMonitorTests   []string
+	DisableMonitorTests []string
+	Extension           *extension.Extension
+
+	// RetryStrategy controls retry behavior and final outcome decisions
+	RetryStrategy RetryStrategy
+
+	// WithHypervisorConfigJSON contains JSON configuration for hypervisor-based recovery operations
+	WithHypervisorConfigJSON string
+}
+
+func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSuiteOptions {
+	defaultStrategy, err := createRetryStrategy(defaultRetryStrategy)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create default retry strategy: %v", err))
+	}
+
+	return &GinkgoRunSuiteOptions{
+		IOStreams:     streams,
+		ShardStrategy: "hash",
+		RetryStrategy: defaultStrategy,
+	}
+}
+
+func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
+
+	monitorNames := defaultmonitortests.ListAllMonitorTests()
+
+	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the tests to run without executing them.")
+	flags.BoolVar(&o.PrintCommands, "print-commands", o.PrintCommands, "Print the sub-commands that would be executed instead.")
+	flags.StringVar(&o.ClusterStabilityDuringTest, "cluster-stability", o.ClusterStabilityDuringTest, "cluster stability during test, usually dependent on the job: Stable or Disruptive. Empty default will be treated as Stable.")
+	flags.StringVar(&o.JUnitDir, "junit-dir", o.JUnitDir, "The directory to write test reports to.")
+	flags.IntVar(&o.Count, "count", o.Count, "Run each test a specified number of times. Defaults to 1 or the suite's preferred value. -1 will run forever.")
+	flags.BoolVar(&o.FailFast, "fail-fast", o.FailFast, "If a test fails, exit immediately.")
+	flags.DurationVar(&o.Timeout, "timeout", o.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
+	flags.BoolVar(&o.IncludeSuccessOutput, "include-success", o.IncludeSuccessOutput, "Print output from successful tests.")
+	flags.IntVar(&o.Parallelism, "max-parallel-tests", o.Parallelism, "Maximum number of tests running in parallel. 0 defaults to test suite recommended value, which is different in each suite.")
+	flags.StringSliceVar(&o.ExactMonitorTests, "monitor", o.ExactMonitorTests,
+		fmt.Sprintf("list of exactly which monitors to enable. All others will be disabled.  Current monitors are: [%s]", strings.Join(monitorNames, ", ")))
+	flags.StringSliceVar(&o.DisableMonitorTests, "disable-monitor", o.DisableMonitorTests, "list of monitors to disable.  Defaults for others will be honored.")
+
+	flags.IntVar(&o.ShardID, "shard-id", o.ShardID, "When tests are sharded across instances, which instance we are")
+	flags.IntVar(&o.ShardCount, "shard-count", o.ShardCount, "Number of shards used to run tests across multiple instances")
+	flags.StringVar(&o.ShardStrategy, "shard-strategy", o.ShardStrategy, "Which strategy to use for sharding (hash)")
+	availableStrategies := getAvailableRetryStrategies()
+	flags.Var(newRetryStrategyFlag(&o.RetryStrategy), "retry-strategy", fmt.Sprintf("Test retry strategy (available: %s, default: %s)", strings.Join(availableStrategies, ", "), defaultRetryStrategy))
+	flags.StringVar(&o.WithHypervisorConfigJSON, "with-hypervisor-json", os.Getenv("HYPERVISOR_CONFIG"), "JSON configuration for hypervisor-based recovery operations. Must contain hypervisorIP, sshUser, and privateKeyPath fields.")
+}
+
+func (o *GinkgoRunSuiteOptions) Validate() error {
+	switch o.ClusterStabilityDuringTest {
+	case "", string(Stable), string(Disruptive):
+	default:
+		return fmt.Errorf("unknown --cluster-stability, %q, expected Stable or Disruptive", o.ClusterStabilityDuringTest)
+	}
+	return nil
+}
+
+func (o *GinkgoRunSuiteOptions) AsEnv() []string {
+	var args []string
+	args = append(args, fmt.Sprintf("TEST_SUITE_START_TIME=%d", o.StartTime.Unix()))
+	args = append(args, o.CommandEnv...)
+	return args
+}
+
+func (o *GinkgoRunSuiteOptions) SetIOStreams(streams genericclioptions.IOStreams) {
+	o.IOStreams = streams
+}
+
+// findDuplicateTests returns a map of test names that appear more than once
+func findDuplicateTests(specs extensions.ExtensionTestSpecs) map[string][]*extensions.ExtensionTestSpec {
+	testOccurrences := make(map[string][]*extensions.ExtensionTestSpec)
+	duplicateOccurrences := make(map[string][]*extensions.ExtensionTestSpec)
+
+	// Track all occurrences of each test name
+	for _, spec := range specs {
+		testOccurrences[spec.Name] = append(testOccurrences[spec.Name], spec)
+		if len(testOccurrences[spec.Name]) > 1 {
+			duplicateOccurrences[spec.Name] = testOccurrences[spec.Name]
+		}
+	}
+
+	return duplicateOccurrences
+}
+
+// createUnpermittedExtensionTests creates JUnit test cases to report unpermitted extensions.
+// Returns a flake (pass + fail) to make it visible without failing the job.
+func createUnpermittedExtensionTests(unpermitted []extensions.UnpermittedExtension) []*junitapi.JUnitTestCase {
+	const testName = "[openshift-tests] extension binary not permitted"
+	testCases := []*junitapi.JUnitTestCase{
+		{
+			Name: testName,
+		},
+	}
+
+	// If unpermitted extensions found, also create a failure case to make it a flake
+	if len(unpermitted) > 0 {
+		logrus.Warnf("Found %d unpermitted extension binary(ies)", len(unpermitted))
+
+		var msg strings.Builder
+		msg.WriteString("extension binary not permitted by TestExtensionAdmission:\n")
+		for _, u := range unpermitted {
+			fmt.Fprintf(&msg, "\n  - %s/%s:%s (%s)\n", u.Namespace, u.ImageStream, u.Tag, u.Component)
+			logrus.Warnf("  Unpermitted: %s/%s:%s (%s)", u.Namespace, u.ImageStream, u.Tag, u.Component)
+		}
+
+		testCases = append(testCases, &junitapi.JUnitTestCase{
+			Name: testName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: msg.String(),
+			},
+		})
+	}
+
+	return testCases
+}
+
+// detectDuplicateTests creates test cases to report on duplicate test detection
+// Flake for now.
+func detectDuplicateTests(specs extensions.ExtensionTestSpecs) []*junitapi.JUnitTestCase {
+	const duplicateTestName = "[sig-trt] There should not be duplicate tests"
+
+	duplicateOccurrences := findDuplicateTests(specs)
+
+	// Collect all duplicate tests
+	var duplicates []string
+	var allDuplicateDetails []string
+
+	for testName, occurrences := range duplicateOccurrences {
+		duplicates = append(duplicates, testName)
+		logrus.Warnf("Duplicate test detected: %q appears %d times", testName, len(occurrences))
+
+		// Collect source information for all occurrences of this test
+		testDetails := fmt.Sprintf("\n=== Duplicate Test: %s ===", testName)
+		testDetails += fmt.Sprintf("\nFound %d occurrences:", len(occurrences))
+
+		for i, spec := range occurrences {
+			detail := fmt.Sprintf("\n  Occurrence %d:", i+1)
+			detail += fmt.Sprintf("\n    Source: %s", spec.ExtensionTestSpec.Source)
+			if len(spec.ExtensionTestSpec.CodeLocations) > 0 {
+				detail += fmt.Sprintf("\n    CodeLocations: %s", strings.Join(spec.ExtensionTestSpec.CodeLocations, ", "))
+			}
+			testDetails += detail
+			logrus.Warnf("  Occurrence %d: Source=%s", i+1, spec.ExtensionTestSpec.Source)
+		}
+
+		allDuplicateDetails = append(allDuplicateDetails, testDetails)
+	}
+
+	// Always create a success test case first
+	testCases := []*junitapi.JUnitTestCase{
+		{
+			Name: duplicateTestName,
+		},
+	}
+
+	// If duplicates found, also create a failure case to make it a flake
+	if len(duplicates) > 0 {
+		totalDuplicates := len(duplicates)
+		logrus.Warnf("Found %d duplicate tests total", totalDuplicates)
+		fullDetails := strings.Join(allDuplicateDetails, "\n")
+
+		testCases = append(testCases, &junitapi.JUnitTestCase{
+			Name: duplicateTestName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("Found %d duplicate tests:\n%s\n%s\n", totalDuplicates, strings.Join(duplicates, "\n"), fullDetails),
+			},
+		})
+	}
+
+	return testCases
+}
+
+// countRealFailures counts the number of actual failures in a list of JUnit test cases,
+// excluding flakes. A flake is a test that has both a pass and a failure.
+func countRealFailures(testCases []*junitapi.JUnitTestCase) int {
+	if len(testCases) == 0 {
+		return 0
+	}
+
+	// Build sets of failing and passing test names
+	failingTests := sets.NewString()
+	passingTests := sets.NewString()
+
+	// First pass: collect all failing test names
+	for _, testCase := range testCases {
+		if testCase.FailureOutput != nil {
+			failingTests.Insert(testCase.Name)
+		}
+	}
+
+	// Second pass: collect all passing test names
+	for _, testCase := range testCases {
+		if testCase.FailureOutput == nil && testCase.SkipMessage == nil {
+			passingTests.Insert(testCase.Name)
+		}
+	}
+
+	realFailures := failingTests.Difference(passingTests)
+	return realFailures.Len()
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdiscovery.ClusterConfiguration, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo,
+	upgrade bool) error {
+	ctx := context.Background()
+	var sharder Sharder
+	switch o.ShardStrategy {
+	default:
+		sharder = &HashSharder{}
+	}
+
+	defaultBinaryParallelism := 10
+
+	// Extract all test binaries
+	extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	defer extractionContextCancel()
+	cleanUpFn, allBinaries, unpermitted, err := extensions.ExtractAllTestBinaries(extractionContext, defaultBinaryParallelism)
+	if err != nil {
+		return err
+	}
+	defer cleanUpFn()
+
+	// Learn about the extension binaries available
+	infoContext, infoContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	defer infoContextCancel()
+	logrus.Infof("Fetching info from %d extension binaries", len(allBinaries))
+	extensionsInfo, err := allBinaries.Info(infoContext, defaultBinaryParallelism)
+	if err != nil {
+		logrus.Errorf("Failed to fetch extension info: %v", err)
+		return fmt.Errorf("failed to fetch extension info: %w", err)
+	}
+
+	logrus.Infof("Discovered %d extensions", len(extensionsInfo))
+	for _, e := range extensionsInfo {
+		id := fmt.Sprintf("%s:%s:%s", e.Component.Product, e.Component.Kind, e.Component.Name)
+		logrus.Infof("Extension %s found in %s:%s using API version %s", id, e.Source.SourceImage, e.Source.SourceBinary, e.APIVersion)
+	}
+
+	// List tests from all available binaries and convert them to origin's testCase format
+	listContext, listContextCancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer listContextCancel()
+
+	envFlags, err := determineEnvironmentFlags(ctx, upgrade, o.DryRun)
+	if err != nil {
+		return fmt.Errorf("could not determine environment flags: %w", err)
+	}
+	logrus.WithFields(envFlags.LogFields()).Infof("Determined all potential environment flags")
+
+	specs, err := allBinaries.ListTests(listContext, defaultBinaryParallelism, envFlags)
+	if err != nil {
+		return err
+	}
+
+	logrus.Infof("Discovered %d total tests", len(specs))
+
+	// skip tests due to newer k8s
+	restConfig, err := clusterinfo.GetMonitorRESTConfig()
+	if err != nil {
+		return err
+	}
+
+	// Apply all test filters using the filter chain -- origin previously filtered tests a ton
+	// of places, and co-mingled suite, annotation, and cluster state filters in odd ways. This filter
+	// chain is the ONLY place tests should be filtered down for determining the final execution set.
+	testFilterChain := filters.NewFilterChain(logrus.WithField("component", "test-filter")).
+		AddFilter(filters.NewQualifiersFilter(suite.Qualifiers)).
+		AddFilter(filters.NewKubeRebaseTestsFilter(restConfig)).
+		AddFilter(&filters.DisabledTestsFilter{}).
+		AddFilter(filters.NewMatchFnFilter(suite.SuiteMatcher)). // used for file or regexp cli filter on test names
+		AddFilter(filters.NewClusterStateFilter(clusterConfig))
+
+	specs, err = testFilterChain.Apply(ctx, specs)
+	if err != nil {
+		return err
+	}
+
+	if len(specs) == 0 {
+		return fmt.Errorf("no tests to run")
+	}
+
+	duplicateTestCases := detectDuplicateTests(specs)
+	unpermittedTestCases := createUnpermittedExtensionTests(unpermitted)
+
+	k8sTestNames := map[string]bool{}
+	for _, t := range specs {
+		if strings.Contains(t.ExtensionTestSpec.Source, "hyperkube") {
+			k8sTestNames[t.Name] = true
+		}
+	}
+
+	tests, err := extensionTestSpecsToOriginTestCases(specs)
+	if err != nil {
+		return errors.WithMessage(err, "could not convert test specs to origin test cases")
+	}
+
+	// We want to intentionally reduce variability
+	// in the ordering to highlight interactions between
+	// tests that lead to higher failures
+	// we may want to create a set of known seeds
+	// and randomly select from that group eventually
+	// to compare results
+	seed := int64(42)
+
+	// Previous seeding
+	// this ensures the tests are always run in random order to avoid
+	// any intra-tests dependencies
+	// suiteConfig, _ := ginkgo.GinkgoConfiguration()
+	// seed := suiteConfig.RandomSeed
+
+	r := rand.New(rand.NewSource(seed))
+	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
+
+	count := o.Count
+	if count == 0 {
+		count = suite.Count
+	}
+
+	start := time.Now()
+	if o.StartTime.IsZero() {
+		o.StartTime = start
+	}
+
+	timeout := o.Timeout
+	if timeout == 0 {
+		timeout = suite.TestTimeout
+	}
+	if timeout == 0 {
+		timeout = 15 * time.Minute
+	}
+
+	testRunnerContext := newCommandContext(o.AsEnv(), timeout)
+
+	if o.PrintCommands {
+		newParallelTestQueue(testRunnerContext).OutputCommands(ctx, tests, o.Out)
+		return nil
+	}
+	if o.DryRun {
+		for _, test := range sortedTests(tests) {
+			fmt.Fprintf(o.Out, "%q\n", test.name)
+		}
+		return nil
+	}
+
+	if len(o.JUnitDir) > 0 {
+		if _, err := os.Stat(o.JUnitDir); err != nil {
+			if !os.IsNotExist(err) {
+				return fmt.Errorf("could not access --junit-dir: %v", err)
+			}
+			if err := os.MkdirAll(o.JUnitDir, 0755); err != nil {
+				return fmt.Errorf("could not create --junit-dir: %v", err)
+			}
+		}
+	}
+
+	// start with suite value which should be based on a 3 worker node cluster
+	parallelism := suite.Parallelism
+	logrus.Infof("Suite defined parallelism %d", parallelism)
+
+	// adjust based on the number of workers
+	totalNodes, workerNodes, err := getClusterNodeCounts(ctx, restConfig)
+	if err != nil {
+		logrus.Errorf("Failed to get cluster node counts: %v", err)
+	} else {
+		// default to 1/3 the defined parallelism value per worker but use the min of that
+		// and the current parallelism value so we don't increase parallelism
+		if workerNodes > 0 && parallelism > 0 {
+			workerParallelism := max(1, parallelism/3) * workerNodes
+			logrus.Infof("Parallelism based on worker node count: %d", workerParallelism)
+			parallelism = min(parallelism, workerParallelism)
+		}
+	}
+
+	// if 0 set our min value
+	if parallelism <= 0 {
+		parallelism = 10
+	}
+
+	// if explicitly set then use the specified value
+	if o.Parallelism > 0 {
+		parallelism = o.Parallelism
+		logrus.Infof("Using specified parallelism value: %d", parallelism)
+	}
+
+	logrus.Infof("Total nodes: %d, Worker nodes: %d, Parallelism: %d", totalNodes, workerNodes, parallelism)
+
+	ctx, cancelFn := context.WithCancel(context.Background())
+	defer cancelFn()
+	abortCh := make(chan os.Signal, 2)
+	go func() {
+		<-abortCh
+		logrus.Error("Interrupted, terminating tests")
+		cancelFn()
+		sig := <-abortCh
+		logrus.Errorf("Interrupted twice, exiting (%s)", sig)
+		switch sig {
+		case syscall.SIGINT:
+			os.Exit(130)
+		default:
+			os.Exit(0)
+		}
+	}()
+	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
+
+	// Skip stable cluster check if OPENSHIFT_TESTS_SKIP_STABLE_CLUSTER is set.
+	// This is useful in development for rapid iteration where cluster stability
+	// verification may be unnecessary and time-consuming.
+	var stableClusterTestResults []*junitapi.JUnitTestCase
+	if os.Getenv("OPENSHIFT_TESTS_SKIP_STABLE_CLUSTER") == "" {
+		logrus.Infof("Waiting for all cluster operators to become stable")
+		var err error
+		stableClusterTestResults, err = clusterinfo.WaitForStableCluster(ctx, restConfig)
+		if err != nil {
+			logrus.Errorf("Error waiting for stable cluster: %v", err)
+		}
+	} else {
+		logrus.Infof("Skipping stable cluster check due to OPENSHIFT_TESTS_SKIP_STABLE_CLUSTER environment variable")
+	}
+
+	monitorTests, err := defaultmonitortests.NewMonitorTestsFor(monitorTestInfo)
+	if err != nil {
+		logrus.Errorf("Error getting monitor tests: %v", err)
+	}
+
+	monitorEventRecorder := monitor.NewRecorder()
+	m := monitor.NewMonitor(
+		monitorEventRecorder,
+		restConfig,
+		o.JUnitDir,
+		monitorTests,
+	)
+	if err := m.Start(ctx); err != nil {
+		return err
+	}
+
+	pc, err := SetupNewPodCollector(ctx)
+	if err != nil {
+		return err
+	}
+
+	pc.SetEvents([]string{setupEvent})
+	pc.Run(ctx)
+
+	// if we run a single test, always include success output
+	includeSuccess := o.IncludeSuccessOutput
+	if len(tests) == 1 && count == 1 {
+		includeSuccess = true
+	}
+	testOutputLock := &sync.Mutex{}
+	testOutputConfig := newTestOutputConfig(testOutputLock, o.Out, monitorEventRecorder, includeSuccess)
+
+	early, notEarly := splitTests(tests, func(t *testCase) bool {
+		return strings.Contains(t.name, "[Early]")
+	})
+	logrus.Infof("Found %d early tests", len(early))
+
+	late, primaryTests := splitTests(notEarly, func(t *testCase) bool {
+		return strings.Contains(t.name, "[Late]")
+	})
+	logrus.Infof("Found %d late tests", len(late))
+
+	// Sharding always runs early and late tests in every invocation. I think this
+	// makes sense, because these tests may collect invariant data we want to know about
+	// every run.
+	primaryTests, err = sharder.Shard(primaryTests, o.ShardCount, o.ShardID)
+	if err != nil {
+		return err
+	}
+
+	kubeTests, openshiftTests := splitTests(primaryTests, func(t *testCase) bool {
+		return k8sTestNames[t.name]
+	})
+
+	storageTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "[sig-storage]")
+	})
+
+	networkK8sTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "[sig-network]")
+	})
+
+	orderedNamespaceDeletionTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "OrderedNamespaceDeletion")
+	})
+
+	networkTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "[sig-network]")
+	})
+
+	netpolTests, networkK8sTests := splitTests(networkK8sTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "Netpol")
+	})
+
+	buildsTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "[sig-builds]")
+	})
+
+	// separate from cliTests
+	mustGatherTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
+	})
+
+	logrus.Infof("Found %d openshift tests", len(openshiftTests))
+	logrus.Infof("Found %d kubernetes tests", len(kubeTests))
+	logrus.Infof("Found %d storage tests", len(storageTests))
+	logrus.Infof("Found %d network k8s tests", len(networkK8sTests))
+	logrus.Infof("Found %d ordered namespace deletion k8s tests", len(orderedNamespaceDeletionTests))
+	logrus.Infof("Found %d network tests", len(networkTests))
+	logrus.Infof("Found %d netpol tests", len(netpolTests))
+	logrus.Infof("Found %d builds tests", len(buildsTests))
+	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
+
+	// If user specifies a count, duplicate the kube and openshift tests that many times.
+	expectedTestCount := len(early) + len(late)
+	if count != -1 {
+		originalKube := kubeTests
+		originalOpenshift := openshiftTests
+		originalStorage := storageTests
+		originalNetworkK8s := networkK8sTests
+		originalOrderedNamespaceDeletionTests := orderedNamespaceDeletionTests
+		originalNetwork := networkTests
+		originalNetpol := netpolTests
+		originalBuilds := buildsTests
+		originalMustGather := mustGatherTests
+
+		for i := 1; i < count; i++ {
+			kubeTests = append(kubeTests, copyTests(originalKube)...)
+			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
+			storageTests = append(storageTests, copyTests(originalStorage)...)
+			networkK8sTests = append(networkK8sTests, copyTests(originalNetworkK8s)...)
+			orderedNamespaceDeletionTests = append(orderedNamespaceDeletionTests, copyTests(originalOrderedNamespaceDeletionTests)...)
+			networkTests = append(networkTests, copyTests(originalNetwork)...)
+			netpolTests = append(netpolTests, copyTests(originalNetpol)...)
+			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
+			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
+		}
+	}
+	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(orderedNamespaceDeletionTests) + len(networkTests) + len(netpolTests) + len(buildsTests) + len(mustGatherTests)
+
+	abortFn := neverAbort
+	testCtx := ctx
+	if o.FailFast {
+		abortFn, testCtx = abortOnFailure(ctx)
+	}
+
+	tests = nil
+
+	// run our Early tests
+	q := newParallelTestQueue(testRunnerContext)
+	earlyIntervalID, earlyStartTime := recordTestBucketInterval(monitorEventRecorder, "Early")
+	q.Execute(testCtx, early, parallelism, testOutputConfig, abortFn)
+	monitorEventRecorder.EndInterval(earlyIntervalID, time.Now())
+	logrus.Infof("Completed Early test bucket in %v", time.Since(earlyStartTime))
+	tests = append(tests, early...)
+
+	// TODO: will move to the monitor
+	pc.SetEvents([]string{upgradeEvent})
+
+	// Run kube, storage, openshift, and must-gather tests. If user specified a count of -1,
+	// we loop indefinitely.
+	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
+
+		kubeTestsCopy := copyTests(kubeTests)
+		kubeIntervalID, kubeStartTime := recordTestBucketInterval(monitorEventRecorder, "Kubernetes")
+		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
+		monitorEventRecorder.EndInterval(kubeIntervalID, time.Now())
+		logrus.Infof("Completed Kubernetes test bucket in %v", time.Since(kubeStartTime))
+		tests = append(tests, kubeTestsCopy...)
+
+		// I thought about randomizing the order of the kube, storage, and openshift tests, but storage dominates our e2e runs, so it doesn't help much.
+		storageTestsCopy := copyTests(storageTests)
+		storageIntervalID, storageStartTime := recordTestBucketInterval(monitorEventRecorder, "Storage")
+		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
+		monitorEventRecorder.EndInterval(storageIntervalID, time.Now())
+		logrus.Infof("Completed Storage test bucket in %v", time.Since(storageStartTime))
+		tests = append(tests, storageTestsCopy...)
+
+		networkK8sTestsCopy := copyTests(networkK8sTests)
+		networkK8sIntervalID, networkK8sStartTime := recordTestBucketInterval(monitorEventRecorder, "NetworkK8s")
+		q.Execute(testCtx, networkK8sTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
+		monitorEventRecorder.EndInterval(networkK8sIntervalID, time.Now())
+		logrus.Infof("Completed NetworkK8s test bucket in %v", time.Since(networkK8sStartTime))
+		tests = append(tests, networkK8sTestsCopy...)
+
+		orderedNamespaceDeletionTestsCopy := copyTests(orderedNamespaceDeletionTests)
+		orderedNamespaceDeletionIntervalID, orderedNamespaceDeletionStartTime := recordTestBucketInterval(monitorEventRecorder, "OrderedNamespaceDeletion")
+		q.Execute(testCtx, orderedNamespaceDeletionTestsCopy, 1, testOutputConfig, abortFn) // Run ordered namespace deletion tests one at a time. They are sensitive to backlogs in the namespace controller's workqueue that have been observed during high test paralellism as many ephemeral test namespaces are being finalized concurrently.
+		monitorEventRecorder.EndInterval(orderedNamespaceDeletionIntervalID, time.Now())
+		logrus.Infof("Completed OrderedNamespaceDeletion test bucket in %v", time.Since(orderedNamespaceDeletionStartTime))
+		tests = append(tests, orderedNamespaceDeletionTestsCopy...)
+
+		networkTestsCopy := copyTests(networkTests)
+		networkIntervalID, networkStartTime := recordTestBucketInterval(monitorEventRecorder, "Network")
+		q.Execute(testCtx, networkTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
+		monitorEventRecorder.EndInterval(networkIntervalID, time.Now())
+		logrus.Infof("Completed Network test bucket in %v", time.Since(networkStartTime))
+		tests = append(tests, networkTestsCopy...)
+
+		// k8s netpol tests are known to be heavy and there are cases when run in parallel it can overload
+		// a cluster causing negative side effects (e.g., https://issues.redhat.com/browse/OCPBUGS-57665)
+		// https://github.com/openshift/origin/pull/26775/changes#diff-998be43366fe821c61ca242aa34949870c9c6df2572cc060000e4cd990a72bebL58-L62
+		// this will only run 2 in parallel at once
+		netpolTestsCopy := copyTests(netpolTests)
+		netpolIntervalID, netpolStartTime := recordTestBucketInterval(monitorEventRecorder, "Netpol")
+		q.Execute(testCtx, netpolTestsCopy, 2, testOutputConfig, abortFn)
+		monitorEventRecorder.EndInterval(netpolIntervalID, time.Now())
+		logrus.Infof("Completed Netpol test bucket in %v", time.Since(netpolStartTime))
+		tests = append(tests, netpolTestsCopy...)
+
+		buildsTestsCopy := copyTests(buildsTests)
+		buildsIntervalID, buildsStartTime := recordTestBucketInterval(monitorEventRecorder, "Builds")
+		q.Execute(testCtx, buildsTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // builds tests only run at half the parallelism, so we can avoid high cpu problems.
+		monitorEventRecorder.EndInterval(buildsIntervalID, time.Now())
+		logrus.Infof("Completed Builds test bucket in %v", time.Since(buildsStartTime))
+		tests = append(tests, buildsTestsCopy...)
+
+		openshiftTestsCopy := copyTests(openshiftTests)
+		openshiftIntervalID, openshiftStartTime := recordTestBucketInterval(monitorEventRecorder, "OpenShift")
+		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
+		monitorEventRecorder.EndInterval(openshiftIntervalID, time.Now())
+		logrus.Infof("Completed OpenShift test bucket in %v", time.Since(openshiftStartTime))
+		tests = append(tests, openshiftTestsCopy...)
+
+		// run the must-gather tests after parallel tests to reduce resource contention
+		mustGatherTestsCopy := copyTests(mustGatherTests)
+		mustGatherIntervalID, mustGatherStartTime := recordTestBucketInterval(monitorEventRecorder, "MustGather")
+		q.Execute(testCtx, mustGatherTestsCopy, parallelism, testOutputConfig, abortFn)
+		monitorEventRecorder.EndInterval(mustGatherIntervalID, time.Now())
+		logrus.Infof("Completed MustGather test bucket in %v", time.Since(mustGatherStartTime))
+		tests = append(tests, mustGatherTestsCopy...)
+	}
+
+	// TODO: will move to the monitor
+	pc.SetEvents([]string{postUpgradeEvent})
+
+	// run Late test suits after everything else
+	lateIntervalID, lateStartTime := recordTestBucketInterval(monitorEventRecorder, "Late")
+	q.Execute(testCtx, late, parallelism, testOutputConfig, abortFn)
+	monitorEventRecorder.EndInterval(lateIntervalID, time.Now())
+	logrus.Infof("Completed Late test bucket in %v", time.Since(lateStartTime))
+	tests = append(tests, late...)
+
+	// TODO: will move to the monitor
+	if len(o.JUnitDir) > 0 {
+		pc.ComputePodTransitions()
+		data, err := pc.JsonDump()
+		if err != nil {
+			logrus.Errorf("Unable to dump pod placement data: %v", err)
+		} else {
+			if err := ioutil.WriteFile(filepath.Join(o.JUnitDir, "pod-placement-data.json"), data, 0644); err != nil {
+				logrus.Errorf("Unable to write pod placement data: %v", err)
+			}
+		}
+		chains := pc.PodDisplacements().Dump(minChainLen)
+		if err := ioutil.WriteFile(filepath.Join(o.JUnitDir, "pod-transitions.txt"), []byte(chains), 0644); err != nil {
+			logrus.Errorf("Unable to write pod placement data: %v", err)
+		}
+	}
+
+	// calculate the effective test set we ran, excluding any incompletes
+	tests, _ = splitTests(tests, func(t *testCase) bool { return t.success || t.flake || t.failed || t.skipped })
+
+	end := time.Now()
+	duration := end.Sub(start).Round(time.Second / 10)
+	if duration > time.Minute {
+		duration = duration.Round(time.Second)
+	}
+
+	pass, fail, skip, failing := summarizeTests(tests)
+
+	// Process test retries using the configured retry strategy
+	var flaky int
+	if o.RetryStrategy.ShouldAttemptRetries(failing, suite) {
+		logrus.Infof("Using retry strategy: %s for %d failing tests", o.RetryStrategy.Name(), fail)
+		tests, failing, flaky = o.performRetries(testCtx, tests, failing, testRunnerContext, parallelism, testOutputConfig, abortFn)
+	} else if fail > 0 {
+		logrus.Infof("Retry strategy %s decided not to retry %d failing tests", o.RetryStrategy.Name(), fail)
+	}
+
+	endWithRetries := time.Now()
+	durationWithRetries := endWithRetries.Sub(start).Round(time.Second / 10)
+	if durationWithRetries > time.Minute {
+		durationWithRetries = durationWithRetries.Round(time.Second)
+	}
+
+	// monitor the cluster while the tests are running and report any detected anomalies
+	var syntheticTestResults []*junitapi.JUnitTestCase
+	var syntheticFailure bool
+	syntheticTestResults = append(syntheticTestResults, stableClusterTestResults...)
+	syntheticTestResults = append(syntheticTestResults, duplicateTestCases...)
+	syntheticTestResults = append(syntheticTestResults, unpermittedTestCases...)
+
+	// Detect precondition checks and generate a synthetic JUnit entry if any were performed.
+	// The synthetic test passes if all checks passed, fails if any tests were skipped.
+	// This provides TRT with a consistent test name that has meaningful pass/fail rates.
+	if preconditionJUnit := detectPreconditionChecks(tests); preconditionJUnit != nil {
+		syntheticTestResults = append(syntheticTestResults, preconditionJUnit)
+		if preconditionJUnit.FailureOutput != nil {
+			syntheticFailure = true
+		}
+	}
+
+	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
+
+	monitorTestResultState, err := m.Stop(ctx)
+	if err != nil {
+		fmt.Fprintf(o.ErrOut, "error: Failed to stop monitor test: %v\n", err)
+		monitorTestResultState = monitor.Failed
+	}
+	monitorJunitSuite, err := m.SerializeResults(ctx, junitSuiteName, timeSuffix)
+	if err != nil {
+		fmt.Fprintf(o.ErrOut, "error: Failed to serialize run-data: %v\n", err)
+	}
+
+	// Analyze synthetic test results to calculate failing and flaky synthetic tests
+	// Use countRealFailures to exclude flakes from the failure count
+	failingSyntheticTests := countRealFailures(syntheticTestResults)
+
+	// Build sets to track failing and flaky test names for reporting
+	failingSyntheticTestNames, flakySyntheticTestNames := sets.NewString(), sets.NewString()
+	if len(syntheticTestResults) > 0 {
+		// mark any failures by name
+		for _, test := range syntheticTestResults {
+			if test.FailureOutput != nil {
+				failingSyntheticTestNames.Insert(test.Name)
+			}
+		}
+		// if a test has both a pass and a failure, flag it
+		// as a flake
+		for _, test := range syntheticTestResults {
+			if test.FailureOutput == nil {
+				if failingSyntheticTestNames.Has(test.Name) {
+					flakySyntheticTestNames.Insert(test.Name)
+				}
+			}
+		}
+		failingSyntheticTestNames = failingSyntheticTestNames.Difference(flakySyntheticTestNames)
+		if failingSyntheticTestNames.Len() > 0 {
+			syntheticFailure = true
+		}
+	}
+
+	// default is empty string as that is what entries prior to adding this will have
+	wasMasterNodeUpdated := ""
+	if events := monitorEventRecorder.Intervals(start, end); len(events) > 0 {
+		buf := &bytes.Buffer{}
+		if len(syntheticTestResults) > 0 {
+			if failingSyntheticTestNames.Len() > 0 {
+				fmt.Fprintf(buf, "Failing invariants:\n\n%s\n\n", strings.Join(failingSyntheticTestNames.List(), "\n"))
+			}
+			if flakySyntheticTestNames.Len() > 0 {
+				fmt.Fprintf(buf, "Flaky invariants:\n\n%s\n\n", strings.Join(flakySyntheticTestNames.List(), "\n"))
+			}
+		}
+
+		// we only write the buffer if we have an artifact location
+		if len(o.JUnitDir) > 0 {
+			filename := fmt.Sprintf("openshift-tests-monitor_%s.txt", o.StartTime.UTC().Format("20060102-150405"))
+			if err := ioutil.WriteFile(filepath.Join(o.JUnitDir, filename), buf.Bytes(), 0644); err != nil {
+				fmt.Fprintf(o.ErrOut, "error: Failed to write monitor data: %v\n", err)
+			}
+
+			filename = fmt.Sprintf("events_used_for_junits_%s.json", o.StartTime.UTC().Format("20060102-150405"))
+			if err := monitorserialization.EventsToFile(filepath.Join(o.JUnitDir, filename), events); err != nil {
+				fmt.Fprintf(o.ErrOut, "error: Failed to junit event info: %v\n", err)
+			}
+		}
+
+		wasMasterNodeUpdated = clusterinfo.WasMasterNodeUpdated(events)
+	}
+
+	var blockingFailures, informingFailures []*testCase
+	for _, test := range failing {
+		if isBlockingFailure(test) {
+			blockingFailures = append(blockingFailures, test)
+		} else {
+			informingFailures = append(informingFailures, test)
+		}
+	}
+
+	if len(informingFailures) > 0 {
+		names := sets.NewString(testNames(informingFailures)...).List()
+		fmt.Fprintf(o.Out, "Informing test failures that don't prevent the overall suite from passing:\n\n\t* %s\n\n", strings.Join(names, "\n\t* "))
+	}
+
+	if len(blockingFailures) > 0 {
+		names := sets.NewString(testNames(blockingFailures)...).List()
+		fmt.Fprintf(o.Out, "Blocking test failures:\n\n\t* %s\n\n", strings.Join(names, "\n\t* "))
+	}
+
+	// Check for mass test failures
+	// Count total failures: blocking failures + synthetic failures + monitor failures
+	totalFailures := len(blockingFailures) + failingSyntheticTests
+
+	// Count monitor test failures
+	monitorFailed := 0
+	if monitorJunitSuite != nil {
+		monitorFailed = countRealFailures(monitorJunitSuite.TestCases)
+		totalFailures += monitorFailed
+	} else if monitorTestResultState != monitor.Succeeded {
+		// Fallback if we couldn't get the suite - count as 1
+		monitorFailed = 1
+		totalFailures += monitorFailed
+	}
+
+	// Always create the mass failure test case for consistent tracking
+	const failureThreshold = 10
+	massFailureTest := &junitapi.JUnitTestCase{
+		Name: "[Jira:\"Test Framework\"] there should not be mass test failures",
+	}
+
+	// Only mark it as failed if threshold is exceeded
+	if totalFailures >= failureThreshold {
+		massFailureMsg := fmt.Sprintf("Mass test failures detected: %d failures (threshold: %d)\n\nBreakdown:\n  - Blocking test failures: %d\n  - Synthetic test failures: %d\n  - Monitor test failures: %d",
+			totalFailures, failureThreshold,
+			len(blockingFailures), failingSyntheticTests, monitorFailed)
+
+		logrus.Errorf("%s", massFailureMsg)
+		fmt.Fprintf(o.Out, "\n%s\n\n", massFailureMsg)
+
+		massFailureTest.FailureOutput = &junitapi.FailureOutput{
+			Output: massFailureMsg,
+		}
+		syntheticFailure = true
+	} else {
+		// Test passes - log the success
+		logrus.Infof("Mass failure check passed: %d failures (threshold: %d failures)",
+			totalFailures, failureThreshold)
+	}
+
+	// Add the mass failure test to synthetic results
+	syntheticTestResults = append(syntheticTestResults, massFailureTest)
+
+	if len(o.JUnitDir) > 0 {
+		finalSuiteResults := generateJUnitTestSuiteResults(junitSuiteName, duration, tests, syntheticTestResults...)
+		if err := writeJUnitReport(finalSuiteResults, "junit_e2e", timeSuffix, o.JUnitDir, o.ErrOut); err != nil {
+			fmt.Fprintf(o.Out, "error: Unable to write e2e JUnit xml results: %v", err)
+		}
+
+		if err := writeExtensionTestResults(tests, syntheticTestResults, o.JUnitDir, "extension_test_result_e2e", timeSuffix, suite.Name, o.ErrOut); err != nil {
+			fmt.Fprintf(o.Out, "error: Unable to write e2e Extension Test Result JSON results: %v", err)
+		}
+
+		if err := riskanalysis.WriteJobRunTestFailureSummary(o.JUnitDir, timeSuffix, finalSuiteResults, wasMasterNodeUpdated, ""); err != nil {
+			fmt.Fprintf(o.Out, "error: Unable to write e2e job run failures summary: %v", err)
+		}
+
+		writeRunSuiteOptions(seed, totalNodes, workerNodes, parallelism, monitorTestInfo, o.JUnitDir, timeSuffix)
+		e2e_analysis.WriteDurations("e2e", map[string]time.Duration{"e2e": duration, "e2e_with_retries": durationWithRetries}, o.JUnitDir, timeSuffix)
+	}
+
+	switch {
+	case len(blockingFailures) > 0:
+		return fmt.Errorf("%d blocking fail, %d informing fail, %d pass, %d flaky, %d skip (%s)", len(blockingFailures), len(informingFailures), pass, flaky, skip, duration)
+	case syntheticFailure:
+		return fmt.Errorf("failed because an invariant was violated, %d pass, %d flaky, %d skip (%s)", pass, flaky, skip, duration)
+	case monitorTestResultState != monitor.Succeeded:
+		return fmt.Errorf("failed due to a MonitorTest failure")
+	case len(informingFailures) > 0:
+		fmt.Fprintf(o.Out, "%d informing fail, %d pass, %d flaky, %d skip (%s): suite passes despite failures", len(informingFailures), pass, flaky, skip, duration)
+	default:
+		fmt.Fprintf(o.Out, "%d pass, %d flaky, %d skip (%s)\n", pass, flaky, skip, duration)
+	}
+
+	return ctx.Err()
+}
+
+// performRetries implements retry behavior using the configured RetryStrategy
+// to determine retry eligibility, attempt limits, and when to stop retrying.
+func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*testCase, failing []*testCase, testRunnerContext *commandContext, parallelism int, testOutputConfig testOutputConfig, abortFn testAbortFunc) ([]*testCase, []*testCase, int) {
+	// Track attempts per test name
+	testAttempts := make(map[string][]*testCase)
+
+	// Initialize with original failed tests, checking strategy eligibility
+	for _, test := range failing {
+		maxRetries := o.RetryStrategy.GetMaxRetries(test)
+		if maxRetries > 0 {
+			testAttempts[test.name] = []*testCase{test}
+			logrus.Infof("Test %s eligible for up to %d retries", test.name, maxRetries)
+		} else {
+			logrus.Warningf("Test %s not eligible for retries (strategy returned 0)", test.name)
+		}
+	}
+
+	logrus.Infof("Starting retries for %d eligible tests", len(testAttempts))
+
+	q := newParallelTestQueue(testRunnerContext)
+
+	// Track which tests should no longer be retried
+	completedTests := sets.New[string]()
+
+	// Perform retry attempts using strategy to control retry behavior
+	for len(testAttempts) > len(completedTests) {
+		var retries []*testCase
+
+		// Check each test to see if it should continue retrying
+		for testName, attempts := range testAttempts {
+			// Skip tests that are already completed
+			if completedTests.Has(testName) {
+				continue
+			}
+
+			originalFailure := attempts[0]
+			lastAttempt := attempts[len(attempts)-1]
+			nextAttemptNumber := len(attempts) + 1
+
+			if o.RetryStrategy.ShouldContinue(originalFailure, attempts, nextAttemptNumber) {
+				retry := lastAttempt.Retry()
+				retries = append(retries, retry)
+			} else {
+				// Strategy says stop retrying this test, but keep it in testAttempts for final processing
+				completedTests.Insert(testName)
+				logrus.Infof("Strategy decided to stop retrying test %s after %d attempts", testName, len(attempts))
+			}
+		}
+
+		if len(retries) == 0 {
+			break
+		}
+
+		logrus.Infof("Retrying %d tests", len(retries))
+
+		// Execute retries
+		q.Execute(ctx, retries, parallelism, testOutputConfig, abortFn)
+
+		// Process results and update attempts
+		for _, retry := range retries {
+			if retry.flake {
+				// Skip flaky retries, keep original failure
+				fmt.Fprintf(o.Out, "Ignoring retry that returned a flake, original failure is authoritative for test: %s\n", retry.name)
+				continue
+			}
+
+			testAttempts[retry.name] = append(testAttempts[retry.name], retry)
+			// Don't add individual retry attempts to tests list yet - we'll decide later based on strategy outcome
+		}
+	}
+
+	// Process final results
+	var finalFlaky []string
+	var finalSkipped []string
+	var stillFailing []*testCase
+
+	for testName, attempts := range testAttempts {
+		// Use the retry strategy to determine the outcome
+		outcome := o.RetryStrategy.DecideOutcome(attempts)
+
+		switch outcome {
+		case RetryOutcomeSkipped:
+			finalSkipped = append(finalSkipped, testName)
+
+		case RetryOutcomeFlaky:
+			// Consider it flaky - add ALL attempts to tests slice
+			finalFlaky = append(finalFlaky, testName)
+			// Add all retry attempts to tests slice (excluding original which is already there)
+			for _, attempt := range attempts[1:] {
+				if !attempt.flake {
+					tests = append(tests, attempt)
+				}
+			}
+
+		case RetryOutcomeFail:
+			rollupTest := o.createSingleFailureRollupTest(testName, attempts)
+
+			// Replace original failed test with rollup test
+			for i, t := range tests {
+				if t.name == testName {
+					tests[i] = rollupTest
+					break
+				}
+			}
+			stillFailing = append(stillFailing, rollupTest)
+		}
+	}
+
+	// Remove flaky tests from failing list
+	if len(finalFlaky) > 0 {
+		var withoutFlakes []*testCase
+	flakeLoop:
+		for _, t := range failing {
+			for _, f := range finalFlaky {
+				if t.name == f {
+					continue flakeLoop
+				}
+			}
+			withoutFlakes = append(withoutFlakes, t)
+		}
+		failing = withoutFlakes
+		sort.Strings(finalFlaky)
+		fmt.Fprintf(o.Out, "Flaky tests:\n\n%s\n\n", strings.Join(finalFlaky, "\n"))
+	}
+	failing = append(failing, stillFailing...)
+
+	// Write retry statistics to autodl file for any retry strategy (except none)
+	if o.RetryStrategy.Name() != "none" && len(o.JUnitDir) > 0 {
+		if err := writeRetryStatistics(testAttempts, o.RetryStrategy, o.JUnitDir); err != nil {
+			logrus.WithError(err).Error("Failed to write retry statistics autodl file")
+		}
+	}
+
+	// Handle skipped tests
+	if len(finalSkipped) > 0 {
+		var withoutPreconditionFailures []*testCase
+	testLoop:
+		for _, t := range tests {
+			for _, st := range finalSkipped {
+				if t.name == st && t.failed {
+					continue testLoop
+				}
+			}
+			withoutPreconditionFailures = append(withoutPreconditionFailures, t)
+		}
+		tests = withoutPreconditionFailures
+
+		var failingWithoutPreconditionFailures []*testCase
+	failingLoop:
+		for _, f := range failing {
+			for _, st := range finalSkipped {
+				if f.name == st {
+					continue failingLoop
+				}
+			}
+			failingWithoutPreconditionFailures = append(failingWithoutPreconditionFailures, f)
+		}
+		failing = failingWithoutPreconditionFailures
+
+		sort.Strings(finalSkipped)
+		fmt.Fprintf(o.Out, "Skipped tests that failed a precondition:\n\n%s\n\n", strings.Join(finalSkipped, "\n"))
+	}
+
+	return tests, failing, len(finalFlaky)
+}
+
+// createSingleFailureRollupTest creates a rollup test case combining all retry attempts. This is needed to produce a single failure
+// artifact, otherwise our systems would consider it a flake.
+func (o *GinkgoRunSuiteOptions) createSingleFailureRollupTest(testName string, attempts []*testCase) *testCase {
+	var combinedOutput strings.Builder
+
+	successCount := 0
+	failureCount := 0
+	for _, attempt := range attempts {
+		if attempt.failed {
+			failureCount++
+		}
+		if attempt.success {
+			successCount++
+		}
+	}
+
+	if successCount > 0 {
+		combinedOutput.WriteString(fmt.Sprintf("Test '%s' failed %d out of %d attempts but had some successes (retry strategy marked as failure).\n\n",
+			testName, failureCount, len(attempts)))
+	} else {
+		combinedOutput.WriteString(fmt.Sprintf("Test '%s' failed all %d attempts.\n\n",
+			testName, len(attempts)))
+	}
+
+	for i, attempt := range attempts {
+		status := "FAILED"
+		if attempt.success {
+			status = "PASSED"
+		} else if attempt.skipped {
+			status = "SKIPPED"
+		}
+
+		combinedOutput.WriteString(fmt.Sprintf("=== Attempt %d: %s ===\n", i+1, status))
+		combinedOutput.Write(attempt.testOutputBytes)
+		combinedOutput.WriteString("\n\n")
+	}
+
+	// Create rollup test case based on the first attempt
+	rollupTest := *attempts[0]
+	rollupTest.testOutputBytes = []byte(combinedOutput.String())
+	rollupTest.failed = true
+	rollupTest.success = false
+	rollupTest.skipped = false
+
+	return &rollupTest
+}
+
+func isBlockingFailure(test *testCase) bool {
+	if test.extensionTestResult == nil {
+		return true
+	}
+
+	switch test.extensionTestResult.Lifecycle {
+	case extensiontests.LifecycleInforming:
+		return false
+	default:
+		return true
+	}
+}
+
+func writeRunSuiteOptions(seed int64, totalNodes, workerNodes, parallelism int, info monitortestframework.MonitorTestInitializationInfo, artifactDir, timeSuffix string) {
+	var rows []map[string]string
+
+	rows = make([]map[string]string, 0)
+	rows = append(rows, map[string]string{"RandomSeed": fmt.Sprintf("%d", seed), "ClusterStability": string(info.ClusterStabilityDuringTest),
+		"WorkerNodes": fmt.Sprintf("%d", workerNodes), "TotalNodes": fmt.Sprintf("%d", totalNodes), "Parallelism": fmt.Sprintf("%d", parallelism)})
+	dataFile := dataloader.DataFile{
+		TableName: "run_suite_options",
+		Schema: map[string]dataloader.DataType{"ClusterStability": dataloader.DataTypeString, "RandomSeed": dataloader.DataTypeInteger, "WorkerNodes": dataloader.DataTypeInteger,
+			"TotalNodes": dataloader.DataTypeInteger, "Parallelism": dataloader.DataTypeInteger},
+		Rows: rows,
+	}
+	fileName := filepath.Join(artifactDir, fmt.Sprintf("run-suite-options%s-%s", timeSuffix, dataloader.AutoDataLoaderSuffix))
+	err := dataloader.WriteDataFile(fileName, dataFile)
+	if err != nil {
+		logrus.WithError(err).Warnf("unable to write data file: %s", fileName)
+	}
+}
+
+func writeExtensionTestResults(tests []*testCase, syntheticJunits []*junitapi.JUnitTestCase, dir, filePrefix, fileSuffix, suiteName string, out io.Writer) error {
+	// Ensure the directory exists
+	err := os.MkdirAll(dir, 0755)
+	if err != nil {
+		fmt.Fprintf(out, "Failed to create directory %s: %v\n", dir, err)
+		return err
+	}
+
+	// Collect results into a slice
+	var results extensions.ExtensionTestResults
+	for _, test := range tests {
+		if test.extensionTestResult != nil {
+			results = append(results, test.extensionTestResult)
+		}
+	}
+
+	// Convert and append synthetic JUnit test cases to extension results
+	for _, r := range junitapi.ToExtensionTestResults(syntheticJunits) {
+		results = append(results, &extensions.ExtensionTestResult{
+			ExtensionTestResult: r,
+			Source: extensions.Source{
+				SourceImage:  "tests",
+				SourceBinary: "openshift-tests",
+			},
+		})
+	}
+
+	// Marshal results to JSON
+	data, err := json.MarshalIndent(results, "", "  ")
+	if err != nil {
+		fmt.Fprintf(out, "Failed to marshal test results to JSON: %v\n", err)
+		return err
+	}
+
+	// Write JSON data to file
+	filePath := filepath.Join(dir, fmt.Sprintf("%s_%s.json", filePrefix, fileSuffix))
+	file, err := os.Create(filePath)
+	if err != nil {
+		fmt.Fprintf(out, "Failed to create file %s: %v\n", filePath, err)
+		return err
+	}
+	defer file.Close()
+
+	fmt.Fprintf(out, "Writing extension test results JSON to %s\n", filePath)
+	_, err = file.Write(data)
+	if err != nil {
+		fmt.Fprintf(out, "Failed to write to file %s: %v\n", filePath, err)
+		return err
+	}
+
+	// Generate HTML output (summary - elides passed test outputs)
+	summaryData, err := results.ToHTML(suiteName, extensions.HTMLOutputSummary)
+	if err != nil {
+		fmt.Fprintf(out, "Failed to generate summary HTML: %v\n", err)
+		return err
+	}
+
+	summaryPath := filepath.Join(dir, fmt.Sprintf("%s_%s-summary.html", filePrefix, fileSuffix))
+	fmt.Fprintf(out, "Writing extension test results HTML to %s\n", summaryPath)
+	if err := os.WriteFile(summaryPath, summaryData, 0644); err != nil {
+		fmt.Fprintf(out, "Failed to write HTML file %s: %v\n", summaryPath, err)
+		return err
+	}
+
+	// Generate HTML output (everything - includes all outputs)
+	everythingData, err := results.ToHTML(suiteName, extensions.HTMLOutputEverything)
+	if err != nil {
+		fmt.Fprintf(out, "Failed to generate everything HTML: %v\n", err)
+		return err
+	}
+
+	everythingPath := filepath.Join(dir, fmt.Sprintf("%s_%s-everything.html", filePrefix, fileSuffix))
+	fmt.Fprintf(out, "Writing extension test results HTML to %s\n", everythingPath)
+	if err := os.WriteFile(everythingPath, everythingData, 0644); err != nil {
+		fmt.Fprintf(out, "Failed to write HTML file %s: %v\n", everythingPath, err)
+		return err
+	}
+
+	return nil
+}
+
+func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (extensions.EnvironmentFlags, error) {
+	restConfig, err := e2e.LoadConfig(true)
+	if err != nil {
+		logrus.WithError(err).Error("error calling e2e.LoadConfig")
+		return nil, err
+	}
+	clusterState, err := clusterdiscovery.DiscoverClusterState(restConfig)
+	if err != nil {
+		logrus.WithError(err).Warn("error Discovering Cluster State, flags requiring it will not be present")
+	}
+	provider := os.Getenv("TEST_PROVIDER")
+	if clusterState == nil { // If we know we cannot discover the clusterState, the provider must be set to "none" in order for the config to be loaded without error
+		provider = "none"
+	}
+	config, err := clusterdiscovery.DecodeProvider(provider, dryRun, true, clusterState)
+	if err != nil {
+		logrus.WithError(err).Error("error determining information about the cluster")
+		return nil, err
+	}
+
+	envFlagBuilder := &extensions.EnvironmentFlagsBuilder{}
+	envFlagBuilder.
+		AddNetwork(config.NetworkPlugin).
+		AddNetworkStack(config.IPFamily).
+		AddExternalConnectivity(determineExternalConnectivity(config))
+
+	platform := config.ProviderName
+	// MicroShift is defined as "skeleton" in the providerName, but the flag should be "none"
+	if platform == "skeleton" {
+		platform = "none"
+	}
+	envFlagBuilder.AddPlatform(platform)
+
+	if config.SingleReplicaTopology {
+		// In cases like Microshift, we will not be able to determine the clusterState,
+		// so topology will be unset unless we default it properly here
+		singleReplicaTopology := configv1.SingleReplicaTopologyMode
+		envFlagBuilder.AddTopology(&singleReplicaTopology)
+	}
+
+	// Additional flags can only be determined if we are able to obtain the clusterState
+	if clusterState != nil {
+		envFlagBuilder.AddAPIGroups(clusterState.APIGroups.UnsortedList()...).
+			AddFeatureGates(clusterState.EnabledFeatureGates.UnsortedList()...)
+
+		upgradeType := "None"
+		if upgrade {
+			upgradeType = determineUpgradeType(clusterState.Version.Status)
+		}
+		envFlagBuilder.AddUpgrade(upgradeType)
+
+		arch := "Unknown"
+		if len(clusterState.Masters.Items) > 0 {
+			// TODO(sgoeddel): eventually, we may need to check every node and pass "multi" as the value if any of them differ from the masters
+			arch = clusterState.Masters.Items[0].Status.NodeInfo.Architecture
+		}
+		envFlagBuilder.AddArchitecture(arch)
+
+		for _, optionalCapability := range clusterState.OptionalCapabilities {
+			envFlagBuilder.AddOptionalCapability(string(optionalCapability))
+		}
+
+		envFlagBuilder.AddVersion(clusterState.Version.Status.Desired.Version)
+
+		// SingleReplica is duplicated in the topology flag, so we don't need to add it here if it's set.
+		if !config.SingleReplicaTopology {
+			envFlagBuilder.AddTopology(clusterState.ControlPlaneTopology)
+		}
+	}
+
+	return envFlagBuilder.Build(), nil
+}
+
+func determineUpgradeType(versionStatus configv1.ClusterVersionStatus) string {
+	history := versionStatus.History
+	version := versionStatus.Desired.Version
+	if len(history) > 1 { // If there aren't at least 2 versions in the history we don't have any way to determine the upgrade type
+		mostRecent := history[1] // history[0] will be the desired version, so check one further back
+		current := fmt.Sprintf("v%s", version)
+		last := fmt.Sprintf("v%s", mostRecent.Version)
+		if semver.Compare(semver.Major(current), semver.Major(last)) > 0 {
+			return "Major"
+		}
+		if semver.Compare(semver.MajorMinor(current), semver.MajorMinor(last)) > 0 {
+			return "Minor"
+		}
+
+		return "Micro"
+	}
+
+	return "Unknown"
+}
+
+func determineExternalConnectivity(clusterConfig *clusterdiscovery.ClusterConfiguration) string {
+	if clusterConfig.Disconnected {
+		return "Disconnected"
+	}
+	if clusterConfig.IsProxied {
+		return "Proxied"
+	}
+	return "Direct"
+}
+
+func getClusterNodeCounts(ctx context.Context, config *rest.Config) (int, int, error) {
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	totalNodes := 0
+	workerNodes := 0
+
+	nodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker"})
+	if err != nil {
+		return 0, 0, err
+	}
+
+	workerNodes = len(nodes.Items)
+	logrus.Infof("Found %d worker nodes", workerNodes)
+
+	nodes, err = kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return 0, 0, err
+	}
+
+	totalNodes = len(nodes.Items)
+	logrus.Infof("Found %d nodes", totalNodes)
+
+	return totalNodes, workerNodes, nil
+}
+
+// recordTestBucketInterval creates and starts an interval for tracking test bucket execution
+func recordTestBucketInterval(monitorEventRecorder monitorapi.Recorder, bucketName string) (int, time.Time) {
+	startTime := time.Now()
+	interval := monitorapi.NewInterval(monitorapi.SourceTestBucket, monitorapi.Info).
+		Locator(monitorapi.NewLocator().TestBucket(bucketName)).
+		Display().
+		Message(monitorapi.NewMessage().
+			HumanMessage(fmt.Sprintf("Executing test bucket: %s", bucketName))).
+		Build(startTime, time.Time{})
+	intervalID := monitorEventRecorder.StartInterval(interval)
+	return intervalID, startTime
+}
+
+// detectPreconditionChecks scans test output for precondition markers and generates
+// a synthetic JUnit entry. Returns nil if no precondition checking was performed.
+//
+// The synthetic test:
+//   - PASSES if precondition checks ran and all passed (no skips)
+//   - FAILS if any tests were skipped due to unmet preconditions
+//
+// This provides TRT with a consistent test name that has meaningful pass/fail rates.
+func detectPreconditionChecks(tests []*testCase) *junitapi.JUnitTestCase {
+	type skipInfo struct {
+		name   string
+		reason string
+	}
+
+	var checksPerformed bool
+	var skips []skipInfo
+
+	for _, test := range tests {
+		output := string(test.testOutputBytes)
+
+		// Check if precondition checking was invoked at all
+		if strings.Contains(output, preconditions.CheckMarker) {
+			checksPerformed = true
+		}
+
+		// Check for precondition skip failures (only in skipped tests)
+		if test.skipped && strings.Contains(output, preconditions.SkipMarker) {
+			// Extract the reason from the output
+			reason := output
+			if idx := strings.Index(output, preconditions.SkipMarker); idx >= 0 {
+				reason = strings.TrimSpace(output[idx+len(preconditions.SkipMarker):])
+				// Truncate at newline if present
+				if nlIdx := strings.Index(reason, "\n"); nlIdx >= 0 {
+					reason = reason[:nlIdx]
+				}
+			}
+
+			skips = append(skips, skipInfo{name: test.name, reason: reason})
+			logrus.Warnf("Test skipped due to precondition failure: %s - %s", test.name, reason)
+		}
+	}
+
+	// No precondition checking was performed - don't emit synthetic test
+	if !checksPerformed {
+		return nil
+	}
+
+	// Precondition checks ran - generate synthetic JUnit entry
+	if len(skips) == 0 {
+		// All precondition checks passed
+		logrus.Infof("All cluster precondition checks passed")
+		return &junitapi.JUnitTestCase{
+			Name: preconditions.SyntheticTestName,
+			// No FailureOutput = passing test
+		}
+	}
+
+	// Some precondition checks failed - generate failure details
+	var details strings.Builder
+	details.WriteString(fmt.Sprintf("%d test(s) were skipped due to unmet cluster preconditions:\n\n", len(skips)))
+	for _, skip := range skips {
+		details.WriteString(fmt.Sprintf("Test: %s\n", skip.name))
+		details.WriteString(fmt.Sprintf("Reason: %s\n\n", skip.reason))
+	}
+	details.WriteString("This indicates the cluster was not in a healthy state to run the tests.\n")
+	details.WriteString("Please investigate the cluster health issues listed above.")
+
+	logrus.Warnf("%d test(s) were skipped due to unmet cluster preconditions", len(skips))
+
+	return &junitapi.JUnitTestCase{
+		Name: preconditions.SyntheticTestName,
+		FailureOutput: &junitapi.FailureOutput{
+			Output: fmt.Sprintf("Cluster preconditions not met - %d test(s) skipped\n\n\n%s", len(skips), details.String()),
+		},
+	}
+}

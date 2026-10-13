@@ -1,0 +1,12 @@
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: if-healthy-budget-policy
+spec:
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: IfHealthyBudget
+  selector:
+    matchLabels:
+      app: nginx-with-delayed-ready
+

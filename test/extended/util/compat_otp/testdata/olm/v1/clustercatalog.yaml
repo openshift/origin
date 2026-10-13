@@ -1,0 +1,19 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: catalog-template
+objects:
+- apiVersion: olm.operatorframework.io/v1
+  kind: ClusterCatalog
+  metadata:
+    name: "${NAME}"
+  spec:
+    source:
+      type: "${TYPE}"
+      image:
+        ref: "${IMAGE}"
+parameters:
+- name: NAME
+- name: TYPE
+  value: "Image"
+- name: IMAGE

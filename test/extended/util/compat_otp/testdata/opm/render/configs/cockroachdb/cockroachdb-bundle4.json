@@ -1,0 +1,64 @@
+{
+    "schema": "olm.bundle",
+    "name": "cockroachdb.v5.0.4",
+    "package": "cockroachdb",
+    "image": "quay.io/olmqe/cockroachdb-operator:5.0.4-2199",
+    "properties": [
+        {
+            "type": "olm.channel",
+            "value": {
+                "name": "stable",
+                "replaces": "cockroachdb.v5.0.3"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "charts.operatorhub.io",
+                "kind": "Cockroachdb",
+                "version": "v1alpha1"
+            }
+        },
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "cockroachdb",
+                "version": "5.0.4"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+            }
+        }
+    ],
+    "relatedImages": [
+        {
+            "name": "",
+            "image": "quay.io/olmqe/cockroachdb-operator:5.0.4-2199"
+        },
+        {
+            "name": "",
+            "image": "gcr.io/kubebuilder/kube-rbac-proxy:v0.5.0"
+        },
+        {
+            "name": "",
+            "image": "quay.io/helmoperators/cockroachdb:v5.0.4"
+        }
+    ]
+}

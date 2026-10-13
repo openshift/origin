@@ -1,0 +1,6 @@
+=== RUN TestOne
+--- PASS: TestOne (0.06 seconds)
+=== RUN TestTwo
+--- PASS: TestTwo (0.10 seconds)
+PASS
+ok  	package/name 2.160s

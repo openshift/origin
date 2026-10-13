@@ -1,0 +1,22 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: resource-policy-cm-template
+objects:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: resource-policy
+      namespace: "${NAMESPACE}"
+    data:
+      policy.rego: "${POLICYREGO}"
+
+parameters:
+  - name: NAMESPACE
+    description: "namespace to place this cm in"
+    value: "trustee-operator-system"
+  - name: POLICYREGO
+    description: "Allow a change to the resource policy for unrestricted"
+    value: 'package policy default allow = false allow { input["tcb-status"]["sample.svn"] == "1" }'
+    # unrestricted
+    # -p POLICYREGO="package policy default allow = true"

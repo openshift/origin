@@ -1,0 +1,12 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: olmv1-preflight-clusterrole-template
+objects:
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: "${NAME}"
+    rules:
+parameters:
+  - name: NAME

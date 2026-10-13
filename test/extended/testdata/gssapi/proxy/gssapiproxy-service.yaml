@@ -1,0 +1,37 @@
+kind: "Service"
+apiVersion: "v1"
+metadata:
+  name: "gssapiproxy-server"
+  creationTimestamp: null
+spec:
+  ports:
+    -
+      name: "http"
+      protocol: "TCP"
+      port: 80
+      targetPort: 80
+      nodePort: 0
+    -
+      name: "https"
+      protocol: "TCP"
+      port: 443
+      targetPort: 443
+      nodePort: 0
+    -
+      name: "kerberos"
+      protocol: "TCP"
+      port: 88
+      targetPort: 88
+      nodePort: 0
+    -
+      name: "kerberos-udp"
+      protocol: "UDP"
+      port: 88
+      targetPort: 88
+      nodePort: 0
+  selector:
+    name: "gssapiproxy-server"
+  type: "ClusterIP"
+  sessionAffinity: "None"
+status:
+  loadBalancer: {}

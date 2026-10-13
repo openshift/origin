@@ -1,0 +1,20 @@
+{
+    "kind": "Service",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "httpbin-svc-secure"
+    },
+    "spec": {
+        "ports": [
+            {
+                "name": "https",
+                "protocol": "TCP",
+                "port": 27443,
+                "targetPort": 8443
+            }
+        ],
+        "selector": {
+            "name": "httpbin-pod"
+        }
+    }
+}

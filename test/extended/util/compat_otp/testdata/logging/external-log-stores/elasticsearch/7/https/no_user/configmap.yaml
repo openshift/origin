@@ -1,0 +1,45 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: external-log-store-template
+objects:
+- apiVersion: v1
+  data:
+    elasticsearch.yml: |
+      node.name: ${NAME}
+      cluster.name: ${NAME}
+      discovery.zen.minimum_master_nodes: 1
+      network.host: 0.0.0.0
+      http.port: 9200
+      http.host: 0.0.0.0
+      transport.host: 127.0.0.1
+      discovery.type: single-node
+      xpack.security.enabled: true
+      xpack.security.authc:
+        anonymous:
+          username: anonymous_user
+          roles: superuser
+          authz_exception: true
+      xpack.security.authc.api_key.enabled: true
+      xpack.monitoring.enabled : false
+      xpack.license.self_generated.type: basic
+      xpack.security.http.ssl.enabled: true
+      xpack.ml.enabled: ${MACHINE_LEARNING}
+      xpack.security.http.ssl.key:  /usr/share/elasticsearch/config/secret/elasticsearch.key
+      xpack.security.http.ssl.certificate: /usr/share/elasticsearch/config/secret/elasticsearch.crt
+      xpack.security.http.ssl.certificate_authorities: [ "/usr/share/elasticsearch/config/secret/admin-ca" ]
+      xpack.security.http.ssl.verification_mode: full
+      xpack.security.http.ssl.client_authentication: ${CLIENT_AUTH}
+  kind: ConfigMap
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+parameters:
+- name: NAME
+  value: elasticsearch-server
+- name: NAMESPACE
+  value: openshift-logging
+- name: CLIENT_AUTH
+  value: required
+- name: MACHINE_LEARNING
+  value: "true"

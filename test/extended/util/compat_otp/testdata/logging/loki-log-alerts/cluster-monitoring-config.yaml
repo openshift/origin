@@ -1,0 +1,13 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: cluster-monitoring-config-temp
+objects:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: cluster-monitoring-config
+    namespace: openshift-monitoring
+  data:
+    config.yaml: |
+      enableUserWorkload: true

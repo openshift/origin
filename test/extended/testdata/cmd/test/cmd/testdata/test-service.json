@@ -1,0 +1,29 @@
+{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "frontend",
+    "creationTimestamp": null,
+    "labels": {
+      "name": "frontend"
+    }
+  },
+  "spec": {
+    "ports": [
+      {
+        "protocol": "TCP",
+        "port": 9998,
+        "targetPort": 9998,
+        "nodePort": 0
+      }
+    ],
+    "selector": {
+      "name": "frontend"
+    },
+    "type": "ClusterIP",
+    "sessionAffinity": "None"
+  },
+  "status": {
+    "loadBalancer": {}
+  }
+}

@@ -1,0 +1,6 @@
+namespace: operator_sdk
+name: test_fixtures
+version: 0.0.0
+readme: README.md
+authors:
+- your name <jfan@redhat.com>

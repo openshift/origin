@@ -1,0 +1,116 @@
+# See the OWNERS_ALIASES docs: https://git.k8s.io/community/contributors/guide/owners.md#owners_aliases
+
+aliases:
+  cluster-version-operator-test-case-approvers:
+  - DavidHurta
+  - hongkailiu
+  - PratikMahajan
+  - wking
+  - petr-muller
+  cluster-version-operator-test-case-reviewers:
+  - DavidHurta
+  - hongkailiu
+  - PratikMahajan
+  - wking
+  - petr-muller
+  team-leads:
+  - JAORMX # Infrastructure Security and Compliance
+  - JoelSpeed # Cluster Infrastructure
+  - PratikMahajan # Over the Air Updates
+  - Miciah # Network Edge
+  - coreydaley # Build + Jenkins
+  - ashishkamra # Performance and Latency Sensitive Application Platform
+  - beekhof # Machine Lifecycle
+  - brenton # Technical Release Team
+  - bthurber # Partner Accelerators
+  - c3d # OpenShift Sandboxed Containers
+  - celebdor # Ecosystem Edge
+  - dmage # Image Registry
+  - dtantsur # Metal Platform
+  - dulek # Kuryr Networking
+  - hasbro17 # etcd
+  - ingvagabund # Workloads
+  - jaypoulz # Multi Arch
+  - jcantrill # Cluster Logging
+  - jmrodri # Operator SDK
+  - joelddiaz # Hive
+  - jparrill # Portfolio Integration
+  - jsafrane # Storage
+  - jwmatthews # App Migration
+  - oceanc80 # Operator Lifecycle Manager
+  - mandre # Shift on Stack
+  - mike-nguyen # CoreOS
+  - pacevedom # MicroShift
+  - pedjak # App Services
+  - jmguzik # Test Platform
+  - omertuc # Single Node OpenShift
+  - rphillips # Node
+  - sadasu # Metal Platform
+  - sebsoto # Windows Containers
+  - simonpasquier # Monitoring - In Cluster
+  - sinnykumari # MCO
+  - sosiouxme # Automated Release Tooling
+  - staebler # OpenShift Installer
+  - stlaz # Authentication
+  - sttts # API Server
+  - travier # CoreOS
+  - tssurya # Networking
+  - umohnani8 # Container Engine Tools
+  - davidvossel # HyperShift on KubeVirt Platform
+  - orenc1 # HyperShift on KubeVirt Platform
+  network-ingress-dns-test-case-approvers:
+  - frobware
+  - knobunc
+  - Miciah
+  - miheer
+  - alebedev87
+  - candita
+  - gcs278
+  - rfredette
+  - Thealisyed
+  - grzpiotrowski
+  - rikatz
+  - davidesalerno
+  - bentito
+  - jcmoraisjr
+  network-ingress-dns-test-case-reviewers:
+  - frobware
+  - knobunc
+  - Miciah
+  - miheer
+  - alebedev87
+  - candita
+  - gcs278
+  - rfredette
+  - Thealisyed
+  - grzpiotrowski
+  - rikatz
+  - davidesalerno
+  - bentito
+  - jcmoraisjr
+  node-test-case-reviewers:
+  - mrunalp
+  - rphillips
+  - cpmeadors
+  - haircommander
+  - harche
+  - saschagrunert
+  - kannon92
+  - MaysaMacedo
+  - anahas-redhat
+  - PannagaRao
+  - sohankunkerkar
+  - bitoku
+  - qiliRedHat
+  - ngopalak-redhat
+  - BhargaviGudi
+  - dgrisonnet
+  - sairameshv
+  - asahay19
+  - lyman9966
+  - QiWang19
+  node-test-case-approvers:
+  - haircommander
+  - mrunalp
+  - rphillips
+  - cpmeadors

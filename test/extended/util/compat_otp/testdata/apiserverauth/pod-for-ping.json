@@ -1,0 +1,31 @@
+{
+  "kind": "Pod",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "pod-for-ping",
+    "labels": {
+      "name": "pod-for-ping"
+    }
+  },
+  "spec": {
+    "containers": [
+      {
+        "name": "pod-for-ping",
+        "image": "quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4",
+        "resources": {
+          "limits": {
+            "memory": "340Mi"
+          }
+        },
+        "securityContext": {
+          "allowPrivilegeEscalation": false,
+          "capabilities": {},
+          "privileged": false,
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        }
+      }
+    ]
+  }
+}

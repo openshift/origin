@@ -1,0 +1,29 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: tailoredprofile-template
+objects:
+- apiVersion: compliance.openshift.io/v1alpha1
+  kind: TailoredProfile
+  metadata:
+    name: limits-test
+    namespace: openshift-compliance
+  spec:
+    description: Test
+    setValues:
+    - name: ocp4-var-daemonset-limit-namespaces-exempt-regex
+      value: "${VARDAEMONSET}"
+      rationale: test
+    - name: ocp4-var-deployment-limit-namespaces-exempt-regex
+      value: "${VARDEPLOYMENT}"
+      rationale: test
+    - name: ocp4-var-statefulset-limit-namespaces-exempt-regex
+      value: "${VARSTATEFULSET}"
+      rationale: test
+    extends: ocp4-high
+    title: My modified nist profile with a custom value
+  
+  parameters:
+- name: VARDAEMONSET
+- name: VARDEPLOYMENT
+- name: VARSTATEFULSET

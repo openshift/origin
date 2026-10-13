@@ -1,0 +1,30 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: cip-template
+objects:
+- apiVersion: config.openshift.io/v1alpha1
+  kind: ClusterImagePolicy
+  metadata:
+    name: "${NAME}"
+  spec:
+    policy:
+      rootOfTrust:
+        policyType: PublicKey
+        publicKey: # it is public key, so it is not sensitive information
+          keyData: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFcFFMeTN6VC92WG0yQlZpaFNicmtCWWxXWXJjMwovT1RYYlFkMTIzRFNJdGNBSWFRQlB3dGhqSkNEK01sNzJaTFhIdWZGUnlmek9kRjM3Q3k5OERHV3hRPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==
+      signedIdentity:
+        matchPolicy: "${POLICY}"
+    scopes:
+    - "${REPO1}"
+    - "${REPO2}"
+    - "${REPO3}"
+    - "${REPO4}"
+parameters:
+- name: NAME
+- name: REPO1
+- name: REPO2
+- name: REPO3
+- name: REPO4
+- name: POLICY
+  value: "MatchRepoDigestOrExact"

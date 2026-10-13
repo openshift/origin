@@ -1,0 +1,33 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: monitoring-ns
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeMode: Filesystem
+---
+kind: Pod
+apiVersion: v1
+metadata:
+  name: monitoring-ns
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - image: quay.io/openshifttest/hello-openshift@sha256:b1aabe8c8272f750ce757b6c4263a2712796297511e0c6df79144ee188933623
+    name: monitoring-ns 
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL 
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: monitoring-ns

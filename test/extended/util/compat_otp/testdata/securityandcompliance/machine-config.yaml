@@ -1,0 +1,24 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: priorityclass-template
+objects:
+- apiVersion: machineconfiguration.openshift.io/v1
+  kind: MachineConfig
+  metadata:
+    name: ${NAME}
+  spec:
+    config:
+      ignition:
+        version: 3.2.0
+      storage:
+        files:
+        - contents:
+            source: data:,test
+          mode: 0644
+          path: /etc/testmc-${ID}.txt
+          overwrite: true
+
+parameters:
+- name: NAME
+- name: ID

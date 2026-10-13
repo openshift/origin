@@ -1,0 +1,68 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: "observability.openshift.io/v1"
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    filters:
+    - name: app-logs
+      type: openshiftLabels
+      openshiftLabels:
+        logging: app-logs
+    - name: infra-logs
+      type: openshiftLabels
+      openshiftLabels:
+        logging: infra-logs
+    - name: audit-logs
+      type: openshiftLabels
+      openshiftLabels:
+        logging: audit-logs
+    outputs:
+    - name: es-created-by-user
+      type: elasticsearch
+      elasticsearch:
+        url: ${ES_URL}
+        version: ${{ES_VERSION}}
+        index: ${INDEX}
+    pipelines:
+    - name: forward-app-logs
+      inputRefs:
+      - application
+      filterRefs:
+      - app-logs
+      outputRefs:
+      - es-created-by-user
+    - name: forward-infra-logs
+      inputRefs:
+      - infrastructure
+      filterRefs:
+      - infra-logs
+      outputRefs:
+      - es-created-by-user
+    - name: forward-audit-logs
+      inputRefs:
+      - audit
+      filterRefs:
+      - audit-logs
+      outputRefs:
+      - es-created-by-user
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: ES_URL
+  value: "http://elasticsearch-server.es-aosqe-qa.svc:9200"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: ES_VERSION
+  value: "6"
+- name: INDEX
+  value: "{.log_type||\"none-typed-logs\"}"
