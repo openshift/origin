@@ -1078,9 +1078,13 @@ func newVsphereConfigurationTestsRollOutTooOftenEventMatcher(finalIntervals moni
 		return eventInterval.Source == monitorapi.SourceE2ETest &&
 			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "snapshot options in clusterCSIDriver")
 	})
+	// The DaemonSet rollout that a test triggers (including the configuration restore at
+	// test teardown) proceeds pod by pod across nodes and can continue for ~15 minutes
+	// after the test itself has finished. Pad the test intervals enough to cover that
+	// rollout tail, so events from it are still attributed to the test.
 	for i := range configurationTestIntervals {
-		configurationTestIntervals[i].To = configurationTestIntervals[i].To.Add(time.Minute * 10)
-		configurationTestIntervals[i].From = configurationTestIntervals[i].From.Add(time.Minute * -10)
+		configurationTestIntervals[i].To = configurationTestIntervals[i].To.Add(time.Minute * 30)
+		configurationTestIntervals[i].From = configurationTestIntervals[i].From.Add(time.Minute * -30)
 	}
 
 	return &OverlapOtherIntervalsPathologicalEventMatcher{
