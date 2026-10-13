@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -42,6 +43,11 @@ const (
 	// PacemakerNodeOffline event. It is checked only after the node has already recovered,
 	// so this only needs to cover event-listing/propagation lag, not detection latency.
 	phcNodeOfflineEventCheckTimeout = 2 * time.Minute
+	fenceHistoryReadTimeout         = 2 * time.Minute
+	fenceHistoryReadPollInterval    = 15 * time.Second
+	fencingEventWaitTimeout         = 5 * time.Minute
+	fencingEventDedupDuration       = 3 * time.Minute
+	fencingEventDedupPollInterval   = 30 * time.Second
 )
 
 // checkPacemakerNodeOfflineObserved performs a bounded, non-blocking, informational check
@@ -59,6 +65,91 @@ func checkPacemakerNodeOfflineObserved(oc *exutil.CLI, nodeName string, since ti
 		framework.Logf("[sig-etcd][PHCCheck] node=%s: PacemakerNodeOffline event observed for outage starting %s",
 			nodeName, since.Format(time.RFC3339))
 	}
+}
+
+// fencingSnapshot preserves raw history and Event messages before a disruption.
+type fencingSnapshot struct {
+	history  []services.FenceHistoryEvent
+	messages map[string]bool
+}
+
+// readFenceHistory retries only read errors; a successful empty history returns immediately.
+func readFenceHistory(oc *exutil.CLI, node *corev1.Node) []services.FenceHistoryEvent {
+	var history []services.FenceHistoryEvent
+	o.EventuallyWithOffset(1, func() error {
+		var err error
+		history, err = services.GetFenceHistory(oc, node.Name)
+		return err
+	}, fenceHistoryReadTimeout, fenceHistoryReadPollInterval).Should(o.Succeed(),
+		"Expected to read Pacemaker fence history on %s", node.Name)
+	return history
+}
+
+// takeFencingSnapshot records all existing history entries and fencing Event messages.
+func takeFencingSnapshot(oc *exutil.CLI, reader *corev1.Node) fencingSnapshot {
+	before := fencingSnapshot{history: readFenceHistory(oc, reader), messages: make(map[string]bool)}
+	events, err := apis.ListFencingEvents(oc)
+	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred(), "Expected to snapshot fencing Events")
+	framework.Logf("[sig-etcd][FenceSnapshot] reader=%s historyEntries=%d existingEvents=%d", reader.Name, len(before.history), len(events))
+	for _, event := range events {
+		before.messages[event.Message] = true
+	}
+	return before
+}
+
+// expectFencingEventsForNewFences requires exact Normal success messages for every new candidate fence.
+func expectFencingEventsForNewFences(oc *exutil.CLI, scenario string, reader *corev1.Node, before fencingSnapshot, candidates ...*corev1.Node) []services.FenceHistoryEvent {
+	var names []string
+	for _, candidate := range candidates {
+		names = append(names, candidate.Name)
+	}
+	fences := services.NewSuccessfulFences(before.history, readFenceHistory(oc, reader), names...)
+	if len(fences) == 0 {
+		framework.Logf("[sig-etcd][FenceNotObserved] scenario=%s candidates=%v; omitting only fencing Event assertion", scenario, names)
+		return nil
+	}
+	for _, entry := range fences {
+		framework.Logf("[sig-etcd][FenceHistory] scenario=%s new fence target=%s action=%s completed=%s", scenario, entry.Target, entry.Action, entry.Completed)
+		o.ExpectWithOffset(1, apis.WaitForFencingSuccessEvent(oc,
+			apis.FencingSuccessEventMessage(entry.Action, entry.Target, entry.Completed), fencingEventWaitTimeout)).To(o.Succeed())
+		framework.Logf("[sig-etcd][FenceEvent] scenario=%s matched target=%s completed=%s", scenario, entry.Target, entry.Completed)
+	}
+	return fences
+}
+
+// unexpectedFencingEventMessages excludes both pre-existing messages and raw target/completion pairs.
+func unexpectedFencingEventMessages(events []corev1.Event, before fencingSnapshot, targets ...string) []string {
+	var unexpected []string
+	for _, event := range events {
+		target, completed, ok := apis.ParseFencingEvent(&event)
+		if !ok || !slices.Contains(targets, target) || before.messages[event.Message] {
+			continue
+		}
+		if slices.ContainsFunc(before.history, func(entry services.FenceHistoryEvent) bool {
+			return entry.Target == target && entry.Completed == completed
+		}) {
+			continue
+		}
+		unexpected = append(unexpected, event.Message)
+	}
+	return unexpected
+}
+
+// expectNoNewFencingEvents requires no new successful fences and checks both Event snapshots.
+func expectNoNewFencingEvents(oc *exutil.CLI, reader *corev1.Node, before fencingSnapshot, nodes ...*corev1.Node) {
+	var names []string
+	for _, node := range nodes {
+		names = append(names, node.Name)
+	}
+	if fences := services.NewSuccessfulFences(before.history, readFenceHistory(oc, reader), names...); len(fences) > 0 {
+		framework.Logf("[sig-etcd][FenceUnexpected] fences=%v; failing graceful recovery", fences)
+		o.ExpectWithOffset(1, fences).To(o.BeEmpty(),
+			"Expected no new successful fences for %v during graceful recovery", names)
+	}
+	events, err := apis.ListFencingEvents(oc)
+	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred(), "Expected to list fencing Events after graceful recovery")
+	o.ExpectWithOffset(1, unexpectedFencingEventMessages(events, before, names...)).To(o.BeEmpty(),
+		"Expected no new fencing Events for %v after graceful recovery", names)
 }
 
 // computeLogInterval calculates poll attempts between progress logs based on poll interval.
@@ -227,6 +318,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.GinkgoT().Printf("Randomly selected %s (%s) to be shut down and %s (%s) to take the lead\n",
 			targetNode.Name, targetNode.Status.Addresses[0].Address, peerNode.Name, peerNode.Status.Addresses[0].Address)
 		g.By(fmt.Sprintf("Shutting down %s gracefully in 1 minute", targetNode.Name))
+		before := takeFencingSnapshot(oc, &survivedNode)
 		outageStart := time.Now()
 		err := exutil.TriggerNodeRebootGraceful(oc.KubeClient(), targetNode.Name)
 		o.Expect(err).To(o.BeNil(), "Expected to gracefully shutdown the node without errors")
@@ -259,6 +351,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Checking for PacemakerNodeOffline event during target node outage (informational)")
 		checkPacemakerNodeOfflineObserved(oc, targetNode.Name, outageStart)
+
+		g.By("Checking that graceful recovery did not produce a fencing Event")
+		expectNoNewFencingEvents(oc, &survivedNode, before, &survivedNode, &targetNode)
 	})
 
 	g.It("should recover from ungraceful node shutdown with etcd member re-addition", func() {
@@ -270,6 +365,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.GinkgoT().Printf("Randomly selected %s (%s) to be shut down and %s (%s) to take the lead\n",
 			targetNode.Name, targetNode.Status.Addresses[0].Address, peerNode.Name, peerNode.Status.Addresses[0].Address)
 		g.By(fmt.Sprintf("Shutting down %s ungracefully in 1 minute", targetNode.Name))
+		before := takeFencingSnapshot(oc, &survivedNode)
 		outageStart := time.Now()
 		err := exutil.TriggerNodeRebootUngraceful(oc.KubeClient(), targetNode.Name)
 		o.Expect(err).To(o.BeNil(), "Expected to ungracefully shutdown the node without errors", targetNode.Name, err)
@@ -299,9 +395,34 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Checking for PacemakerNodeOffline event during target node outage (informational)")
 		checkPacemakerNodeOfflineObserved(oc, targetNode.Name, outageStart)
+
+		g.By("Checking for a successful fencing Event after ungraceful recovery")
+		fences := expectFencingEventsForNewFences(oc, "ungraceful-shutdown", &survivedNode, before, &targetNode)
+		for _, fence := range fences {
+			g.By("Verifying fencing Event object deduplication across three collector cycles")
+			message := apis.FencingSuccessEventMessage(fence.Action, fence.Target, fence.Completed)
+			o.Consistently(func() error {
+				events, listErr := apis.ListFencingEvents(oc)
+				if listErr != nil {
+					return listErr
+				}
+				matching := apis.FencingEventsWithMessage(events, message)
+				if len(matching) != 1 {
+					return fmt.Errorf("expected exactly one fencing Event object with message %q, got %d", message, len(matching))
+				}
+				if matching[0].Type != corev1.EventTypeNormal {
+					return fmt.Errorf("expected Normal fencing Event with message %q, got %s", message, matching[0].Type)
+				}
+				framework.Logf("[sig-etcd][FenceEventDedup] event=%s count=%d", matching[0].Name, matching[0].Count)
+				return nil
+			}, fencingEventDedupDuration, fencingEventDedupPollInterval).Should(
+				o.Succeed(), "Expected one stable Normal fencing Event object with message %q", message)
+		}
 	})
 
 	g.It("should recover from network disruption with etcd member re-addition", func() {
+		utils.SkipIfPacemakerHealthCheckBaselineNotReady(oc)
+
 		// Note: In network disruption, the targetNode runs the disruption command that
 		// isolates the nodes from each other, creating a split-brain where pacemaker
 		// determines which node gets fenced and which becomes the etcd leader.
@@ -313,6 +434,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			"expected to fetch PacemakerCluster before network disruption")
 
 		g.By(fmt.Sprintf("Blocking network communication between %s and %s for %v ", targetNode.Name, peerNode.Name, networkDisruptionDuration))
+		before := takeFencingSnapshot(oc, &peerNode)
 		command, err := exutil.TriggerNetworkDisruption(oc.KubeClient(), &targetNode, &peerNode, networkDisruptionDuration)
 		o.Expect(err).To(o.BeNil(), "Expected to disrupt network without errors")
 		g.GinkgoT().Printf("command: '%s'\n", command)
@@ -352,6 +474,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, memberPromotedVotingTimeout)).
 			ShouldNot(o.HaveOccurred(),
 				"PacemakerHealthCheckDegraded should clear after network disruption recovery")
+
+		g.By("Checking for a successful fencing Event after network disruption recovery")
+		expectFencingEventsForNewFences(oc, "recovery-network-disruption", leaderNode, before, &peerNode, &targetNode)
 	})
 
 	g.It("should recover from a double node failure (cold-boot) [Requires:HypervisorSSHConfig]", func() {
@@ -682,6 +807,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By(fmt.Sprintf("Triggering kernel panic on %s via sysrq trigger", targetNode.Name))
 		disruptPodName := fmt.Sprintf("disrupt-%s-0", targetNode.Name)
+		before := takeFencingSnapshot(oc, &survivedNode)
 		outageStart := time.Now()
 		err = exutil.TriggerKernelPanic(oc.KubeClient(), targetNode.Name)
 		o.Expect(err).To(o.BeNil(), "Expected to trigger kernel panic without error")
@@ -792,6 +918,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Checking for PacemakerNodeOffline event during target node outage (informational)")
 		checkPacemakerNodeOfflineObserved(oc, targetNode.Name, outageStart)
+
+		g.By("Checking for a successful fencing Event after kernel panic recovery")
+		expectFencingEventsForNewFences(oc, "kernel-panic", &survivedNode, before, &targetNode)
 	})
 
 	g.It("should recover after simultaneous graceful shutdown of both nodes", func() {

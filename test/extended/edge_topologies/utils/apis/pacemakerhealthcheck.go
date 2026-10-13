@@ -3,6 +3,7 @@ package apis
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -27,6 +28,7 @@ const (
 	// statusCollectorCronJobName is the CronJob that snapshots pacemaker status
 	// into the PacemakerCluster CR (see cluster-etcd-operator).
 	statusCollectorCronJobName = "pacemaker-status-collector"
+	fencingEventReason         = "PacemakerFencingEvent"
 
 	statusCollectorWriteBlockPolicyName = "tnf-e2e-block-pacemaker-status-collector"
 
@@ -430,6 +432,70 @@ func eventTime(ev *corev1.Event) time.Time {
 		return ev.LastTimestamp.Time
 	}
 	return ev.CreationTimestamp.Time
+}
+
+var fencingEventMessagePattern = regexp.MustCompile(`^Fencing event: (reboot|off) of (\S+) completed with status (\S+)(?: \(.*\))? at (.+)$`)
+
+// FencingSuccessEventMessage matches CEO recordFencingEvents, which copies raw Completed verbatim
+// and omits exit reason for success: https://github.com/openshift/cluster-etcd-operator/blob/46c20ac827abf3487e18fdd55f6f7fd21a2142b9/pkg/tnf/pkg/pacemaker/statuscollector.go#L599.
+func FencingSuccessEventMessage(action, target, completed string) string {
+	return fmt.Sprintf("Fencing event: %s of %s completed with status success at %s", action, target, completed)
+}
+
+// ListFencingEvents lists all collector fencing Events without timestamp or message filtering.
+func ListFencingEvents(oc *exutil.CLI) ([]corev1.Event, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	events, err := oc.AdminKubeClient().CoreV1().Events(EtcdNamespace).List(ctx, metav1.ListOptions{
+		FieldSelector: fmt.Sprintf("reason=%s", fencingEventReason),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list %s events in %s: %w", fencingEventReason, EtcdNamespace, err)
+	}
+	return events.Items, nil
+}
+
+// ParseFencingEvent extracts the exact target and raw completion string from a collector message.
+func ParseFencingEvent(event *corev1.Event) (target, completed string, ok bool) {
+	message := fencingEventMessagePattern.FindStringSubmatch(event.Message)
+	if message == nil {
+		return "", "", false
+	}
+	return message[2], message[4], true
+}
+
+// FencingEventsWithMessage selects Event objects by exact message equality only.
+func FencingEventsWithMessage(events []corev1.Event, message string) []corev1.Event {
+	var matching []corev1.Event
+	for _, event := range events {
+		if event.Message == message {
+			matching = append(matching, event)
+		}
+	}
+	return matching
+}
+
+// WaitForFencingSuccessEvent waits for any Normal Event with the exact expected success message.
+func WaitForFencingSuccessEvent(oc *exutil.CLI, message string, timeout time.Duration) error {
+	checker := func() (bool, error) {
+		events, err := ListFencingEvents(oc)
+		if err != nil {
+			return false, err
+		}
+		for _, event := range FencingEventsWithMessage(events, message) {
+			if event.Type == corev1.EventTypeNormal {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
+
+	description := fmt.Sprintf("Normal %s in %s with message %q", fencingEventReason, EtcdNamespace, message)
+	if err := core.PollUntil(checker, timeout, healthCheckPollInterval, description); err != nil {
+		return fmt.Errorf("waiting for %s: %w", description, err)
+	}
+	return nil
 }
 
 // WaitForPacemakerEvent polls events in the given namespace until one with
