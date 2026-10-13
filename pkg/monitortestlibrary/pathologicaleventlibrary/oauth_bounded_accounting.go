@@ -254,11 +254,13 @@ func oauthScaleObservations(intervals monitorapi.Intervals) (obs []CounterObserv
 				o.HasSequence = true
 			}
 		}
-		last := parseAnnotatedTime(ann[annotationLastTimestamp])
+		// Attribution requires a reliable sub-second observation time. Only the RFC3339Nano
+		// seriesLastObservedTime qualifies; we deliberately do NOT fall back to the second-
+		// precision lastTimestamp annotation, because an event observed at window-end+500ms would
+		// serialize to the end second and be wrongly treated as contained. When no valid series
+		// time is present, Observed stays zero and the core classifies the step Unresolved
+		// (fail-closed). The first/last timestamp annotations remain untouched for charting/legacy.
 		o.Observed = parseAnnotatedTime(ann[AnnotationSeriesLastObserved])
-		if o.Observed.IsZero() {
-			o.Observed = last
-		}
 		obs = append(obs, o)
 	}
 	return obs, candidates, ignored

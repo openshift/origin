@@ -60,7 +60,6 @@ func TestAccountIdentityGroup(t *testing.T) {
 		uid             string
 		observations    []CounterObservation
 		windows         []EligibleWindow
-		budgets         *OAuthScaleBudgets
 		wantClass       AccountingClass // the primary class expected to be present
 		wantIncrement   int             // increment on the first finding of wantClass (0 = skip check)
 		wantWindowLabel string          // window label on the first finding of wantClass ("" = skip)
@@ -225,22 +224,11 @@ func TestAccountIdentityGroup(t *testing.T) {
 			wantClass:    ClassUnresolvedNoIdentity,
 			assertAbsent: []AccountingClass{ClassAttributed},
 		},
-		{
-			name: "runaway: attributed increments beyond an established per-test budget are flagged",
-			uid:  "u1",
-			observations: []CounterObservation{
-				obs("u1", 1, 5, winT1.From.Add(30*time.Second)),
-				obs("u1", 2, 25, winT1.From.Add(90*time.Second)),
-			},
-			windows:   rolloutWindows,
-			budgets:   &OAuthScaleBudgets{MaxIncrementsPerWindow: 2},
-			wantClass: ClassUnresolvedBudgetExceeded,
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			findings := accountIdentityGroup(tt.uid, tt.observations, tt.windows, tt.budgets)
+			findings := accountIdentityGroup(tt.uid, tt.observations, tt.windows)
 			require.True(t, hasClass(findings, tt.wantClass),
 				"expected a %s finding, got: %+v", tt.wantClass, findings)
 			if tt.wantIncrement != 0 || tt.wantWindowLabel != "" {
@@ -279,7 +267,7 @@ func TestAccountIdentityGroup_LateObservationRetainsBaseline(t *testing.T) {
 		obs("u1", 4, 11, winT4.From.Add(60*time.Second)), // in T4
 	}
 
-	findings := accountIdentityGroup("u1", observations, rolloutWindows, nil)
+	findings := accountIdentityGroup("u1", observations, rolloutWindows)
 
 	require.True(t, hasClass(findings, ClassUnresolvedMalformed), "late record must be flagged malformed: %+v", findings)
 	require.True(t, hasClass(findings, ClassAttributed), "retained baseline must yield an attributed step: %+v", findings)
@@ -313,7 +301,7 @@ func TestAccountIdentityGroup_LateLowerCountIsNotReset(t *testing.T) {
 		obs("u1", 3, 10, winT1.From.Add(80*time.Second)), // later, in T1
 	}
 
-	findings := accountIdentityGroup("u1", observations, rolloutWindows, nil)
+	findings := accountIdentityGroup("u1", observations, rolloutWindows)
 
 	var malformed, attributed []AccountingFinding
 	for _, f := range findings {

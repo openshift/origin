@@ -265,3 +265,59 @@ func Test_SeriesLastObservedEndBoundary_ProducerConsumer(t *testing.T) {
 	assert.Equal(t, 0, reportAfter.AttributedUnits, "a sub-second-after-end observation must not be attributed")
 	assert.GreaterOrEqual(t, reportAfter.UnresolvedUnits, 1)
 }
+
+// Test_NoSeriesSecondPrecisionFallback_NeverAttributes is the regression for review finding
+// r4262473673. Without a Series, the only time the watcher records is the second-precision
+// lastTimestamp. An event observed at window-end+500ms serializes to the end second, so a
+// fallback to lastTimestamp would round it onto the boundary and wrongly attribute it. With the
+// fallback removed, lack of a reliable seriesLastObservedTime leaves the step Unresolved
+// (fail-closed) — it is never attributed. The reliable-Series positive controls remain in
+// Test_SeriesLastObservedEndBoundary_ProducerConsumer.
+func Test_NoSeriesSecondPrecisionFallback_NeverAttributes(t *testing.T) {
+	const prefix = `[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial]`
+	const t4 = prefix + " oauth-server should perform full OIDC login flow through the proxy when auth proxy config is applied"
+
+	base := time.Now().UTC().Truncate(time.Second)
+	windowFrom := base
+	windowTo := base.Add(5 * time.Minute)
+
+	// No Series on either event: the watcher will only write the second-precision lastTimestamp.
+	noSeriesEvent := func(rv string, count int32, lastTS time.Time) *corev1.Event {
+		return &corev1.Event{
+			ObjectMeta:     metav1.ObjectMeta{UID: types.UID("uid-b"), ResourceVersion: rv},
+			Count:          count,
+			Reason:         "ScalingReplicaSet",
+			InvolvedObject: corev1.ObjectReference{Kind: "Deployment", Namespace: "openshift-authentication", Name: "oauth-openshift"},
+			Message:        "Scaled up replica set oauth-openshift-788ffcfbc6 from 0 to 3",
+			FirstTimestamp: metav1.NewTime(lastTS),
+			LastTimestamp:  metav1.NewTime(lastTS),
+		}
+	}
+	produce := func(ev *corev1.Event) monitorapi.Interval {
+		m := monitor.NewRecorder()
+		recordAddOrUpdateEvent(context.TODO(), m, "", nil, time.Now().UTC().Add(-15*time.Minute), ev)
+		ivs := m.Intervals(base.Add(-1*time.Hour), base.Add(24*time.Hour))
+		require.Len(t, ivs, 1)
+		return ivs[0]
+	}
+
+	e2eWindow := monitorapi.NewInterval(monitorapi.SourceE2ETest, monitorapi.Info).
+		Locator(monitorapi.NewLocator().E2ETest(t4)).
+		Message(monitorapi.NewMessage().HumanMessage("e2e test finished").WithAnnotation(monitorapi.AnnotationStatus, "Passed")).
+		Build(windowFrom, windowTo)
+
+	baseline := produce(noSeriesEvent("100", 5, base.Add(1*time.Minute)))             // in-window, second precision
+	stepAfter := produce(noSeriesEvent("101", 8, windowTo.Add(500*time.Millisecond))) // rounds to window end second
+
+	// The recorded annotation is second-precision and carries no fractional part, and there is no
+	// seriesLastObservedTime at all.
+	assert.NotContains(t, stepAfter.Message.Annotations[monitorapi.AnnotationKey("lastTimestamp")], ".")
+	_, hasSeries := stepAfter.Message.Annotations[pathologicaleventlibrary.AnnotationSeriesLastObserved]
+	assert.False(t, hasSeries, "no Series -> no seriesLastObservedTime annotation")
+
+	report, junits := pathologicaleventlibrary.EvaluateOAuthBoundedAccountingShadow(
+		monitorapi.Intervals{e2eWindow, baseline, stepAfter}, nil)
+	assert.Nil(t, junits[0].FailureOutput)
+	assert.Equal(t, 0, report.AttributedUnits, "no reliable sub-second series time -> never attributed (no lastTimestamp fallback)")
+	assert.GreaterOrEqual(t, report.UnresolvedUnits, 1)
+}

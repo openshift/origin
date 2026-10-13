@@ -145,8 +145,10 @@ func windowContaining(windows []EligibleWindow, spanFrom, spanTo time.Time) (con
 // accountIdentityGroup performs bounded accounting over the observations of a single identity.
 // Adjacent observations form increment steps; each step has a real baseline (the previous
 // count) and a real time span (previous observed -> current observed). Dedup, reset,
-// collision, out-of-order and malformed cases are handled explicitly. budgets may be nil.
-func accountIdentityGroup(identity string, obs []CounterObservation, windows []EligibleWindow, budgets *CounterBudgets) []AccountingFinding {
+// collision, out-of-order and malformed cases are handled explicitly. Budgets are NOT applied
+// here: they are per-window totals across all identities and are evaluated once in
+// AccountByIdentity after aggregation.
+func accountIdentityGroup(identity string, obs []CounterObservation, windows []EligibleWindow) []AccountingFinding {
 	var findings []AccountingFinding
 
 	// Order by sequence when present, else by observed time. Keep a stable order.
@@ -194,7 +196,6 @@ func accountIdentityGroup(identity string, obs []CounterObservation, windows []E
 		return findings
 	}
 
-	perWindow := map[string]int{}
 	// baseline is the last VALID temporal baseline observation. It is advanced for every
 	// outcome except a late/out-of-order arrival, which must never become the baseline.
 	baseline := deduped[0]
@@ -277,7 +278,6 @@ func accountIdentityGroup(identity string, obs []CounterObservation, windows []E
 
 		// Reliable baseline + stable identity + fully-contained span in an increments-expected
 		// window: this increment is attributable for accounting purposes.
-		perWindow[w.Label] += increment
 		detail := fmt.Sprintf("baseline=%d step=%d->%d", baseline.Count, baseline.Count, cur.Count)
 		if cur.Note != "" {
 			detail += " " + cur.Note
@@ -290,19 +290,9 @@ func accountIdentityGroup(identity string, obs []CounterObservation, windows []E
 		baseline = cur
 	}
 
-	// Budget layer. Attribution does not imply approval. Without an established budget there
-	// is no decision; the attributed increments remain Unresolved at the budget layer.
-	if budgets == nil {
-		return findings
-	}
-	for label, total := range perWindow {
-		if budgets.MaxIncrementsPerWindow > 0 && total > budgets.MaxIncrementsPerWindow {
-			findings = append(findings, AccountingFinding{
-				Class: ClassUnresolvedBudgetExceeded, Identity: identity, Increment: total, Window: label,
-				Detail: fmt.Sprintf("attributed %d increments exceed per-window budget %d", total, budgets.MaxIncrementsPerWindow),
-			})
-		}
-	}
+	// The budget is a per-window TOTAL across all identities, so it is deliberately NOT evaluated
+	// here (this function only sees one identity's share). AccountByIdentity performs the budget
+	// check once, after aggregating the attributed totals across every identity.
 	return findings
 }
 
@@ -335,10 +325,10 @@ func AccountByIdentity(observations []CounterObservation, windows []EligibleWind
 
 	var all []AccountingFinding
 	for _, id := range ids {
-		all = append(all, accountIdentityGroup(id, byID[id], windows, budgets)...)
+		all = append(all, accountIdentityGroup(id, byID[id], windows)...)
 	}
 	for _, o := range noID {
-		all = append(all, accountIdentityGroup("", []CounterObservation{o}, windows, budgets)...)
+		all = append(all, accountIdentityGroup("", []CounterObservation{o}, windows)...)
 	}
 	sort.SliceStable(all, func(a, b int) bool {
 		if all[a].Window != all[b].Window {
@@ -366,6 +356,29 @@ func AccountByIdentity(observations []CounterObservation, windows []EligibleWind
 			report.UnresolvedUnits++
 		}
 	}
+
+	// Budget layer. Attribution does not imply approval. The budget is a per-window TOTAL across
+	// all identities, so it is evaluated here against the aggregated PerWindowAttributed totals —
+	// never per identity (which would miss increments split across several identities in one
+	// window). Without an established budget there is no decision. Only MaxIncrementsPerWindow is
+	// evaluated; MaxIncrementsTotal / MaxIncrementsPerMinute / MaxWindowDuration remain reserved.
+	if budgets != nil && budgets.MaxIncrementsPerWindow > 0 {
+		labels := make([]string, 0, len(report.PerWindowAttributed))
+		for label := range report.PerWindowAttributed {
+			labels = append(labels, label)
+		}
+		sort.Strings(labels) // deterministic finding order
+		for _, label := range labels {
+			total := report.PerWindowAttributed[label]
+			if total > budgets.MaxIncrementsPerWindow {
+				all = append(all, AccountingFinding{
+					Class: ClassUnresolvedBudgetExceeded, Increment: total, Window: label,
+					Detail: fmt.Sprintf("window total %d increments (across all identities) exceeds per-window budget %d", total, budgets.MaxIncrementsPerWindow),
+				})
+			}
+		}
+	}
+
 	report.Findings = all
 	return report
 }
