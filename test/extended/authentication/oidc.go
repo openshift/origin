@@ -1217,6 +1217,103 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 		})
 	})
 
+	g.Describe("[OCPFeatureGate:AuthenticationComponentProxyExternalOIDC][Skipped:MicroShift]", g.Ordered, func() {
+		var (
+			proxyForExternalOIDCCleanUps []removalFunc
+
+			httpProxyURL  string
+			httpsProxyURL string
+			caCertPEM     []byte
+
+			// Deploy Squid in its own dedicated namespace (not keycloakNamespace), so that
+			// deploySquidProxy's namespace create/delete never collides with or tears down the
+			// shared Keycloak namespace used by the other external-OIDC describe blocks.
+			proxyNamespace = toNamespace([]string{"proxy-for-external-oidc", rand.String(8)})
+
+			proxyVerifier = ProxyVerifier{
+				Namespace: "openshift-oauth-apiserver",
+				Name:      "apiserver",
+
+				Oc:              oc,
+				PollingInterval: 10 * time.Second,
+				PollingTimeout:  5 * time.Minute,
+			}
+		)
+
+		g.BeforeAll(func() {
+			g.By("storing operator authentiation state for restoring it after test")
+			restoreOldOperatorAuthentication, err := saveAndRestoreOperatorAuthentication(ctx, oc)
+			o.Expect(err).
+				NotTo(o.HaveOccurred(), "should not encounter and error storing the operator authentication/cluster data")
+			proxyForExternalOIDCCleanUps = append(proxyForExternalOIDCCleanUps, restoreOldOperatorAuthentication)
+
+			g.By("clearing any pre-existing component proxy so the test starts from a clean state")
+			err = updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{})
+			o.Expect(err).
+				NotTo(o.HaveOccurred(), "should clear any pre-existing component proxy config")
+
+			err = waitForOperatorToPickUpChanges(ctx, oc, "authentication")
+			o.Expect(err).
+				NotTo(o.HaveOccurred(), "operator should reconcile after clearing component proxy")
+
+			g.By("deploying Squid forward proxy")
+			var proxyCleanup removalFunc
+			httpProxyURL, httpsProxyURL, caCertPEM, proxyCleanup, err = deploySquidProxy(ctx, proxyNamespace, oc)
+			proxyForExternalOIDCCleanUps = append(proxyForExternalOIDCCleanUps, proxyCleanup)
+			o.Expect(err).
+				NotTo(o.HaveOccurred(), "should not encounter an error during squid deployment")
+
+			g.By("configuring OIDC Authentication")
+			_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, nil)
+			o.Expect(err).
+				NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
+
+			waitForRollout(ctx, oc)
+			waitForHealthyOIDCClients(ctx, oc)
+
+			g.By("verifing oauth-apiserver no proxy config before test start")
+			err = proxyVerifier.AssertNoConfig(ctx)
+			o.Expect(err).
+				NotTo(o.HaveOccurred(), "oauth-apiserver should have no proxy config before test start")
+		})
+
+		g.It("operator should propagate proxy configuration to the oauth-apiserver operand", func() {
+			testExternalOIDCOperandProxyConfiguration(ctx, oc, proxyVerifier, httpProxyURL, nil)
+		})
+		g.It("operator should propagate proxy configuration and trustedCA to the oauth-apiserver operand", func() {
+			testExternalOIDCOperandProxyConfiguration(ctx, oc, proxyVerifier, httpsProxyURL, caCertPEM)
+		})
+		g.It("operator should fall back to original configuration on spec.proxy removal", func() {
+			testExternalOIDCFallbackOnProxyRemoval(ctx, oc, proxyVerifier, httpProxyURL)
+		})
+		g.It("operator should go Degraded when spec.proxy.trustedCA references a missing ConfigMap", func() {
+			testExternalOIDCOperatorDegradedOnMissingCA(ctx, oc, httpsProxyURL)
+		})
+		g.It("operator should re-sync trustedCA ConfigMap content to the oauth-apiserver operand when the source changes", func() {
+			testExternalOIDCOperatorResyncsTrustedCA(ctx, oc, httpsProxyURL, caCertPEM)
+		})
+		g.It("oauth-apiserver should perform full OIDC login flow through the proxy when auth proxy config is applied", func() {
+			testExternalOIDCClaimsSourcingThroughProxy(ctx, oc, keycloakCli, proxyVerifier, httpProxyURL, nil, keycloakNamespace, proxyNamespace, username, password, group)
+		})
+		g.It("oauth-apiserver/operator should hot-reload mounted CA file on change when spec.proxy.trustedCA is set", func() {
+			testExternalOIDCHotReloadCAFileChange(ctx, oc, keycloakCli, proxyVerifier, httpsProxyURL, caCertPEM, keycloakNamespace, proxyNamespace, username, password, group)
+		})
+		g.It("oauth-apiserver should bypass proxy by directly connecting to idp to perform OIDC login flow when spec.proxy.noProxy contains idp", func() {
+			testExternalOIDCBypassNoProxyHost(ctx, oc, keycloakCli, proxyVerifier, httpProxyURL, httpsProxyURL, caCertPEM, keycloakNamespace, proxyNamespace, username, password, group)
+		})
+
+		g.AfterAll(func() {
+			err := removeResources(ctx, proxyForExternalOIDCCleanUps...)
+			o.Expect(err).
+				NotTo(o.HaveOccurred(), "should not encounter an error during proxy for external oidc clean up")
+
+			g.By("Waiting for operators to be stable after test")
+			err = operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
+			o.Expect(err).
+				NotTo(o.HaveOccurred())
+		})
+	})
+
 	g.AfterAll(func() {
 		err, modified := resetAuthentication(ctx, oc, originalAuth)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")

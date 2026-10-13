@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"reflect"
@@ -46,30 +47,21 @@ func componentProxyTestLabels() map[string]string {
 	}
 }
 
-// saveAndRestoreAuthState snapshots the Authentication operator CR and
-// oauth/cluster, returning a cleanup function that restores both.
-// If either resource was modified, it waits for the operator to stabilize.
-func saveAndRestoreAuthState(ctx context.Context, oc *exutil.CLI) (removalFunc, error) {
+// saveAndRestoreOperatorAuthentication snapshots the operator Authentication CR's spec
+// and returns a cleanup function that restores it, waiting for the operator to
+// stabilize if the spec was changed.
+func saveAndRestoreOperatorAuthentication(ctx context.Context, oc *exutil.CLI) (removalFunc, error) {
 	operatorClient := oc.AdminOperatorClient()
-	oauthClient := oc.AdminConfigClient().ConfigV1().OAuths()
-
 	auth, err := operatorClient.OperatorV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("getting authentication/cluster: %w", err)
 	}
 	originalAuthSpec := auth.Spec.DeepCopy()
-
-	oauth, err := oauthClient.Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("getting oauth/cluster: %w", err)
-	}
-	originalOAuthSpec := oauth.Spec.DeepCopy()
-
 	return func(ctx context.Context) error {
 		var changed bool
 
 		g.GinkgoWriter.Println("cleanup: restoring authentication/cluster")
-		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			fresh, err := operatorClient.OperatorV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
 			if err != nil {
 				return err
@@ -81,12 +73,38 @@ func saveAndRestoreAuthState(ctx context.Context, oc *exutil.CLI) (removalFunc, 
 			fresh.Spec = *originalAuthSpec
 			_, err = operatorClient.OperatorV1().Authentications().Update(ctx, fresh, metav1.UpdateOptions{})
 			return err
-		}); err != nil {
+		})
+		if err != nil {
 			g.GinkgoWriter.Printf("cleanup: failed to restore authentication/cluster: %v\n", err)
+			return fmt.Errorf("failed to restore authentication/cluster: %w", err)
 		}
 
+		if changed {
+			g.GinkgoWriter.Println("cleanup: waiting for operator to stabilize")
+			if err := waitForOperatorToPickUpChanges(ctx, oc, "authentication"); err != nil {
+				g.GinkgoWriter.Printf("cleanup: operator did not recover: %v\n", err)
+				return fmt.Errorf("operator did not recover: %w", err)
+			}
+		}
+		return nil
+	}, nil
+}
+
+// saveAndRestoreAdminConfigOauth snapshots the oauth/cluster config spec and returns a
+// cleanup function that restores it, waiting for the operator to stabilize if the spec
+// was changed.
+func saveAndRestoreAdminConfigOauth(ctx context.Context, oc *exutil.CLI) (removalFunc, error) {
+	oauthClient := oc.AdminConfigClient().ConfigV1().OAuths()
+	oauth, err := oauthClient.Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("getting oauth/cluster: %w", err)
+	}
+	originalOAuthSpec := oauth.Spec.DeepCopy()
+	return func(ctx context.Context) error {
+		var changed bool
+
 		g.GinkgoWriter.Println("cleanup: restoring oauth/cluster")
-		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			fresh, err := oauthClient.Get(ctx, "cluster", metav1.GetOptions{})
 			if err != nil {
 				return err
@@ -98,17 +116,48 @@ func saveAndRestoreAuthState(ctx context.Context, oc *exutil.CLI) (removalFunc, 
 			fresh.Spec = *originalOAuthSpec
 			_, err = oauthClient.Update(ctx, fresh, metav1.UpdateOptions{})
 			return err
-		}); err != nil {
+		})
+		if err != nil {
 			g.GinkgoWriter.Printf("cleanup: failed to restore oauth/cluster: %v\n", err)
+			return fmt.Errorf("failed to restore oauth/cluster: %w", err)
 		}
 
 		if changed {
 			g.GinkgoWriter.Println("cleanup: waiting for operator to stabilize")
 			if err := waitForOperatorToPickUpChanges(ctx, oc, "authentication"); err != nil {
 				g.GinkgoWriter.Printf("cleanup: operator did not recover: %v\n", err)
+				return fmt.Errorf("operator did not recover: %w", err)
 			}
 		}
 		return nil
+	}, nil
+}
+
+// saveAndRestoreAuthState snapshots the Authentication operator CR and
+// oauth/cluster, returning a cleanup function that restores both.
+// If either resource was modified, it waits for the operator to stabilize.
+func saveAndRestoreAuthState(ctx context.Context, oc *exutil.CLI) (removalFunc, error) {
+	operatorAuthenticationRemovalFunc, err := saveAndRestoreOperatorAuthentication(ctx, oc)
+	if err != nil {
+		return nil, fmt.Errorf("handle operator authentication/cluster: %w", err)
+	}
+
+	adminConfigOauthRemovalFunc, err := saveAndRestoreAdminConfigOauth(ctx, oc)
+	if err != nil {
+		return nil, fmt.Errorf("handle config oauth/cluster: %w", err)
+	}
+
+	return func(ctx context.Context) error {
+		errs := []error{}
+		if err := operatorAuthenticationRemovalFunc(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("cleaning up operator authentication/cluster: %w", err))
+		}
+
+		if err := adminConfigOauthRemovalFunc(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("cleaning up config oauth/cluster: %w", err))
+		}
+
+		return errors.Join(errs...)
 	}, nil
 }
 
@@ -137,9 +186,14 @@ func createTrustedCAConfigMap(ctx context.Context, oc *exutil.CLI, caCertPEM []b
 	}, nil
 }
 
+// toNamespace joins namespace prefixes into a single dash-separated namespace name.
+func toNamespace(namespacePrefixes []string) string {
+	return strings.Join(namespacePrefixes, "-")
+}
+
 // deploySquidProxy deploys a Squid forward proxy listening on HTTP (3128) and
 // HTTPS (3129) with a self-signed CA and serving certificate.
-func deploySquidProxy(ctx context.Context, oc *exutil.CLI) (httpProxyURL, httpsProxyURL string, caCertPEM []byte, namespace string, cleanup removalFunc, err error) {
+func deploySquidProxy(ctx context.Context, namespace string, oc *exutil.CLI) (httpProxyURL, httpsProxyURL string, caCertPEM []byte, cleanup removalFunc, err error) {
 	kubeClient := oc.AdminKubeClient()
 
 	nsLabels := componentProxyTestLabels()
@@ -147,15 +201,14 @@ func deploySquidProxy(ctx context.Context, oc *exutil.CLI) (httpProxyURL, httpsP
 	nsLabels["security.openshift.io/scc.podSecurityLabelSync"] = "false"
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "e2e-proxy-",
-			Labels:       nsLabels,
+			Name:   namespace,
+			Labels: nsLabels,
 		},
 	}
-	created, err := kubeClient.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
+	_, err = kubeClient.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
 	if err != nil {
-		return "", "", nil, "", nil, fmt.Errorf("creating Squid proxy namespace: %w", err)
+		return "", "", nil, nil, fmt.Errorf("creating Squid proxy namespace: %w", err)
 	}
-	namespace = created.Name
 	cleanup = func(ctx context.Context) error {
 		g.GinkgoWriter.Println("cleanup: removing Squid proxy namespace")
 		err := kubeClient.CoreV1().Namespaces().Delete(ctx, namespace, metav1.DeleteOptions{})
@@ -167,23 +220,23 @@ func deploySquidProxy(ctx context.Context, oc *exutil.CLI) (httpProxyURL, httpsP
 
 	caConfig, err := libcrypto.MakeSelfSignedCAConfigForDuration("squid-proxy-ca", 2*time.Hour)
 	if err != nil {
-		return "", "", nil, "", cleanup, fmt.Errorf("creating proxy CA: %w", err)
+		return "", "", nil, cleanup, fmt.Errorf("creating proxy CA: %w", err)
 	}
 	ca := &libcrypto.CA{Config: caConfig, SerialGenerator: &libcrypto.RandomSerialGenerator{}}
 
 	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", squidServiceName, namespace)
 	serverCertConfig, err := ca.MakeServerCert(sets.New(serviceHost), 2*time.Hour)
 	if err != nil {
-		return "", "", nil, "", cleanup, fmt.Errorf("creating proxy server cert: %w", err)
+		return "", "", nil, cleanup, fmt.Errorf("creating proxy server cert: %w", err)
 	}
 
 	caCertPEM, _, err = caConfig.GetPEMBytes()
 	if err != nil {
-		return "", "", nil, "", cleanup, fmt.Errorf("encoding proxy CA cert: %w", err)
+		return "", "", nil, cleanup, fmt.Errorf("encoding proxy CA cert: %w", err)
 	}
 	serverCertPEM, serverKeyPEM, err := serverCertConfig.GetPEMBytes()
 	if err != nil {
-		return "", "", nil, "", cleanup, fmt.Errorf("encoding proxy server cert: %w", err)
+		return "", "", nil, cleanup, fmt.Errorf("encoding proxy server cert: %w", err)
 	}
 
 	// logformat fields: method url sourceIP squidStatus httpCode — parsed by waitForProxyTrafficFrom
@@ -204,7 +257,7 @@ buffered_logs off
 		Data:       map[string]string{"squid.conf": squidConfig},
 	}, metav1.CreateOptions{})
 	if err != nil {
-		return "", "", nil, "", cleanup, fmt.Errorf("creating Squid config: %w", err)
+		return "", "", nil, cleanup, fmt.Errorf("creating Squid config: %w", err)
 	}
 
 	_, err = kubeClient.CoreV1().Secrets(namespace).Create(ctx, &corev1.Secret{
@@ -215,7 +268,7 @@ buffered_logs off
 		},
 	}, metav1.CreateOptions{})
 	if err != nil {
-		return "", "", nil, "", cleanup, fmt.Errorf("creating Squid TLS secret: %w", err)
+		return "", "", nil, cleanup, fmt.Errorf("creating Squid TLS secret: %w", err)
 	}
 
 	deployment := &appsv1.Deployment{
@@ -279,7 +332,7 @@ buffered_logs off
 
 	_, err = kubeClient.AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{})
 	if err != nil {
-		return "", "", nil, "", cleanup, fmt.Errorf("creating Squid deployment: %w", err)
+		return "", "", nil, cleanup, fmt.Errorf("creating Squid deployment: %w", err)
 	}
 
 	_, err = kubeClient.CoreV1().Services(namespace).Create(ctx, &corev1.Service{
@@ -296,7 +349,7 @@ buffered_logs off
 		},
 	}, metav1.CreateOptions{})
 	if err != nil {
-		return "", "", nil, "", cleanup, fmt.Errorf("creating Squid service: %w", err)
+		return "", "", nil, cleanup, fmt.Errorf("creating Squid service: %w", err)
 	}
 
 	g.GinkgoWriter.Printf("waiting for Squid proxy deployment in %s to be ready\n", namespace)
@@ -323,13 +376,13 @@ buffered_logs off
 		},
 	)
 	if err != nil {
-		return "", "", nil, "", cleanup, fmt.Errorf("Squid proxy deployment did not become ready: %w", err)
+		return "", "", nil, cleanup, fmt.Errorf("Squid proxy deployment did not become ready: %w", err)
 	}
 
 	httpProxyURL = "http://" + net.JoinHostPort(serviceHost, strconv.Itoa(int(squidHTTPPort)))
 	httpsProxyURL = "https://" + net.JoinHostPort(serviceHost, strconv.Itoa(int(squidHTTPSPort)))
 	g.GinkgoWriter.Printf("Squid proxy deployed: http=%s https=%s\n", httpProxyURL, httpsProxyURL)
-	return httpProxyURL, httpsProxyURL, caCertPEM, namespace, cleanup, nil
+	return httpProxyURL, httpsProxyURL, caCertPEM, cleanup, nil
 }
 
 func getSquidProxyLogsSince(ctx context.Context, oc *exutil.CLI, namespace string, since time.Time) (string, error) {
@@ -646,13 +699,26 @@ func addIdentityProvider(ctx context.Context, oc *exutil.CLI, idp configv1.Ident
 	})
 }
 
-func verifyOAuthServerDeploymentProxyConfig(ctx context.Context, oc *exutil.CLI, expectedHTTPProxy, expectedHTTPSProxy, expectedNoProxy string, expectTrustedCAVolume bool) error {
-	kubeClient := oc.AdminKubeClient()
+type ProxyVerifier struct {
+	Namespace, Name string
+	Oc              *exutil.CLI
 
-	return wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
-		deployment, err := kubeClient.AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+	PollingInterval, PollingTimeout time.Duration
+}
+
+// AssertProxyConfig polls the target deployment until its HTTP_PROXY, HTTPS_PROXY,
+// and NO_PROXY env vars and trustedCA volume/mount state match the expected values, or
+// returns an error on timeout. NO_PROXY is matched as a superset since the operator
+// appends additional entries (e.g. the apiserver IP) beyond what is configured.
+func (pv ProxyVerifier) AssertProxyConfig(ctx context.Context, expectedHTTPProxy, expectedHTTPSProxy, expectedNoProxy string, expectPresenceForTrustedCAVolume bool) error {
+	kubeClient := pv.Oc.AdminKubeClient()
+
+	return wait.PollUntilContextTimeout(ctx, pv.PollingInterval, pv.PollingTimeout, true, func(ctx context.Context) (bool, error) {
+		deployment, err := kubeClient.AppsV1().
+			Deployments(pv.Namespace).
+			Get(ctx, pv.Name, metav1.GetOptions{})
 		if err != nil {
-			g.GinkgoWriter.Printf("failed to get oauth-openshift deployment: %v\n", err)
+			g.GinkgoWriter.Printf("failed to get %s/%s deployment: %v\n", pv.Namespace, pv.Name, err)
 			return false, nil
 		}
 
@@ -667,13 +733,17 @@ func verifyOAuthServerDeploymentProxyConfig(ctx context.Context, oc *exutil.CLI,
 		}
 
 		if envVars["HTTP_PROXY"] != expectedHTTPProxy || envVars["HTTPS_PROXY"] != expectedHTTPSProxy {
-			g.GinkgoWriter.Printf("proxy env mismatch: HTTP_PROXY=%q (want %q), HTTPS_PROXY=%q (want %q)\n",
+			g.GinkgoWriter.Printf("proxy env mismatch for %s/%s deployment: HTTP_PROXY=%q (want %q), HTTPS_PROXY=%q (want %q)\n",
+				pv.Namespace, pv.Name,
 				envVars["HTTP_PROXY"], expectedHTTPProxy, envVars["HTTPS_PROXY"], expectedHTTPSProxy)
 			return false, nil
 		}
+
 		if expectedNoProxy == "" {
 			if envVars["NO_PROXY"] != "" {
-				g.GinkgoWriter.Printf("proxy env mismatch: NO_PROXY=%q (want empty)\n", envVars["NO_PROXY"])
+				g.GinkgoWriter.Printf("proxy env mismatch for %s/%s deployment: NO_PROXY=%q (want empty)\n",
+					pv.Namespace, pv.Name,
+					envVars["NO_PROXY"])
 				return false, nil
 			}
 		} else {
@@ -682,18 +752,55 @@ func verifyOAuthServerDeploymentProxyConfig(ctx context.Context, oc *exutil.CLI,
 			actualNoProxy := sets.New(strings.Split(envVars["NO_PROXY"], ",")...)
 			expectedNoProxyEntries := sets.New(strings.Split(expectedNoProxy, ",")...)
 			if !actualNoProxy.IsSuperset(expectedNoProxyEntries) {
-				g.GinkgoWriter.Printf("proxy env mismatch: NO_PROXY=%q does not contain all of %q\n", envVars["NO_PROXY"], expectedNoProxy)
+				g.GinkgoWriter.Printf("proxy env mismatch for %s/%s deployment: NO_PROXY=%q does not contain all of %q\n",
+					pv.Namespace, pv.Name,
+					envVars["NO_PROXY"], expectedNoProxy)
 				return false, nil
 			}
 		}
 
 		foundVolume, foundMount := trustedCAVolumeState(deployment)
-		if expectTrustedCAVolume != (foundVolume && foundMount) {
-			g.GinkgoWriter.Printf("trustedCA volume=%v mount=%v (want present=%v)\n", foundVolume, foundMount, expectTrustedCAVolume)
-			return false, nil
+
+		if expectPresenceForTrustedCAVolume {
+			// they must be both present
+			if !foundVolume || !foundMount {
+				// on the pod something is missing
+				g.GinkgoWriter.Printf("trustedCA for %s/%s deployment not found: volume=%v mount=%v (want present=%v)\n",
+					pv.Namespace, pv.Name,
+					foundVolume, foundMount, expectPresenceForTrustedCAVolume)
+				return false, nil
+			}
+		} else {
+			// expected to be absent on the pod
+			if foundVolume || foundMount {
+				// on the pod there is either the volume or the mount
+				g.GinkgoWriter.Printf("trustedCA for %s/%s deployment expected to be absent: volume=%v mount=%v (want present=%v)\n",
+					pv.Namespace, pv.Name,
+					foundVolume, foundMount, expectPresenceForTrustedCAVolume)
+				return false, nil
+			}
 		}
 		return true, nil
 	})
+}
+
+// AssertNoConfig asserts the target deployment has no proxy env vars and no trustedCA
+// volume/mount configured.
+func (pv ProxyVerifier) AssertNoConfig(ctx context.Context) error {
+	return pv.AssertProxyConfig(ctx, "", "", "", false)
+}
+
+func verifyOAuthServerDeploymentProxyConfig(ctx context.Context, oc *exutil.CLI, expectedHTTPProxy, expectedHTTPSProxy, expectedNoProxy string, expectTrustedCAVolume bool) error {
+	proxyVerifier := ProxyVerifier{
+		Namespace: "openshift-authentication",
+		Name:      "oauth-openshift",
+
+		Oc:              oc,
+		PollingInterval: 10 * time.Second,
+		PollingTimeout:  5 * time.Minute,
+	}
+
+	return proxyVerifier.AssertProxyConfig(ctx, expectedHTTPProxy, expectedHTTPSProxy, expectedNoProxy, expectTrustedCAVolume)
 }
 
 func trustedCAVolumeState(deployment *appsv1.Deployment) (foundVolume, foundMount bool) {
