@@ -138,6 +138,52 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 				WithAnnotation("lastTimestamp", now.Format(time.RFC3339)).
 				Build(),
 		},
+		{
+			name: "oauth scaling event captures identity and series evidence when present",
+			args: args{
+				ctx: context.TODO(),
+				m:   monitor.NewRecorder(),
+				kubeEvent: &corev1.Event{
+					ObjectMeta: metav1.ObjectMeta{
+						UID:             "abc-123-uid",
+						ResourceVersion: "987654",
+					},
+					Count:  40,
+					Reason: "ScalingReplicaSet",
+					InvolvedObject: corev1.ObjectReference{
+						Kind:      "Deployment",
+						Namespace: "openshift-authentication",
+						Name:      "oauth-openshift",
+					},
+					Message:        "Scaled up replica set oauth-openshift-788ffcfbc6 from 0 to 3",
+					FirstTimestamp: metav1.NewTime(first),
+					LastTimestamp:  metav1.NewTime(now),
+					Series: &corev1.EventSeries{
+						Count:            40,
+						LastObservedTime: metav1.NewMicroTime(now),
+					},
+				},
+			},
+			expectedLocator: monitorapi.Locator{
+				Type: monitorapi.LocatorTypeKind,
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey:  "openshift-authentication",
+					monitorapi.LocatorDeploymentKey: "oauth-openshift",
+					monitorapi.LocatorHmsgKey:       "0a7dd7352a",
+				},
+			},
+			expectedMessage: monitorapi.NewMessage().Reason("ScalingReplicaSet").
+				HumanMessage("Scaled up replica set oauth-openshift-788ffcfbc6 from 0 to 3").
+				WithAnnotation(monitorapi.AnnotationCount, "40").
+				WithAnnotation(monitorapi.AnnotationPathological, "true").
+				WithAnnotation("firstTimestamp", first.Format(time.RFC3339)).
+				WithAnnotation("lastTimestamp", now.Format(time.RFC3339)).
+				WithAnnotation("eventUID", "abc-123-uid").
+				WithAnnotation("resourceVersion", "987654").
+				WithAnnotation("seriesCount", "40").
+				WithAnnotation("seriesLastObservedTime", now.UTC().Format(time.RFC3339)).
+				Build(),
+		},
 	}
 	for _, tt := range tests {
 		if tt.skip {

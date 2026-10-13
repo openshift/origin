@@ -53,6 +53,13 @@ func (w *legacyPathologicalMonitorTests) EvaluateTestsFromConstructedIntervals(c
 		junits = append(junits, pathologicaleventlibrary.TestDuplicatedEventForStableSystem(finalIntervals, w.adminRESTConfig)...)
 	}
 
+	// SHADOW: bounded oauth-openshift pathological scaling accounting. This is informational
+	// only. It never forgives anything and never alters the verdicts produced above (nor the
+	// existing 55/70 allowances). Budgets are nil until measured finite budgets are
+	// established in a future, separate change.
+	_, shadowJunits := pathologicaleventlibrary.EvaluateOAuthBoundedAccountingShadow(finalIntervals, nil)
+	junits = append(junits, shadowJunits...)
+
 	return junits, nil
 }
 

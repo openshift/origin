@@ -178,6 +178,23 @@ func recordAddOrUpdateEvent(
 	message = message.WithAnnotation("firstTimestamp", obj.FirstTimestamp.Format(time.RFC3339))
 	message = message.WithAnnotation("lastTimestamp", obj.LastTimestamp.Format(time.RFC3339))
 
+	// Capture stable identity and observation-ordering evidence, but only when the source
+	// event actually carries it. This feeds forward-looking bounded accounting (e.g. oauth
+	// pathological scaling) without inventing data and without enlarging intervals that lack
+	// it. See pathologicaleventlibrary.EvaluateOAuthBoundedAccountingShadow.
+	if obj.UID != "" {
+		message = message.WithAnnotation(pathologicaleventlibrary.AnnotationEventUID, string(obj.UID))
+	}
+	if obj.ResourceVersion != "" {
+		message = message.WithAnnotation(pathologicaleventlibrary.AnnotationResourceVersion, obj.ResourceVersion)
+	}
+	if obj.Series != nil {
+		message = message.WithAnnotation(pathologicaleventlibrary.AnnotationSeriesCount, fmt.Sprintf("%d", obj.Series.Count))
+		if !obj.Series.LastObservedTime.IsZero() {
+			message = message.WithAnnotation(pathologicaleventlibrary.AnnotationSeriesLastObserved, obj.Series.LastObservedTime.UTC().Format(time.RFC3339))
+		}
+	}
+
 	// We start with to equal to from, the majority of kube event intervals had this, and these get filtered out
 	// when generating spyglass html. For interesting/pathological events, we're adding a second, which causes them
 	// to get included in the html.
