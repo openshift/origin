@@ -99,30 +99,12 @@ func IsMetal(oc *exutil.CLI) bool {
 	return infra.Status.Platform == osconfigv1.BareMetalPlatformType
 }
 
-// `isFeatureGateEnabled` checks if the desired feature gate provided as a parameter is enabled in
-// the test cluster. It returns true if the feature gate is enabled and false otherwise.
-func isFeatureGateEnabled(configClient configv1client.Interface, featureGate osconfigv1.FeatureGateName) bool {
-	// Get the FeatureGates resource
-	fgs, err := configClient.ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting clsuter FeatureGates.")
-
-	// Loop through the feature gates to see if the desired one is enabled
-	fgEnabled := false
-	for _, fg := range fgs.Status.FeatureGates {
-		for _, enabledFG := range fg.Enabled {
-			if enabledFG.Name == featureGate {
-				fgEnabled = true
-				break
-			}
-		}
-	}
-	return fgEnabled
-}
-
 // `SkipWhenFeatureGateEnabled` skips a test if the desired feature gate provided as a parameter is
 // enabled in the test cluster.
 func SkipWhenFeatureGateEnabled(configClient configv1client.Interface, featureGate osconfigv1.FeatureGateName) {
-	if isFeatureGateEnabled(configClient, featureGate) {
+	enabled, err := exutil.IsFeatureGateEnabled(context.TODO(), configClient, featureGate)
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting cluster FeatureGates.")
+	if enabled {
 		e2eskipper.Skipf("Skipping this test since the `%v` FeatureGate is enabled.", featureGate)
 	}
 }

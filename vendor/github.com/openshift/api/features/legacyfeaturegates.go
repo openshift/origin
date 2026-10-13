@@ -87,15 +87,11 @@ var legacyFeatureGates = sets.New(
 	// never add to this list, if you think you have an exception ask @deads2k
 	"SignatureStores",
 	// never add to this list, if you think you have an exception ask @deads2k
-	"SigstoreImageVerification",
-	// never add to this list, if you think you have an exception ask @deads2k
 	"UpgradeStatus",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"VSphereControlPlaneMachineSet",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"VSphereDriverConfiguration",
-	// never add to this list, if you think you have an exception ask @deads2k
-	"VSphereMultiNetworks",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"VSphereMultiVCenters",
 	// never add to this list, if you think you have an exception ask @deads2k

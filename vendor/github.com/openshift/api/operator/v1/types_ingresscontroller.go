@@ -924,6 +924,33 @@ type AWSNetworkLoadBalancerParameters struct {
 	// +kubebuilder:validation:MaxItems=10
 	EIPAllocations []EIPAllocation `json:"eipAllocations"`
 
+	// securityGroups is a list of security group IDs to attach to the
+	// Network Load Balancer. When specified, these security groups replace
+	// the managed security group that the Cloud Controller Manager would
+	// otherwise create automatically. The user is responsible for
+	// configuring the ingress and egress rules on the specified security
+	// groups.
+	//
+	// The specified security groups must exist in the same VPC as the
+	// cluster and must allow the necessary traffic for the
+	// IngressController to function.
+	//
+	// When this field is omitted, the Cloud Controller Manager
+	// automatically creates and manages a security group for the NLB.
+	//
+	// Each security group ID must be unique and must begin with "sg-"
+	// followed by 8 or 17 lowercase hexadecimal characters
+	// (e.g. "sg-abcd1234" or "sg-abcd1234abcd12345"). At least 1 and
+	// at most 5 security groups can be specified.
+	//
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=5
+	// +kubebuilder:validation:XValidation:rule=`self.all(x, self.exists_one(y, x == y))`,message="securityGroups cannot contain duplicates"
+	// +openshift:enable:FeatureGate=IngressControllerLBSecurityGroupsAWS
+	SecurityGroups []SecurityGroupID `json:"securityGroups,omitempty"`
+
 	// protocol specifies whether the Network Load Balancer uses PROXY
 	// protocol to forward connections to the IngressController.
 	//
@@ -954,6 +981,16 @@ type AWSNetworkLoadBalancerParameters struct {
 	// +optional
 	Protocol NLBProtocol `json:"protocol,omitempty"`
 }
+
+// SecurityGroupID is an AWS EC2 security group ID.
+// Values must begin with "sg-" followed by 8 or 17 lowercase
+// hexadecimal characters (e.g. "sg-abcd1234" or
+// "sg-abcd1234abcd12345").
+//
+// +kubebuilder:validation:MinLength=11
+// +kubebuilder:validation:MaxLength=20
+// +kubebuilder:validation:XValidation:rule=`self.startsWith('sg-') && self.substring(3).matches('^[0-9a-f]{8}$|^[0-9a-f]{17}$')`,message="securityGroups must be 'sg-' followed by 8 or 17 lowercase hexadecimal characters"
+type SecurityGroupID string
 
 // NLBProtocol specifies whether the AWS Network Load Balancer uses
 // PROXY protocol to forward connections to the IngressController.
