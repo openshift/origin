@@ -304,6 +304,39 @@ func TestAccountIdentityGroup_LateObservationRetainsBaseline(t *testing.T) {
 	}
 }
 
+// TestAccountIdentityGroup_LateLowerCountIsNotReset proves the late-before-reset precedence
+// for review finding A: a late/out-of-order observation whose count is LOWER than the current
+// baseline must be classified as an out-of-order late arrival (baseline retained), NOT as a
+// counter reset (which would advance the baseline to the stale, earlier record). A following
+// in-window record must then attribute against the retained baseline with the correct delta.
+func TestAccountIdentityGroup_LateLowerCountIsNotReset(t *testing.T) {
+	observations := []oauthScaleObservation{
+		obs("u1", 1, 7, winT1.from.Add(40*time.Second)),  // baseline, count 7
+		obs("u1", 2, 4, winT1.from.Add(10*time.Second)),  // LATE and LOWER count than baseline
+		obs("u1", 3, 10, winT1.from.Add(80*time.Second)), // later, in T1
+	}
+
+	findings := accountIdentityGroup("u1", observations, rolloutWindows, nil)
+
+	var malformed, attributed []oauthScaleFinding
+	for _, f := range findings {
+		switch f.class {
+		case classUnresolvedMalformed:
+			malformed = append(malformed, f)
+		case classAttributed:
+			attributed = append(attributed, f)
+		}
+	}
+	require.Len(t, malformed, 1, "the late lower-count record must produce exactly one malformed finding: %+v", findings)
+	assert.Contains(t, malformed[0].detail, "out-of-order", "must be classified as late/out-of-order, not a counter reset")
+	assert.NotContains(t, malformed[0].detail, "counter reset", "a late lower-count record must NOT be treated as a reset")
+
+	require.Len(t, attributed, 1, "retained baseline must yield one attributed step: %+v", findings)
+	assert.Equal(t, 3, attributed[0].increment, "baseline 7 retained -> 7->10 = 3 (not a reset-restarted baseline of 4)")
+	assert.Equal(t, "T1", attributed[0].window)
+	assert.Equal(t, winT1.from.Add(40*time.Second), attributed[0].spanFrom, "span must start at the retained baseline")
+}
+
 // --- end-to-end intervals helpers -------------------------------------------------------
 
 func e2eInterval(fullName, status string, from, to time.Time) monitorapi.Interval {
