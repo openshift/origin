@@ -3,15 +3,18 @@ package node
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	nodeutils "github.com/openshift/origin/test/extended/node"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -473,5 +476,217 @@ spec:
 		o.Expect(podmanOutput).To(o.ContainSubstring("does-not-exist-idms-test"),
 			"Podman did not attempt fake mirror - IDMS configuration was not applied by Podman")
 		e2e.Logf("Verified Podman attempted fake mirror and fell back to real source")
+	})
+
+	// author: aamritan@redhat.com
+	// Validates that CRI-O and Podman agree on image inventory regardless of which tool pulled the image
+	g.It("[Serial] maintain a consistent image list between Podman and CRI-O", func(ctx context.Context) {
+		microImage := "registry.access.redhat.com/ubi9/ubi-micro:latest"
+		initImage := "registry.access.redhat.com/ubi9/ubi-init:latest"
+
+		g.By("Ensure clean initial state by removing target images if already present")
+		execOnNodeWithChroot(ctx, oc, testNode, "podman", "rmi", "-f", microImage)
+		execOnNodeWithChroot(ctx, oc, testNode, "crictl", "rmi", initImage)
+
+		defer func() {
+			execOnNodeWithChroot(ctx, oc, testNode, "podman", "rmi", "-f", microImage)
+			execOnNodeWithChroot(ctx, oc, testNode, "crictl", "rmi", initImage)
+		}()
+
+		g.By(fmt.Sprintf("Pull %s via Podman and confirm CRI-O sees it", microImage))
+		pullOut, err := execOnNodeWithChroot(ctx, oc, testNode, "podman", "pull", microImage)
+		o.Expect(err).NotTo(o.HaveOccurred(), "podman pull failed:\n%s", pullOut)
+
+		crictlOut, err := execOnNodeWithChroot(ctx, oc, testNode, "crictl", "images")
+		o.Expect(err).NotTo(o.HaveOccurred(), "crictl images failed:\n%s", crictlOut)
+		o.Expect(crictlOut).To(o.ContainSubstring("ubi-micro"), "CRI-O must list image pulled by Podman; crictl images output:\n%s", crictlOut)
+
+		g.By(fmt.Sprintf("Pull %s via CRI-O (crictl) and confirm Podman sees it", initImage))
+		criPullOut, err := execOnNodeWithChroot(ctx, oc, testNode, "crictl", "pull", initImage)
+		o.Expect(err).NotTo(o.HaveOccurred(), "crictl pull failed:\n%s", criPullOut)
+
+		podmanOut, err := execOnNodeWithChroot(ctx, oc, testNode, "podman", "images")
+		o.Expect(err).NotTo(o.HaveOccurred(), "podman images failed:\n%s", podmanOut)
+		o.Expect(podmanOut).To(o.ContainSubstring("ubi-init"), "Podman must list image pulled by crictl; podman images output:\n%s", podmanOut)
+
+		g.By("Verify both tools list both pulled images in a full inventory comparison")
+		finalCrictl, err := execOnNodeWithChroot(ctx, oc, testNode, "crictl", "images")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(finalCrictl).To(o.And(o.ContainSubstring("ubi-micro"), o.ContainSubstring("ubi-init")))
+
+		finalPodman, err := execOnNodeWithChroot(ctx, oc, testNode, "podman", "images")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(finalPodman).To(o.And(o.ContainSubstring("ubi-micro"), o.ContainSubstring("ubi-init")))
+	})
+
+	// author: aamritan@redhat.com
+	// Validates that neither Podman nor CRI-O can remove an image the other tool still has a running workload depending on
+	g.It("[Serial] refuse to remove an image still in use by the other tool, in either direction", func(ctx context.Context) {
+		httpdImage := "registry.access.redhat.com/ubi9/httpd-24:latest"
+		oc.SetupProject()
+		namespace := oc.Namespace()
+
+		g.By(fmt.Sprintf("Start a long-running CRI-O/kubelet pod from %s on node %s", httpdImage, testNode))
+		pod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "tc16-crio-inuse",
+				Namespace: namespace,
+			},
+			Spec: corev1.PodSpec{
+				NodeSelector: map[string]string{
+					"kubernetes.io/hostname": testNode,
+				},
+				Containers: []corev1.Container{
+					{
+						Name:    "inuse",
+						Image:   httpdImage,
+						Command: []string{"sleep", "3600"},
+					},
+				},
+			},
+		}
+		pod, err := oc.KubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create pod")
+		o.Expect(e2epod.WaitForPodRunningInNamespace(ctx, oc.KubeClient(), pod)).To(o.Succeed())
+
+		g.By("podman rmi of that image must fail (in use)")
+		out, err := execOnNodeWithChroot(ctx, oc, testNode, "podman", "rmi", httpdImage)
+		o.Expect(err).To(o.HaveOccurred(), "podman rmi must not delete an in-use image; output:\n%s", out)
+		combinedErr := strings.ToLower(out + " " + err.Error())
+		o.Expect(combinedErr).To(o.Or(o.ContainSubstring("in use"), o.ContainSubstring("used")), "expected output to indicate image is in use, got: %s", combinedErr)
+
+		g.By("Confirm the CRI-O pod is unaffected")
+		o.Expect(e2epod.WaitForPodRunningInNamespace(ctx, oc.KubeClient(), pod)).To(o.Succeed())
+		execOut, err := oc.Run("exec").Args("-n", namespace, pod.Name, "--", "echo", "still-alive").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(execOut).To(o.ContainSubstring("still-alive"))
+
+		g.By("podman image prune -a --force must not break the running pod")
+		execOnNodeWithChroot(ctx, oc, testNode, "podman", "image", "prune", "-a", "--force")
+		o.Expect(e2epod.WaitForPodRunningInNamespace(ctx, oc.KubeClient(), pod)).To(o.Succeed())
+		execOut, err = oc.Run("exec").Args("-n", namespace, pod.Name, "--", "echo", "still-alive").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(execOut).To(o.ContainSubstring("still-alive"))
+
+		minimalImage := "registry.access.redhat.com/ubi9/ubi-minimal:latest"
+		podmanContainerName := "tc16-podman-inuse"
+
+		g.By(fmt.Sprintf("Start a Podman container from %s on node %s", minimalImage, testNode))
+		// Pre-cleanup to ensure test idempotency across retries
+		execOnNodeWithChroot(ctx, oc, testNode, "podman", "rm", "-f", podmanContainerName)
+
+		// --net=host and --pid=host prevent namespace invalidation when debug pods are destroyed
+		runOut, err := execOnNodeWithChroot(ctx, oc, testNode,
+			"podman", "run", "-d", "--net=host", "--pid=host", "--name", podmanContainerName, minimalImage, "sleep", "3600")
+		o.Expect(err).NotTo(o.HaveOccurred(), "podman run failed:\n%s", runOut)
+
+		defer func() {
+			rmOut, rmErr := execOnNodeWithChroot(ctx, oc, testNode, "podman", "rm", "-f", podmanContainerName)
+			if rmErr != nil {
+				e2e.Logf("Warning: cleanup of podman container %q had errors: %v\n%s", podmanContainerName, rmErr, rmOut)
+			}
+		}()
+
+		g.By("crictl rmi must fail (in use by Podman)")
+		rmiOut, rmiErr := execOnNodeWithChroot(ctx, oc, testNode, "crictl", "rmi", minimalImage)
+		o.Expect(rmiErr).To(o.HaveOccurred(), "crictl rmi must not delete an in-use image; output:\n%s", rmiOut)
+		combinedRmiErr := strings.ToLower(rmiOut + " " + rmiErr.Error())
+		o.Expect(combinedRmiErr).To(o.Or(o.ContainSubstring("in use"), o.ContainSubstring("used")), "expected output to indicate image is in use, got: %s", combinedRmiErr)
+
+		g.By("Verify Podman container remains functional (exec check)")
+		execOut2, execErr := execOnNodeWithChroot(ctx, oc, testNode, "podman", "exec", podmanContainerName, "echo", "still alive")
+		o.Expect(execErr).NotTo(o.HaveOccurred(), "podman exec failed on active container after crictl rmi attempt:\n%s", execOut2)
+		o.Expect(execOut2).To(o.ContainSubstring("still alive"))
+	})
+
+	// author: aamritan@redhat.com
+	// Validates concurrent reads, cross-tool image ID consistency, and clean recovery from an interrupted pull without losing existing images
+	g.It("[Serial] read and recover shared image storage cleanly across concurrent access, cross-tool metadata checks, and an interrupted pull", func(ctx context.Context) {
+		podmanPulledImage := "registry.access.redhat.com/ubi9/ubi-minimal:latest"
+		crioPulledImage := "registry.access.redhat.com/ubi9/ubi-init:latest"
+		largeImage := "registry.access.redhat.com/ubi9/nodejs-18:latest"
+
+		g.By("Ensure clean initial state by removing target images if already present")
+		execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			fmt.Sprintf("podman rmi -f %s %s %s 2>/dev/null; crictl rmi %s %s %s 2>/dev/null",
+				podmanPulledImage, crioPulledImage, largeImage, podmanPulledImage, crioPulledImage, largeImage))
+
+		defer func() {
+			execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+				fmt.Sprintf("podman rmi -f %s %s %s 2>/dev/null; crictl rmi %s %s %s 2>/dev/null",
+					podmanPulledImage, crioPulledImage, largeImage, podmanPulledImage, crioPulledImage, largeImage))
+		}()
+
+		g.By(fmt.Sprintf("Pull %s via Podman", podmanPulledImage))
+		pullOut, err := execOnNodeWithChroot(ctx, oc, testNode, "podman", "pull", podmanPulledImage)
+		o.Expect(err).NotTo(o.HaveOccurred(), "podman pull failed:\n%s", pullOut)
+
+		g.By("Read the image concurrently from both Podman and CRI-O")
+		concurrentOut, err := execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			"podman images > /tmp/podman-read.out 2>&1 & crictl images > /tmp/crictl-read.out 2>&1 & wait; "+
+				"cat /tmp/podman-read.out; echo '---'; cat /tmp/crictl-read.out; rm -f /tmp/podman-read.out /tmp/crictl-read.out")
+		o.Expect(err).NotTo(o.HaveOccurred(), "concurrent reads failed:\n%s", concurrentOut)
+		o.Expect(concurrentOut).To(o.ContainSubstring("ubi-minimal"))
+		g.By("Confirm CRI-O's image ID for the Podman-pulled image matches Podman's own report")
+		podmanID, err := execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			fmt.Sprintf("podman inspect %s --format '{{.Id}}'", podmanPulledImage))
+		o.Expect(err).NotTo(o.HaveOccurred(), "podman inspect failed:\n%s", podmanID)
+		podmanID = strings.TrimPrefix(strings.TrimSpace(podmanID), "sha256:")
+
+		crictlID, err := execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			fmt.Sprintf(`crictl inspecti %s | python3 -c "import sys,json; print(json.load(sys.stdin)['status']['id'])"`, podmanPulledImage))
+		o.Expect(err).NotTo(o.HaveOccurred(), "crictl inspecti failed:\n%s", crictlID)
+		crictlID = strings.TrimPrefix(strings.TrimSpace(crictlID), "sha256:")
+		o.Expect(crictlID).To(o.Equal(podmanID), "CRI-O's image ID must match the content Podman pulled")
+
+		g.By(fmt.Sprintf("Pull %s via CRI-O and confirm Podman's image ID matches", crioPulledImage))
+		crictlPullOut, err := execOnNodeWithChroot(ctx, oc, testNode, "crictl", "pull", crioPulledImage)
+		o.Expect(err).NotTo(o.HaveOccurred(), "crictl pull failed:\n%s", crictlPullOut)
+
+		crictlID2, err := execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			fmt.Sprintf(`crictl inspecti %s | python3 -c "import sys,json; print(json.load(sys.stdin)['status']['id'])"`, crioPulledImage))
+		o.Expect(err).NotTo(o.HaveOccurred(), "crictl inspecti failed:\n%s", crictlID2)
+		crictlID2 = strings.TrimPrefix(strings.TrimSpace(crictlID2), "sha256:")
+
+		podmanID2, err := execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			fmt.Sprintf("podman inspect %s --format '{{.Id}}'", crioPulledImage))
+		o.Expect(err).NotTo(o.HaveOccurred(), "podman inspect failed:\n%s", podmanID2)
+		podmanID2 = strings.TrimPrefix(strings.TrimSpace(podmanID2), "sha256:")
+
+		o.Expect(podmanID2).To(o.Equal(crictlID2), "Podman's image ID must match the content CRI-O pulled")
+
+		g.By("Record the baseline overlay layer count before the interrupted pull")
+		baselineLayersOut, err := execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c", "ls /var/lib/containers/storage/overlay | wc -l")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		baselineLayerCount, err := strconv.Atoi(strings.TrimSpace(baselineLayersOut))
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("Kill a Podman pull of %s mid-transfer", largeImage))
+		execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			fmt.Sprintf("podman pull %s & sleep 0.5; pkill -9 -f 'podman pull %s' || true; wait", largeImage, largeImage))
+
+		g.By("Confirm CRI-O can immediately pull the same image cleanly despite the interrupted Podman pull")
+		crictlLargePullOut, err := execOnNodeWithChroot(ctx, oc, testNode, "crictl", "pull", largeImage)
+		o.Expect(err).NotTo(o.HaveOccurred(), "crictl pull failed after interrupted podman pull:\n%s", crictlLargePullOut)
+
+		g.By("Check for storage repair or corruption errors in the CRI-O journal")
+		journalErrors, _ := execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			"journalctl -u crio --since '-2m' | grep -iE 'error creating read-write layer|internal_repair|no such file or directory'")
+		o.Expect(journalErrors).To(o.BeEmpty(), "found corruption/repair errors in CRI-O journal: %s", journalErrors)
+
+		g.By("Confirm Podman can also cleanly pull the same image after the interruption")
+		podmanRepullOut, err := execOnNodeWithChroot(ctx, oc, testNode, "podman", "pull", largeImage)
+		o.Expect(err).NotTo(o.HaveOccurred(), "podman re-pull failed after interrupted pull:\n%s", podmanRepullOut)
+
+		g.By("Confirm the earlier pulled images and layer count survived the interruption untouched")
+		podmanImagesOut, err := execOnNodeWithChroot(ctx, oc, testNode, "podman", "images")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(podmanImagesOut).To(o.And(o.ContainSubstring("ubi-minimal"), o.ContainSubstring("ubi-init")))
+
+		finalLayersOut, err := execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c", "ls /var/lib/containers/storage/overlay | wc -l")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		finalLayerCount, err := strconv.Atoi(strings.TrimSpace(finalLayersOut))
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(finalLayerCount).To(o.BeNumerically(">=", baselineLayerCount), "layer count must never decrease: baseline=%d final=%d", baselineLayerCount, finalLayerCount)
 	})
 })
