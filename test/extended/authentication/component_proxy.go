@@ -40,6 +40,8 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 		proxyNamespace string
 		kcSetup        *keycloakProxySetup
 		cleanups       []removalFunc
+
+		namespacePrefix string = "proxy-for-integrated-oauth"
 	)
 
 	g.BeforeEach(func() {
@@ -52,8 +54,9 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Deploying Squid forward proxy")
+		proxyNamespace := toNamespace([]string{namespacePrefix, rand.String(8)})
 		var proxyCleanup removalFunc
-		httpProxyURL, httpsProxyURL, caCertPEM, proxyNamespace, proxyCleanup, err = deploySquidProxy(ctx, oc)
+		httpProxyURL, httpsProxyURL, caCertPEM, proxyCleanup, err = deploySquidProxy(ctx, proxyNamespace, oc)
 		cleanups = append(cleanups, proxyCleanup)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
