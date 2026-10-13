@@ -18,42 +18,39 @@ import (
 var (
 	testBase = time.Date(2026, 1, 2, 20, 0, 0, 0, time.UTC)
 
-	winT1 = oauthEligibleWindow{testName: "t1", label: "T1", rolloutExpected: true, from: testBase.Add(10 * time.Minute), to: testBase.Add(14 * time.Minute)}
-	winT3 = oauthEligibleWindow{testName: "t3", label: "T3", rolloutExpected: false, from: testBase.Add(56 * time.Minute), to: testBase.Add(61 * time.Minute)}
-	winT4 = oauthEligibleWindow{testName: "t4", label: "T4", rolloutExpected: true, from: testBase.Add(62 * time.Minute), to: testBase.Add(67 * time.Minute)}
+	winT1 = EligibleWindow{Label: "T1", IncrementsExpected: true, From: testBase.Add(10 * time.Minute), To: testBase.Add(14 * time.Minute)}
+	winT3 = EligibleWindow{Label: "T3", IncrementsExpected: false, From: testBase.Add(56 * time.Minute), To: testBase.Add(61 * time.Minute)}
+	winT4 = EligibleWindow{Label: "T4", IncrementsExpected: true, From: testBase.Add(62 * time.Minute), To: testBase.Add(67 * time.Minute)}
 
-	rolloutWindows = []oauthEligibleWindow{winT1, winT3, winT4}
+	rolloutWindows = []EligibleWindow{winT1, winT3, winT4}
 )
 
-func obs(uid string, rv int64, count int, observed time.Time) oauthScaleObservation {
-	o := oauthScaleObservation{
-		uid:           uid,
-		count:         count,
-		observed:      observed,
-		last:          observed,
-		direction:     "up",
-		replicaSet:    oauthScaleDeployment + "-788ffcfbc6",
-		fromReplicas:  0,
-		toReplicas:    3,
-		parseOK:       true,
-		ownerVerified: true,
+// obs builds a generic CounterObservation. id is the identity (empty => no stable identity);
+// seq < 0 means "no sequence". A domain Note is attached to mirror how the oauth adapter
+// annotates observations.
+func obs(id string, seq int64, count int, observed time.Time) CounterObservation {
+	o := CounterObservation{
+		Identity: id,
+		Count:    count,
+		Observed: observed,
+		Note:     "rs=" + oauthScaleDeployment + "-788ffcfbc6 scaled up 0->3 replicas",
 	}
-	if rv >= 0 {
-		o.resourceVersion = rv
-		o.hasRV = true
+	if seq >= 0 {
+		o.Sequence = seq
+		o.HasSequence = true
 	}
 	return o
 }
 
-func classCounts(findings []oauthScaleFinding) map[oauthScaleClass]int {
-	m := map[oauthScaleClass]int{}
+func classCounts(findings []AccountingFinding) map[AccountingClass]int {
+	m := map[AccountingClass]int{}
 	for _, f := range findings {
-		m[f.class]++
+		m[f.Class]++
 	}
 	return m
 }
 
-func hasClass(findings []oauthScaleFinding, c oauthScaleClass) bool {
+func hasClass(findings []AccountingFinding, c AccountingClass) bool {
 	return classCounts(findings)[c] > 0
 }
 
@@ -61,183 +58,183 @@ func TestAccountIdentityGroup(t *testing.T) {
 	tests := []struct {
 		name            string
 		uid             string
-		observations    []oauthScaleObservation
-		windows         []oauthEligibleWindow
+		observations    []CounterObservation
+		windows         []EligibleWindow
 		budgets         *OAuthScaleBudgets
-		wantClass       oauthScaleClass // the primary class expected to be present
+		wantClass       AccountingClass // the primary class expected to be present
 		wantIncrement   int             // increment on the first finding of wantClass (0 = skip check)
 		wantWindowLabel string          // window label on the first finding of wantClass ("" = skip)
-		assertAbsent    []oauthScaleClass
+		assertAbsent    []AccountingClass
 	}{
 		{
 			name: "eligible contiguous increments are attributed to the containing window",
 			uid:  "u1",
-			observations: []oauthScaleObservation{
-				obs("u1", 1, 10, winT1.from.Add(30*time.Second)),
-				obs("u1", 2, 13, winT1.from.Add(60*time.Second)),
+			observations: []CounterObservation{
+				obs("u1", 1, 10, winT1.From.Add(30*time.Second)),
+				obs("u1", 2, 13, winT1.From.Add(60*time.Second)),
 			},
 			windows:         rolloutWindows,
-			wantClass:       classAttributed,
+			wantClass:       ClassAttributed,
 			wantIncrement:   3,
 			wantWindowLabel: "T1",
-			assertAbsent:    []oauthScaleClass{classUnresolvedSpanCrosses, classUnresolvedNoBaseline},
+			assertAbsent:    []AccountingClass{ClassUnresolvedSpanCrosses, ClassUnresolvedNoBaseline},
 		},
 		{
 			name: "span exactly equal to window boundaries is contained (equality)",
 			uid:  "u1",
-			observations: []oauthScaleObservation{
-				obs("u1", 1, 5, winT1.from),
-				obs("u1", 2, 8, winT1.to),
+			observations: []CounterObservation{
+				obs("u1", 1, 5, winT1.From),
+				obs("u1", 2, 8, winT1.To),
 			},
 			windows:         rolloutWindows,
-			wantClass:       classAttributed,
+			wantClass:       ClassAttributed,
 			wantIncrement:   3,
 			wantWindowLabel: "T1",
 		},
 		{
 			name: "post-test 45s control: span leaves the window into the gap is unresolved",
 			uid:  "u1",
-			observations: []oauthScaleObservation{
-				obs("u1", 1, 5, winT1.to),
-				obs("u1", 2, 7, winT1.to.Add(45*time.Second)),
+			observations: []CounterObservation{
+				obs("u1", 1, 5, winT1.To),
+				obs("u1", 2, 7, winT1.To.Add(45*time.Second)),
 			},
 			windows:      rolloutWindows,
-			wantClass:    classUnresolvedSpanCrosses,
-			assertAbsent: []oauthScaleClass{classAttributed},
+			wantClass:    ClassUnresolvedSpanCrosses,
+			assertAbsent: []AccountingClass{ClassAttributed},
 		},
 		{
 			name: "batch crossing test/gap boundaries is unresolved",
 			uid:  "u1",
-			observations: []oauthScaleObservation{
-				obs("u1", 1, 5, winT1.from.Add(time.Minute)),
-				obs("u1", 2, 20, winT4.from.Add(time.Minute)),
+			observations: []CounterObservation{
+				obs("u1", 1, 5, winT1.From.Add(time.Minute)),
+				obs("u1", 2, 20, winT4.From.Add(time.Minute)),
 			},
 			windows:      rolloutWindows,
-			wantClass:    classUnresolvedSpanCrosses,
-			assertAbsent: []oauthScaleClass{classAttributed},
+			wantClass:    ClassUnresolvedSpanCrosses,
+			assertAbsent: []AccountingClass{ClassAttributed},
 		},
 		{
 			name: "span entirely outside every eligible window",
 			uid:  "u1",
-			observations: []oauthScaleObservation{
-				obs("u1", 1, 5, winT1.to.Add(5*time.Minute)),
-				obs("u1", 2, 9, winT1.to.Add(6*time.Minute)),
+			observations: []CounterObservation{
+				obs("u1", 1, 5, winT1.To.Add(5*time.Minute)),
+				obs("u1", 2, 9, winT1.To.Add(6*time.Minute)),
 			},
 			windows:      rolloutWindows,
-			wantClass:    classUnresolvedNoWindow,
-			assertAbsent: []oauthScaleClass{classAttributed},
+			wantClass:    ClassUnresolvedNoWindow,
+			assertAbsent: []AccountingClass{ClassAttributed},
 		},
 		{
 			name: "protected no-rollout phase (T3) is never attributed",
 			uid:  "u1",
-			observations: []oauthScaleObservation{
-				obs("u1", 1, 2, winT3.from.Add(10*time.Second)),
-				obs("u1", 2, 5, winT3.from.Add(40*time.Second)),
+			observations: []CounterObservation{
+				obs("u1", 1, 2, winT3.From.Add(10*time.Second)),
+				obs("u1", 2, 5, winT3.From.Add(40*time.Second)),
 			},
 			windows:         rolloutWindows,
-			wantClass:       classProtectedNoRolloutPhase,
+			wantClass:       ClassProtectedWindow,
 			wantIncrement:   3,
 			wantWindowLabel: "T3",
-			assertAbsent:    []oauthScaleClass{classAttributed},
+			assertAbsent:    []AccountingClass{ClassAttributed},
 		},
 		{
 			name: "counter reset restarts baseline and is unresolved",
 			uid:  "u1",
-			observations: []oauthScaleObservation{
-				obs("u1", 1, 10, winT1.from.Add(30*time.Second)),
-				obs("u1", 2, 3, winT1.from.Add(60*time.Second)),
+			observations: []CounterObservation{
+				obs("u1", 1, 10, winT1.From.Add(30*time.Second)),
+				obs("u1", 2, 3, winT1.From.Add(60*time.Second)),
 			},
 			windows:      rolloutWindows,
-			wantClass:    classUnresolvedMalformed,
-			assertAbsent: []oauthScaleClass{classAttributed},
+			wantClass:    ClassUnresolvedMalformed,
+			assertAbsent: []AccountingClass{ClassAttributed},
 		},
 		{
 			name: "out-of-order observation time across a forward step is unresolved",
 			uid:  "u1",
-			observations: []oauthScaleObservation{
-				obs("u1", 1, 5, winT1.from.Add(60*time.Second)),
-				obs("u1", 2, 8, winT1.from.Add(30*time.Second)),
+			observations: []CounterObservation{
+				obs("u1", 1, 5, winT1.From.Add(60*time.Second)),
+				obs("u1", 2, 8, winT1.From.Add(30*time.Second)),
 			},
 			windows:      rolloutWindows,
-			wantClass:    classUnresolvedMalformed,
-			assertAbsent: []oauthScaleClass{classAttributed},
+			wantClass:    ClassUnresolvedMalformed,
+			assertAbsent: []AccountingClass{ClassAttributed},
 		},
 		{
 			name: "duplicate (uid,resourceVersion) rows are deduped, remaining step attributed",
 			uid:  "u1",
-			observations: []oauthScaleObservation{
-				obs("u1", 1, 5, winT1.from.Add(30*time.Second)),
-				obs("u1", 1, 5, winT1.from.Add(31*time.Second)),
-				obs("u1", 2, 7, winT1.from.Add(60*time.Second)),
+			observations: []CounterObservation{
+				obs("u1", 1, 5, winT1.From.Add(30*time.Second)),
+				obs("u1", 1, 5, winT1.From.Add(31*time.Second)),
+				obs("u1", 2, 7, winT1.From.Add(60*time.Second)),
 			},
 			windows:         rolloutWindows,
-			wantClass:       classAttributed,
+			wantClass:       ClassAttributed,
 			wantIncrement:   2,
 			wantWindowLabel: "T1",
-			assertAbsent:    []oauthScaleClass{classUnresolvedMalformed},
+			assertAbsent:    []AccountingClass{ClassUnresolvedMalformed},
 		},
 		{
 			name: "collision: same resourceVersion with different counts is malformed",
 			uid:  "u1",
-			observations: []oauthScaleObservation{
-				obs("u1", 1, 5, winT1.from.Add(30*time.Second)),
-				obs("u1", 1, 9, winT1.from.Add(31*time.Second)),
+			observations: []CounterObservation{
+				obs("u1", 1, 5, winT1.From.Add(30*time.Second)),
+				obs("u1", 1, 9, winT1.From.Add(31*time.Second)),
 			},
 			windows:   rolloutWindows,
-			wantClass: classUnresolvedMalformed,
+			wantClass: ClassUnresolvedMalformed,
 		},
 		{
 			name: "single observation for an identity has no reliable baseline",
 			uid:  "u1",
-			observations: []oauthScaleObservation{
-				obs("u1", 1, 31, winT4.from.Add(time.Minute)),
+			observations: []CounterObservation{
+				obs("u1", 1, 31, winT4.From.Add(time.Minute)),
 			},
 			windows:      rolloutWindows,
-			wantClass:    classUnresolvedNoBaseline,
-			assertAbsent: []oauthScaleClass{classAttributed},
+			wantClass:    ClassUnresolvedNoBaseline,
+			assertAbsent: []AccountingClass{ClassAttributed},
 		},
 		{
 			name: "sub-second observation just after window end is not contained (strict)",
 			uid:  "u1",
-			observations: []oauthScaleObservation{
-				obs("u1", 1, 5, winT1.from),
-				obs("u1", 2, 8, winT1.to.Add(500*time.Millisecond)),
+			observations: []CounterObservation{
+				obs("u1", 1, 5, winT1.From),
+				obs("u1", 2, 8, winT1.To.Add(500*time.Millisecond)),
 			},
 			windows:      rolloutWindows,
-			wantClass:    classUnresolvedSpanCrosses,
-			assertAbsent: []oauthScaleClass{classAttributed},
+			wantClass:    ClassUnresolvedSpanCrosses,
+			assertAbsent: []AccountingClass{ClassAttributed},
 		},
 		{
 			name: "missing observation timestamps cannot bound the increment span",
 			uid:  "u1",
-			observations: []oauthScaleObservation{
+			observations: []CounterObservation{
 				obs("u1", 1, 5, time.Time{}),
 				obs("u1", 2, 8, time.Time{}),
 			},
 			windows:      rolloutWindows,
-			wantClass:    classUnresolvedNoBaseline,
-			assertAbsent: []oauthScaleClass{classAttributed},
+			wantClass:    ClassUnresolvedNoBaseline,
+			assertAbsent: []AccountingClass{ClassAttributed},
 		},
 		{
 			name: "no stable identity (empty UID) is unresolved",
 			uid:  "",
-			observations: []oauthScaleObservation{
-				obs("", -1, 31, winT4.from.Add(time.Minute)),
+			observations: []CounterObservation{
+				obs("", -1, 31, winT4.From.Add(time.Minute)),
 			},
 			windows:      rolloutWindows,
-			wantClass:    classUnresolvedNoIdentity,
-			assertAbsent: []oauthScaleClass{classAttributed},
+			wantClass:    ClassUnresolvedNoIdentity,
+			assertAbsent: []AccountingClass{ClassAttributed},
 		},
 		{
 			name: "runaway: attributed increments beyond an established per-test budget are flagged",
 			uid:  "u1",
-			observations: []oauthScaleObservation{
-				obs("u1", 1, 5, winT1.from.Add(30*time.Second)),
-				obs("u1", 2, 25, winT1.from.Add(90*time.Second)),
+			observations: []CounterObservation{
+				obs("u1", 1, 5, winT1.From.Add(30*time.Second)),
+				obs("u1", 2, 25, winT1.From.Add(90*time.Second)),
 			},
 			windows:   rolloutWindows,
-			budgets:   &OAuthScaleBudgets{MaxIncrementsPerTest: 2},
-			wantClass: classUnresolvedBudgetExceeded,
+			budgets:   &OAuthScaleBudgets{MaxIncrementsPerWindow: 2},
+			wantClass: ClassUnresolvedBudgetExceeded,
 		},
 	}
 
@@ -248,12 +245,12 @@ func TestAccountIdentityGroup(t *testing.T) {
 				"expected a %s finding, got: %+v", tt.wantClass, findings)
 			if tt.wantIncrement != 0 || tt.wantWindowLabel != "" {
 				for _, f := range findings {
-					if f.class == tt.wantClass {
+					if f.Class == tt.wantClass {
 						if tt.wantIncrement != 0 {
-							assert.Equal(t, tt.wantIncrement, f.increment)
+							assert.Equal(t, tt.wantIncrement, f.Increment)
 						}
 						if tt.wantWindowLabel != "" {
-							assert.Equal(t, tt.wantWindowLabel, f.window)
+							assert.Equal(t, tt.wantWindowLabel, f.Window)
 						}
 						break
 					}
@@ -275,32 +272,32 @@ func TestAccountIdentityGroup(t *testing.T) {
 // retained so the step is the correct 5->8 = 3, fully contained in T1, and the T1->T4 step
 // correctly crosses windows.
 func TestAccountIdentityGroup_LateObservationRetainsBaseline(t *testing.T) {
-	observations := []oauthScaleObservation{
-		obs("u1", 1, 5, winT1.from.Add(30*time.Second)),  // baseline, in T1
-		obs("u1", 2, 6, winT1.from.Add(10*time.Second)),  // LATE: observed before the baseline
-		obs("u1", 3, 8, winT1.from.Add(90*time.Second)),  // later, in T1
-		obs("u1", 4, 11, winT4.from.Add(60*time.Second)), // in T4
+	observations := []CounterObservation{
+		obs("u1", 1, 5, winT1.From.Add(30*time.Second)),  // baseline, in T1
+		obs("u1", 2, 6, winT1.From.Add(10*time.Second)),  // LATE: observed before the baseline
+		obs("u1", 3, 8, winT1.From.Add(90*time.Second)),  // later, in T1
+		obs("u1", 4, 11, winT4.From.Add(60*time.Second)), // in T4
 	}
 
 	findings := accountIdentityGroup("u1", observations, rolloutWindows, nil)
 
-	require.True(t, hasClass(findings, classUnresolvedMalformed), "late record must be flagged malformed: %+v", findings)
-	require.True(t, hasClass(findings, classAttributed), "retained baseline must yield an attributed step: %+v", findings)
-	require.True(t, hasClass(findings, classUnresolvedSpanCrosses), "the T1->T4 step must cross windows: %+v", findings)
+	require.True(t, hasClass(findings, ClassUnresolvedMalformed), "late record must be flagged malformed: %+v", findings)
+	require.True(t, hasClass(findings, ClassAttributed), "retained baseline must yield an attributed step: %+v", findings)
+	require.True(t, hasClass(findings, ClassUnresolvedSpanCrosses), "the T1->T4 step must cross windows: %+v", findings)
 
-	var attributed []oauthScaleFinding
+	var attributed []AccountingFinding
 	for _, f := range findings {
-		if f.class == classAttributed {
+		if f.Class == ClassAttributed {
 			attributed = append(attributed, f)
 		}
 	}
 	require.Len(t, attributed, 1)
-	assert.Equal(t, 3, attributed[0].increment, "baseline retained -> correct delta 5->8=3 (not the poisoned 6->8=2)")
-	assert.Equal(t, "T1", attributed[0].window)
-	assert.Equal(t, winT1.from.Add(30*time.Second), attributed[0].spanFrom, "span must start at the retained baseline, not the late record")
+	assert.Equal(t, 3, attributed[0].Increment, "baseline retained -> correct delta 5->8=3 (not the poisoned 6->8=2)")
+	assert.Equal(t, "T1", attributed[0].Window)
+	assert.Equal(t, winT1.From.Add(30*time.Second), attributed[0].SpanFrom, "span must start at the retained baseline, not the late record")
 	// Guard against the pre-fix poisoned delta.
 	for _, f := range attributed {
-		assert.NotEqual(t, 2, f.increment, "increment 2 would mean the late record poisoned the baseline")
+		assert.NotEqual(t, 2, f.Increment, "increment 2 would mean the late record poisoned the baseline")
 	}
 }
 
@@ -310,31 +307,31 @@ func TestAccountIdentityGroup_LateObservationRetainsBaseline(t *testing.T) {
 // counter reset (which would advance the baseline to the stale, earlier record). A following
 // in-window record must then attribute against the retained baseline with the correct delta.
 func TestAccountIdentityGroup_LateLowerCountIsNotReset(t *testing.T) {
-	observations := []oauthScaleObservation{
-		obs("u1", 1, 7, winT1.from.Add(40*time.Second)),  // baseline, count 7
-		obs("u1", 2, 4, winT1.from.Add(10*time.Second)),  // LATE and LOWER count than baseline
-		obs("u1", 3, 10, winT1.from.Add(80*time.Second)), // later, in T1
+	observations := []CounterObservation{
+		obs("u1", 1, 7, winT1.From.Add(40*time.Second)),  // baseline, count 7
+		obs("u1", 2, 4, winT1.From.Add(10*time.Second)),  // LATE and LOWER count than baseline
+		obs("u1", 3, 10, winT1.From.Add(80*time.Second)), // later, in T1
 	}
 
 	findings := accountIdentityGroup("u1", observations, rolloutWindows, nil)
 
-	var malformed, attributed []oauthScaleFinding
+	var malformed, attributed []AccountingFinding
 	for _, f := range findings {
-		switch f.class {
-		case classUnresolvedMalformed:
+		switch f.Class {
+		case ClassUnresolvedMalformed:
 			malformed = append(malformed, f)
-		case classAttributed:
+		case ClassAttributed:
 			attributed = append(attributed, f)
 		}
 	}
 	require.Len(t, malformed, 1, "the late lower-count record must produce exactly one malformed finding: %+v", findings)
-	assert.Contains(t, malformed[0].detail, "out-of-order", "must be classified as late/out-of-order, not a counter reset")
-	assert.NotContains(t, malformed[0].detail, "counter reset", "a late lower-count record must NOT be treated as a reset")
+	assert.Contains(t, malformed[0].Detail, "out-of-order", "must be classified as late/out-of-order, not a counter reset")
+	assert.NotContains(t, malformed[0].Detail, "counter reset", "a late lower-count record must NOT be treated as a reset")
 
 	require.Len(t, attributed, 1, "retained baseline must yield one attributed step: %+v", findings)
-	assert.Equal(t, 3, attributed[0].increment, "baseline 7 retained -> 7->10 = 3 (not a reset-restarted baseline of 4)")
-	assert.Equal(t, "T1", attributed[0].window)
-	assert.Equal(t, winT1.from.Add(40*time.Second), attributed[0].spanFrom, "span must start at the retained baseline")
+	assert.Equal(t, 3, attributed[0].Increment, "baseline 7 retained -> 7->10 = 3 (not a reset-restarted baseline of 4)")
+	assert.Equal(t, "T1", attributed[0].Window)
+	assert.Equal(t, winT1.From.Add(40*time.Second), attributed[0].SpanFrom, "span must start at the retained baseline")
 }
 
 // --- end-to-end intervals helpers -------------------------------------------------------
@@ -439,22 +436,22 @@ func TestCollectEligibleWindows(t *testing.T) {
 		e2eInterval(componentProxyTestPrefix+" operator should validate OIDC IdP through component proxy with extra", "Passed", testBase, testBase.Add(time.Minute)),
 	}
 
-	windows := collectEligibleWindows(intervals)
+	windows := oauthEligibleWindows(intervals)
 	require.Len(t, windows, 5)
 
 	labels := map[string]bool{}
 	for _, w := range windows {
-		labels[w.label] = true
+		labels[w.Label] = true
 	}
 	for _, want := range []string{"T1", "T2", "T3", "T4", "T5"} {
 		assert.True(t, labels[want], "missing window %s", want)
 	}
 	// T3 must be a protected, no-rollout window.
 	for _, w := range windows {
-		if w.label == "T3" {
-			assert.False(t, w.rolloutExpected, "T3 must be a no-rollout window")
+		if w.Label == "T3" {
+			assert.False(t, w.IncrementsExpected, "T3 must be a no-rollout window")
 		} else {
-			assert.True(t, w.rolloutExpected, "%s should be rollout-expected", w.label)
+			assert.True(t, w.IncrementsExpected, "%s should be rollout-expected", w.Label)
 		}
 	}
 }
@@ -498,12 +495,8 @@ func TestParseObservation_MessageAndOwner(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			iv := kubeEventInterval(kubeEventOpts{
-				namespace: oauthScaleNamespace, deployment: oauthScaleDeployment, reason: oauthScaleReason,
-				message: tt.message, count: 3, last: testBase,
-			})
-			got := parseObservation(iv)
-			assert.Equal(t, tt.wantParseOK, got.parseOK)
+			got := parseOAuthScaleMessage(tt.message)
+			assert.Equal(t, tt.wantParseOK, got.ok)
 			assert.Equal(t, tt.wantOwner, got.ownerVerified)
 			if tt.wantParseOK {
 				assert.Equal(t, tt.wantFrom, got.fromReplicas)
