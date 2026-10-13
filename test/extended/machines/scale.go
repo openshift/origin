@@ -263,8 +263,6 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 				return "https://issues.redhat.com/browse/OCPBUGS-65896"
 			case "image-registry":
 				return "https://redhat.atlassian.net/browse/OCPBUGS-86308"
-			case "network":
-				return "https://redhat.atlassian.net/browse/OCPBUGS-85677"
 			default:
 				return ""
 			}
