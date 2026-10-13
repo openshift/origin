@@ -139,18 +139,21 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
+	time.Sleep(2 * time.Second)
 	podNetworkToHostNetworkPollerDeployment.Spec.Replicas = &numNodes
 	podNetworkToHostNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
 	podNetworkToHostNetworkPollerDeployment = updateDeploymentENVs(podNetworkToHostNetworkPollerDeployment, deploymentID, "")
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
+	time.Sleep(2 * time.Second)
 	hostNetworkToPodNetworkPollerDeployment.Spec.Replicas = &numNodes
 	hostNetworkToPodNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
 	hostNetworkToPodNetworkPollerDeployment = updateDeploymentENVs(hostNetworkToPodNetworkPollerDeployment, deploymentID, "")
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
+	time.Sleep(2 * time.Second)
 	hostNetworkToHostNetworkPollerDeployment.Spec.Replicas = &numNodes
 	hostNetworkToHostNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
 	hostNetworkToHostNetworkPollerDeployment = updateDeploymentENVs(hostNetworkToHostNetworkPollerDeployment, deploymentID, "")
@@ -158,6 +161,7 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		return err
 	}
 
+	time.Sleep(2 * time.Second)
 	// force the image to use the "normal" global mapping.
 	originalAgnhost := k8simage.GetOriginalImageConfigs()[k8simage.Agnhost]
 	podNetworkTargetDeployment.Spec.Replicas = &numNodes
@@ -170,6 +174,7 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		return err
 	}
 	pna.targetService = service
+	time.Sleep(2 * time.Second)
 
 	hostNetworkTargetDeployment.Spec.Replicas = &numNodes
 	hostNetworkTargetDeployment.Spec.Template.Spec.Containers[0].Image = image.LimitedShellImage()
