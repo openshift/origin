@@ -191,7 +191,10 @@ func recordAddOrUpdateEvent(
 	if obj.Series != nil {
 		message = message.WithAnnotation(pathologicaleventlibrary.AnnotationSeriesCount, fmt.Sprintf("%d", obj.Series.Count))
 		if !obj.Series.LastObservedTime.IsZero() {
-			message = message.WithAnnotation(pathologicaleventlibrary.AnnotationSeriesLastObserved, obj.Series.LastObservedTime.UTC().Format(time.RFC3339))
+			// RFC3339Nano preserves the sub-second precision of MicroTime. Truncating to RFC3339
+			// would collapse an observation just after a window end onto the boundary second and
+			// make strict end-boundary containment wrongly treat it as in-window.
+			message = message.WithAnnotation(pathologicaleventlibrary.AnnotationSeriesLastObserved, obj.Series.LastObservedTime.UTC().Format(time.RFC3339Nano))
 		}
 	}
 

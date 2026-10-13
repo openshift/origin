@@ -197,6 +197,17 @@ func TestAccountIdentityGroup(t *testing.T) {
 			assertAbsent: []oauthScaleClass{classAttributed},
 		},
 		{
+			name: "sub-second observation just after window end is not contained (strict)",
+			uid:  "u1",
+			observations: []oauthScaleObservation{
+				obs("u1", 1, 5, winT1.from),
+				obs("u1", 2, 8, winT1.to.Add(500*time.Millisecond)),
+			},
+			windows:      rolloutWindows,
+			wantClass:    classUnresolvedSpanCrosses,
+			assertAbsent: []oauthScaleClass{classAttributed},
+		},
+		{
 			name: "missing observation timestamps cannot bound the increment span",
 			uid:  "u1",
 			observations: []oauthScaleObservation{
@@ -252,6 +263,44 @@ func TestAccountIdentityGroup(t *testing.T) {
 				assert.False(t, hasClass(findings, absent), "did not expect class %s in %+v", absent, findings)
 			}
 		})
+	}
+}
+
+// TestAccountIdentityGroup_LateObservationRetainsBaseline is the regression for review
+// finding A (discussion_r4261872203). A late/out-of-order record must NOT become the baseline
+// for the following step. Sequence (sorted by resourceVersion): a T1 baseline (count 5), a
+// late arrival observed earlier (count 6), then a later T1 record (count 8), then a T4 record
+// (count 11). With the bug the late record (count 6) became the baseline and the T1 step was
+// mis-measured as 6->8 = 2 with a span starting too early; after the fix the baseline is
+// retained so the step is the correct 5->8 = 3, fully contained in T1, and the T1->T4 step
+// correctly crosses windows.
+func TestAccountIdentityGroup_LateObservationRetainsBaseline(t *testing.T) {
+	observations := []oauthScaleObservation{
+		obs("u1", 1, 5, winT1.from.Add(30*time.Second)),  // baseline, in T1
+		obs("u1", 2, 6, winT1.from.Add(10*time.Second)),  // LATE: observed before the baseline
+		obs("u1", 3, 8, winT1.from.Add(90*time.Second)),  // later, in T1
+		obs("u1", 4, 11, winT4.from.Add(60*time.Second)), // in T4
+	}
+
+	findings := accountIdentityGroup("u1", observations, rolloutWindows, nil)
+
+	require.True(t, hasClass(findings, classUnresolvedMalformed), "late record must be flagged malformed: %+v", findings)
+	require.True(t, hasClass(findings, classAttributed), "retained baseline must yield an attributed step: %+v", findings)
+	require.True(t, hasClass(findings, classUnresolvedSpanCrosses), "the T1->T4 step must cross windows: %+v", findings)
+
+	var attributed []oauthScaleFinding
+	for _, f := range findings {
+		if f.class == classAttributed {
+			attributed = append(attributed, f)
+		}
+	}
+	require.Len(t, attributed, 1)
+	assert.Equal(t, 3, attributed[0].increment, "baseline retained -> correct delta 5->8=3 (not the poisoned 6->8=2)")
+	assert.Equal(t, "T1", attributed[0].window)
+	assert.Equal(t, winT1.from.Add(30*time.Second), attributed[0].spanFrom, "span must start at the retained baseline, not the late record")
+	// Guard against the pre-fix poisoned delta.
+	for _, f := range attributed {
+		assert.NotEqual(t, 2, f.increment, "increment 2 would mean the late record poisoned the baseline")
 	}
 }
 

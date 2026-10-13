@@ -404,43 +404,56 @@ func accountIdentityGroup(uid string, obs []oauthScaleObservation, windows []oau
 	}
 
 	perTest := map[string]int{}
+	// baseline is the last VALID temporal baseline observation. It is advanced for every
+	// outcome except a late/out-of-order arrival, which must never become the baseline.
+	baseline := deduped[0]
 	for idx := 1; idx < len(deduped); idx++ {
-		prev := deduped[idx-1]
 		cur := deduped[idx]
 
-		// Reset: the cumulative counter dropped. Start a fresh baseline from this point; the
-		// step itself is unresolved (we cannot know the real increment across a reset).
-		if cur.count < prev.count {
+		// Out-of-order / late arrival FIRST (this takes precedence over a counter reset): a
+		// record observed before the current baseline is a late arrival. It must NOT become the
+		// baseline, otherwise the next step would be measured from an earlier wall-clock time and
+		// a stale count, fabricating an invalid span and delta. Retain the baseline. The zero
+		// guards avoid treating a record with a missing observed time as "before" the baseline.
+		if !baseline.observed.IsZero() && !cur.observed.IsZero() && cur.observed.Before(baseline.observed) {
+			inc := cur.count - baseline.count
+			if inc < 0 {
+				inc = 0
+			}
+			findings = append(findings, oauthScaleFinding{
+				class: classUnresolvedMalformed, uid: uid, increment: inc,
+				detail: "observation time precedes the current baseline (out-of-order/late observation); baseline retained",
+			})
+			continue // retain baseline
+		}
+
+		// Reset: the cumulative counter dropped. Restart the baseline from this point; the step
+		// itself is unresolved (we cannot know the real increment across a reset).
+		if cur.count < baseline.count {
 			findings = append(findings, oauthScaleFinding{
 				class: classUnresolvedMalformed, uid: uid, increment: 0,
-				detail: fmt.Sprintf("counter reset detected (%d -> %d); baseline restarted", prev.count, cur.count),
+				detail: fmt.Sprintf("counter reset detected (%d -> %d); baseline restarted", baseline.count, cur.count),
 			})
+			baseline = cur
 			continue
 		}
 
-		// Out-of-order: observed time goes backward across a forward resourceVersion step.
-		if cur.observed.Before(prev.observed) {
-			findings = append(findings, oauthScaleFinding{
-				class: classUnresolvedMalformed, uid: uid, increment: cur.count - prev.count,
-				detail: "observation time decreased across a forward step (out-of-order/late observation)",
-			})
-			continue
-		}
-
-		increment := cur.count - prev.count
+		increment := cur.count - baseline.count
 		if increment == 0 {
-			continue // no new occurrences between observations
+			baseline = cur // no new occurrences between observations; advance baseline
+			continue
 		}
 
-		// The increment occurred somewhere in (prev.observed, cur.observed]. We require the
-		// whole span to be contained in a single eligible window; baseline is prev.count.
-		spanFrom := prev.observed
+		// The increment occurred somewhere in (baseline.observed, cur.observed]. We require the
+		// whole span to be contained in a single eligible window; baseline is baseline.count.
+		spanFrom := baseline.observed
 		spanTo := cur.observed
 		if spanFrom.IsZero() || spanTo.IsZero() {
 			findings = append(findings, oauthScaleFinding{
 				class: classUnresolvedNoBaseline, uid: uid, increment: increment,
 				detail: "missing observation timestamps; cannot bound the increment span",
 			})
+			baseline = cur
 			continue
 		}
 
@@ -457,6 +470,7 @@ func accountIdentityGroup(uid string, obs []oauthScaleObservation, windows []oau
 				spanFrom: spanFrom, spanTo: spanTo,
 				detail: detail,
 			})
+			baseline = cur
 			continue
 		}
 		if !w.rolloutExpected {
@@ -466,6 +480,7 @@ func accountIdentityGroup(uid string, obs []oauthScaleObservation, windows []oau
 				spanFrom: spanFrom, spanTo: spanTo, window: w.label,
 				detail: "increment contained in a no-rollout test window; not attributable/forgivable",
 			})
+			baseline = cur
 			continue
 		}
 
@@ -476,8 +491,9 @@ func accountIdentityGroup(uid string, obs []oauthScaleObservation, windows []oau
 			class: classAttributed, uid: uid, increment: increment,
 			spanFrom: spanFrom, spanTo: spanTo, window: w.label,
 			detail: fmt.Sprintf("baseline=%d step=%d->%d rs=%s scaled %s %d->%d replicas",
-				prev.count, prev.count, cur.count, cur.replicaSet, cur.direction, cur.fromReplicas, cur.toReplicas),
+				baseline.count, baseline.count, cur.count, cur.replicaSet, cur.direction, cur.fromReplicas, cur.toReplicas),
 		})
+		baseline = cur
 	}
 
 	// Budget layer. Attribution does not imply approval. Without an established budget there

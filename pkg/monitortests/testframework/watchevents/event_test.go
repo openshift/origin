@@ -9,9 +9,12 @@ import (
 	"github.com/openshift/origin/pkg/monitor"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -181,7 +184,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 				WithAnnotation("eventUID", "abc-123-uid").
 				WithAnnotation("resourceVersion", "987654").
 				WithAnnotation("seriesCount", "40").
-				WithAnnotation("seriesLastObservedTime", now.UTC().Format(time.RFC3339)).
+				WithAnnotation("seriesLastObservedTime", now.UTC().Format(time.RFC3339Nano)).
 				Build(),
 		},
 	}
@@ -199,4 +202,66 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 			assert.Equal(t, tt.expectedMessage, interval.Message)
 		})
 	}
+}
+
+// Test_SeriesLastObservedEndBoundary_ProducerConsumer is the regression for review finding B
+// (discussion_r4261872213). It exercises BOTH the watcher producer (recordAddOrUpdateEvent,
+// which must preserve the sub-second MicroTime of Series.LastObservedTime via RFC3339Nano)
+// AND the accounting consumer (EvaluateOAuthBoundedAccountingShadow strict end-boundary
+// containment). An oauth scaling step observed exactly at the window end is contained
+// (attributed); the same step observed a sub-second after the end must stay Unresolved.
+func Test_SeriesLastObservedEndBoundary_ProducerConsumer(t *testing.T) {
+	const prefix = `[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial]`
+	const t4 = prefix + " oauth-server should perform full OIDC login flow through the proxy when auth proxy config is applied"
+
+	base := time.Now().UTC().Truncate(time.Second)
+	windowFrom := base
+	windowTo := base.Add(5 * time.Minute)
+
+	scaleEvent := func(rv string, count int32, observed, lastTS time.Time) *corev1.Event {
+		return &corev1.Event{
+			ObjectMeta:     metav1.ObjectMeta{UID: types.UID("uid-a"), ResourceVersion: rv},
+			Count:          count,
+			Reason:         "ScalingReplicaSet",
+			InvolvedObject: corev1.ObjectReference{Kind: "Deployment", Namespace: "openshift-authentication", Name: "oauth-openshift"},
+			Message:        "Scaled up replica set oauth-openshift-788ffcfbc6 from 0 to 3",
+			FirstTimestamp: metav1.NewTime(lastTS),
+			LastTimestamp:  metav1.NewTime(lastTS),
+			Series:         &corev1.EventSeries{Count: count, LastObservedTime: metav1.NewMicroTime(observed)},
+		}
+	}
+	produce := func(ev *corev1.Event) monitorapi.Interval {
+		m := monitor.NewRecorder()
+		recordAddOrUpdateEvent(context.TODO(), m, "", nil, time.Now().UTC().Add(-15*time.Minute), ev)
+		ivs := m.Intervals(base.Add(-1*time.Hour), base.Add(24*time.Hour))
+		require.Len(t, ivs, 1)
+		return ivs[0]
+	}
+
+	e2eWindow := monitorapi.NewInterval(monitorapi.SourceE2ETest, monitorapi.Info).
+		Locator(monitorapi.NewLocator().E2ETest(t4)).
+		Message(monitorapi.NewMessage().HumanMessage("e2e test finished").WithAnnotation(monitorapi.AnnotationStatus, "Passed")).
+		Build(windowFrom, windowTo)
+
+	baseline := produce(scaleEvent("100", 5, base.Add(1*time.Minute), base.Add(1*time.Minute)))
+	stepExact := produce(scaleEvent("101", 8, windowTo, windowTo))
+	stepAfter := produce(scaleEvent("101", 8, windowTo.Add(500*time.Millisecond), windowTo))
+
+	// Producer side: the sub-second component must survive serialization.
+	assert.Contains(t, stepAfter.Message.Annotations[pathologicaleventlibrary.AnnotationSeriesLastObserved], ".",
+		"producer must preserve fractional seconds (RFC3339Nano)")
+
+	// Consumer side, exact boundary: contained -> attributed.
+	reportExact, junitsExact := pathologicaleventlibrary.EvaluateOAuthBoundedAccountingShadow(
+		monitorapi.Intervals{e2eWindow, baseline, stepExact}, nil)
+	assert.Nil(t, junitsExact[0].FailureOutput, "shadow JUnit must never fail")
+	assert.Equal(t, 1, reportExact.AttributedUnits, "step observed exactly at window end is contained")
+	assert.Equal(t, 3, reportExact.PerWindowAttributed["T4"])
+
+	// Consumer side, sub-second after end: strictly not contained -> unresolved.
+	reportAfter, junitsAfter := pathologicaleventlibrary.EvaluateOAuthBoundedAccountingShadow(
+		monitorapi.Intervals{e2eWindow, baseline, stepAfter}, nil)
+	assert.Nil(t, junitsAfter[0].FailureOutput)
+	assert.Equal(t, 0, reportAfter.AttributedUnits, "a sub-second-after-end observation must not be attributed")
+	assert.GreaterOrEqual(t, reportAfter.UnresolvedUnits, 1)
 }
