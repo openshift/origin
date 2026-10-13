@@ -2,6 +2,7 @@ package pathologicaleventlibrary
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -190,6 +191,17 @@ func TestAccountIdentityGroup(t *testing.T) {
 			uid:  "u1",
 			observations: []oauthScaleObservation{
 				obs("u1", 1, 31, winT4.from.Add(time.Minute)),
+			},
+			windows:      rolloutWindows,
+			wantClass:    classUnresolvedNoBaseline,
+			assertAbsent: []oauthScaleClass{classAttributed},
+		},
+		{
+			name: "missing observation timestamps cannot bound the increment span",
+			uid:  "u1",
+			observations: []oauthScaleObservation{
+				obs("u1", 1, 5, time.Time{}),
+				obs("u1", 2, 8, time.Time{}),
 			},
 			windows:      rolloutWindows,
 			wantClass:    classUnresolvedNoBaseline,
@@ -478,6 +490,54 @@ func TestEvaluateShadow_HistoricalSingleAggregatedIntervalIsUnresolved(t *testin
 	assert.Equal(t, 1, report.CandidateEvents)
 	assert.Equal(t, 0, report.AttributedUnits, "no UID/baseline -> never attributed by lastTimestamp alone")
 	assert.Equal(t, 1, report.UnresolvedUnits)
+}
+
+// TestEvaluateShadow_HistoricalCountsUnresolved confirms that the historically observed
+// cumulative counts (e.g. 56, 64) on a single aggregated interval with no UID/baseline are
+// Unresolved and never attributed. We must not claim these counts are now accounted for.
+func TestEvaluateShadow_HistoricalCountsUnresolved(t *testing.T) {
+	for _, count := range []int{31, 56, 64} {
+		t.Run(fmt.Sprintf("count-%d", count), func(t *testing.T) {
+			intervals := monitorapi.Intervals{
+				e2eInterval(fullT(suffixT1TrustedCA), "Passed", testBase.Add(10*time.Minute), testBase.Add(14*time.Minute)),
+				e2eInterval(fullT(suffixT4FullLoginFlow), "Passed", testBase.Add(62*time.Minute), testBase.Add(67*time.Minute)),
+				kubeEventInterval(kubeEventOpts{
+					namespace: oauthScaleNamespace, deployment: oauthScaleDeployment, reason: oauthScaleReason,
+					message: "(combined from similar events): Scaled up replica set oauth-openshift-788ffcfbc6 from 0 to 3",
+					count:   count,
+					first:   testBase.Add(11 * time.Minute),
+					last:    testBase.Add(63 * time.Minute),
+				}),
+			}
+			report, junits := EvaluateOAuthBoundedAccountingShadow(intervals, nil)
+			assert.Nil(t, junits[0].FailureOutput)
+			assert.Equal(t, 0, report.AttributedUnits)
+			assert.Equal(t, 1, report.UnresolvedUnits)
+			assert.Empty(t, report.PerWindowAttributed)
+		})
+	}
+}
+
+// TestEvaluateShadow_BoundedOutput confirms the rendered SystemOut is capped regardless of
+// how many candidate events are present (bounded memory/output requirement).
+func TestEvaluateShadow_BoundedOutput(t *testing.T) {
+	intervals := monitorapi.Intervals{
+		e2eInterval(fullT(suffixT4FullLoginFlow), "Passed", testBase.Add(62*time.Minute), testBase.Add(67*time.Minute)),
+	}
+	// Many distinct no-identity candidates -> many findings, but rendering must stay bounded.
+	for i := 0; i < maxRenderedCandidates+25; i++ {
+		intervals = append(intervals, kubeEventInterval(kubeEventOpts{
+			namespace: oauthScaleNamespace, deployment: oauthScaleDeployment, reason: oauthScaleReason,
+			message: "Scaled up replica set oauth-openshift-788ffcfbc6 from 0 to 3",
+			count:   30, last: testBase.Add(63 * time.Minute),
+		}))
+	}
+	_, junits := EvaluateOAuthBoundedAccountingShadow(intervals, nil)
+	require.Len(t, junits, 1)
+	assert.Nil(t, junits[0].FailureOutput)
+	lines := strings.Count(junits[0].SystemOut, "\n")
+	assert.LessOrEqual(t, lines, maxRenderedCandidates+20, "rendered output must be bounded")
+	assert.Contains(t, junits[0].SystemOut, "suppressed (bounded output)")
 }
 
 // TestLegacyAllowancesUnchanged guards that this shadow change does not alter the existing
