@@ -30,8 +30,8 @@ const (
 
 	// idleWaitTimeout bounds how long the negative test's cleanup waits for
 	// the controller to observe a withdrawn transition request (Progressing
-	// Reason=AsExpected) before uncordoning nodes. See the cleanup's own
-	// comment for why uncordoning must not race ahead of this.
+	// Reason=AsExpected and Upgradeable=True) before uncordoning nodes. See
+	// the cleanup's own comment for why uncordoning must not race ahead of this.
 	idleWaitTimeout = 5 * time.Minute
 
 	// nodeInformerPropagationWait is a buffer between cordoning a node and
@@ -100,7 +100,7 @@ func registerTransitionTest(spec TransitionSpec) {
 				if spec.From.PlatformStatus != nil {
 					fromPlatformType = platformType(spec.From.PlatformStatus)
 				}
-				g.Skip(fmt.Sprintf(
+				g.Fail(fmt.Sprintf(
 					"transition %q requires starting state controlPlaneTopology=%s infrastructureTopology=%s platformType=%s; cluster is currently controlPlaneTopology=%s infrastructureTopology=%s platformType=%s",
 					spec.Name, spec.From.ControlPlaneTopology, spec.From.InfrastructureTopology, fromPlatformType,
 					infra.Status.ControlPlaneTopology, infra.Status.InfrastructureTopology, platformType(infra.Status.PlatformStatus)))
@@ -187,11 +187,12 @@ func registerTransitionTest(spec TransitionSpec) {
 				return restoreRejectedTransition(ctx, requestAttempted,
 					func(ctx context.Context) error { return patchControlPlaneTopology(ctx, oc, originalTopology) },
 					func(ctx context.Context) error {
-						progressing, _, err := waitForTransitionConditions(ctx, oc, idleWaitTimeout, func(progressing, _ *operatorv1.OperatorCondition) bool {
-							return progressing != nil && progressing.Reason == reasonAsExpected
+						progressing, upgradeable, err := waitForTransitionConditions(ctx, oc, idleWaitTimeout, func(progressing, upgradeable *operatorv1.OperatorCondition) bool {
+							return progressing != nil && progressing.Reason == reasonAsExpected &&
+								upgradeable != nil && upgradeable.Status == operatorv1.ConditionTrue
 						})
 						if err != nil {
-							return fmt.Errorf("last progressing condition %s: %w", conditionSummary(progressing), err)
+							return fmt.Errorf("last progressing condition %s, last upgradeable condition %s: %w", conditionSummary(progressing), conditionSummary(upgradeable), err)
 						}
 						return nil
 					},
@@ -228,20 +229,16 @@ func registerTransitionTest(spec TransitionSpec) {
 			o.Expect(patchControlPlaneTopology(ctx, oc, spec.To.ControlPlaneTopology)).To(o.Succeed(), "failed to request transition to %s", spec.To.ControlPlaneTopology)
 
 			g.By("expecting the controller to withhold admission with PreflightCheckFailed")
-			// Checking Status and Reason together in a single predicate (rather
-			// than waiting on Status alone and inspecting Reason afterwards) is
-			// required for correctness here: on a freshly idle cluster the
-			// Progressing condition is already False (Reason=AsExpected) before
-			// this test's patch takes effect, so a Status-only wait would return
-			// immediately on that stale value instead of waiting for the
-			// controller to actually run preflight and reject the request. The
-			// Message is also checked so this test only passes if the
-			// controller rejected for the specific reason it is exercising, not
-			// some other, coincidentally-also-failing preflight check.
-			progressing, _, err := waitForTransitionConditions(ctx, oc, spec.AdmissionWaitTimeout, func(progressing, _ *operatorv1.OperatorCondition) bool {
+			// Progressing is already False while idle, so also check the rejection
+			// reason and message to prove this request failed the intended preflight
+			// check. The rejected request remains pending and blocks upgrades, so
+			// Upgradeable must be False. Cleanup clears the request and waits for
+			// Reason=AsExpected and Upgradeable=True before uncordoning nodes.
+			progressing, _, err := waitForTransitionConditions(ctx, oc, spec.AdmissionWaitTimeout, func(progressing, upgradeable *operatorv1.OperatorCondition) bool {
 				return progressing != nil && progressing.Status == operatorv1.ConditionFalse &&
 					progressing.Reason == preflightCheckFailedReason &&
-					strings.Contains(progressing.Message, spec.ExpectedScheduleFailureSubstring)
+					strings.Contains(progressing.Message, spec.ExpectedScheduleFailureSubstring) &&
+					upgradeable != nil && upgradeable.Status == operatorv1.ConditionFalse
 			})
 			o.Expect(err).NotTo(o.HaveOccurred(), "expected preflight rejection for an unschedulable control plane")
 			o.Expect(progressing).NotTo(o.BeNil(), "expected a Progressing condition after the rejection")
