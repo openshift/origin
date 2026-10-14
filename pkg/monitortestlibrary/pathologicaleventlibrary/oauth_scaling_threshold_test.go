@@ -54,9 +54,9 @@ func kubeEventWithDeployment(namespace, deployment, reason string, count int) mo
 	}
 }
 
-// TestAuthenticationComponentProxyScalingReplicaSet_Threshold70 covers the boundary of the
+// TestAuthenticationComponentProxyScalingReplicaSet_ThresholdBoundary covers the boundary of the
 // scoped exception directly on the registered matcher.
-func TestAuthenticationComponentProxyScalingReplicaSet_Threshold70(t *testing.T) {
+func TestAuthenticationComponentProxyScalingReplicaSet_ThresholdBoundary(t *testing.T) {
 	events := monitorapi.Intervals{componentProxyE2EInterval()}
 	registry := NewUniversalPathologicalEventMatchers(nil, events)
 
