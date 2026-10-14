@@ -50,9 +50,16 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Podman and CRI-O version comp
 	g.BeforeEach(func(ctx context.Context) {
 		nodeutils.EnsureNodesReady(ctx, oc)
 
-		topology, err := exutil.GetControlPlaneTopology(oc)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get control plane topology")
-		clusterType = string(*topology)
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if isMicroShift {
+			clusterType = "MicroShift"
+		} else {
+			topology, topoErr := exutil.GetControlPlaneTopology(oc)
+			o.Expect(topoErr).NotTo(o.HaveOccurred())
+			clusterType = string(*topology)
+		}
 		e2e.Logf("Cluster Topology: %s", clusterType)
 
 		// Select test node: check for pure worker nodes first, then master+worker nodes, then master-only
@@ -693,5 +700,243 @@ spec:
 		finalLayerCount, err := strconv.Atoi(strings.TrimSpace(finalLayersOut))
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(finalLayerCount).To(o.BeNumerically(">=", baselineLayerCount), "layer count must never decrease: baseline=%d final=%d", baselineLayerCount, finalLayerCount)
+	})
+
+	//author: njagan@redhat.com
+	//Confirms a node recovers cleanly after mixed Podman/CRI-O activity
+	g.It("Confirm a node recovers cleanly after mixed Podman/CRI-O activity [Disruptive][Serial]", func(ctx context.Context) {
+		podmanTestContainer := "podman-test"
+		podmanImage := "registry.access.redhat.com/ubi9/ubi-minimal:latest"
+		crioTestPod := "crio-test"
+		crioImage := "registry.access.redhat.com/ubi9/httpd-24:latest"
+
+		e2e.Logf("Cluster Type: %s | Test Node: %s", clusterType, testNode)
+
+		defer func() {
+			execOnNodeWithChroot(ctx, oc, testNode, "podman", "rm", "-f", podmanTestContainer)
+			oc.AsAdmin().WithoutNamespace().Run("delete").Args("pod", crioTestPod, "--ignore-not-found").Execute()
+		}()
+
+		g.By("Step 1: Create Podman container on target node")
+		_, err := execOnNodeWithChroot(ctx, oc, testNode, "podman", "pull", podmanImage)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Podman pull failed on node %s", testNode)
+		_, err = execOnNodeWithChroot(ctx, oc, testNode, "podman", "run", "-d",
+			"--name", podmanTestContainer, podmanImage, "sleep", "3600")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Podman run failed on node %s", testNode)
+		e2e.Logf("Podman container %s created on %s", podmanTestContainer, testNode)
+
+		g.By("Step 2: Create CRI-O managed pod on target node")
+		overrides := fmt.Sprintf(`{"spec":{"nodeName":"%s"}}`, testNode)
+		err = oc.AsAdmin().WithoutNamespace().Run("run").Args(
+			crioTestPod, "--image="+crioImage, "--restart=Always",
+			"--overrides="+overrides, "--", "sleep", "3600").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred(), "Pod creation failed")
+		_, err = oc.AsAdmin().WithoutNamespace().Run("wait").Args(
+			"--for=condition=Ready", "pod/"+crioTestPod, "--timeout=120s").Output()
+		o.Expect(err).NotTo(o.HaveOccurred(), "Pod %s not ready", crioTestPod)
+		e2e.Logf("CRI-O pod %s running on %s", crioTestPod, testNode)
+
+		g.By("Step 3: Verify pre-reboot state")
+		preReboot, err := execOnNodeWithChroot(ctx, oc, testNode, "podman", "ps", "-a")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(preReboot).To(o.ContainSubstring(podmanTestContainer), "Podman container not found before reboot")
+
+		g.By("Step 4: Reboot the node")
+		execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c", "systemctl reboot")
+		time.Sleep(10 * time.Second)
+
+		g.By("Step 5: Wait for node to recover")
+		recoveryTimeout := 5 * time.Minute
+		if clusterType == "SingleReplica" || clusterType == "MicroShift" {
+			recoveryTimeout = 10 * time.Minute
+		}
+		o.Eventually(func() error {
+			output, getErr := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+				"node", testNode, "-o=jsonpath={.status.conditions[?(@.type=='Ready')].status}").Output()
+			if getErr != nil {
+				return getErr
+			}
+			if strings.TrimSpace(output) != "True" {
+				return fmt.Errorf("node not ready yet")
+			}
+			return nil
+		}, recoveryTimeout, 10*time.Second).Should(o.Succeed(), "Node %s did not recover after reboot", testNode)
+		e2e.Logf("Node %s recovered and Ready", testNode)
+
+		g.By("Step 6: Check CRI-O health - no storage corruption")
+		statusOutput, err := execOnNodeWithChroot(ctx, oc, testNode, "systemctl", "status", "crio")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(statusOutput).To(o.ContainSubstring("active (running)"), "CRI-O not running after reboot")
+
+		journalOutput, _ := execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			"journalctl -u crio --since '-10min' | grep -iE 'wiping containers|storage is corrupt|repairing storage'")
+		o.Expect(strings.TrimSpace(journalOutput)).To(o.BeEmpty(),
+			"Found storage corruption indicators in CRI-O journal: %s", journalOutput)
+		e2e.Logf("CRI-O healthy - no storage corruption detected")
+
+		g.By("Step 7: Verify Podman data persisted through reboot")
+		postReboot, err := execOnNodeWithChroot(ctx, oc, testNode, "podman", "ps", "-a")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(postReboot).To(o.ContainSubstring(podmanTestContainer),
+			"Podman container %s did not persist after reboot", podmanTestContainer)
+
+		g.By("Step 8: Verify CRI-O workload recovered")
+		_, err = oc.AsAdmin().WithoutNamespace().Run("wait").Args(
+			"--for=condition=Ready", "pod/"+crioTestPod, "--timeout=120s").Output()
+		o.Expect(err).NotTo(o.HaveOccurred(), "CRI-O pod %s did not recover after reboot", crioTestPod)
+
+		e2e.Logf("PASSED: Node %s recovered cleanly - no storage corruption, Podman data persisted, CRI-O workload recovered", testNode)
+	})
+
+	//author: njagan@redhat.com
+	//Confirms CRI-O doesn't wrongly repair healthy storage after the bump
+	g.It("Confirm CRI-O doesn't wrongly repair healthy storage after the bump [Disruptive][Serial]", func(ctx context.Context) {
+		e2e.Logf("Cluster Type: %s | Test Node: %s", clusterType, testNode)
+
+		g.By("Step 1: Confirm node has real data - CRI-O version and existing images")
+		crioVersion, err := execOnNodeWithChroot(ctx, oc, testNode, "crio", "version")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("CRI-O version:\n%s", crioVersion)
+
+		imagesBefore, err := execOnNodeWithChroot(ctx, oc, testNode, "crictl", "images")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(imagesBefore).NotTo(o.BeEmpty(), "No images found on node - need real data")
+		imageCountBefore := strings.Count(imagesBefore, "\n")
+		e2e.Logf("Images before restart: %d lines", imageCountBefore)
+
+		g.By("Step 2: Confirm internal_repair is enabled")
+		repairConfig, err := execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			"crio config 2>&1 | grep -i internal_repair")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(repairConfig).To(o.ContainSubstring("true"),
+			"internal_repair should be enabled, got: %s", repairConfig)
+		e2e.Logf("internal_repair config: %s", strings.TrimSpace(repairConfig))
+
+		g.By("Step 3: Restart CRI-O to trigger integrity check")
+		_, err = execOnNodeWithChroot(ctx, oc, testNode, "systemctl", "restart", "crio")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		time.Sleep(5 * time.Second)
+
+		g.By("Step 4: Check startup logs for repair findings")
+		journalOutput, _ := execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			"journalctl -u crio --since '-1min' | grep -iE 'repairing storage|storage is corrupt|wiping containers|removing incomplete layer'")
+		o.Expect(strings.TrimSpace(journalOutput)).To(o.BeEmpty(),
+			"CRI-O should not report storage corruption on healthy storage: %s", journalOutput)
+		e2e.Logf("No repair/corrupt/incomplete messages found in CRI-O logs")
+
+		g.By("Step 5: Confirm nothing was deleted - all images intact")
+		imagesAfter, err := execOnNodeWithChroot(ctx, oc, testNode, "crictl", "images")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		imageCountAfter := strings.Count(imagesAfter, "\n")
+		o.Expect(imageCountAfter).To(o.BeNumerically(">=", imageCountBefore),
+			"Images were deleted during restart: before=%d, after=%d", imageCountBefore, imageCountAfter)
+		e2e.Logf("Images after restart: %d lines (before: %d)", imageCountAfter, imageCountBefore)
+
+		g.By("Step 6: Confirm workloads undisturbed")
+		nodeutils.EnsureNodesReady(ctx, oc)
+		e2e.Logf("All nodes ready - workloads undisturbed")
+
+		e2e.Logf("PASSED: CRI-O did not wrongly repair healthy storage on %s", testNode)
+	})
+
+	//author: njagan@redhat.com
+	//Verifies cross-tool image sharing between Podman and CRI-O
+	g.It("Verify Podman and CRI-O share pulled images and layers correctly", func(ctx context.Context) {
+		podmanPullImage := "registry.access.redhat.com/ubi9/httpd-24:latest"
+		crioPullImage := "registry.access.redhat.com/ubi9/python-311:latest"
+		sharedPullImage := "registry.access.redhat.com/ubi9/nodejs-20:latest"
+		crioPod := "shared-storage-test"
+
+		e2e.Logf("Cluster Type: %s | Test Node: %s", clusterType, testNode)
+
+		defer func() {
+			oc.AsAdmin().WithoutNamespace().Run("delete").Args("pod", crioPod, "--ignore-not-found").Execute()
+			execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+				fmt.Sprintf("podman rm -af 2>/dev/null; podman rmi %s %s %s 2>/dev/null; crictl rmi %s %s %s 2>/dev/null",
+					podmanPullImage, crioPullImage, sharedPullImage, podmanPullImage, crioPullImage, sharedPullImage))
+		}()
+
+		g.By("Step 1: Podman pulls image, CRI-O runs it without re-downloading")
+
+		execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			fmt.Sprintf("podman rmi %s 2>/dev/null; crictl rmi %s 2>/dev/null", podmanPullImage, podmanPullImage))
+
+		_, err := execOnNodeWithChroot(ctx, oc, testNode, "podman", "pull", podmanPullImage)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Podman pull failed for %s", podmanPullImage)
+
+		podmanID, err := execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			fmt.Sprintf("podman inspect %s --format '{{.Id}}'", podmanPullImage))
+		o.Expect(err).NotTo(o.HaveOccurred())
+		podmanID = strings.TrimSpace(podmanID)
+		e2e.Logf("Podman image ID: %s", podmanID)
+
+		overrides := fmt.Sprintf(`{"spec":{"nodeName":"%s"}}`, testNode)
+		err = oc.AsAdmin().WithoutNamespace().Run("run").Args(
+			crioPod, "--image="+podmanPullImage, "--restart=Always",
+			"--overrides="+overrides, "--", "sleep", "3600").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred(), "Pod creation failed")
+
+		_, err = oc.AsAdmin().WithoutNamespace().Run("wait").Args(
+			"--for=condition=Ready", "pod/"+crioPod, "--timeout=120s").Output()
+		o.Expect(err).NotTo(o.HaveOccurred(), "Pod %s not ready", crioPod)
+
+		crioImages, err := execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			"crictl images | grep httpd-24")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(crioImages).NotTo(o.BeEmpty(), "CRI-O should see the Podman-pulled image")
+		e2e.Logf("CRI-O sees image: %s", strings.TrimSpace(crioImages))
+		e2e.Logf("PASSED: Podman-pulled image used by CRI-O, pod running successfully")
+
+		g.By("Step 2: CRI-O pulls image, Podman inspects and runs it")
+
+		execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			fmt.Sprintf("podman rmi %s 2>/dev/null; crictl rmi %s 2>/dev/null", crioPullImage, crioPullImage))
+
+		_, err = execOnNodeWithChroot(ctx, oc, testNode, "crictl", "pull", crioPullImage)
+		o.Expect(err).NotTo(o.HaveOccurred(), "CRI-O pull failed for %s", crioPullImage)
+
+		podmanImages, err := execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			"podman images | grep python-311")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(podmanImages).NotTo(o.BeEmpty(), "Podman should see the CRI-O-pulled image")
+		e2e.Logf("Podman sees CRI-O image: %s", strings.TrimSpace(podmanImages))
+
+		runOutput, err := execOnNodeWithChroot(ctx, oc, testNode, "podman", "run", "--rm",
+			crioPullImage, "echo", "hello from podman")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Podman run of CRI-O-pulled image failed")
+		o.Expect(runOutput).To(o.ContainSubstring("hello from podman"))
+		e2e.Logf("PASSED: CRI-O-pulled image visible and runnable by Podman")
+
+		g.By("Step 3: Same image tag pulled by both tools back-to-back, no duplicate layers")
+
+		execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			fmt.Sprintf("podman rmi %s 2>/dev/null; crictl rmi %s 2>/dev/null", sharedPullImage, sharedPullImage))
+
+		_, err = execOnNodeWithChroot(ctx, oc, testNode, "podman", "pull", sharedPullImage)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Podman pull failed for %s", sharedPullImage)
+
+		podmanSharedID, err := execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			fmt.Sprintf("podman inspect %s --format '{{.Id}}'", sharedPullImage))
+		o.Expect(err).NotTo(o.HaveOccurred())
+		podmanSharedID = strings.TrimSpace(podmanSharedID)
+		e2e.Logf("Podman image ID: %s", podmanSharedID)
+
+		_, err = execOnNodeWithChroot(ctx, oc, testNode, "crictl", "pull", sharedPullImage)
+		o.Expect(err).NotTo(o.HaveOccurred(), "CRI-O pull failed for %s", sharedPullImage)
+
+		crioSharedImages, err := execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			"crictl images | grep nodejs-20")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(crioSharedImages).NotTo(o.BeEmpty(), "CRI-O should see the image")
+		o.Expect(crioSharedImages).To(o.ContainSubstring(podmanSharedID[:12]),
+			"CRI-O and Podman should share the same image ID")
+		e2e.Logf("CRI-O sees image: %s", strings.TrimSpace(crioSharedImages))
+
+		journalOutput, _ := execOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			"journalctl -u crio --since '-2min' | grep -iE 'error creating read-write layer'")
+		o.Expect(strings.TrimSpace(journalOutput)).To(o.BeEmpty(),
+			"Found layer errors in CRI-O journal: %s", journalOutput)
+
+		e2e.Logf("PASSED: All cross-tool image sharing tests passed on %s", testNode)
 	})
 })
