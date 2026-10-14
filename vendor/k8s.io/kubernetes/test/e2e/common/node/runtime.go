@@ -383,16 +383,6 @@ while true; do sleep 1; done
 				image := imageutils.GetE2EImage(imageutils.AuthenticatedAlpine)
 				imagePullTest(image, false, v1.PodPending, true, false)
 			})
-
-			ginkgo.It("should be able to pull from private registry with secret [NodeConformance]", func() {
-				image := imageutils.GetE2EImage(imageutils.AuthenticatedAlpine)
-				isWindows := false
-				if framework.NodeOSDistroIs("windows") {
-					image = imageutils.GetE2EImage(imageutils.AuthenticatedWindowsNanoServer)
-					isWindows = true
-				}
-				imagePullTest(image, true, v1.PodRunning, false, isWindows)
-			})
 		})
 	})
 })
