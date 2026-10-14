@@ -1,0 +1,12 @@
+# The poller only needs to read the stop configmap in its own namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: host-connection-integrity-poller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: host-connection-integrity-poller
+subjects:
+- kind: ServiceAccount
+  name: default
