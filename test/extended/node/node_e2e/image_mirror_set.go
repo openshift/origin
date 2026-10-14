@@ -476,4 +476,225 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		o.Expect(registriesConfAfterIDMSDelete).To(o.ContainSubstring(`location = "registry.example.com/example/myimage"`),
 			"registries.conf should still contain ICSP2 entries for registry.example.com/example/myimage")
 	})
+
+	// author: aksjadha@redhat.com
+	g.It("[Skipped:Disconnected] Verify IDMS mirror configuration applied to Podman and CRI-O with fallback behavior [OCPNODE-4812]", func(ctx context.Context) {
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to check if cluster is MicroShift")
+
+		topology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get control plane topology")
+		clusterType := string(*topology)
+
+		if isMicroShift || clusterType == "External" {
+			g.Skip("IDMS and MachineConfigPool are not available on MicroShift or External topology clusters")
+		}
+
+		configClient := oc.AdminConfigClient().ConfigV1()
+		suffix := utilrand.String(5)
+		idmsName := fmt.Sprintf("podman-crio-fallback-%s", suffix)
+		testImage := "registry.access.redhat.com/ubi9/ubi-minimal"
+		var pullImageByDigest string
+		var testNode string
+		var nodeRole string
+
+		g.By("Select test node based on cluster topology")
+		e2e.Logf("Cluster topology: %s", clusterType)
+
+		// Only pause master pool if NOT running on SNO (SingleReplica)
+		// SNO needs master MCP to rollout for IDMS changes
+		if clusterType != "SingleReplica" {
+			g.By("Pause master pool to avoid master drains during test")
+			pauseMasterPool(oc)
+			g.DeferCleanup(func() { unpauseMasterPool(oc) })
+		}
+
+		workerNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
+			LabelSelector: "node-role.kubernetes.io/worker",
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to list worker nodes")
+
+		var pureWorkerNode string
+		if len(workerNodes.Items) > 0 {
+			for _, node := range workerNodes.Items {
+				if _, hasMasterLabel := node.Labels["node-role.kubernetes.io/master"]; !hasMasterLabel {
+					pureWorkerNode = node.Name
+					break
+				}
+			}
+		}
+
+		if pureWorkerNode != "" {
+			testNode = pureWorkerNode
+			nodeRole = "worker"
+		} else if len(workerNodes.Items) > 0 {
+			testNode = workerNodes.Items[0].Name
+			nodeRole = "master"
+		} else {
+			masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
+				LabelSelector: "node-role.kubernetes.io/master",
+			})
+			o.Expect(err).NotTo(o.HaveOccurred(), "Failed to list master nodes")
+			o.Expect(masterNodes.Items).NotTo(o.BeEmpty(), "No master nodes found")
+			testNode = masterNodes.Items[0].Name
+			nodeRole = "master"
+		}
+		e2e.Logf("Selected test node with role: %s", nodeRole)
+
+		cleanupIDMS := func(ctx context.Context) {
+			g.By("Cleanup: Delete IDMS and wait for MCP rollout")
+			err := configClient.ImageDigestMirrorSets().Delete(ctx, idmsName, metav1.DeleteOptions{})
+			if err == nil {
+				e2e.Logf("IDMS %s deleted", idmsName)
+
+				mcpName := "worker"
+				if nodeRole == "master" {
+					mcpName = "master"
+				}
+
+				e2e.Logf("Waiting for MCP %s rollout to start after IDMS deletion", mcpName)
+				waitErr := wait.PollImmediate(5*time.Second, 3*time.Minute, func() (bool, error) {
+					updating, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("mcp/"+mcpName,
+						"-o=jsonpath={.status.conditions[?(@.type=='Updating')].status}").Output()
+					return fmt.Sprintf("%s", updating) == "True", nil
+				})
+				o.Expect(waitErr).NotTo(o.HaveOccurred(), "MCP rollout did not start after IDMS deletion")
+
+				e2e.Logf("Waiting for MCP %s rollout to complete after IDMS deletion", mcpName)
+				waitErr = wait.PollImmediate(10*time.Second, 10*time.Minute, func() (bool, error) {
+					updated, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("mcp/"+mcpName,
+						"-o=jsonpath={.status.conditions[?(@.type=='Updated')].status}").Output()
+					updating, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("mcp/"+mcpName,
+						"-o=jsonpath={.status.conditions[?(@.type=='Updating')].status}").Output()
+					return fmt.Sprintf("%s", updated) == "True" && fmt.Sprintf("%s", updating) == "False", nil
+				})
+				o.Expect(waitErr).NotTo(o.HaveOccurred(), "MCP rollout did not complete after IDMS deletion")
+			}
+
+			if pullImageByDigest != "" {
+				nodeutils.ExecOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+					fmt.Sprintf("crictl rmi %s 2>/dev/null || true; podman rmi %s 2>/dev/null || true", pullImageByDigest, pullImageByDigest))
+			}
+			nodeutils.ExecOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+				fmt.Sprintf("crictl rmi %s 2>/dev/null || true; podman rmi %s 2>/dev/null || true", testImage, testImage))
+		}
+		g.DeferCleanup(cleanupIDMS)
+
+		g.By("Step 1: Create ImageDigestMirrorSet with fake mirror and real source as fallback")
+		idms := &configv1.ImageDigestMirrorSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: idmsName,
+			},
+			Spec: configv1.ImageDigestMirrorSetSpec{
+				ImageDigestMirrors: []configv1.ImageDigestMirrors{
+					{
+						Source: "registry.access.redhat.com/ubi9/ubi-minimal",
+						Mirrors: []configv1.ImageMirror{
+							"quay.io/does-not-exist-idms-test/ubi9-minimal",
+							"registry.access.redhat.com/ubi9/ubi-minimal",
+						},
+						MirrorSourcePolicy: configv1.AllowContactingSource,
+					},
+				},
+			},
+		}
+
+		_, err = configClient.ImageDigestMirrorSets().Create(ctx, idms, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to create IDMS")
+		e2e.Logf("Created IDMS %s with fake mirror quay.io/does-not-exist-idms-test", idmsName)
+
+		mcpName := "worker"
+		if clusterType == "SingleReplica" {
+			mcpName = "master"
+		}
+
+		g.By(fmt.Sprintf("Step 2: Wait for MCP %s rollout to start after IDMS creation", mcpName))
+		waitErr := wait.PollImmediate(5*time.Second, 3*time.Minute, func() (bool, error) {
+			updating, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("mcp/"+mcpName,
+				"-o=jsonpath={.status.conditions[?(@.type=='Updating')].status}").Output()
+			return fmt.Sprintf("%s", updating) == "True", nil
+		})
+		o.Expect(waitErr).NotTo(o.HaveOccurred(), "MCP rollout did not start after IDMS creation")
+
+		g.By(fmt.Sprintf("Step 3: Wait for MCP %s rollout to complete", mcpName))
+		waitErr = wait.PollImmediate(10*time.Second, 10*time.Minute, func() (bool, error) {
+			updated, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("mcp/"+mcpName,
+				"-o=jsonpath={.status.conditions[?(@.type=='Updated')].status}").Output()
+			updating, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("mcp/"+mcpName,
+				"-o=jsonpath={.status.conditions[?(@.type=='Updating')].status}").Output()
+			return fmt.Sprintf("%s", updated) == "True" && fmt.Sprintf("%s", updating) == "False", nil
+		})
+		o.Expect(waitErr).NotTo(o.HaveOccurred(), "MCP rollout did not complete")
+		e2e.Logf("MCP %s rollout completed", mcpName)
+
+		g.By("Step 4: Verify IDMS mirror configuration is present in node registries.conf")
+		var mirrorFound bool
+		waitErr = wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
+			mirrorConfig, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+				"cat /etc/containers/registries.conf | grep -A6 ubi-minimal || true")
+			if err == nil && fmt.Sprintf("%s", mirrorConfig) != "" {
+				configStr := fmt.Sprintf("%s", mirrorConfig)
+				if len(configStr) > 0 {
+					mirrorFound = true
+					return true, nil
+				}
+			}
+			return false, nil
+		})
+		o.Expect(waitErr).NotTo(o.HaveOccurred(), "IDMS mirror config not found in node registries.conf")
+		o.Expect(mirrorFound).To(o.BeTrue(), "IDMS mirror was not applied to registries.conf on node")
+		e2e.Logf("Verified IDMS mirror configuration in registries.conf")
+
+		g.By("Step 5: Clear image cache from Podman and CRI-O shared storage")
+		nodeutils.ExecOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			fmt.Sprintf("crictl rmi %s 2>/dev/null || true; podman rmi %s 2>/dev/null || true", testImage, testImage))
+
+		crioCheck, _ := nodeutils.ExecOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			"crictl images | grep ubi-minimal || true")
+		podmanCheck, _ := nodeutils.ExecOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			"podman images | grep ubi-minimal || true")
+		o.Expect(fmt.Sprintf("%s", crioCheck)).To(o.BeEmpty(), "CRI-O cache not cleared")
+		o.Expect(fmt.Sprintf("%s", podmanCheck)).To(o.BeEmpty(), "Podman cache not cleared")
+
+		g.By("Step 6: Get image digest for digest-based pull")
+		digestCmd := fmt.Sprintf("skopeo inspect docker://%s 2>/dev/null | python3 -c \"import sys,json; print(json.load(sys.stdin)['Digest'])\"", testImage)
+		digest, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, testNode, "sh", "-c", digestCmd)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get image digest via skopeo")
+		digest = fmt.Sprintf("%s", digest)
+		o.Expect(digest).NotTo(o.BeEmpty(), "Image digest is empty")
+
+		pullImageByDigest = testImage + "@" + digest
+		e2e.Logf("Image digest: %s", digest)
+
+		g.By("Step 7: Pull image by digest via CRI-O and verify fake mirror was attempted")
+		_, err = nodeutils.ExecOnNodeWithChroot(ctx, oc, testNode, "crictl", "pull", pullImageByDigest)
+		o.Expect(err).NotTo(o.HaveOccurred(), "CRI-O pull by digest failed")
+
+		crioLogs, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			"journalctl -u crio --since '-2m'")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get CRI-O journal logs")
+		o.Expect(crioLogs).To(o.ContainSubstring("does-not-exist-idms-test"),
+			"CRI-O did not attempt fake mirror - IDMS configuration was not applied by CRI-O")
+		e2e.Logf("Verified CRI-O attempted fake mirror and fell back to real source")
+
+		g.By("Step 8: Clear cache again and pull image by digest via Podman with debug logging")
+		nodeutils.ExecOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			fmt.Sprintf("crictl rmi %s 2>/dev/null || true; podman rmi %s 2>/dev/null || true", pullImageByDigest, pullImageByDigest))
+
+		crioVerify, _ := nodeutils.ExecOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			"crictl images | grep ubi-minimal || true")
+		podmanVerify, _ := nodeutils.ExecOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			"podman images | grep ubi-minimal || true")
+		o.Expect(fmt.Sprintf("%s", crioVerify)).To(o.BeEmpty(), "CRI-O cache not cleared before Podman test")
+		o.Expect(fmt.Sprintf("%s", podmanVerify)).To(o.BeEmpty(), "Podman cache not cleared before Podman test")
+
+		g.By("Step 9: Pull image by digest via Podman and verify fake mirror was attempted")
+		podmanOutput, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, testNode, "sh", "-c",
+			fmt.Sprintf("podman pull --log-level=debug %s 2>&1", pullImageByDigest))
+		o.Expect(err).NotTo(o.HaveOccurred(), "Podman pull by digest failed")
+
+		o.Expect(podmanOutput).To(o.ContainSubstring("does-not-exist-idms-test"),
+			"Podman did not attempt fake mirror - IDMS configuration was not applied by Podman")
+		e2e.Logf("Verified Podman attempted fake mirror and fell back to real source")
+	})
 })
