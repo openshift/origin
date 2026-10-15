@@ -104,6 +104,22 @@ func TestCreateIntervalsFromMetrics(t *testing.T) {
 	}
 }
 
+func TestCreateIntervalsSplitsOnMissingSamples(t *testing.T) {
+	start := time.Date(2026, 9, 22, 15, 0, 0, 0, time.UTC)
+	faults := matrix("master-0", start, 100, 200, 300, 400)
+	// Drop the third sample, as Prometheus does for a step with no value.
+	faults[0].Values = append(faults[0].Values[:2], faults[0].Values[3])
+
+	collector := &memoryThrashingCollector{majorFaultsThreshold: 50}
+	intervals := collector.createIntervalsFromMetrics(logrus.WithField("test", "gap"), faults, prometheustypes.Matrix{}, map[string]nodeInfo{})
+
+	require.Len(t, intervals, 2)
+	assert.WithinDuration(t, start, intervals[0].From, 0)
+	assert.WithinDuration(t, start.Add(60*time.Second), intervals[0].To, 0)
+	assert.WithinDuration(t, start.Add(90*time.Second), intervals[1].From, 0)
+	assert.WithinDuration(t, start.Add(120*time.Second), intervals[1].To, 0)
+}
+
 func TestCreateIntervalsUnknownNodeFallsBackToInstance(t *testing.T) {
 	start := time.Date(2026, 9, 22, 15, 0, 0, 0, time.UTC)
 	collector := &memoryThrashingCollector{majorFaultsThreshold: 50}

@@ -203,6 +203,12 @@ func (w *memoryThrashingCollector) createIntervalsFromMetrics(logger logrus.Fiel
 		for _, sample := range promSampleStream.Values {
 			ts := sample.Timestamp.Time()
 			faultRate := float64(sample.Value)
+			// Prometheus omits steps with no value (e.g. failed scrapes), so a gap ends the
+			// current interval rather than bridging it.
+			if current != nil && ts.After(current.end) {
+				ret = append(ret, w.recordInterval(*current))
+				current = nil
+			}
 			if faultRate > w.majorFaultsThreshold {
 				if current == nil {
 					current = &thrashingInterval{nodeName: info.name, nodeRole: info.nodeRole, start: ts}
