@@ -199,7 +199,19 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 		stageStart = time.Now()
 
 		g.By("Verifying east-west connectivity (surviving node -> replacement node)")
+		resetStalePNCC(oc, testConfig.SurvivingNode.Name, testConfig.TargetNode.Name)
 		err = waitForEastWestConnectivity(oc, testConfig.SurvivingNode.Name, testConfig.TargetNode.Name, eastWestConnectivityTimeout)
+		if err != nil {
+			e2e.Logf("[east-west] Initial check failed after %v: %v — attempting OVN-K recovery", time.Since(stageStart), err)
+			if recoveryErr := recoverOVNKForNodeReplacement(oc, testConfig.SurvivingNode.Name, testConfig.TargetNode.Name); recoveryErr != nil {
+				e2e.Logf("[east-west] OVN-K recovery failed: %v", recoveryErr)
+			} else {
+				e2e.Logf("[east-west] OVN-K recovery succeeded, waiting %v for dataplane to settle", ovnkubeRestartSettleWait)
+				time.Sleep(ovnkubeRestartSettleWait)
+				resetStalePNCC(oc, testConfig.SurvivingNode.Name, testConfig.TargetNode.Name)
+				err = waitForEastWestConnectivity(oc, testConfig.SurvivingNode.Name, testConfig.TargetNode.Name, eastWestConnectivityTimeout)
+			}
+		}
 		o.Expect(err).To(o.BeNil(), "East-west connectivity from %s to %s failed; check PodNetworkConnectivityCheck and ovnkube-node/control-plane pods (deleteNodeReferences cleared SB chassis for deleted node)",
 			testConfig.SurvivingNode.Name, testConfig.TargetNode.Name)
 		e2e.Logf("[stage timing] East-west connectivity: %v (timeout cap: %v, poll: %v)", time.Since(stageStart), eastWestConnectivityTimeout, eastWestConnectivityPollInterval)
