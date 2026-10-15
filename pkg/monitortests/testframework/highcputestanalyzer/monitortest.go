@@ -105,6 +105,11 @@ func findE2EIntervalsOverlappingHighCPU(intervals monitorapi.Intervals) []map[st
 			continue
 		}
 
+		// Skipped tests did not really run, omit them so they are not reported as failures.
+		if testInterval.Message.Annotations[monitorapi.AnnotationStatus] == "Skipped" {
+			continue
+		}
+
 		// Check if this test overlaps with any high CPU interval
 		overlapsWithHighCPU := false
 		for _, highCPUInterval := range highCPUIntervals {

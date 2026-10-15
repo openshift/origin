@@ -156,6 +156,69 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			},
 		},
 		{
+			name: "skipped e2e test overlapping high CPU is omitted",
+			intervals: monitorapi.Intervals{
+				{
+					Display: true,
+					Source:  monitorapi.SourceCPUMonitor,
+					Condition: monitorapi.Condition{
+						Locator: monitorapi.Locator{
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorNodeKey: "test-node",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason: monitorapi.IntervalReason("HighCPUUsage"),
+						},
+					},
+					From: now,
+					To:   now.Add(20 * time.Minute),
+				},
+				{
+					Display: true,
+					Source:  monitorapi.SourceE2ETest,
+					Condition: monitorapi.Condition{
+						Locator: monitorapi.Locator{
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorE2ETestKey: "skipped-test",
+							},
+						},
+						Message: monitorapi.Message{
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationStatus: "Skipped",
+							},
+						},
+					},
+					From: now.Add(5 * time.Minute),
+					To:   now.Add(6 * time.Minute),
+				},
+				{
+					Display: true,
+					Source:  monitorapi.SourceE2ETest,
+					Condition: monitorapi.Condition{
+						Locator: monitorapi.Locator{
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorE2ETestKey: "passed-test",
+							},
+						},
+						Message: monitorapi.Message{
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationStatus: "Passed",
+							},
+						},
+					},
+					From: now.Add(5 * time.Minute),
+					To:   now.Add(15 * time.Minute),
+				},
+			},
+			expected: []map[string]string{
+				{
+					"TestName": "passed-test",
+					"Success":  "1",
+				},
+			},
+		},
+		{
 			name: "high CPU period contained within e2e test",
 			intervals: monitorapi.Intervals{
 				{
