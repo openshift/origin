@@ -173,40 +173,21 @@ func (*auditLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startin
 	return nil, nil
 }
 
-func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	ret := []*junitapi.JUnitTestCase{}
-
-	fiveHundredsTestName := "[Jira:kube-apiserver] kube-apiserver should not have internal failures"
-	apiserver500s := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Message.Reason == monitorapi.ReasonKubeAPIServer500s
-	})
-	totalDurationOf500s := 0
-	fiveHundredsFailures := []string{}
-	for _, interval := range apiserver500s {
-		totalDurationOf500s += int(interval.To.Sub(interval.From).Seconds()) + 1
-		fiveHundredsFailures = append(fiveHundredsFailures, interval.String())
-	}
-	if totalDurationOf500s > 60 {
-		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: fiveHundredsTestName,
+// flakeResults returns same-name failure and pass results because downstream consumers recognize the pair as a flake.
+func flakeResults(testName, output string) []*junitapi.JUnitTestCase {
+	return []*junitapi.JUnitTestCase{
+		{
+			Name: testName,
 			FailureOutput: &junitapi.FailureOutput{
-				Output: fmt.Sprintf("kube-apiserver had internal errors for %v seconds total\n%s", totalDurationOf500s, strings.Join(fiveHundredsFailures, "\n")),
+				Output: output,
 			},
-		})
-		// flake for now
-		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: fiveHundredsTestName,
-		})
-	} else {
-		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: fiveHundredsTestName,
-		})
+		},
+		{Name: testName},
 	}
+}
 
-	allPlatformNamespaces, err := watchnamespaces.GetAllPlatformNamespaces()
-	if err != nil {
-		return nil, fmt.Errorf("problem getting platform namespaces: %w", err)
-	}
+func (w *auditLogAnalyzer) evaluateExcessiveApplies(allPlatformNamespaces []string) []*junitapi.JUnitTestCase {
+	ret := []*junitapi.JUnitTestCase{}
 
 	for _, namespace := range allPlatformNamespaces {
 		testName := fmt.Sprintf("users in ns/%s must not produce too many applies", namespace)
@@ -214,6 +195,8 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 
 		failures := []string{}
 		flakes := []string{}
+		singleFailureApplyCount := 0
+		singleFlakeApplyCount := 0
 		for username, numberOfApplies := range usersToApplies {
 			if numberOfApplies > 200 {
 				errorMessage := fmt.Sprintf("user %v had %d applies, check the audit log and operator log to figure out why", username, numberOfApplies)
@@ -227,80 +210,58 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 					// These usernames are already creating more than 200 applies, so flake instead of fail.
 					// We really want to find a way to track namespaces created by the payload versus everything else.
 					flakes = append(flakes, errorMessage)
+					singleFlakeApplyCount = numberOfApplies
 				default:
 					failures = append(failures, errorMessage)
+					singleFailureApplyCount = numberOfApplies
 				}
 			}
 		}
 
-		switch {
-		case len(failures) > 1:
-			ret = append(ret,
-				&junitapi.JUnitTestCase{
-					Name: testName,
-					FailureOutput: &junitapi.FailureOutput{
-						Output: fmt.Sprintf("%s\ndetails in audit log", strings.Join(failures, "\n")),
-					},
-				},
-			)
-
-		case len(flakes) > 1:
-			ret = append(ret,
-				&junitapi.JUnitTestCase{
-					Name: testName,
-					FailureOutput: &junitapi.FailureOutput{
-						Output: fmt.Sprintf("%s\ndetails in audit log", strings.Join(flakes, "\n")),
-					},
-				},
-			)
-			ret = append(ret,
-				&junitapi.JUnitTestCase{
-					Name: testName,
-				},
-			)
-
-		default:
-			ret = append(ret,
-				&junitapi.JUnitTestCase{
-					Name: testName,
-				},
-			)
+		if len(failures) == 0 && len(flakes) == 0 {
+			ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
+			continue
 		}
 
+		summaries := []string{}
+		if len(failures) == 1 {
+			summaries = append(summaries, fmt.Sprintf("one user had %d applies", singleFailureApplyCount))
+		} else {
+			summaries = append(summaries, failures...)
+		}
+		if len(flakes) == 1 {
+			summaries = append(summaries, fmt.Sprintf("one exempt user had %d applies", singleFlakeApplyCount))
+		} else {
+			summaries = append(summaries, flakes...)
+		}
+		ret = append(ret, flakeResults(testName, fmt.Sprintf("%s\ndetails in audit log", strings.Join(summaries, "\n")))...)
 	}
 
 	testName := `[Jira:"kube-apiserver"] API resources are not updated excessively`
 	flakes := []string{}
+	singleResourceApplyCount := 0
 	for resource, applies := range w.excessiveApplyChecker.resourcesToNumberOfApplies {
 		if applies.numberOfApplies < 200 {
 			continue
 		}
 		errorMessage := fmt.Sprintf("resource %s had %d applies, %s", resource, applies.numberOfApplies, applies.toErrorString())
 		flakes = append(flakes, errorMessage)
+		singleResourceApplyCount = applies.numberOfApplies
 	}
-	switch {
-	case len(flakes) > 1:
-		ret = append(ret,
-			&junitapi.JUnitTestCase{
-				Name: testName,
-				FailureOutput: &junitapi.FailureOutput{
-					Output: fmt.Sprintf("%s\ndetails in audit log", strings.Join(flakes, "\n")),
-				},
-			},
-		)
-		ret = append(ret,
-			&junitapi.JUnitTestCase{
-				Name: testName,
-			},
-		)
-
+	switch len(flakes) {
+	case 0:
+		ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
+	case 1:
+		ret = append(ret, flakeResults(testName, fmt.Sprintf("one resource had %d applies\ndetails in audit log", singleResourceApplyCount))...)
 	default:
-		ret = append(ret,
-			&junitapi.JUnitTestCase{
-				Name: testName,
-			},
-		)
+		ret = append(ret, flakeResults(testName, fmt.Sprintf("%s\ndetails in audit log", strings.Join(flakes, "\n")))...)
 	}
+
+	return ret
+}
+
+func (w *auditLogAnalyzer) evaluateInvalidRequests(allPlatformNamespaces []string) []*junitapi.JUnitTestCase {
+	ret := []*junitapi.JUnitTestCase{}
 
 	for verb, namespacesToUserToNumberOf422s := range w.invalidRequestsChecker.verbToNamespacesTouserToNumberOf422s {
 		for _, namespace := range allPlatformNamespaces {
@@ -308,7 +269,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 			usersTo422s := namespacesToUserToNumberOf422s.namespacesToInvalidUserTrackers[namespace]
 
 			failures := []string{}
-			flakes := []string{}
+			singleFailureCount := 0
 			if usersTo422s != nil {
 				for username, userInvalidRequestDetails := range usersTo422s.usersToInvalidRequests {
 					switch {
@@ -350,47 +311,63 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 							first10FailureStrings,
 							last10FailureStrings,
 						))
+						singleFailureCount = userInvalidRequestDetails.totalNumberOfFailures
 					}
 				}
 			}
 
-			switch {
-			case len(failures) > 1:
-				ret = append(ret,
-					&junitapi.JUnitTestCase{
-						Name: testName,
-						FailureOutput: &junitapi.FailureOutput{
-							Output: fmt.Sprintf("%s\nmore details in audit log", strings.Join(failures, "\n")),
-						},
-					},
-				)
-
-			case len(flakes) > 1:
-				ret = append(ret,
-					&junitapi.JUnitTestCase{
-						Name: testName,
-						FailureOutput: &junitapi.FailureOutput{
-							Output: fmt.Sprintf("%s\nmore details in audit log", strings.Join(failures, "\n")),
-						},
-					},
-				)
-				ret = append(ret,
-					&junitapi.JUnitTestCase{
-						Name: testName,
-					},
-				)
-
+			switch len(failures) {
+			case 0:
+				ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
+			case 1:
+				ret = append(ret, flakeResults(testName, fmt.Sprintf("one user had %d invalid %q requests\nmore details in audit log", singleFailureCount, verb))...)
 			default:
-				ret = append(ret,
-					&junitapi.JUnitTestCase{
-						Name: testName,
-					},
-				)
+				ret = append(ret, flakeResults(testName, fmt.Sprintf("%s\nmore details in audit log", strings.Join(failures, "\n")))...)
 			}
 		}
 	}
 
-	testName = "[sig-api-machinery][Feature:APIServer] API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients"
+	return ret
+}
+
+func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	ret := []*junitapi.JUnitTestCase{}
+
+	fiveHundredsTestName := "[Jira:kube-apiserver] kube-apiserver should not have internal failures"
+	apiserver500s := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Message.Reason == monitorapi.ReasonKubeAPIServer500s
+	})
+	totalDurationOf500s := 0
+	fiveHundredsFailures := []string{}
+	for _, interval := range apiserver500s {
+		totalDurationOf500s += int(interval.To.Sub(interval.From).Seconds()) + 1
+		fiveHundredsFailures = append(fiveHundredsFailures, interval.String())
+	}
+	if totalDurationOf500s > 60 {
+		ret = append(ret, &junitapi.JUnitTestCase{
+			Name: fiveHundredsTestName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("kube-apiserver had internal errors for %v seconds total\n%s", totalDurationOf500s, strings.Join(fiveHundredsFailures, "\n")),
+			},
+		})
+		// flake for now
+		ret = append(ret, &junitapi.JUnitTestCase{
+			Name: fiveHundredsTestName,
+		})
+	} else {
+		ret = append(ret, &junitapi.JUnitTestCase{
+			Name: fiveHundredsTestName,
+		})
+	}
+
+	allPlatformNamespaces, err := watchnamespaces.GetAllPlatformNamespaces()
+	if err != nil {
+		return nil, fmt.Errorf("problem getting platform namespaces: %w", err)
+	}
+	ret = append(ret, w.evaluateExcessiveApplies(allPlatformNamespaces)...)
+	ret = append(ret, w.evaluateInvalidRequests(allPlatformNamespaces)...)
+
+	testName := "[sig-api-machinery][Feature:APIServer] API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients"
 	w.requestsDuringShutdownChecker.correlateWithShutdownIntervals(finalIntervals)
 	switch {
 	case len(w.requestsDuringShutdownChecker.lateRequests) > 0:
