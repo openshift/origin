@@ -3,12 +3,13 @@ package nvidia
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
+	"time"
 
+	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
-	resourceapi "k8s.io/api/resource/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -24,15 +25,20 @@ type GPUValidator struct {
 	client     kubernetes.Interface
 	restConfig *rest.Config
 	framework  *framework.Framework
+	oc         *exutil.CLI
 }
 
 // NewGPUValidator creates a new validator instance
-func NewGPUValidator(f *framework.Framework) *GPUValidator {
-	return &GPUValidator{
+func NewGPUValidator(f *framework.Framework, cli ...*exutil.CLI) *GPUValidator {
+	gv := &GPUValidator{
 		client:     f.ClientSet,
 		restConfig: f.ClientConfig(),
 		framework:  f,
 	}
+	if len(cli) > 0 {
+		gv.oc = cli[0]
+	}
+	return gv
 }
 
 // ValidateGPUInPod validates that GPU is accessible in the pod
@@ -62,7 +68,7 @@ func (gv *GPUValidator) ValidateGPUInPod(ctx context.Context, namespace, podName
 	}
 
 	// Parse output to count GPUs
-	lines := strings.Split(strings.TrimSpace(output), "\n")
+	lines := strings.Split(strings.TrimSpace(stdout), "\n")
 	actualGPUCount := 0
 	for _, line := range lines {
 		if strings.TrimSpace(line) != "" {
@@ -77,83 +83,7 @@ func (gv *GPUValidator) ValidateGPUInPod(ctx context.Context, namespace, podName
 
 	framework.Logf("Successfully validated %d GPU(s) in pod %s/%s", actualGPUCount, namespace, podName)
 
-	// Validate CUDA_VISIBLE_DEVICES environment variable
-	err = gv.validateCudaVisibleDevices(ctx, namespace, podName, expectedGPUCount)
-	if err != nil {
-		framework.Logf("Warning: CUDA_VISIBLE_DEVICES validation failed: %v", err)
-		// Don't fail the test for this, as it may not always be set
-	}
-
 	return nil
-}
-
-// validateCudaVisibleDevices checks the CUDA_VISIBLE_DEVICES environment variable
-func (gv *GPUValidator) validateCudaVisibleDevices(ctx context.Context, namespace, podName string, expectedCount int) error {
-	pod, err := gv.client.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to get pod: %w", err)
-	}
-
-	envCmd := []string{"sh", "-c", "echo $CUDA_VISIBLE_DEVICES"}
-	stdout, stderr, err := e2epod.ExecWithOptions(gv.framework, e2epod.ExecOptions{
-		Command:       envCmd,
-		Namespace:     namespace,
-		PodName:       podName,
-		ContainerName: pod.Spec.Containers[0].Name,
-		CaptureStdout: true,
-		CaptureStderr: true,
-	})
-	output := stdout + stderr
-	if err != nil {
-		return fmt.Errorf("failed to get CUDA_VISIBLE_DEVICES: %w", err)
-	}
-
-	cudaDevices := strings.TrimSpace(output)
-	if cudaDevices == "" {
-		return fmt.Errorf("CUDA_VISIBLE_DEVICES is not set")
-	}
-
-	framework.Logf("CUDA_VISIBLE_DEVICES in pod %s/%s: %s", namespace, podName, cudaDevices)
-	return nil
-}
-
-// ValidateResourceSlice validates ResourceSlice for GPU node
-func (gv *GPUValidator) ValidateResourceSlice(ctx context.Context, nodeName string) (*resourceapi.ResourceSlice, error) {
-	framework.Logf("Validating ResourceSlice for node %s", nodeName)
-
-	// List all ResourceSlices
-	sliceList, err := gv.client.ResourceV1().ResourceSlices().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list ResourceSlices: %w", err)
-	}
-
-	// Find ResourceSlice for the node
-	var nodeSlice *resourceapi.ResourceSlice
-	for i := range sliceList.Items {
-		slice := &sliceList.Items[i]
-		// Match both node name and NVIDIA GPU driver
-		if slice.Spec.NodeName != nil && *slice.Spec.NodeName == nodeName &&
-			slice.Spec.Driver == "gpu.nvidia.com" {
-			nodeSlice = slice
-			break
-		}
-	}
-
-	if nodeSlice == nil {
-		return nil, fmt.Errorf("no NVIDIA GPU ResourceSlice found for node %s", nodeName)
-	}
-
-	framework.Logf("Found NVIDIA GPU ResourceSlice %s for node %s with driver %s",
-		nodeSlice.Name, nodeName, nodeSlice.Spec.Driver)
-
-	// Validate that it contains GPU devices
-	if nodeSlice.Spec.Devices == nil || len(nodeSlice.Spec.Devices) == 0 {
-		return nil, fmt.Errorf("ResourceSlice %s has no devices", nodeSlice.Name)
-	}
-
-	framework.Logf("ResourceSlice %s has %d device(s)", nodeSlice.Name, len(nodeSlice.Spec.Devices))
-
-	return nodeSlice, nil
 }
 
 // ValidateDeviceAllocation validates that claim is properly allocated
@@ -273,6 +203,27 @@ func (gv *GPUValidator) GetTotalGPUCount(ctx context.Context) (int, error) {
 	return totalGPUs, nil
 }
 
+// GetMaxGPUCountPerNode reports the largest GPU pool that can satisfy one pod.
+func (gv *GPUValidator) GetMaxGPUCountPerNode(ctx context.Context) (int, error) {
+	slices, err := gv.client.ResourceV1().ResourceSlices().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return 0, fmt.Errorf("failed to list ResourceSlices: %w", err)
+	}
+	counts := map[string]int{}
+	maximum := 0
+	for _, slice := range slices.Items {
+		if slice.Spec.Driver != resourceBuilderDriver || slice.Spec.NodeName == nil {
+			continue
+		}
+		node := *slice.Spec.NodeName
+		counts[node] += len(slice.Spec.Devices)
+		if counts[node] > maximum {
+			maximum = counts[node]
+		}
+	}
+	return maximum, nil
+}
+
 // hasGPUCapability checks if a node has GPU capability
 func (gv *GPUValidator) hasGPUCapability(node *corev1.Node) bool {
 	// Check for common GPU labels
@@ -308,18 +259,9 @@ func (gv *GPUValidator) ValidateCDISpec(ctx context.Context, podName, namespace 
 		return fmt.Errorf("failed to get pod %s/%s: %w", namespace, podName, err)
 	}
 
-	// Check for CDI annotations or device references
-	// CDI devices are typically injected via annotations or OCI spec
-	for key, value := range pod.Annotations {
-		if strings.Contains(key, "cdi") || strings.Contains(key, "device") {
-			framework.Logf("Found CDI-related annotation: %s=%s", key, value)
-		}
-	}
-
-	// Validate that nvidia device files are present in the container
-	// Note: Using direct device paths instead of shell glob (/dev/nvidia*) because
-	// bind-mounted devices may not be listable via glob patterns in containers
-	devicePaths := []string{"/dev/nvidia0", "/dev/nvidiactl", "/dev/nvidia-uvm"}
+	// The allocated GPU may have any minor number; requiring nvidia0 would reject
+	// a valid claim scheduled to a different GPU.
+	devicePaths := []string{"/dev/nvidiactl"}
 
 	for _, devicePath := range devicePaths {
 		lsCmd := []string{"ls", "-la", devicePath}
@@ -333,49 +275,179 @@ func (gv *GPUValidator) ValidateCDISpec(ctx context.Context, podName, namespace 
 		})
 		if err != nil {
 			output := stdout + stderr
-			framework.Logf("Warning: Device %s not accessible in pod %s/%s: %v\nOutput: %s", devicePath, namespace, podName, err, output)
-			// Continue checking other devices - at least one should be accessible
-			continue
+			return fmt.Errorf("device %s not accessible in pod %s/%s: %w\nOutput: %s", devicePath, namespace, podName, err, output)
 		}
 		framework.Logf("Successfully validated device %s in pod %s/%s: %s", devicePath, namespace, podName, stdout)
 	}
-
-	framework.Logf("CDI device validation completed for pod %s/%s", namespace, podName)
-	return nil
-}
-
-// GetGPUCountInPod returns the number of GPUs visible in a pod
-func (gv *GPUValidator) GetGPUCountInPod(ctx context.Context, namespace, podName string) (int, error) {
-	pod, err := gv.client.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
-	if err != nil {
-		return 0, fmt.Errorf("failed to get pod %s/%s: %w", namespace, podName, err)
-	}
-
-	// Exec nvidia-smi to count GPUs
-	nvidiaSmiCmd := []string{"nvidia-smi", "--query-gpu=count", "--format=csv,noheader"}
 	stdout, stderr, err := e2epod.ExecWithOptions(gv.framework, e2epod.ExecOptions{
-		Command:       nvidiaSmiCmd,
+		Command:       []string{"sh", "-c", `set -- /dev/nvidia[0-9]*; test -e "$1"`},
 		Namespace:     namespace,
 		PodName:       podName,
 		ContainerName: pod.Spec.Containers[0].Name,
 		CaptureStdout: true,
 		CaptureStderr: true,
 	})
+	if err != nil {
+		return fmt.Errorf("no GPU device node accessible in pod %s/%s: %w: %s%s", namespace, podName, err, stdout, stderr)
+	}
+
+	framework.Logf("CDI device validation completed for pod %s/%s", namespace, podName)
+	return nil
+}
+
+// ClaimStatusInfo holds structured status info for a ResourceClaim
+type ClaimStatusInfo struct {
+	Allocated   bool
+	ReservedFor []string
+	DeviceCount int
+	Devices     []DeviceInfo
+}
+
+// DeviceInfo describes an allocated device
+type DeviceInfo struct {
+	Driver  string
+	Pool    string
+	Device  string
+	Request string
+}
+
+// ValidateGPUInContainer validates GPU accessibility in a specific container
+func (gv *GPUValidator) ValidateGPUInContainer(ctx context.Context, namespace, podName, containerName string, expectedGPUCount int) error {
+	framework.Logf("Validating GPU accessibility in pod %s/%s container %s (expected %d GPUs)", namespace, podName, containerName, expectedGPUCount)
+
+	nvidiaSmiCmd := []string{"nvidia-smi", "--query-gpu=index,name", "--format=csv,noheader"}
+	stdout, stderr, err := e2epod.ExecWithOptions(gv.framework, e2epod.ExecOptions{
+		Command:       nvidiaSmiCmd,
+		Namespace:     namespace,
+		PodName:       podName,
+		ContainerName: containerName,
+		CaptureStdout: true,
+		CaptureStderr: true,
+	})
 	output := stdout + stderr
 	if err != nil {
-		return 0, fmt.Errorf("failed to execute nvidia-smi: %w", err)
+		return fmt.Errorf("failed to execute nvidia-smi in pod %s/%s container %s: %w\nOutput: %s",
+			namespace, podName, containerName, err, output)
 	}
 
-	// Parse the first line to get count
-	lines := strings.Split(strings.TrimSpace(output), "\n")
-	if len(lines) == 0 {
-		return 0, fmt.Errorf("no output from nvidia-smi")
+	lines := strings.Split(strings.TrimSpace(stdout), "\n")
+	actualGPUCount := 0
+	for _, line := range lines {
+		if strings.TrimSpace(line) != "" {
+			actualGPUCount++
+		}
 	}
 
-	count, err := strconv.Atoi(strings.TrimSpace(lines[0]))
+	if actualGPUCount != expectedGPUCount {
+		return fmt.Errorf("expected %d GPUs but found %d in pod %s/%s container %s\nnvidia-smi output:\n%s",
+			expectedGPUCount, actualGPUCount, namespace, podName, containerName, output)
+	}
+
+	framework.Logf("Successfully validated %d GPU(s) in pod %s/%s container %s", actualGPUCount, namespace, podName, containerName)
+	return nil
+}
+
+// runOnNode uses the release payload's debug image and runs the command in the host root.
+func (gv *GPUValidator) runOnNode(nodeName string, command ...string) (string, error) {
+	if gv.oc == nil {
+		return "", fmt.Errorf("node inspection requires an OpenShift CLI")
+	}
+	return exutil.DebugNodeRetryWithOptionsAndChroot(gv.oc, nodeName, "openshift-config", command...)
+}
+
+// ValidateCDISpecFilesOnNode checks the CDI spec belonging to a particular claim.
+func (gv *GPUValidator) ValidateCDISpecFilesOnNode(ctx context.Context, nodeName, claimUID string, shouldExist bool) error {
+	path := "/var/run/cdi/k8s.gpu.nvidia.com-claim_" + claimUID + ".yaml"
+	framework.Logf("Checking CDI spec %s on node %s (should exist: %t)", path, nodeName, shouldExist)
+	return wait.PollUntilContextTimeout(ctx, 2*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
+		stdout, err := gv.runOnNode(nodeName, "sh", "-c", `if test -f "$1"; then echo present; else echo absent; fi`, "sh", path)
+		if err != nil {
+			return false, fmt.Errorf("failed to inspect CDI spec %s on node %s: %w", path, nodeName, err)
+		}
+		present := strings.TrimSpace(stdout) == "present"
+		if !present && strings.TrimSpace(stdout) != "absent" {
+			return false, fmt.Errorf("unexpected CDI spec check output %q on node %s", stdout, nodeName)
+		}
+		return present == shouldExist, nil
+	})
+}
+
+// ValidateNoSELinuxDenials checks AVCs for the test workload since the supplied node-local time.
+func (gv *GPUValidator) ValidateNoSELinuxDenials(ctx context.Context, nodeName, since, processKeyword string) error {
+	dateAndTime := strings.SplitN(since, " ", 2)
+	if len(dateAndTime) != 2 {
+		return fmt.Errorf("invalid node-local audit start time %q", since)
+	}
+	stdout, err := gv.runOnNode(nodeName, "bash", "-c", `output=$(ausearch -m AVC -ts "$1" "$2" 2>&1); status=$?; if [ "$status" -eq 1 ] && [[ "$output" == *"<no matches>"* ]]; then echo '<no matches>'; exit 0; fi; printf '%s\n' "$output"; exit "$status"`, "bash", dateAndTime[0], dateAndTime[1])
 	if err != nil {
-		return 0, fmt.Errorf("failed to parse GPU count from nvidia-smi output: %w", err)
+		return fmt.Errorf("failed to run ausearch on node %s: %w: %s", nodeName, err, stdout)
+	}
+	output := strings.TrimSpace(stdout)
+	if output == "<no matches>" {
+		return nil
+	}
+	for _, line := range strings.Split(output, "\n") {
+		if strings.Contains(line, "scontext=") && strings.Contains(line, ":container_t:") && strings.Contains(strings.ToLower(line), strings.ToLower(processKeyword)) {
+			return fmt.Errorf("SELinux AVC denial for GPU workload on node %s: %s", nodeName, line)
+		}
+	}
+	return nil
+}
+
+// ValidateSELinuxEnforcing verifies that SELinux is in Enforcing mode on the node.
+func (gv *GPUValidator) ValidateSELinuxEnforcing(ctx context.Context, nodeName string) error {
+	stdout, err := gv.runOnNode(nodeName, "getenforce")
+	if err != nil {
+		return fmt.Errorf("failed to run getenforce on node %s: %w", nodeName, err)
+	}
+	if mode := strings.TrimSpace(stdout); mode != "Enforcing" {
+		return fmt.Errorf("SELinux is %q on node %s, expected Enforcing", mode, nodeName)
+	}
+	return nil
+}
+
+// GetPodSCC returns the SCC annotation value for a pod
+func (gv *GPUValidator) GetPodSCC(ctx context.Context, namespace, podName string) (string, error) {
+	pod, err := gv.client.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get pod %s/%s: %w", namespace, podName, err)
 	}
 
-	return count, nil
+	scc := pod.Annotations["openshift.io/scc"]
+	framework.Logf("Pod %s/%s SCC annotation: %q", namespace, podName, scc)
+	return scc, nil
+}
+
+// ValidateClaimStatus returns structured status information for a ResourceClaim
+func (gv *GPUValidator) ValidateClaimStatus(ctx context.Context, namespace, claimName string) (*ClaimStatusInfo, error) {
+	framework.Logf("Getting ResourceClaim status for %s/%s", namespace, claimName)
+
+	claim, err := gv.client.ResourceV1().ResourceClaims(namespace).Get(ctx, claimName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ResourceClaim %s/%s: %w", namespace, claimName, err)
+	}
+
+	info := &ClaimStatusInfo{}
+	info.Allocated = claim.Status.Allocation != nil
+
+	for _, ref := range claim.Status.ReservedFor {
+		info.ReservedFor = append(info.ReservedFor, string(ref.UID))
+	}
+
+	if claim.Status.Allocation != nil {
+		results := claim.Status.Allocation.Devices.Results
+		info.DeviceCount = len(results)
+		for _, result := range results {
+			info.Devices = append(info.Devices, DeviceInfo{
+				Driver:  result.Driver,
+				Pool:    result.Pool,
+				Device:  result.Device,
+				Request: result.Request,
+			})
+		}
+	}
+
+	framework.Logf("ResourceClaim %s/%s: allocated=%v, reservedFor=%d, devices=%d",
+		namespace, claimName, info.Allocated, len(info.ReservedFor), info.DeviceCount)
+	return info, nil
 }
