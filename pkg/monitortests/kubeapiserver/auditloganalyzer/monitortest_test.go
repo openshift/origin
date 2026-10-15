@@ -18,38 +18,51 @@ func TestEvaluateExcessiveAppliesUserBoundaries(t *testing.T) {
 		namespace = "openshift-test"
 		testName  = "users in ns/openshift-test must not produce too many applies"
 	)
-	grandfatherName := testName + " [grandfather]"
 
 	tests := []struct {
-		name                   string
-		usersToApplies         map[string]int
-		wantOriginalPasses     int
-		wantOriginalFailures   int
-		wantGrandfatherPasses  int
-		wantGrandfatherFailure int
+		name         string
+		users        map[string]int
+		wantFailures int
+		wantOutput   string
+		wantContains []string
+		wantAbsent   []string
 	}{
 		{
-			name:                 "zero offending users passes",
-			usersToApplies:       map[string]int{"system:serviceaccount:openshift-test:user-a": 200},
-			wantOriginalPasses:   1,
-			wantOriginalFailures: 0,
+			name:  "zero offending users passes",
+			users: map[string]int{"system:serviceaccount:openshift-test:user-a": 200},
 		},
 		{
-			name:                   "many applies from one user flakes under grandfather name",
-			usersToApplies:         map[string]int{"system:serviceaccount:openshift-test:user-a": 500},
-			wantOriginalPasses:     1,
-			wantOriginalFailures:   0,
-			wantGrandfatherPasses:  1,
-			wantGrandfatherFailure: 1,
+			name:         "many applies from one user flakes under original name",
+			users:        map[string]int{"system:serviceaccount:openshift-test:user-a": 500},
+			wantFailures: 1,
+			wantOutput:   "one user had 500 applies\ndetails in audit log",
+			wantAbsent:   []string{"system:serviceaccount:openshift-test:user-a"},
 		},
 		{
-			name: "two offending users hard fail under original name",
-			usersToApplies: map[string]int{
+			name: "two offending users flake under original name",
+			users: map[string]int{
 				"system:serviceaccount:openshift-test:user-a": 201,
 				"system:serviceaccount:openshift-test:user-b": 202,
 			},
-			wantOriginalPasses:   0,
-			wantOriginalFailures: 1,
+			wantFailures: 1,
+			wantContains: []string{
+				"user system:serviceaccount:openshift-test:user-a had 201 applies",
+				"user system:serviceaccount:openshift-test:user-b had 202 applies",
+			},
+		},
+		{
+			name: "many offending users flake under original name",
+			users: map[string]int{
+				"system:serviceaccount:openshift-test:user-a": 201,
+				"system:serviceaccount:openshift-test:user-b": 202,
+				"system:serviceaccount:openshift-test:user-c": 203,
+				"system:serviceaccount:openshift-test:user-d": 204,
+			},
+			wantFailures: 1,
+			wantContains: []string{
+				"user system:serviceaccount:openshift-test:user-a had 201 applies",
+				"user system:serviceaccount:openshift-test:user-d had 204 applies",
+			},
 		},
 	}
 
@@ -57,26 +70,26 @@ func TestEvaluateExcessiveAppliesUserBoundaries(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			analyzer := &auditLogAnalyzer{
 				excessiveApplyChecker: &excessiveApplies{
-					namespacesToUserToNumberOfApplies: map[string]map[string]int{namespace: tt.usersToApplies},
+					namespacesToUserToNumberOfApplies: map[string]map[string]int{namespace: tt.users},
 					resourcesToNumberOfApplies:        map[string]numberOfAppliesWithExamples{},
 				},
 			}
 
 			results := analyzer.evaluateExcessiveApplies([]string{namespace})
-			assertJUnitState(t, results, testName, tt.wantOriginalPasses, tt.wantOriginalFailures)
-			grandfatherOutput := assertJUnitState(t, results, grandfatherName, tt.wantGrandfatherPasses, tt.wantGrandfatherFailure)
-
-			if tt.wantGrandfatherFailure == 1 {
-				require.Equal(t,
-					"user system:serviceaccount:openshift-test:user-a had 500 applies, check the audit log and operator log to figure out why\ndetails in audit log",
-					grandfatherOutput,
-				)
+			output := assertJUnitState(t, results, testName, 1, tt.wantFailures)
+			require.NotContains(t, junitNames(results), "grandfather")
+			require.Zero(t, downstreamRealFailures(results))
+			if tt.wantOutput != "" {
+				require.Equal(t, tt.wantOutput, output)
 			}
-			if tt.wantOriginalFailures == 1 {
-				originalOutput := junitFailureOutput(results, testName)
-				require.Contains(t, originalOutput, "user system:serviceaccount:openshift-test:user-a had 201 applies")
-				require.Contains(t, originalOutput, "user system:serviceaccount:openshift-test:user-b had 202 applies")
-				require.True(t, strings.HasSuffix(originalOutput, "details in audit log"))
+			for _, expected := range tt.wantContains {
+				require.Contains(t, output, expected)
+			}
+			for _, absent := range tt.wantAbsent {
+				require.NotContains(t, output, absent)
+			}
+			if tt.wantFailures > 0 {
+				require.True(t, strings.HasSuffix(output, "details in audit log"))
 			}
 		})
 	}
@@ -103,16 +116,41 @@ func TestEvaluateExcessiveAppliesPreservesExistingFlakes(t *testing.T) {
 	}
 
 	results := analyzer.evaluateExcessiveApplies([]string{namespace})
-	originalOutput := assertJUnitState(t, results, testName, 1, 1)
-	require.Equal(t,
-		fmt.Sprintf("user %s had 301 applies, check the audit log and operator log to figure out why\ndetails in audit log", exemptUsername),
-		originalOutput,
+	output := assertJUnitState(t, results, testName, 1, 1)
+	require.Equal(t, "one user had 401 applies\none exempt user had 301 applies\ndetails in audit log", output)
+	require.NotContains(t, output, exemptUsername)
+	require.NotContains(t, output, newUsername)
+	require.NotContains(t, junitNames(results), "grandfather")
+	require.Zero(t, downstreamRealFailures(results))
+}
+
+func TestEvaluateExcessiveAppliesPreservesDetailedMultiUserFlakes(t *testing.T) {
+	const (
+		namespace       = "openshift-infra"
+		testName        = "users in ns/openshift-infra must not produce too many applies"
+		exemptUsernameA = "system:serviceaccount:openshift-infra:serviceaccount-pull-secrets-controller"
+		exemptUsernameB = "system:serviceaccount:openshift-infra:podsecurity-admission-label-syncer-controller"
 	)
-	grandfatherOutput := assertJUnitState(t, results, testName+" [grandfather]", 1, 1)
-	require.Equal(t,
-		fmt.Sprintf("user %s had 401 applies, check the audit log and operator log to figure out why\ndetails in audit log", newUsername),
-		grandfatherOutput,
-	)
+
+	analyzer := &auditLogAnalyzer{
+		excessiveApplyChecker: &excessiveApplies{
+			namespacesToUserToNumberOfApplies: map[string]map[string]int{
+				namespace: {
+					exemptUsernameA: 301,
+					exemptUsernameB: 302,
+				},
+			},
+			resourcesToNumberOfApplies: map[string]numberOfAppliesWithExamples{},
+		},
+	}
+
+	results := analyzer.evaluateExcessiveApplies([]string{namespace})
+	output := assertJUnitState(t, results, testName, 1, 1)
+	require.Contains(t, output, fmt.Sprintf("user %s had 301 applies", exemptUsernameA))
+	require.Contains(t, output, fmt.Sprintf("user %s had 302 applies", exemptUsernameB))
+	require.True(t, strings.HasSuffix(output, "details in audit log"))
+	require.NotContains(t, junitNames(results), "grandfather")
+	require.Zero(t, downstreamRealFailures(results))
 }
 
 func TestEvaluateExcessiveAppliesResourceBoundaries(t *testing.T) {
@@ -123,9 +161,17 @@ func TestEvaluateExcessiveAppliesResourceBoundaries(t *testing.T) {
 		resources    map[string]numberOfAppliesWithExamples
 		wantPasses   int
 		wantFailures int
+		wantOutput   string
+		wantContains []string
+		wantAbsent   []string
 	}{
 		{
-			name: "zero excessive resources passes",
+			name:       "empty resource data passes",
+			resources:  map[string]numberOfAppliesWithExamples{},
+			wantPasses: 1,
+		},
+		{
+			name: "below threshold resource passes",
 			resources: map[string]numberOfAppliesWithExamples{
 				"deployments/example": newResourceApplies(199, "user-a"),
 			},
@@ -138,6 +184,14 @@ func TestEvaluateExcessiveAppliesResourceBoundaries(t *testing.T) {
 			},
 			wantPasses:   1,
 			wantFailures: 1,
+			wantOutput:   "one resource had 200 applies\ndetails in audit log",
+			wantAbsent: []string{
+				"deployments/example",
+				"user-a",
+				"first-audit-id",
+				"last-audit-id",
+				"2026-01-02",
+			},
 		},
 		{
 			name: "two excessive resources retain flake behavior",
@@ -147,6 +201,30 @@ func TestEvaluateExcessiveAppliesResourceBoundaries(t *testing.T) {
 			},
 			wantPasses:   1,
 			wantFailures: 1,
+			wantContains: []string{
+				"resource deployments/example-a had 200 applies",
+				"resource deployments/example-b had 201 applies",
+				"user-a",
+				"user-b",
+				"first-audit-id",
+				"last-audit-id",
+				"2026-01-02",
+			},
+		},
+		{
+			name: "many excessive resources retain flake behavior",
+			resources: map[string]numberOfAppliesWithExamples{
+				"deployments/example-a": newResourceApplies(200, "user-a"),
+				"deployments/example-b": newResourceApplies(201, "user-b"),
+				"deployments/example-c": newResourceApplies(202, "user-c"),
+				"deployments/example-d": newResourceApplies(203, "user-d"),
+			},
+			wantPasses:   1,
+			wantFailures: 1,
+			wantContains: []string{
+				"resource deployments/example-a had 200 applies",
+				"resource deployments/example-d had 203 applies",
+			},
 		},
 	}
 
@@ -162,13 +240,15 @@ func TestEvaluateExcessiveAppliesResourceBoundaries(t *testing.T) {
 			results := analyzer.evaluateExcessiveApplies(nil)
 			output := assertJUnitState(t, results, testName, tt.wantPasses, tt.wantFailures)
 			require.NotContains(t, junitNames(results), "grandfather")
-			if tt.wantFailures == 1 {
-				require.Contains(t, output, "details in audit log")
-				for resource := range tt.resources {
-					if tt.resources[resource].numberOfApplies >= 200 {
-						require.Contains(t, output, fmt.Sprintf("resource %s had", resource))
-					}
-				}
+			require.Zero(t, downstreamRealFailures(results))
+			if tt.wantOutput != "" {
+				require.Equal(t, tt.wantOutput, output)
+			}
+			for _, expected := range tt.wantContains {
+				require.Contains(t, output, expected)
+			}
+			for _, absent := range tt.wantAbsent {
+				require.NotContains(t, output, absent)
 			}
 		})
 	}
@@ -180,40 +260,63 @@ func TestEvaluateInvalidRequestsUserBoundaries(t *testing.T) {
 		verb      = "update"
 		testName  = "users in ns/openshift-test must not produce too many invalid \"update\" requests"
 	)
-	grandfatherName := testName + " [grandfather]"
-
 	tests := []struct {
-		name                   string
-		users                  map[string]*invalidRequestDetails
-		wantOriginalPasses     int
-		wantOriginalFailures   int
-		wantGrandfatherPasses  int
-		wantGrandfatherFailure int
+		name         string
+		users        map[string]*invalidRequestDetails
+		wantFailures int
+		wantOutput   string
+		wantContains []string
+		wantAbsent   []string
 	}{
 		{
-			name:                 "zero offending users passes",
-			users:                map[string]*invalidRequestDetails{},
-			wantOriginalPasses:   1,
-			wantOriginalFailures: 0,
+			name:  "zero offending users passes",
+			users: map[string]*invalidRequestDetails{},
 		},
 		{
-			name: "many invalid requests from one user flake under grandfather name",
+			name: "many invalid requests from one user flake under original name",
 			users: map[string]*invalidRequestDetails{
 				"system:serviceaccount:openshift-test:user-a": newInvalidRequestDetails(27, "a"),
 			},
-			wantOriginalPasses:     1,
-			wantOriginalFailures:   0,
-			wantGrandfatherPasses:  1,
-			wantGrandfatherFailure: 1,
+			wantFailures: 1,
+			wantOutput:   "one user had 27 invalid \"update\" requests\nmore details in audit log",
+			wantAbsent: []string{
+				"system:serviceaccount:openshift-test:user-a",
+				"/apis/example/a-first",
+				"/apis/example/a-last",
+				"a-first",
+				"a-last",
+				"2026-01-02",
+			},
 		},
 		{
-			name: "two offending users hard fail under original name",
+			name: "two offending users flake under original name",
 			users: map[string]*invalidRequestDetails{
 				"system:serviceaccount:openshift-test:user-a": newInvalidRequestDetails(1, "a"),
 				"system:serviceaccount:openshift-test:user-b": newInvalidRequestDetails(2, "b"),
 			},
-			wantOriginalPasses:   0,
-			wantOriginalFailures: 1,
+			wantFailures: 1,
+			wantContains: []string{
+				"system:serviceaccount:openshift-test:user-a",
+				"system:serviceaccount:openshift-test:user-b",
+				"request=/apis/example/a-first auditID=a-first",
+				"request=/apis/example/b-last auditID=b-last",
+			},
+		},
+		{
+			name: "many offending users flake under original name",
+			users: map[string]*invalidRequestDetails{
+				"system:serviceaccount:openshift-test:user-a": newInvalidRequestDetails(1, "a"),
+				"system:serviceaccount:openshift-test:user-b": newInvalidRequestDetails(2, "b"),
+				"system:serviceaccount:openshift-test:user-c": newInvalidRequestDetails(3, "c"),
+				"system:serviceaccount:openshift-test:user-d": newInvalidRequestDetails(4, "d"),
+			},
+			wantFailures: 1,
+			wantContains: []string{
+				"system:serviceaccount:openshift-test:user-a",
+				"system:serviceaccount:openshift-test:user-d",
+				"request=/apis/example/a-first auditID=a-first",
+				"request=/apis/example/d-last auditID=d-last",
+			},
 		},
 	}
 
@@ -222,19 +325,20 @@ func TestEvaluateInvalidRequestsUserBoundaries(t *testing.T) {
 			analyzer := newInvalidRequestAnalyzer(verb, namespace, tt.users)
 
 			results := analyzer.evaluateInvalidRequests([]string{namespace})
-			originalOutput := assertJUnitState(t, results, testName, tt.wantOriginalPasses, tt.wantOriginalFailures)
-			grandfatherOutput := assertJUnitState(t, results, grandfatherName, tt.wantGrandfatherPasses, tt.wantGrandfatherFailure)
-
-			if tt.wantGrandfatherFailure == 1 {
-				require.Contains(t, grandfatherOutput, "user system:serviceaccount:openshift-test:user-a had 27 invalid \"update\"")
-				require.Contains(t, grandfatherOutput, "request=/apis/example/a-first auditID=a-first")
-				require.Contains(t, grandfatherOutput, "request=/apis/example/a-last auditID=a-last")
-				require.True(t, strings.HasSuffix(grandfatherOutput, "more details in audit log"))
+			output := assertJUnitState(t, results, testName, 1, tt.wantFailures)
+			require.NotContains(t, junitNames(results), "grandfather")
+			require.Zero(t, downstreamRealFailures(results))
+			if tt.wantOutput != "" {
+				require.Equal(t, tt.wantOutput, output)
 			}
-			if tt.wantOriginalFailures == 1 {
-				require.Contains(t, originalOutput, "system:serviceaccount:openshift-test:user-a")
-				require.Contains(t, originalOutput, "system:serviceaccount:openshift-test:user-b")
-				require.True(t, strings.HasSuffix(originalOutput, "more details in audit log"))
+			for _, expected := range tt.wantContains {
+				require.Contains(t, output, expected)
+			}
+			for _, absent := range tt.wantAbsent {
+				require.NotContains(t, output, absent)
+			}
+			if tt.wantFailures > 0 {
+				require.True(t, strings.HasSuffix(output, "more details in audit log"))
 			}
 		})
 	}
@@ -255,10 +359,23 @@ func TestEvaluateInvalidRequestsPreservesExemptions(t *testing.T) {
 			username:  "system:serviceaccount:openshift-infra:build-config-change-controller",
 		},
 		{
+			name:      "template instance controller invalid creates",
+			verb:      "create",
+			namespace: "openshift-infra",
+			username:  "system:serviceaccount:openshift-infra:template-instance-controller",
+		},
+		{
 			name:          "machine config daemon tech preview invalid applies",
 			verb:          "apply",
 			namespace:     "openshift-machine-config-operator",
 			username:      "system:serviceaccount:openshift-machine-config-operator:machine-config-daemon",
+			isTechPreview: true,
+		},
+		{
+			name:          "machine config operator tech preview invalid applies",
+			verb:          "apply",
+			namespace:     "openshift-machine-config-operator",
+			username:      "system:serviceaccount:openshift-machine-config-operator:machine-config-operator",
 			isTechPreview: true,
 		},
 	}
@@ -274,6 +391,7 @@ func TestEvaluateInvalidRequestsPreservesExemptions(t *testing.T) {
 			testName := fmt.Sprintf("users in ns/%s must not produce too many invalid %q requests", tt.namespace, tt.verb)
 			assertJUnitState(t, results, testName, 1, 0)
 			require.NotContains(t, junitNames(results), "grandfather")
+			require.Zero(t, downstreamRealFailures(results))
 		})
 	}
 }
@@ -346,19 +464,31 @@ func assertJUnitState(t *testing.T, results []*junitapi.JUnitTestCase, testName 
 	return failureOutput
 }
 
-func junitFailureOutput(results []*junitapi.JUnitTestCase, testName string) string {
-	for _, result := range results {
-		if result.Name == testName && result.FailureOutput != nil {
-			return result.FailureOutput.Output
-		}
-	}
-	return ""
-}
-
 func junitNames(results []*junitapi.JUnitTestCase) string {
 	names := make([]string, 0, len(results))
 	for _, result := range results {
 		names = append(names, result.Name)
 	}
 	return strings.Join(names, "\n")
+}
+
+// downstreamRealFailures mirrors the suite runner's same-name pass/failure flake recognition.
+func downstreamRealFailures(results []*junitapi.JUnitTestCase) int {
+	failures := map[string]struct{}{}
+	passes := map[string]struct{}{}
+	for _, result := range results {
+		if result.FailureOutput != nil {
+			failures[result.Name] = struct{}{}
+		} else if result.SkipMessage == nil {
+			passes[result.Name] = struct{}{}
+		}
+	}
+
+	realFailures := 0
+	for name := range failures {
+		if _, ok := passes[name]; !ok {
+			realFailures++
+		}
+	}
+	return realFailures
 }

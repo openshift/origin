@@ -173,6 +173,7 @@ func (*auditLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startin
 	return nil, nil
 }
 
+// flakeResults returns same-name failure and pass results because downstream consumers recognize the pair as a flake.
 func flakeResults(testName, output string) []*junitapi.JUnitTestCase {
 	return []*junitapi.JUnitTestCase{
 		{
@@ -185,10 +186,6 @@ func flakeResults(testName, output string) []*junitapi.JUnitTestCase {
 	}
 }
 
-func grandfatheredTestName(testName string) string {
-	return fmt.Sprintf("%s [grandfather]", testName)
-}
-
 func (w *auditLogAnalyzer) evaluateExcessiveApplies(allPlatformNamespaces []string) []*junitapi.JUnitTestCase {
 	ret := []*junitapi.JUnitTestCase{}
 
@@ -198,6 +195,8 @@ func (w *auditLogAnalyzer) evaluateExcessiveApplies(allPlatformNamespaces []stri
 
 		failures := []string{}
 		flakes := []string{}
+		singleFailureApplyCount := 0
+		singleFlakeApplyCount := 0
 		for username, numberOfApplies := range usersToApplies {
 			if numberOfApplies > 200 {
 				errorMessage := fmt.Sprintf("user %v had %d applies, check the audit log and operator log to figure out why", username, numberOfApplies)
@@ -211,46 +210,51 @@ func (w *auditLogAnalyzer) evaluateExcessiveApplies(allPlatformNamespaces []stri
 					// These usernames are already creating more than 200 applies, so flake instead of fail.
 					// We really want to find a way to track namespaces created by the payload versus everything else.
 					flakes = append(flakes, errorMessage)
+					singleFlakeApplyCount = numberOfApplies
 				default:
 					failures = append(failures, errorMessage)
+					singleFailureApplyCount = numberOfApplies
 				}
 			}
 		}
 
-		if len(failures) > 1 {
-			ret = append(ret, &junitapi.JUnitTestCase{
-				Name: testName,
-				FailureOutput: &junitapi.FailureOutput{
-					Output: fmt.Sprintf("%s\ndetails in audit log", strings.Join(failures, "\n")),
-				},
-			})
+		if len(failures) == 0 && len(flakes) == 0 {
+			ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
 			continue
 		}
 
-		if len(flakes) > 0 {
-			ret = append(ret, flakeResults(testName, fmt.Sprintf("%s\ndetails in audit log", strings.Join(flakes, "\n")))...)
-		} else {
-			ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
-		}
-
+		summaries := []string{}
 		if len(failures) == 1 {
-			ret = append(ret, flakeResults(grandfatheredTestName(testName), fmt.Sprintf("%s\ndetails in audit log", failures[0]))...)
+			summaries = append(summaries, fmt.Sprintf("one user had %d applies", singleFailureApplyCount))
+		} else {
+			summaries = append(summaries, failures...)
 		}
+		if len(flakes) == 1 {
+			summaries = append(summaries, fmt.Sprintf("one exempt user had %d applies", singleFlakeApplyCount))
+		} else {
+			summaries = append(summaries, flakes...)
+		}
+		ret = append(ret, flakeResults(testName, fmt.Sprintf("%s\ndetails in audit log", strings.Join(summaries, "\n")))...)
 	}
 
 	testName := `[Jira:"kube-apiserver"] API resources are not updated excessively`
 	flakes := []string{}
+	singleResourceApplyCount := 0
 	for resource, applies := range w.excessiveApplyChecker.resourcesToNumberOfApplies {
 		if applies.numberOfApplies < 200 {
 			continue
 		}
 		errorMessage := fmt.Sprintf("resource %s had %d applies, %s", resource, applies.numberOfApplies, applies.toErrorString())
 		flakes = append(flakes, errorMessage)
+		singleResourceApplyCount = applies.numberOfApplies
 	}
-	if len(flakes) > 0 {
-		ret = append(ret, flakeResults(testName, fmt.Sprintf("%s\ndetails in audit log", strings.Join(flakes, "\n")))...)
-	} else {
+	switch len(flakes) {
+	case 0:
 		ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
+	case 1:
+		ret = append(ret, flakeResults(testName, fmt.Sprintf("one resource had %d applies\ndetails in audit log", singleResourceApplyCount))...)
+	default:
+		ret = append(ret, flakeResults(testName, fmt.Sprintf("%s\ndetails in audit log", strings.Join(flakes, "\n")))...)
 	}
 
 	return ret
@@ -265,6 +269,7 @@ func (w *auditLogAnalyzer) evaluateInvalidRequests(allPlatformNamespaces []strin
 			usersTo422s := namespacesToUserToNumberOf422s.namespacesToInvalidUserTrackers[namespace]
 
 			failures := []string{}
+			singleFailureCount := 0
 			if usersTo422s != nil {
 				for username, userInvalidRequestDetails := range usersTo422s.usersToInvalidRequests {
 					switch {
@@ -306,6 +311,7 @@ func (w *auditLogAnalyzer) evaluateInvalidRequests(allPlatformNamespaces []strin
 							first10FailureStrings,
 							last10FailureStrings,
 						))
+						singleFailureCount = userInvalidRequestDetails.totalNumberOfFailures
 					}
 				}
 			}
@@ -314,15 +320,9 @@ func (w *auditLogAnalyzer) evaluateInvalidRequests(allPlatformNamespaces []strin
 			case 0:
 				ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
 			case 1:
-				ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
-				ret = append(ret, flakeResults(grandfatheredTestName(testName), fmt.Sprintf("%s\nmore details in audit log", failures[0]))...)
+				ret = append(ret, flakeResults(testName, fmt.Sprintf("one user had %d invalid %q requests\nmore details in audit log", singleFailureCount, verb))...)
 			default:
-				ret = append(ret, &junitapi.JUnitTestCase{
-					Name: testName,
-					FailureOutput: &junitapi.FailureOutput{
-						Output: fmt.Sprintf("%s\nmore details in audit log", strings.Join(failures, "\n")),
-					},
-				})
+				ret = append(ret, flakeResults(testName, fmt.Sprintf("%s\nmore details in audit log", strings.Join(failures, "\n")))...)
 			}
 		}
 	}
