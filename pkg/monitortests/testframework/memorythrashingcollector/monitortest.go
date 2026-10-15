@@ -57,6 +57,7 @@ type thrashingInterval struct {
 	peakPageIn float64 // MB/s
 }
 
+// NewMemoryThrashingCollector returns a monitor test that records memory thrashing intervals per node.
 func NewMemoryThrashingCollector() monitortestframework.MonitorTest {
 	return &memoryThrashingCollector{
 		majorFaultsThreshold: 50.0,
@@ -98,6 +99,8 @@ func (w *memoryThrashingCollector) CollectData(ctx context.Context, storageDir s
 	return intervals, nil, nil
 }
 
+// collectFromPrometheus connects to the in-cluster Prometheus and builds the thrashing intervals
+// since startTime. Clusters without openshift-monitoring produce no intervals.
 func (w *memoryThrashingCollector) collectFromPrometheus(ctx context.Context, restConfig *rest.Config, startTime time.Time) ([]monitorapi.Interval, error) {
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
@@ -133,6 +136,8 @@ func (w *memoryThrashingCollector) collectFromPrometheus(ctx context.Context, re
 	return w.collectFromPrometheusClient(ctx, prometheusClient, buildNodeInfoMap(nodeList), startTime, time.Now())
 }
 
+// collectFromPrometheusClient queries the major fault and page-in rates for every node and
+// builds the thrashing intervals between startTime and endTime.
 func (w *memoryThrashingCollector) collectFromPrometheusClient(ctx context.Context, prometheusClient prometheusv1.API, nodeInfoMap map[string]nodeInfo, startTime, endTime time.Time) ([]monitorapi.Interval, error) {
 	logger := logrus.WithField("func", "collectFromPrometheusClient")
 
@@ -155,6 +160,7 @@ func (w *memoryThrashingCollector) collectFromPrometheusClient(ctx context.Conte
 	return w.createIntervalsFromMetrics(logger, faults, pageIn, nodeInfoMap), nil
 }
 
+// queryRange runs a range query and logs any warnings Prometheus returns.
 func queryRange(ctx context.Context, prometheusClient prometheusv1.API, logger logrus.FieldLogger, query string, timeRange prometheusv1.Range) (prometheustypes.Value, error) {
 	result, warnings, err := prometheusClient.QueryRange(ctx, query, timeRange)
 	if err != nil {
@@ -259,6 +265,7 @@ func (w *memoryThrashingCollector) EvaluateTestsFromConstructedIntervals(ctx con
 	return nil, nil
 }
 
+// WriteContentToStorage writes the thrashing intervals to the node_memory_thrashing_intervals autodl file.
 func (w *memoryThrashingCollector) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
 	logger := logrus.WithField("func", "WriteContentToStorage")
 
