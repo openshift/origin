@@ -65,6 +65,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/metricsendpointdown"
 	"github.com/openshift/origin/pkg/monitortests/testframework/operatorloganalyzer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/pathologicaleventanalyzer"
+	"github.com/openshift/origin/pkg/monitortests/testframework/pertestintervalserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/timelineserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/trackedresourcesserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchclusteroperators"
@@ -200,6 +201,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("interval-serializer", "Test Framework", intervalserializer.NewIntervalSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("tracked-resources-serializer", "Test Framework", trackedresourcesserializer.NewTrackedResourcesSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("cluster-info-serializer", "Test Framework", clusterinfoserializer.NewClusterInfoSerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("per-test-interval-serializer", "Test Framework", pertestintervalserializer.NewPerTestIntervalSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("cluster-instance-types", "Test Framework", clusterinstancetypes.NewClusterInstanceTypes(info))
 	monitorTestRegistry.AddMonitorTestOrDie("additional-events-collector", "Test Framework", additionaleventscollector.NewIntervalSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("known-image-checker", "Test Framework", knownimagechecker.NewEnsureValidImages())
@@ -263,6 +265,7 @@ func newDisruptiveMonitorTests(info monitortestframework.MonitorTestInitializati
 	monitorTestRegistry.AddMonitorTestOrDie("interval-serializer", "Test Framework", intervalserializer.NewIntervalSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("tracked-resources-serializer", "Test Framework", trackedresourcesserializer.NewTrackedResourcesSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("cluster-info-serializer", "Test Framework", clusterinfoserializer.NewClusterInfoSerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("per-test-interval-serializer", "Test Framework", pertestintervalserializer.NewPerTestIntervalSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("additional-events-collector", "Test Framework", additionaleventscollector.NewIntervalSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("known-image-checker", "Test Framework", knownimagechecker.NewEnsureValidImages())
 	monitorTestRegistry.AddMonitorTestOrDie("e2e-test-analyzer", "Test Framework", e2etestanalyzer.NewAnalyzer())
