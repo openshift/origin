@@ -33,19 +33,24 @@ var _ = g.Describe("[sig-auth][Feature:HTPasswdAuth] HTPasswd IDP", func() {
 	var oc = exutil.NewCLIWithPodSecurityLevel("htpasswd-idp", admissionapi.LevelBaseline)
 
 	g.It("should successfully configure htpasswd and be responsive [apigroup:user.openshift.io][apigroup:route.openshift.io]", func() {
-		newTokenReqOpts, cleanup, err := deployOAuthServer(oc)
+		username := "testuser-" + oc.Namespace()
+		newTokenReqOpts, cleanup, err := deployOAuthServer(oc, username)
 		defer cleanup()
 		o.Expect(err).ToNot(o.HaveOccurred())
-		tokenReqOpts := newTokenReqOpts("testuser", "password")
+		tokenReqOpts := newTokenReqOpts(username, "password")
 		e2e.Logf("got the OAuth server address: %s", tokenReqOpts.Issuer)
 		token, err := tokenReqOpts.RequestToken()
 		o.Expect(err).ToNot(o.HaveOccurred())
 		defer func() {
-			oc.AdminUserClient().UserV1().Users().Delete(context.Background(), "testuser", metav1.DeleteOptions{})
-			oc.AdminUserClient().UserV1().Identities().Delete(context.Background(), "htpasswd:testuser", metav1.DeleteOptions{})
+			if err := oc.AdminUserClient().UserV1().Users().Delete(context.Background(), username, metav1.DeleteOptions{}); err != nil {
+				e2e.Logf("failed to delete user %s: %v", username, err)
+			}
+			if err := oc.AdminUserClient().UserV1().Identities().Delete(context.Background(), "htpasswd:"+username, metav1.DeleteOptions{}); err != nil {
+				e2e.Logf("failed to delete identity htpasswd:%s: %v", username, err)
+			}
 		}()
-		tokenUser, err := utiloauth.GetUserForToken(oc.AdminConfig(), token, "testuser")
+		tokenUser, err := utiloauth.GetUserForToken(oc.AdminConfig(), token, username)
 		o.Expect(err).ToNot(o.HaveOccurred())
-		o.Expect(tokenUser.Name).To(o.Equal("testuser"))
+		o.Expect(tokenUser.Name).To(o.Equal(username))
 	})
 })
