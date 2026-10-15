@@ -65,6 +65,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/metricsendpointdown"
 	"github.com/openshift/origin/pkg/monitortests/testframework/operatorloganalyzer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/pathologicaleventanalyzer"
+	"github.com/openshift/origin/pkg/monitortests/testframework/singletonplacementcollector"
 	"github.com/openshift/origin/pkg/monitortests/testframework/timelineserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/trackedresourcesserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchclusteroperators"
@@ -210,6 +211,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("lease-checker", "Test Framework", operatorloganalyzer.OperatorLeaseCheck())
 	monitorTestRegistry.AddMonitorTestOrDie("watch-namespaces", "Test Framework", watchnamespaces.NewNamespaceWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("high-cpu-test-analyzer", "Test Framework", highcputestanalyzer.NewHighCPUTestAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("singleton-placement-collector", "Test Framework", singletonplacementcollector.NewSingletonPlacementCollector())
 
 	// Cloud
 	monitorTestRegistry.AddMonitorTestOrDie("azure-metrics-collector", "Test Framework", azuremetrics.NewAzureMetricsCollector())
@@ -272,6 +274,7 @@ func newDisruptiveMonitorTests(info monitortestframework.MonitorTestInitializati
 	monitorTestRegistry.AddMonitorTestOrDie("lease-checker", "Test Framework", operatorloganalyzer.OperatorLeaseCheck())
 	monitorTestRegistry.AddMonitorTestOrDie("watch-namespaces", "Test Framework", watchnamespaces.NewNamespaceWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("high-cpu-test-analyzer", "Test Framework", highcputestanalyzer.NewHighCPUTestAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("singleton-placement-collector", "Test Framework", singletonplacementcollector.NewSingletonPlacementCollector())
 
 	// Cloud
 	monitorTestRegistry.AddMonitorTestOrDie("azure-metrics-collector", "Test Framework", azuremetrics.NewAzureMetricsCollector())
