@@ -3,12 +3,14 @@ package networking
 import (
 	"context"
 	"net"
+	"time"
 
 	"github.com/apparentlymart/go-cidr/cidr"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
 	authenticationv1 "k8s.io/api/authentication/v1"
+	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -116,6 +118,17 @@ var _ = g.Describe("[sig-network][endpoints] admission [apigroup:config.openshif
 		o.Expect(err).NotTo(o.HaveOccurred(), "error adding endpointslice-edit role: %s", out)
 		out, err = oc.AsAdmin().Run("create", "rolebinding", "--namespace", oc.Namespace(), "user-endpointslice-edit", "--role=endpointslice-edit", "--user", oc.Username()).Output()
 		o.Expect(err).NotTo(o.HaveOccurred(), "error adding user-endpointslice-edit rolebinding: ", out)
+		// RBAC is eventually consistent; without this wait the following Create
+		// races and fails with "cannot create resource endpointslices" (OCPBUGS-82576).
+		err = exutil.WaitForSelfSAR(1*time.Second, 60*time.Second, projectAdminClient, authorizationv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationv1.ResourceAttributes{
+				Namespace: oc.Namespace(),
+				Verb:      "create",
+				Group:     "discovery.k8s.io",
+				Resource:  "endpointslices",
+			},
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "timed out waiting for endpointslice create permission")
 
 		// Project admin + endpointslice edit; restricted IPs are still blocked, but
 		// the external IP will work now
