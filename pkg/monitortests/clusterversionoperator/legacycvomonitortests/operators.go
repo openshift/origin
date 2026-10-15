@@ -858,10 +858,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			if reason == "KubeStorageVersionMigrator_Deploying" {
 				return "https://issues.redhat.com/browse/OCPBUGS-62629"
 			}
-		case "network":
-			if reason == "Deploying" || reason == "MachineConfig" {
-				return "https://redhat.atlassian.net/browse/OCPBUGS-85677"
-			}
 		case "openshift-controller-manager":
 			// _DesiredStateNotYetAchieved
 			// RouteControllerManager_DesiredStateNotYetAchieved
