@@ -588,7 +588,7 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 				monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^oauth-openshift$`),
 			},
 			messageReasonRegex:      regexp.MustCompile(`^ScalingReplicaSet$`),
-			repeatThresholdOverride: 55,
+			repeatThresholdOverride: 90,
 		})
 	}
 
