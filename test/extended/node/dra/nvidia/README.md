@@ -5,23 +5,43 @@ This directory contains extended tests for NVIDIA Dynamic Resource Allocation (D
 ## Overview
 
 These tests validate:
-- NVIDIA DRA driver installation and lifecycle
-- Single GPU allocation via ResourceClaims
-- Multi-GPU workload allocation
-- Pod lifecycle and resource cleanup
-- GPU device accessibility in pods
+- DRA driver readiness and GPU ResourceSlice publication
+- Single- and multi-GPU allocation through ResourceClaims
+- Claim sharing, ResourceClaimTemplate use, and cleanup after pod deletion
+- CDI injection through CRI-O, including init containers and CDI spec cleanup
+- GPU access under SELinux and restricted SCC, including non-root workloads
+- Request-level CEL selectors and kubelet restart recovery
+
+Upstream DRA tests cover generic allocation behavior; these tests verify NVIDIA driver integration on OpenShift, including CDI injection and GPU access under OpenShift security controls.
+
+The `openshift/nvidia-dra` suite runs serially on GPU hardware. `crio_cdi.go` checks
+the DRA driver's CDI environment edit, claim-specific CDI spec creation and
+cleanup, multi-GPU access, and init containers. `security.go` checks GPU access
+from confined workloads admitted under `restricted-v2`, including arbitrary
+non-root UIDs. `claim_lifecycle.go` compares the GPU identity seen by two
+containers sharing one claim with the allocated ResourceSlice device. The
+common cleanup waits for claim release before the next serial test.
 
 ## Prerequisites
 
-1. **OpenShift 4.21+** with GPU-enabled worker nodes
+1. **OpenShift 4.21+** with NVIDIA GPU nodes
 2. **Node Feature Discovery Operator** pre-installed
-3. **NVIDIA GPU Operator** pre-installed with **CDI enabled** (`cdi.enabled=true`)
-4. **Helm 3** installed and available in PATH
+3. **NVIDIA GPU Operator** pre-installed in `nvidia-gpu-operator` with **CDI enabled**
+   (`cdi.enabled=true`)
+4. **Helm 3** installed and available in PATH if the suite needs to install the DRA driver
 5. **Cluster-admin** access
+6. Access to `nvcr.io/nvidia/cuda:12.0.0-base-ubuntu22.04`, used by the GPU workload pods
+
+The GPU Operator's driver and CDI toolkit must be ready, and NFD must expose GPU nodes with the
+`nvidia.com/gpu.present=true` label. The DRA tests do not require the GPU Operator device plugin;
+the suite uses the NVIDIA DRA driver to allocate GPUs through ResourceClaims.
 
 For installation instructions, see the [NVIDIA GPU Operator on OpenShift Installation Guide](https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/install-gpu-ocp.html).
 
-**Note**: The test framework automatically installs the DRA driver if not already present.
+**Note**: The test framework installs the NVIDIA DRA driver if it is not already running. It uses
+chart version `25.12.0` by default and leaves the driver installed after the suite. Installation
+requires Helm access to NVIDIA's chart repository. The suite is marked `[Skipped:Disconnected]`
+because the workload image and, when needed, the driver chart come from NVIDIA's registries.
 
 ## Quick Start
 
@@ -36,83 +56,52 @@ make WHAT=cmd/openshift-tests
 export KUBECONFIG=/path/to/kubeconfig
 
 # 3. Run all NVIDIA DRA tests
-./openshift-tests run --dry-run all 2>&1 | \
-  grep "\[Feature:NVIDIA-DRA\]" | \
-  ./openshift-tests run -f -
+OPENSHIFT_SKIP_EXTERNAL_TESTS=1 ./openshift-tests run openshift/nvidia-dra
 
 # OR run a specific test
-./openshift-tests run-test \
-  '[sig-scheduling][Feature:NVIDIA-DRA][Serial] Basic GPU Allocation should allocate single GPU to pod via DRA'
+OPENSHIFT_SKIP_EXTERNAL_TESTS=1 ./openshift-tests run-test \
+  '[sig-scheduling][Feature:NVIDIA-DRA][Suite:openshift/nvidia-dra][Serial][Skipped:Disconnected] Basic GPU Allocation should allocate single GPU to pod via DRA'
 
 # OR list all available tests without running them
-./openshift-tests run --dry-run all 2>&1 | grep "\[Feature:NVIDIA-DRA\]"
+OPENSHIFT_SKIP_EXTERNAL_TESTS=1 \
+  ./openshift-tests run --dry-run all 2>&1 | grep "\[Feature:NVIDIA-DRA\]"
 ```
+
+Set `OPENSHIFT_SKIP_EXTERNAL_TESTS=1` when running a locally built binary so the runner does not
+extract extension tests from the cluster release payload. `run-test` runs one spec without the
+cluster monitors; `run openshift/nvidia-dra` runs the suite with monitors.
 
 **What the tests do automatically:**
-- Verify GPU Operator is installed (test fails if not present)
-- Install DRA Driver if not already present (version 25.12.0 by default)
-- Configure necessary SCC permissions and node labels
-- Wait for all components to be ready before running tests
+- Verify the GPU Operator is installed and the required GPU labels are present
+- If no running DRA driver pod is detected, install the driver (version 25.12.0 by default), label
+  GPU nodes, grant the driver service accounts privileged SCC, and wait for controller, plugin,
+  and GPU ResourceSlice readiness
 
-To use a different DRA driver version: `export NVIDIA_DRA_DRIVER_VERSION=25.8.1`
-
-### Running Individual Tests
-
-```bash
-# Set your kubeconfig first
-export KUBECONFIG=/path/to/kubeconfig
-
-# Discover and run all NVIDIA DRA tests sequentially
-./openshift-tests run --dry-run all 2>&1 | grep "\[Feature:NVIDIA-DRA\]" | while read -r test; do
-  echo "Running: $test"
-  ./openshift-tests run-test "$test"
-done
-```
+To use a different chart version, set `NVIDIA_DRA_DRIVER_VERSION` to that chart's version before
+running the suite.
 
 ## Test Scenarios
 
-### 1. Single GPU Allocation ✅
-- Creates DeviceClass with CEL selector
-- Creates ResourceClaim requesting exactly 1 GPU
-- Schedules pod with ResourceClaim
-- Validates GPU accessibility via nvidia-smi
-- Validates CDI device injection
+The suite currently covers these scenarios:
 
-**Expected**: PASSED
+- `nvidia_dra.go`: single and multiple GPU allocation, allocation release after pod
+  deletion, two pods referencing one claim, and claims created from a
+  ResourceClaimTemplate.
+- `crio_cdi.go`: the DRA driver's `NVIDIA_VISIBLE_DEVICES=void` environment edit,
+  claim-specific CDI spec creation and removal, multiple CDI devices, and
+  init-container access.
+- `security.go`: GPU access in the confined `container_t` SELinux domain with no
+  matching AVC denial, GPU access under `restricted-v2`, and access from a
+  namespace-assigned non-root UID.
+- `claim_lifecycle.go`: physical GPU UUID identity for two containers sharing a
+  claim, plus matching and non-matching request-level CEL selectors against
+  NVIDIA device capacity.
+- `kubelet_restart.go`: workload and claim recovery across kubelet restart, and
+  preparation of a new claim after the plugin re-registers. These specs restart
+  kubelet and are marked disruptive.
 
-### 2. Resource Cleanup ✅
-- Creates pod with GPU ResourceClaim
-- Deletes pod
-- Verifies ResourceClaim persists after pod deletion
-- Validates resource lifecycle management
-
-**Expected**: PASSED
-
-### 3. Multi-GPU Workloads ⚠️
-- Creates ResourceClaim requesting exactly 2 GPUs
-- Schedules pod requiring multiple GPUs
-- Validates all GPUs are accessible
-
-**Expected**: SKIPPED if cluster has fewer than 2 GPUs (expected behavior)
-
-### 4. Claim Sharing 🔄
-- Creates a single ResourceClaim
-- Creates two pods referencing the same ResourceClaim
-- Tests whether NVIDIA DRA driver supports claim sharing
-- Validates behavior when multiple pods attempt to use the same claim
-
-**Expected**: Behavior depends on driver support for claim sharing. Test verifies that:
-- If sharing is NOT supported: Second pod remains Pending, first pod continues to work
-- If sharing IS supported: Both pods run and have GPU access
-
-### 5. ResourceClaimTemplate 📋
-- Creates a ResourceClaimTemplate
-- Creates pod with ResourceClaimTemplate reference
-- Validates that ResourceClaim is automatically created from template
-- Verifies GPU access in pod
-- Validates automatic cleanup of template-generated claim when pod is deleted
-
-**Expected**: PASSED
+Specs run serially. Cleanup deletes workloads and waits for their ResourceClaims to release before
+the next spec starts. Multi-GPU specs skip when the required number of GPUs is unavailable.
 
 ## Manual DRA Driver Installation
 
@@ -130,14 +119,15 @@ helm repo update
 ```bash
 # Label all GPU nodes for DRA kubelet plugin scheduling
 for node in $(oc get nodes -l nvidia.com/gpu.present=true -o name); do
-  oc label $node nvidia.com/dra-kubelet-plugin=true --overwrite
+  oc label "$node" nvidia.com/dra-kubelet-plugin=true --overwrite
 done
 
 # Verify labels
 oc get nodes -l nvidia.com/dra-kubelet-plugin=true
 ```
 
-This label ensures the DRA kubelet plugin only runs on GPU nodes and works around NVIDIA Driver Manager eviction issues.
+The DRA chart uses this label as the kubelet-plugin node selector, so the plugin runs only on GPU
+nodes.
 
 ### Step 3: Install DRA Driver
 
@@ -178,13 +168,13 @@ helm install nvidia-dra-driver nvidia/nvidia-dra-driver-gpu \
 ### Step 4: Verify Installation
 
 ```bash
-# Check DRA driver pods
-oc get pods -n nvidia-dra-driver
-# Expected: All pods should be Running
+# Check DRA controller and kubelet plugin readiness
+oc get deployment nvidia-dra-driver-gpu-controller -n nvidia-dra-driver
+oc get daemonset nvidia-dra-driver-gpu-kubelet-plugin -n nvidia-dra-driver
 
 # Verify ResourceSlices are published
-oc get resourceslices
-# Should show at least 2 slices per GPU node
+oc get resourceslices -o wide
+# Look for gpu.nvidia.com and compute-domain.nvidia.com slices on the GPU nodes.
 ```
 
 ### Uninstalling DRA Driver
@@ -199,15 +189,22 @@ oc delete clusterrolebinding \
   nvidia-dra-privileged-nvidia-dra-driver-gpu-service-account-controller \
   nvidia-dra-privileged-nvidia-dra-driver-gpu-service-account-kubeletplugin \
   nvidia-dra-privileged-compute-domain-daemon-service-account
+
+# Remove the DRA scheduling label added during installation
+for node in $(oc get nodes -l nvidia.com/dra-kubelet-plugin=true -o name); do
+  oc label "$node" nvidia.com/dra-kubelet-plugin-
+done
 ```
 
-**Note**: GPU Operator is NOT removed as it's cluster infrastructure. ResourceSlices are automatically cleaned up.
+**Note**: The GPU Operator is not removed because it is cluster infrastructure. ResourceSlices are
+removed when the DRA driver is uninstalled.
 
 ## Troubleshooting
 
 ### GPU Operator not found
 
-**Cause**: GPU Operator not installed on cluster.
+**Cause**: GPU Operator is not installed in the `nvidia-gpu-operator` namespace or its operator pod
+is not running.
 
 **Solution**: Install GPU Operator following the [official guide](https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/install-gpu-ocp.html).
 
@@ -217,11 +214,18 @@ oc delete clusterrolebinding \
 
 **Solution**: Ensure your origin checkout matches the cluster version, or use `./openshift-tests run-test` command which bypasses version checks.
 
-### DRA driver kubelet plugin stuck at Init:0/1
+### DRA driver components are not ready
 
-**Cause**: Wrong `nvidiaDriverRoot` setting.
+**Cause**: The DRA chart may use the wrong `nvidiaDriverRoot`, or the GPU Operator driver/CDI toolkit
+is not ready.
 
-**Solution**: Ensure `nvidiaDriverRoot=/run/nvidia/driver` (not `/`). This is automatically configured by tests.
+**Solution**: Ensure `nvidiaDriverRoot=/run/nvidia/driver` (not `/`). The tests set this value when
+installing the chart. Check the controller and kubelet plugin:
+
+```bash
+oc get deployment nvidia-dra-driver-gpu-controller -n nvidia-dra-driver
+oc get daemonset nvidia-dra-driver-gpu-kubelet-plugin -n nvidia-dra-driver
+```
 
 ### ResourceSlices not appearing
 
@@ -247,5 +251,3 @@ oc delete pod -n nvidia-dra-driver -l app.kubernetes.io/name=nvidia-dra-driver-g
 - **OpenShift Extended Tests**: https://github.com/openshift/origin/tree/master/test/extended
 
 ---
-
-**Tested On**: OpenShift 4.21.0, Kubernetes 1.34.2, Tesla T4

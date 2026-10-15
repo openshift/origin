@@ -406,6 +406,21 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout: 30 * time.Minute,
 	},
 	{
+		Name: "openshift/nvidia-dra",
+		Description: templates.LongDesc(`
+		This test suite runs Dynamic Resource Allocation (DRA) tests against NVIDIA GPU hardware.
+
+		Requires a cluster with NVIDIA GPUs and the NVIDIA GPU Operator (with CDI enabled).
+		The suite installs the NVIDIA DRA driver with Helm when it is absent. Tests skip when
+		no GPU nodes are present.
+		`),
+		Qualifiers: []string{
+			`name.contains("[Suite:openshift/nvidia-dra")`,
+		},
+		TestTimeout: 30 * time.Minute,
+		Parallelism: 1,
+	},
+	{
 		Name: "openshift/usernamespace",
 		Description: templates.LongDesc(`
 		This test suite runs tests to validate user namespace functionality.
