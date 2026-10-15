@@ -428,23 +428,30 @@ var staticSuites = []ginkgo.TestSuite{
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
+		Name: "openshift/topology-transitions/preflight",
+		Description: templates.LongDesc(`
+        This suite checks expected topology preflight failures on the initial SNO
+        cluster without submitting a transition request. Requires MutableTopology
+        and the TARGET_* topology and node-count variables.
+        `),
+		Qualifiers: []string{
+			`name.contains("[Suite:openshift/topology-transitions/preflight]") && name.contains("[OCPFeatureGate:MutableTopology]")`,
+		},
+		TestTimeout:                30 * time.Minute,
+		Parallelism:                1,
+		ClusterStabilityDuringTest: ginkgo.Stable,
+	},
+	{
 		Name: "openshift/topology-transitions",
 		Description: templates.LongDesc(`
-		This test suite runs exactly one topology transition selected by
-		TARGET_CONTROL_PLANE_TOPOLOGY and TARGET_INFRASTRUCTURE_TOPOLOGY. The lane
-		sets these to the desired topology values. TARGET_HA_COMPACT selects compact
-		HA and defaults to false. The suite runs behind the MutableTopology feature
-		gate.
-		`),
+        This suite runs a topology transition after the lane provisions nodes.
+        Requires MutableTopology and the TARGET_* topology and node-count variables.
+        `),
 		Qualifiers: []string{
-			// Require both tags so unrelated tests using the MutableTopology gate
-			// do not get swept into this disruptive suite.
-			`name.contains("[Suite:openshift/topology-transitions") && name.contains("[OCPFeatureGate:MutableTopology]")`,
+			`name.contains("[Suite:openshift/topology-transitions]") && name.contains("[OCPFeatureGate:MutableTopology]")`,
 		},
-		// The single spec includes rejection, restoration, and the transition.
-		// Keep this at least as long as its [Timeout:220m] tag.
-		TestTimeout:                220 * time.Minute,
-		Parallelism:                1, // the transition is a one-way, cluster-wide operation
+		TestTimeout:                150 * time.Minute,
+		Parallelism:                1,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{

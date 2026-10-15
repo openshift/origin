@@ -4,115 +4,52 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	configv1 "github.com/openshift/api/config/v1"
 )
 
-const (
-	targetControlPlaneTopologyEnvVar   = "TARGET_CONTROL_PLANE_TOPOLOGY"
-	targetInfrastructureTopologyEnvVar = "TARGET_INFRASTRUCTURE_TOPOLOGY"
-	targetHACompactEnvVar              = "TARGET_HA_COMPACT"
-)
-
-// TransitionSpec describes one supported topology transition and its test
-// preconditions.
-type TransitionSpec struct {
-	Name string
-	From configv1.InfrastructureStatus
-	To   configv1.InfrastructureSpec
-
-	// InfrastructureTopology is status-only; the controller derives it from
-	// the requested control-plane topology.
-	ToInfrastructureTopology configv1.TopologyMode
-	HACompact                bool
-
-	RequiredControlPlaneNodes        int
-	RequiredInfrastructureNodes      int // zero skips an exact total-node-count check
-	RequireDualRoleControlPlane      bool
-	AllowDedicatedWorkers            bool
-	RequiredEtcdVotingMembers        int
-	ExpectedScheduleFailureSubstring string
-
-	ClusterOperatorStabilityTimeout time.Duration
-	AdmissionWaitTimeout            time.Duration
-	StatusConvergeTimeout           time.Duration
-	CompletionWaitTimeout           time.Duration
-	OperatorSettleTimeout           time.Duration
-}
-
-// transitionTarget selects transition specs using lane-provided target data.
+// transitionTarget contains the exact node counts requested by the lane.
 type transitionTarget struct {
-	ControlPlaneTopology   configv1.TopologyMode
-	InfrastructureTopology configv1.TopologyMode
-	HACompact              bool
+	Topology configv1.TopologyState
+	nodeCounts
 }
 
-// parseTransitionTarget reads the lane target values. HA compact defaults to
-// false when its environment variable is empty.
-func parseTransitionTarget(controlPlane, infrastructure, haCompact string) (transitionTarget, error) {
-	controlPlane = strings.TrimSpace(controlPlane)
-	infrastructure = strings.TrimSpace(infrastructure)
-	if controlPlane == "" {
-		return transitionTarget{}, fmt.Errorf("%s must be set", targetControlPlaneTopologyEnvVar)
-	}
-	if infrastructure == "" {
-		return transitionTarget{}, fmt.Errorf("%s must be set", targetInfrastructureTopologyEnvVar)
-	}
+type nodeCounts struct {
+	ControlPlaneNodes            int
+	ComputeNodes                 int
+	ArbiterNodes                 int
+	SchedulableControlPlaneNodes int
+}
 
+func transitionTargetFromEnvironment(getenv func(string) string) (transitionTarget, error) {
 	target := transitionTarget{
-		ControlPlaneTopology:   configv1.TopologyMode(controlPlane),
-		InfrastructureTopology: configv1.TopologyMode(infrastructure),
+		Topology: configv1.TopologyState{
+			ControlPlaneTopology:   configv1.TopologyMode(strings.TrimSpace(getenv("TARGET_CONTROL_PLANE_TOPOLOGY"))),
+			InfrastructureTopology: configv1.TopologyMode(strings.TrimSpace(getenv("TARGET_INFRASTRUCTURE_TOPOLOGY"))),
+		},
 	}
-	if strings.TrimSpace(haCompact) == "" {
-		return target, nil
+	if target.Topology.ControlPlaneTopology == "" || target.Topology.InfrastructureTopology == "" {
+		return target, fmt.Errorf("TARGET_CONTROL_PLANE_TOPOLOGY and TARGET_INFRASTRUCTURE_TOPOLOGY must be set")
 	}
-	compact, err := strconv.ParseBool(strings.TrimSpace(haCompact))
-	if err != nil {
-		return transitionTarget{}, fmt.Errorf("%s must be a boolean: %w", targetHACompactEnvVar, err)
+
+	for _, count := range []struct {
+		name  string
+		value *int
+	}{
+		{"TARGET_CONTROL_PLANE_NODES", &target.ControlPlaneNodes},
+		{"TARGET_COMPUTE_NODES", &target.ComputeNodes},
+		{"TARGET_ARBITER_NODES", &target.ArbiterNodes},
+		{"TARGET_CONTROL_PLANE_NODES_SCHEDULABLE", &target.SchedulableControlPlaneNodes},
+	} {
+		value, err := strconv.Atoi(strings.TrimSpace(getenv(count.name)))
+		if err != nil || value < 0 {
+			return target, fmt.Errorf("%s must be set to a non-negative integer", count.name)
+		}
+		*count.value = value
 	}
-	target.HACompact = compact
+	if target.SchedulableControlPlaneNodes > target.ControlPlaneNodes {
+		return target, fmt.Errorf("TARGET_CONTROL_PLANE_NODES_SCHEDULABLE cannot exceed TARGET_CONTROL_PLANE_NODES")
+	}
+
 	return target, nil
-}
-
-// selectTransition requires one definition for the requested target.
-func selectTransition(specs []TransitionSpec, target transitionTarget) (TransitionSpec, error) {
-	var matches []TransitionSpec
-	for _, spec := range specs {
-		if spec.To.ControlPlaneTopology != target.ControlPlaneTopology ||
-			spec.ToInfrastructureTopology != target.InfrastructureTopology ||
-			spec.HACompact != target.HACompact {
-			continue
-		}
-		matches = append(matches, spec)
-	}
-	switch len(matches) {
-	case 0:
-		return TransitionSpec{}, fmt.Errorf("no transition matches control-plane topology %q, infrastructure topology %q, and TARGET_HA_COMPACT=%t",
-			target.ControlPlaneTopology, target.InfrastructureTopology, target.HACompact)
-	case 1:
-		return matches[0], nil
-	default:
-		names := make([]string, 0, len(matches))
-		for _, match := range matches {
-			names = append(names, match.Name)
-		}
-		return TransitionSpec{}, fmt.Errorf("multiple transitions match the configured target: %s; select exactly one transition per run", strings.Join(names, ", "))
-	}
-}
-
-// matchesFrom checks the starting topology and platform fields declared by spec.
-func (spec TransitionSpec) matchesFrom(infra *configv1.Infrastructure) bool {
-	if spec.From.ControlPlaneTopology != "" && infra.Status.ControlPlaneTopology != spec.From.ControlPlaneTopology {
-		return false
-	}
-	if spec.From.InfrastructureTopology != "" && infra.Status.InfrastructureTopology != spec.From.InfrastructureTopology {
-		return false
-	}
-	if spec.From.PlatformStatus != nil && spec.From.PlatformStatus.Type != "" {
-		if infra.Status.PlatformStatus == nil || infra.Status.PlatformStatus.Type != spec.From.PlatformStatus.Type {
-			return false
-		}
-	}
-	return true
 }

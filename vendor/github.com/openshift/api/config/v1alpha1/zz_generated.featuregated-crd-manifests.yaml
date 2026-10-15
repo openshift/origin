@@ -68,6 +68,29 @@ clustermonitorings.config.openshift.io:
   - ClusterMonitoringConfig
   Version: v1alpha1
 
+controllermanagers.config.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/2668
+  CRDName: controllermanagers.config.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates:
+  - ControllerManagerConfig
+  FilenameOperatorName: config-operator
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_10"
+  GroupName: config.openshift.io
+  HasStatus: false
+  KindName: ControllerManager
+  Labels: {}
+  PluralName: controllermanagers
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates:
+  - ControllerManagerConfig
+  Version: v1alpha1
+
 insightsdatagathers.config.openshift.io:
   Annotations: {}
   ApprovedPRNumber: https://github.com/openshift/api/pull/1245
