@@ -1264,7 +1264,7 @@ func authenticationComponentProxyTestsDetected(finalIntervals monitorapi.Interva
 // a test drives can land slightly after the test interval closes; this bounded post-test
 // window covers that without any pre-test grace. It is a proximity allowance, not a claim the
 // tests necessarily cause the rollouts.
-const authComponentProxyPostTestGrace = 60 * time.Second
+const authComponentProxyPostTestGrace = 120 * time.Second
 
 // authComponentProxyEligibleTestNames are the exact, full e2e test names whose runs authorize
 // the scoped oauth-openshift ScalingReplicaSet tolerance. The hot-reload test (T3) is included

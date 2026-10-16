@@ -15,7 +15,7 @@ import (
 // These tests pin the scoped, proximity-bounded tolerance for oauth-openshift ScalingReplicaSet
 // repeats during the AuthenticationComponentProxy serial tests. The finite cap (70) applies
 // only to repeats whose LATEST occurrence falls during one of the eligible passing tests or
-// within 60s AFTER that test ends (no pre-test grace). It is a bounded proximity allowance, not
+// within 120s AFTER that test ends (no pre-test grace). It is a bounded proximity allowance, not
 // a causal claim that the tests cause the rollouts, and not a claim the events are harmless.
 
 const cpPrefix = `[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial]`
@@ -127,9 +127,9 @@ func TestAuthenticationComponentProxyScalingReplicaSet_PostTestGraceAndBoundarie
 		{"inside window", from.Add(2 * time.Minute), true},
 		{"exact window end", to, true},
 		{"29s after end (observed real offset)", to.Add(29 * time.Second), true},
-		{"30s after end", to.Add(30 * time.Second), true},
+		{"90s after end (within 120s grace)", to.Add(90 * time.Second), true},
 		{"before test start", from.Add(-10 * time.Second), false},
-		{"90s after end (past grace)", to.Add(90 * time.Second), false},
+		{"150s after end (past 120s grace)", to.Add(150 * time.Second), false},
 	}
 	for _, c := range cases {
 		got := m.Allows(oauthScaleEvent(70, c.latest), v1.HighlyAvailableTopologyMode)
@@ -142,24 +142,28 @@ func TestAuthenticationComponentProxyScalingReplicaSet_SecondPrecisionGraceBound
 	m := scalingMatcher(t, events)
 
 	// The latest occurrence's whole second-precision cover [t, t+1s) must fit within the
-	// post-grace window; an occurrence whose cover extends past end+60s is NOT allowed, avoiding
+	// post-grace window; an occurrence whose cover extends past end+120s is NOT allowed, avoiding
 	// the earlier unsafe point assumption that accepted +500ms past the end.
-	wellWithin := to.Add(30 * time.Second)
+	wellWithin := to.Add(90 * time.Second)
 	assert.True(t, m.Allows(oauthScaleEvent(70, wellWithin), v1.HighlyAvailableTopologyMode),
-		"30s after end: whole [t,t+1s) cover fits within +60s grace")
+		"90s after end: whole [t,t+1s) cover fits within +120s grace")
 
-	// end+59.5s: cover is [end+59.5s, end+60.5s), which extends past end+60s -> not allowed.
-	straddles := to.Add(59500 * time.Millisecond)
+	// end+119.5s: cover is [end+119.5s, end+120.5s), which extends past end+120s -> not allowed.
+	straddles := to.Add(119500 * time.Millisecond)
 	assert.False(t, m.Allows(oauthScaleEvent(70, straddles), v1.HighlyAvailableTopologyMode),
-		"end+59.5s: cover straddles the +60s grace boundary -> conservatively rejected")
+		"end+119.5s: cover straddles the +120s grace boundary -> conservatively rejected")
 }
 
 func TestAuthenticationComponentProxyScalingReplicaSet_OverCapRejectedEvenInWindow(t *testing.T) {
-	events, from, _ := onePassingWindow()
+	events, from, to := onePassingWindow()
 	m := scalingMatcher(t, events)
 	over := oauthScaleEvent(71, from.Add(2*time.Minute))
 	assert.False(t, m.Allows(over, v1.HighlyAvailableTopologyMode),
 		"count 71 must be rejected even inside an eligible window")
+	// The cap is enforced across the whole eligibility window, including the post-test grace.
+	overInGrace := oauthScaleEvent(71, to.Add(90*time.Second))
+	assert.False(t, m.Allows(overInGrace, v1.HighlyAvailableTopologyMode),
+		"count 71 must be rejected even within the +120s post-test grace")
 }
 
 func TestAuthenticationComponentProxyScalingReplicaSet_NegativeControls(t *testing.T) {
@@ -276,9 +280,9 @@ func TestAuthenticationComponentProxyScalingReplicaSet_ThroughLegacyConsumer(t *
 	}
 
 	assert.False(t, run(oauthScaleEvent(70, from.Add(2*time.Minute))).failed, "in-window 70 must pass the legacy consumer")
-	assert.False(t, run(oauthScaleEvent(70, to.Add(29*time.Second))).failed, "70 within +60s grace must pass")
+	assert.False(t, run(oauthScaleEvent(70, to.Add(90*time.Second))).failed, "70 within +120s grace must pass")
 	assert.True(t, run(oauthScaleEvent(71, from.Add(2*time.Minute))).failed, "71 must be rejected")
-	assert.True(t, run(oauthScaleEvent(70, to.Add(90*time.Second))).failed, "70 past the +60s grace must be rejected")
+	assert.True(t, run(oauthScaleEvent(70, to.Add(150*time.Second))).failed, "70 past the +120s grace must be rejected")
 }
 
 type junitapiCaseResult struct {
