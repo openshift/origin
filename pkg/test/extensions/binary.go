@@ -257,6 +257,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/cluster-control-plane-machine-set-operator-ext.gz",
 	},
 	{
+		imageTag:   "cluster-dns-operator",
+		binaryPath: "/usr/bin/cluster-dns-operator-tests-ext.gz",
+	},
+	{
 		imageTag:   "cluster-etcd-operator",
 		binaryPath: "/usr/bin/cluster-etcd-operator-tests-ext.gz",
 	},
@@ -317,6 +321,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/k8s-tests-ext.gz",
 	},
 	{
+		imageTag:   "keepalived-ipfailover",
+		binaryPath: "/usr/bin/ipfailover-tests-ext.gz",
+	},
+	{
 		imageTag:   "machine-api-operator",
 		binaryPath: "/machine-api-tests-ext.gz",
 	},
@@ -347,6 +355,10 @@ var extensionBinaries = []TestBinary{
 	{
 		imageTag:   "ovn-kubernetes",
 		binaryPath: "/usr/bin/ovn-kubernetes-tests-ext.gz",
+	},
+	{
+		imageTag:   "haproxy-router",
+		binaryPath: "/usr/bin/router-tests-ext.gz",
 	},
 	{
 		imageTag:   "service-ca-operator",
