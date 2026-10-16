@@ -2,7 +2,9 @@ package internalreleaseimage
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"strings"
 	"time"
 
@@ -23,7 +25,13 @@ import (
 )
 
 const (
-	IRIResourceName = "cluster"
+	IRIResourceName                    = "cluster"
+	iriDeletionGuardBindingName        = "internalreleaseimage-deletion-guard-binding"
+	iriMasterMachineConfigName         = "02-master-internalreleaseimage"
+	iriRegistryPort                    = 22625
+	iriRegistryServiceName             = "iri-registry.service"
+	machineConfigDaemonStateAnnotation = "machineconfiguration.openshift.io/state"
+	machineConfigDaemonStateDone       = "Done"
 )
 
 // IRITestHelper is a helper class for InternalReleaseImage tests
@@ -36,6 +44,198 @@ type IRITestHelper struct {
 type MCInfo struct {
 	UID               string
 	CreationTimestamp metav1.Time
+}
+
+type iriIgnitionConfig struct {
+	Systemd struct {
+		Units []struct {
+			Name     string  `json:"name"`
+			Contents *string `json:"contents"`
+		} `json:"units"`
+	} `json:"systemd"`
+	Storage struct {
+		Files []json.RawMessage `json:"files"`
+	} `json:"storage"`
+}
+
+func parseIRIIgnitionConfig(raw []byte) (*iriIgnitionConfig, error) {
+	config := &iriIgnitionConfig{}
+	if err := json.Unmarshal(raw, config); err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+
+func waitForIRIRegistryPortState(ctx context.Context, oc *exutil.CLI, nodeName string, wantClosed bool) error {
+	return wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
+		output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-machine-config-operator", "bash", "-c",
+			fmt.Sprintf("ss -tlnp | grep ':%d ' || echo PORT_CLOSED", iriRegistryPort))
+		if err != nil {
+			e2e.Logf("Failed to check IRI registry port (will retry): %v", err)
+			return false, nil
+		}
+		return strings.Contains(output, "PORT_CLOSED") == wantClosed, nil
+	})
+}
+
+func getReadyMasterNodeNames(ctx context.Context, oc *exutil.CLI) ([]string, error) {
+	var readyNodeNames []string
+	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
+		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master="})
+		if err != nil {
+			return false, nil
+		}
+
+		readyNodeNames = readyNodeNames[:0]
+		for _, node := range nodes.Items {
+			if node.Spec.Unschedulable || node.Annotations[machineConfigDaemonStateAnnotation] != machineConfigDaemonStateDone {
+				continue
+			}
+			for _, condition := range node.Status.Conditions {
+				if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
+					readyNodeNames = append(readyNodeNames, node.Name)
+					break
+				}
+			}
+		}
+		return len(readyNodeNames) > 0, nil
+	})
+	return readyNodeNames, err
+}
+
+func waitForMasterMachineConfigPoolUpdated(ctx context.Context, helper *IRITestHelper) error {
+	return wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
+		pool, err := helper.McClientV1.MachineConfigPools().Get(ctx, "master", metav1.GetOptions{})
+		if err != nil {
+			return false, nil
+		}
+
+		updated := false
+		for _, condition := range pool.Status.Conditions {
+			if condition.Type == v1.MachineConfigPoolUpdated && condition.Status == corev1.ConditionTrue {
+				updated = true
+				break
+			}
+		}
+		return updated &&
+			pool.Status.ObservedGeneration >= pool.Generation &&
+			pool.Status.MachineCount > 0 &&
+			pool.Status.UpdatedMachineCount == pool.Status.MachineCount &&
+			pool.Status.ReadyMachineCount == pool.Status.MachineCount &&
+			pool.Status.UnavailableMachineCount == 0 &&
+			pool.Status.DegradedMachineCount == 0, nil
+	})
+}
+
+func restoreInternalReleaseImage(ctx context.Context, oc *exutil.CLI, helper *IRITestHelper, original *v1.InternalReleaseImage, masterNodeNames []string) error {
+	iriClient := helper.McClientV1.InternalReleaseImages()
+	err := wait.PollUntilContextTimeout(ctx, 2*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
+		current, err := iriClient.Get(ctx, original.Name, metav1.GetOptions{})
+		if err == nil {
+			// A failed assertion may start cleanup while deletion finalizers are
+			// still running. Wait until that object is gone before recreating it.
+			return current.DeletionTimestamp == nil, nil
+		}
+		if !apierrors.IsNotFound(err) {
+			e2e.Logf("Failed to get InternalReleaseImage %s (will retry): %v", original.Name, err)
+			return false, nil
+		}
+
+		originalCopy := original.DeepCopy()
+		toRestore := &v1.InternalReleaseImage{
+			TypeMeta: originalCopy.TypeMeta,
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            originalCopy.Name,
+				Labels:          originalCopy.Labels,
+				Annotations:     originalCopy.Annotations,
+				OwnerReferences: originalCopy.OwnerReferences,
+			},
+			Spec: originalCopy.Spec,
+		}
+		_, err = iriClient.Create(ctx, toRestore, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(err) {
+			return false, nil
+		}
+		return err == nil, err
+	})
+	if err != nil {
+		return fmt.Errorf("recreate InternalReleaseImage: %w", err)
+	}
+
+	err = wait.PollUntilContextTimeout(ctx, 2*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
+		_, err := oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Get(ctx, iriDeletionGuardBindingName, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return err == nil, err
+	})
+	if err != nil {
+		return fmt.Errorf("wait for IRI deletion guard binding restoration: %w", err)
+	}
+
+	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
+		masterMC, err := helper.McClientV1.MachineConfigs().Get(ctx, iriMasterMachineConfigName, metav1.GetOptions{})
+		if err != nil {
+			return false, nil
+		}
+		ignitionConfig, err := parseIRIIgnitionConfig(masterMC.Spec.Config.Raw)
+		if err != nil {
+			return false, nil
+		}
+		for _, unit := range ignitionConfig.Systemd.Units {
+			if unit.Name == iriRegistryServiceName && unit.Contents != nil && strings.Contains(*unit.Contents, "podman") && len(ignitionConfig.Storage.Files) > 0 {
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+	if err != nil {
+		return fmt.Errorf("wait for enabled master IRI MachineConfig restoration: %w", err)
+	}
+	if err := waitForMasterMachineConfigPoolUpdated(ctx, helper); err != nil {
+		return fmt.Errorf("wait for master MachineConfigPool restoration: %w", err)
+	}
+
+	for _, nodeName := range masterNodeNames {
+		if err := waitForIRIRegistryPortState(ctx, oc, nodeName, false); err != nil {
+			return fmt.Errorf("wait for IRI registry port restoration: %w", err)
+		}
+	}
+	return nil
+}
+
+func (h *IRITestHelper) waitForDisabledIRIMachineConfig(ctx context.Context) error {
+	return wait.PollUntilContextTimeout(
+		ctx, 5*time.Second, 5*time.Minute, true,
+		func(ctx context.Context) (bool, error) {
+			mc, err := h.McClientV1.MachineConfigs().Get(ctx, iriMasterMachineConfigName, metav1.GetOptions{})
+			if err != nil {
+				return false, nil
+			}
+
+			ign, err := parseIRIIgnitionConfig(mc.Spec.Config.Raw)
+			if err != nil {
+				return false, nil
+			}
+
+			if len(ign.Systemd.Units) != 1 {
+				return false, nil
+			}
+
+			unit := ign.Systemd.Units[0]
+			if unit.Name != iriRegistryServiceName || unit.Contents == nil {
+				return false, nil
+			}
+
+			contents := *unit.Contents
+			disabled := strings.Contains(contents, "ExecStart=/bin/true") &&
+				strings.Contains(contents, "Type=oneshot") &&
+				!strings.Contains(contents, "podman") &&
+				len(ign.Storage.Files) == 0
+
+			return disabled, nil
+		},
+	)
 }
 
 // NewIRITestHelper creates a new test helper instance
