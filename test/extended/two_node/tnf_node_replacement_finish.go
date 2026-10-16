@@ -37,29 +37,17 @@ func restorePacemakerCluster(testConfig *TNFTestConfig, oc *exutil.CLI, nodeRead
 	testConfig.TargetNode.KnownHostsPath = targetNodeKnownHostsPath
 	e2e.Logf("[stage timing] restorePacemakerCluster: known_hosts for reprovisioned target: %v (no poll timeout)", time.Since(khStart))
 
-	// Both update-setup jobs are scheduled in parallel by the CEO; wait for both concurrently.
-	// Job names include a hash suffix (e.g. tnf-update-setup-job-master-0-637363be), so we wait by node name.
-	// Survivor's job does the work (add node, cluster start); target's job exits early.
-	// Use the exact node Ready time so we only accept a survivor job run that started after the node was Ready.
+	// The survivor node's update-setup job performs the actual reconciliation (add new node
+	// to Pacemaker, update fencing, start cluster). This is true in both architectures:
+	// - Old CEO: creates 2 per-node jobs; target node's job exits early, survivor does the work
+	// - New CEO: creates 1 cluster-wide job that runs on the survivor node
+	// Only wait for the survivor job since that's where the work happens in both cases.
 	minPodCreationTime := nodeReadyTime
-	e2e.Logf("Waiting for both CEO update-setup jobs (survivor and target) in parallel")
+	e2e.Logf("Waiting for CEO update-setup job on survivor node %s", testConfig.SurvivingNode.Name)
 	ceoJobsStart := time.Now()
-	var wg sync.WaitGroup
-	var errSurvivor, errTarget error
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		errSurvivor = services.WaitForSurvivorUpdateSetupJobCompletionByNode(oc, services.EtcdNamespace, testConfig.SurvivingNode.Name, minPodCreationTime, ceoUpdateSetupJobWaitTimeout, utils.ThirtySecondPollInterval)
-	}()
-	go func() {
-		defer wg.Done()
-		// Require the target node's job pod to be created after Ready so completion matches this replacement attempt.
-		errTarget = services.WaitForUpdateSetupJobCompletionByNode(oc, services.EtcdNamespace, testConfig.TargetNode.Name, nodeReadyTime, ceoUpdateSetupJobWaitTimeout, utils.ThirtySecondPollInterval)
-	}()
-	wg.Wait()
-	e2e.Logf("[stage timing] restorePacemakerCluster: CEO update-setup jobs (survivor+target parallel wall): %v (per-job timeout cap: %v, poll: %v)", time.Since(ceoJobsStart), ceoUpdateSetupJobWaitTimeout, utils.ThirtySecondPollInterval)
+	errSurvivor := services.WaitForSurvivorUpdateSetupJobCompletionByNode(oc, services.EtcdNamespace, testConfig.SurvivingNode.Name, minPodCreationTime, ceoUpdateSetupJobWaitTimeout, utils.ThirtySecondPollInterval)
+	e2e.Logf("[stage timing] restorePacemakerCluster: CEO update-setup job: %v (timeout cap: %v, poll: %v)", time.Since(ceoJobsStart), ceoUpdateSetupJobWaitTimeout, utils.ThirtySecondPollInterval)
 	o.Expect(errSurvivor).To(o.BeNil(), "Expected survivor update-setup job for node %s to complete (run after replacement node Ready)", testConfig.SurvivingNode.Name)
-	o.Expect(errTarget).To(o.BeNil(), "Expected update-setup job for node %s to complete without error", testConfig.TargetNode.Name)
 
 	// Verify both nodes are online in the pacemaker cluster
 	e2e.Logf("Verifying both nodes are online in pacemaker cluster")
