@@ -25,6 +25,10 @@ func matrix(instance string, start time.Time, values ...float64) prometheustypes
 	}}
 }
 
+func newTestCollector() *memoryThrashingCollector {
+	return &memoryThrashingCollector{majorFaultsThreshold: 50, pageInThreshold: 50}
+}
+
 func TestCreateIntervalsFromMetrics(t *testing.T) {
 	start := time.Date(2026, 9, 22, 15, 0, 0, 0, time.UTC)
 	nodeInfoMap := map[string]nodeInfo{"master-0": {name: "master-0", nodeRole: "master"}}
@@ -56,32 +60,50 @@ func TestCreateIntervalsFromMetrics(t *testing.T) {
 			expectedPageIn: "121.0",
 		},
 		{
+			name:          "many faults on small pages is not thrashing",
+			faults:        []float64{1, 1500, 2151, 900, 1},
+			pageIn:        []float64{0, 5, 8, 12, 0},
+			expectedCount: 0,
+		},
+		{
+			name:          "heavy page-in without faults is not thrashing",
+			faults:        []float64{1, 5, 2},
+			pageIn:        []float64{0, 200, 150},
+			expectedCount: 0,
+		},
+		{
 			name:          "two separate periods",
 			faults:        []float64{80, 1, 1, 200, 400, 1},
-			pageIn:        []float64{5, 0, 0, 3, 4, 0},
+			pageIn:        []float64{60, 0, 0, 120, 90, 0},
+			expectedCount: 2,
+		},
+		{
+			name:          "period ends when page-in drops",
+			faults:        []float64{300, 300, 300},
+			pageIn:        []float64{100, 10, 100},
 			expectedCount: 2,
 		},
 		{
 			name:           "period extends to end of window",
 			faults:         []float64{1, 60, 70},
-			pageIn:         []float64{0, 2, 3},
+			pageIn:         []float64{0, 55, 80},
 			expectedCount:  1,
 			expectedStart:  start.Add(30 * time.Second),
 			expectedEnd:    start.Add(90 * time.Second),
 			expectedPeak:   "70.0",
-			expectedPageIn: "3.0",
+			expectedPageIn: "80.0",
 		},
 		{
-			name:          "exactly at threshold is not thrashing",
+			name:          "exactly at thresholds is not thrashing",
 			faults:        []float64{50, 50},
-			pageIn:        []float64{0, 0},
+			pageIn:        []float64{50, 50},
 			expectedCount: 0,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			collector := &memoryThrashingCollector{majorFaultsThreshold: 50}
+			collector := newTestCollector()
 			intervals := collector.createIntervalsFromMetrics(logrus.WithField("test", tc.name),
 				matrix("master-0", start, tc.faults...), matrix("master-0", start, tc.pageIn...), nodeInfoMap)
 
@@ -92,6 +114,7 @@ func TestCreateIntervalsFromMetrics(t *testing.T) {
 				assert.Equal(t, monitorapi.IntervalReason("MemoryThrashing"), interval.Message.Reason)
 				assert.Equal(t, "master-0", interval.Locator.Keys[monitorapi.LocatorNodeKey])
 				assert.Equal(t, "50", interval.Message.Annotations["major_faults_threshold"])
+				assert.Equal(t, "50", interval.Message.Annotations["page_in_threshold_mb_per_second"])
 			}
 			if tc.expectedPeak != "" {
 				assert.WithinDuration(t, tc.expectedStart, intervals[0].From, 0)
@@ -110,8 +133,9 @@ func TestCreateIntervalsSplitsOnMissingSamples(t *testing.T) {
 	// Drop the third sample, as Prometheus does for a step with no value.
 	faults[0].Values = append(faults[0].Values[:2], faults[0].Values[3])
 
-	collector := &memoryThrashingCollector{majorFaultsThreshold: 50}
-	intervals := collector.createIntervalsFromMetrics(logrus.WithField("test", "gap"), faults, prometheustypes.Matrix{}, map[string]nodeInfo{})
+	collector := newTestCollector()
+	intervals := collector.createIntervalsFromMetrics(logrus.WithField("test", "gap"),
+		faults, matrix("master-0", start, 100, 100, 100, 100), map[string]nodeInfo{})
 
 	require.Len(t, intervals, 2)
 	assert.WithinDuration(t, start, intervals[0].From, 0)
@@ -120,14 +144,22 @@ func TestCreateIntervalsSplitsOnMissingSamples(t *testing.T) {
 	assert.WithinDuration(t, start.Add(120*time.Second), intervals[1].To, 0)
 }
 
+func TestCreateIntervalsMissingPageInIsNotThrashing(t *testing.T) {
+	start := time.Date(2026, 9, 22, 15, 0, 0, 0, time.UTC)
+	collector := newTestCollector()
+	intervals := collector.createIntervalsFromMetrics(logrus.WithField("test", "no-page-in"),
+		matrix("master-0", start, 500, 500), prometheustypes.Matrix{}, map[string]nodeInfo{})
+
+	assert.Empty(t, intervals, "without page-in data the disk load is unknown, so no interval is recorded")
+}
+
 func TestCreateIntervalsUnknownNodeFallsBackToInstance(t *testing.T) {
 	start := time.Date(2026, 9, 22, 15, 0, 0, 0, time.UTC)
-	collector := &memoryThrashingCollector{majorFaultsThreshold: 50}
+	collector := newTestCollector()
 	intervals := collector.createIntervalsFromMetrics(logrus.WithField("test", "fallback"),
-		matrix("10.0.0.5:9100", start, 500), prometheustypes.Matrix{}, map[string]nodeInfo{})
+		matrix("10.0.0.5:9100", start, 500), matrix("10.0.0.5:9100", start, 120), map[string]nodeInfo{})
 
 	require.Len(t, intervals, 1)
 	assert.Equal(t, 30*time.Second, intervals[0].To.Sub(intervals[0].From), "a single sample counts for one query step")
 	assert.Equal(t, "10.0.0.5:9100", intervals[0].Locator.Keys[monitorapi.LocatorNodeKey])
-	assert.Equal(t, "0.0", intervals[0].Message.Annotations["peak_page_in_mb_per_second"], "missing page-in data is recorded as zero")
 }

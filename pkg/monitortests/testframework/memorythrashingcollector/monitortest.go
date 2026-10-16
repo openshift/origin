@@ -23,8 +23,8 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// memoryThrashingCollector records intervals where a node is thrashing memory, using the
-// node's major page fault rate as the signal.
+// memoryThrashingCollector records intervals where a node is thrashing memory: a high major
+// page fault rate together with a high rate of data paged back in from disk.
 //
 // A major page fault means a process touched a page that was no longer in memory and had to
 // be read back from disk. Nodes have no swap, so under memory pressure the kernel evicts file
@@ -32,18 +32,21 @@ import (
 // fault them back in. Healthy nodes stay in the low single digits per second; thrashing nodes
 // sustain hundreds to thousands.
 //
-// The fault rate alone doesn't say how hard the disk is hit: faults on small pages read a few
-// MB/s, while the worst cases read back 100+ MB/s, saturate the disk and stall etcd and the
-// apiserver. Each interval therefore also records the peak rate of data paged in from disk.
+// The fault rate alone doesn't say how hard the disk is hit. Bursts of faults on small pages
+// read only a few MB/s and have shown no harm in CI, while the cases that stalled etcd and the
+// apiserver read back 100+ MB/s and saturated the disk. Both thresholds must be exceeded.
 type memoryThrashingCollector struct {
 	adminRESTConfig *rest.Config
-	// majorFaultsThreshold is the major page fault rate per second above which a node is
-	// considered to be thrashing.
+	// majorFaultsThreshold is the major page fault rate per second above which a node may be
+	// thrashing.
 	majorFaultsThreshold float64
-	intervals            []thrashingInterval
+	// pageInThreshold is the rate of data paged in from disk, in MB/s, above which the faults
+	// are heavy enough to saturate the disk.
+	pageInThreshold float64
+	intervals       []thrashingInterval
 }
 
-// queryStep is the sample spacing of the range queries. Each sample above the threshold counts
+// queryStep is the sample spacing of the range queries. Each sample above the thresholds counts
 // for one full step, so an interval ends one step after its last such sample and a single
 // sample still has a 30s duration.
 const queryStep = 30 * time.Second
@@ -61,6 +64,7 @@ type thrashingInterval struct {
 func NewMemoryThrashingCollector() monitortestframework.MonitorTest {
 	return &memoryThrashingCollector{
 		majorFaultsThreshold: 50.0,
+		pageInThreshold:      50.0,
 	}
 }
 
@@ -173,8 +177,7 @@ func queryRange(ctx context.Context, prometheusClient prometheusv1.API, logger l
 }
 
 // createIntervalsFromMetrics builds an interval for each run of consecutive samples where a
-// node's major fault rate is above the threshold. pageIn is used only to record the peak
-// page-in rate over each interval.
+// node's major fault rate and page-in rate are both above their thresholds.
 func (w *memoryThrashingCollector) createIntervalsFromMetrics(logger logrus.FieldLogger, faults, pageIn prometheustypes.Value, nodeInfoMap map[string]nodeInfo) []monitorapi.Interval {
 	ret := []monitorapi.Interval{}
 
@@ -204,24 +207,25 @@ func (w *memoryThrashingCollector) createIntervalsFromMetrics(logger logrus.Fiel
 			info.name = instance
 		}
 
-		// Track consecutive samples above the threshold
+		// Track consecutive samples above the thresholds
 		var current *thrashingInterval
 		for _, sample := range promSampleStream.Values {
 			ts := sample.Timestamp.Time()
 			faultRate := float64(sample.Value)
+			pageInRate := pageInByInstance[instance][sample.Timestamp]
 			// Prometheus omits steps with no value (e.g. failed scrapes), so a gap ends the
 			// current interval rather than bridging it.
 			if current != nil && ts.After(current.end) {
 				ret = append(ret, w.recordInterval(*current))
 				current = nil
 			}
-			if faultRate > w.majorFaultsThreshold {
+			if faultRate > w.majorFaultsThreshold && pageInRate > w.pageInThreshold {
 				if current == nil {
 					current = &thrashingInterval{nodeName: info.name, nodeRole: info.nodeRole, start: ts}
 				}
 				current.end = ts.Add(queryStep)
 				current.peakFaults = max(current.peakFaults, faultRate)
-				current.peakPageIn = max(current.peakPageIn, pageInByInstance[instance][sample.Timestamp])
+				current.peakPageIn = max(current.peakPageIn, pageInRate)
 				continue
 			}
 			if current != nil {
@@ -244,8 +248,9 @@ func (w *memoryThrashingCollector) recordInterval(t thrashingInterval) monitorap
 
 	msg := monitorapi.NewMessage().
 		Reason(monitorapi.IntervalReason("MemoryThrashing")).
-		HumanMessage(fmt.Sprintf("major page faults above %.0f/s on node %s, indicating memory thrashing", w.majorFaultsThreshold, t.nodeName)).
+		HumanMessage(fmt.Sprintf("major page faults above %.0f/s with over %.0f MB/s paged in from disk on node %s, indicating memory thrashing", w.majorFaultsThreshold, w.pageInThreshold, t.nodeName)).
 		WithAnnotation("major_faults_threshold", fmt.Sprintf("%.0f", w.majorFaultsThreshold)).
+		WithAnnotation("page_in_threshold_mb_per_second", fmt.Sprintf("%.0f", w.pageInThreshold)).
 		WithAnnotation("peak_major_faults_per_second", fmt.Sprintf("%.1f", t.peakFaults)).
 		WithAnnotation("peak_page_in_mb_per_second", fmt.Sprintf("%.1f", t.peakPageIn))
 
