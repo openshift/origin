@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/url"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	authnv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -104,6 +106,56 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 	})
 	g.It("oauth-server should bypass proxy by directly connecting to idp to perform OIDC login flow when spec.proxy.noProxy contains idp", func() {
 		testBypassProxyNoProxyHost(ctx, oc, &cleanups, caCertPEM, kcSetup, httpProxyURL, httpsProxyURL, proxyNamespace)
+	})
+})
+
+var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authentication\"][OCPFeatureGate:AuthenticationComponentProxy][Serial]", func() {
+	oc := exutil.NewCLIWithoutNamespace("component-proxy-negative")
+
+	g.Describe("operator resilience - negative tests (minimal setup)", func() {
+		// Negative tests with minimal setup (no Keycloak/Squid proxy deployment).
+		// Minimal setup reduces test duration and resource usage.
+
+		var (
+			ctx      context.Context
+			cleanups []removalFunc
+		)
+
+		g.BeforeEach(func() {
+			ctx = context.Background()
+			cleanups = nil
+
+			g.By("Saving auth state for restore after test")
+			authRestore, err := saveAndRestoreAuthState(ctx, oc)
+			cleanups = append(cleanups, authRestore)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Waiting for operators to be stable before test")
+			err = operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Verifying initial OAuth server deployment is stable")
+			err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, "", "", "", false)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.AfterEach(func() {
+			// Note that we are doing cleanup in a FIFO manner here.
+			// This works better in this case as it resets authentication/cluster firstly.
+			err := removeResources(ctx, cleanups...)
+			o.Expect(err).NotTo(o.HaveOccurred(), "cleanup should succeed")
+
+			g.By("Waiting for operators to be stable after test")
+			err = operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.It("operator should report degraded condition when configured with invalid proxy port", func() {
+			testInvalidProxyPortConfiguration(ctx, oc)
+		})
+		g.It("operator should handle proxy DNS resolution failure and report appropriate conditions", func() {
+			testProxyDNSResolutionFailure(ctx, oc)
+		})
 	})
 })
 
@@ -595,4 +647,207 @@ func podFileContentMatches(oc *exutil.CLI, pod v1.Pod, container, caFilePath str
 		return false, nil
 	}
 	return true, nil
+}
+
+// testInvalidProxyPortConfiguration validates that the operator reports degraded when
+// configured with a proxy URL whose port exceeds the valid TCP range (1-65535).
+func testInvalidProxyPortConfiguration(ctx context.Context, oc *exutil.CLI) {
+	g.By("Recording operator pod restart counts before test")
+	baselineRestarts := getOperatorPodRestartCounts(ctx, oc)
+
+	g.By("Setting component-scoped proxy with port > 65535 that passes API validation but fails at dial time")
+	invalidProxyPort := "99999999"
+	invalidProxyURL := fmt.Sprintf("http://proxy.example.com:%s", invalidProxyPort)
+	err := updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{
+		HTTPSProxy: invalidProxyURL,
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(), "should be able to set invalid proxy URL")
+
+	g.DeferCleanup(func() {
+		cleanupErr := updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{})
+		o.Expect(cleanupErr).NotTo(o.HaveOccurred(), "should be able to remove proxy config during cleanup")
+
+		waitErr := wait.PollUntilContextTimeout(ctx, 5*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
+			co, getErr := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "authentication", metav1.GetOptions{})
+			if getErr != nil {
+				return false, getErr
+			}
+
+			var degradedOk, availableOk bool
+			for _, cond := range co.Status.Conditions {
+				if cond.Type == "Degraded" && cond.Status == "False" {
+					degradedOk = true
+				}
+				if cond.Type == "Available" && cond.Status == "True" {
+					availableOk = true
+				}
+			}
+			return degradedOk && availableOk, nil
+		})
+		o.Expect(waitErr).NotTo(o.HaveOccurred(), "operator should recover after invalid proxy URL is removed during cleanup")
+	})
+
+	g.By("Waiting for operator to detect the invalid proxy and report degraded status")
+	var degradedMsg string
+	err = wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
+		co, getErr := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "authentication", metav1.GetOptions{})
+		if getErr != nil {
+			return false, getErr
+		}
+
+		for _, cond := range co.Status.Conditions {
+			if cond.Type == "Degraded" && cond.Status == "True" {
+				degradedMsg = cond.Message
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(), "operator should detect invalid proxy URL and report degraded status")
+
+	// Assert the degraded message contains expected error indicators
+	lowerMsg := strings.ToLower(degradedMsg)
+	o.Expect(lowerMsg).To(o.SatisfyAny(
+		o.ContainSubstring("invalid port"),
+		o.ContainSubstring("proxyconnect"),
+		o.ContainSubstring("address "+invalidProxyPort),
+	), fmt.Sprintf("degraded message should reference invalid port error, got: %s", degradedMsg))
+	g.GinkgoWriter.Printf("Degraded condition found: %s\n", degradedMsg)
+
+	g.By("Verifying operator remains stable (no crash loops)")
+	assertNoNewRestarts(ctx, oc, baselineRestarts)
+}
+
+// testProxyDNSResolutionFailure validates that the operator reports degraded when
+// configured with a proxy whose hostname cannot be resolved by DNS.
+func testProxyDNSResolutionFailure(ctx context.Context, oc *exutil.CLI) {
+	g.By("Recording operator pod restart counts before test")
+	baselineRestarts := getOperatorPodRestartCounts(ctx, oc)
+
+	g.By("Setting component-scoped proxy with hostname that won't resolve")
+	unresolvedHostname := "this-hostname-will-not-resolve-" + rand.String(8) + ".invalid"
+	invalidProxyURL := "http://" + net.JoinHostPort(unresolvedHostname, "8080")
+	err := updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{
+		HTTPSProxy: invalidProxyURL,
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(), "should be able to set proxy with unresolvable hostname")
+
+	g.DeferCleanup(func() {
+		cleanupErr := updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{})
+		o.Expect(cleanupErr).NotTo(o.HaveOccurred(), "should be able to remove proxy config during cleanup")
+
+		g.By("Waiting for operator to recover to healthy state during cleanup")
+		waitErr := wait.PollUntilContextTimeout(ctx, 5*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
+			co, getErr := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "authentication", metav1.GetOptions{})
+			if getErr != nil {
+				return false, getErr
+			}
+
+			var degradedOk, availableOk bool
+			for _, cond := range co.Status.Conditions {
+				if cond.Type == "Degraded" && cond.Status == "False" {
+					degradedOk = true
+				}
+				if cond.Type == "Available" && cond.Status == "True" {
+					availableOk = true
+				}
+			}
+			return degradedOk && availableOk, nil
+		})
+		o.Expect(waitErr).NotTo(o.HaveOccurred(), "operator should recover after DNS issue is resolved during cleanup")
+	})
+
+	g.By("Waiting for operator to detect DNS resolution failure and report degraded status")
+	var degradedMsg string
+	err = wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
+		co, getErr := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "authentication", metav1.GetOptions{})
+		if getErr != nil {
+			return false, getErr
+		}
+
+		for _, cond := range co.Status.Conditions {
+			if cond.Type == "Degraded" && cond.Status == "True" {
+				degradedMsg = cond.Message
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(), "operator should detect DNS resolution failure and report degraded status")
+
+	// Assert the degraded message contains expected DNS error indicators and the hostname
+	lowerMsg := strings.ToLower(degradedMsg)
+	o.Expect(lowerMsg).To(o.ContainSubstring(strings.ToLower(unresolvedHostname)),
+		fmt.Sprintf("degraded message should reference the unresolved hostname %q, got: %s", unresolvedHostname, degradedMsg))
+	o.Expect(lowerMsg).To(o.SatisfyAny(
+		o.ContainSubstring("no such host"),
+		o.ContainSubstring("lookup"),
+		o.ContainSubstring("dns"),
+	), fmt.Sprintf("degraded message should reference DNS resolution failure, got: %s", degradedMsg))
+	g.GinkgoWriter.Printf("Degraded condition found with DNS resolution failure: %s\n", degradedMsg)
+
+	g.By("Verifying operator remains stable (no crash loops)")
+	assertNoNewRestarts(ctx, oc, baselineRestarts)
+}
+
+func getOperatorPodRestartCounts(ctx context.Context, oc *exutil.CLI) map[types.UID]map[string]int32 {
+	pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-authentication-operator").List(ctx, metav1.ListOptions{
+		LabelSelector: "app=authentication-operator",
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to list authentication-operator pods")
+	o.Expect(pods.Items).NotTo(o.BeEmpty(), "no authentication-operator pods found")
+
+	restarts := make(map[types.UID]map[string]int32)
+	for _, pod := range pods.Items {
+		o.Expect(pod.Status.ContainerStatuses).NotTo(o.BeEmpty(),
+			fmt.Sprintf("pod %s has no container statuses", pod.Name))
+		containerRestarts := make(map[string]int32)
+		for _, cs := range pod.Status.ContainerStatuses {
+			containerRestarts[cs.Name] = cs.RestartCount
+		}
+		restarts[pod.UID] = containerRestarts
+	}
+	return restarts
+}
+
+func assertNoNewRestarts(ctx context.Context, oc *exutil.CLI, baseline map[types.UID]map[string]int32) {
+	pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-authentication-operator").List(ctx, metav1.ListOptions{
+		LabelSelector: "app=authentication-operator",
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to list authentication-operator pods during stability check")
+	o.Expect(pods.Items).NotTo(o.BeEmpty(), "no authentication-operator pods found during stability check")
+
+	// Check that all baseline pods still exist with same or fewer restarts
+	baselinePodUIDs := make(map[types.UID]bool)
+	for uid := range baseline {
+		baselinePodUIDs[uid] = false
+	}
+
+	for _, pod := range pods.Items {
+		o.Expect(pod.Status.ContainerStatuses).NotTo(o.BeEmpty(),
+			fmt.Sprintf("pod %s/%s has no container statuses", pod.Namespace, pod.Name))
+
+		baselineRestarts, podExistedAtBaseline := baseline[pod.UID]
+		if podExistedAtBaseline {
+			baselinePodUIDs[pod.UID] = true
+			// Pod existed at baseline; check restart counts haven't increased
+			for _, cs := range pod.Status.ContainerStatuses {
+				if baselineCount, ok := baselineRestarts[cs.Name]; ok {
+					o.Expect(cs.RestartCount).To(o.BeNumerically("<=", baselineCount),
+						fmt.Sprintf("pod %s/%s container %s restarted during test (before=%d, after=%d)",
+							pod.Namespace, pod.Name, cs.Name, baselineCount, cs.RestartCount))
+				}
+			}
+		} else {
+			// New pod appeared that didn't exist at baseline - this is a pod replacement
+			g.Fail(fmt.Sprintf("new pod %s/%s (UID=%s) appeared during test; baseline pods were replaced",
+				pod.Namespace, pod.Name, pod.UID))
+		}
+	}
+
+	// Check that no baseline pods disappeared (pod replacement detection)
+	for uid, wasFound := range baselinePodUIDs {
+		o.Expect(wasFound).To(o.BeTrue(),
+			fmt.Sprintf("baseline pod with UID %s disappeared during test; pod was replaced", uid))
+	}
 }
