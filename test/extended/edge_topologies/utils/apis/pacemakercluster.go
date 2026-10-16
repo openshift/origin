@@ -19,6 +19,13 @@ var PacemakerClusterGVR = schema.GroupVersionResource{
 	Group: etcdv1.GroupName, Version: "v1", Resource: "pacemakerclusters",
 }
 
+type NodeFencingResult string
+
+const (
+	NodeFencingUnhealthy   NodeFencingResult = "unhealthy"
+	NodeFencingUnavailable NodeFencingResult = "unavailable"
+)
+
 // IsPacemakerClusterAvailable reports whether the PacemakerCluster CRD is served
 // by the API. Only a NotFound error means the CRD is genuinely absent; any other
 // error (authorization, transient API failures) is returned so callers fail
@@ -98,17 +105,21 @@ func ExpectNodeFencingAvailable(pc *etcdv1.PacemakerCluster, nodeName string) er
 	return ExpectNodeCondition(pc, nodeName, etcdv1.NodeFencingAvailableConditionType, metav1.ConditionTrue)
 }
 
-// ExpectNodeFencingUnavailable returns nil only when the node's
-// NodeFencingAvailable condition is explicitly False.
-func ExpectNodeFencingUnavailable(pc *etcdv1.PacemakerCluster, nodeName string) error {
-	return ExpectNodeCondition(pc, nodeName, etcdv1.NodeFencingAvailableConditionType, metav1.ConditionFalse)
-}
-
-// ExpectNodeFencingUnhealthy returns nil only when the node's
-// NodeFencingHealthy condition is explicitly False (e.g. a fencing agent is
-// unmanaged but still running).
-func ExpectNodeFencingUnhealthy(pc *etcdv1.PacemakerCluster, nodeName string) error {
-	return ExpectNodeCondition(pc, nodeName, etcdv1.NodeFencingHealthyConditionType, metav1.ConditionFalse)
+// ExpectNodeFencingResult returns nil only when the condition selected by
+// desiredResult is explicitly False for the named node:
+//   - NodeFencingUnhealthy checks NodeFencingHealthy.
+//   - NodeFencingUnavailable checks NodeFencingAvailable.
+//
+// It returns an error for unsupported desiredResult values.
+func ExpectNodeFencingResult(pc *etcdv1.PacemakerCluster, nodeName string, desiredResult NodeFencingResult) error {
+	switch desiredResult {
+	case NodeFencingUnhealthy:
+		return ExpectNodeCondition(pc, nodeName, etcdv1.NodeFencingHealthyConditionType, metav1.ConditionFalse)
+	case NodeFencingUnavailable:
+		return ExpectNodeCondition(pc, nodeName, etcdv1.NodeFencingAvailableConditionType, metav1.ConditionFalse)
+	default:
+		return fmt.Errorf("unsupported NodeFencingResult: %s (expected %s or %s)", desiredResult, NodeFencingUnhealthy, NodeFencingUnavailable)
+	}
 }
 
 // ExpectNodeOnlineFalse returns nil only when the node's Online condition is
