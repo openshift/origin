@@ -474,6 +474,22 @@ var staticSuites = []ginkgo.TestSuite{
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
+		Name: "openshift/nodes/isolated",
+		Description: templates.LongDesc(`
+		Node isolation test suite. Tests in this suite require exclusive access to a single
+		worker node (custom MCP, kubelet config changes, drain operations) but do not perform
+		cluster-wide configuration changes or full worker pool rollouts. A dedicated 3-node
+		worker pool is provisioned at the start of the suite and tests run in parallel across
+		pool nodes using the NodeResource scheduler.
+		`),
+		Qualifiers: []string{
+			`name.contains("[Suite:openshift/nodes/isolated")`,
+		},
+		Parallelism:                3,
+		TestTimeout:                60 * time.Minute,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
+	{
 		Name: "openshift/nodes/cnv",
 		Description: templates.LongDesc(`
 		This test suite runs node functionality tests that require CNV operator installation.
