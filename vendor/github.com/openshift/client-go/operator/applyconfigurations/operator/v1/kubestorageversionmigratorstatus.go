@@ -5,7 +5,7 @@ package v1
 // KubeStorageVersionMigratorStatusApplyConfiguration represents a declarative configuration of the KubeStorageVersionMigratorStatus type for use
 // with apply.
 type KubeStorageVersionMigratorStatusApplyConfiguration struct {
-	OperatorStatusApplyConfiguration `json:",inline"`
+	OperatorStatusApplyConfiguration `json:""`
 }
 
 // KubeStorageVersionMigratorStatusApplyConfiguration constructs a declarative configuration of the KubeStorageVersionMigratorStatus type for use with

@@ -101,12 +101,6 @@ func NewImagesCommand() *cobra.Command {
 				fmt.Fprintln(os.Stdout, line)
 			}
 
-			// TODO(k8s-1.37): remove this when k8s 1.37 lands
-			injectedLines := injectNewImages(ref, !o.Upstream, lines)
-			for _, line := range injectedLines {
-				fmt.Fprintln(os.Stdout, line)
-			}
-
 			return nil
 		},
 	}
@@ -309,37 +303,4 @@ func setLogLevel(level string) error {
 	}
 	logrus.SetLevel(lvl)
 	return nil
-}
-
-// TODO(k8s-1.37): remove this when k8s 1.37 lands
-func injectNewImages(ref reference.DockerImageReference, mirrored bool, existingLines []string) []string {
-	target := ref.Exact()
-
-	images := map[string]string{
-		"registry.k8s.io/e2e-test-images/glibc-dns-testing:2.0.0": "e2e-11-registry-k8s-io-e2e-test-images-glibc-dns-testing-2-0-0-doWtNeL-8jnuqU8E",
-	}
-
-	existingTargets := sets.NewString()
-	for _, line := range existingLines {
-		parts := strings.Fields(line)
-		if len(parts) >= 2 {
-			existingTargets.Insert(parts[1])
-		}
-	}
-
-	lines := []string{}
-	for originalImage, mirrorTag := range images {
-		dest := fmt.Sprintf("%s:%s", target, mirrorTag)
-		if existingTargets.Has(dest) {
-			continue
-		}
-		if mirrored {
-			lines = append(lines, fmt.Sprintf("%s:%s %s",
-				imagesetup.DefaultTestImageMirrorLocation, mirrorTag, dest))
-		} else {
-			lines = append(lines, fmt.Sprintf("%s %s", originalImage, dest))
-		}
-	}
-	sort.Strings(lines)
-	return lines
 }

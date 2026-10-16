@@ -10,7 +10,7 @@ import (
 // KubeControllerManagerSpecApplyConfiguration represents a declarative configuration of the KubeControllerManagerSpec type for use
 // with apply.
 type KubeControllerManagerSpecApplyConfiguration struct {
-	StaticPodOperatorSpecApplyConfiguration `json:",inline"`
+	StaticPodOperatorSpecApplyConfiguration `json:""`
 	// useMoreSecureServiceCA indicates that the service-ca.crt provided in SA token volumes should include only
 	// enough certificates to validate service serving certificates.
 	// Once set to true, it cannot be set to false.

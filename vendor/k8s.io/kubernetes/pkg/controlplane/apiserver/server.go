@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"k8s.io/kubernetes/pkg/controlplane/controller/kubernetesservice"
@@ -180,8 +181,10 @@ func (c completedConfig) New(name string, delegationTarget genericapiserver.Dele
 					lcInformer,
 				)
 				return func(ctx context.Context, workers int) {
-					go controller.Run(ctx, workers)
-					go gccontroller.Run(ctx)
+					var wg sync.WaitGroup
+					wg.Go(func() { controller.Run(ctx, workers) })
+					wg.Go(func() { gccontroller.Run(ctx) })
+					wg.Wait()
 				}, err
 			}, leaderelection.LeaderElectionTimers{
 				LeaseDuration: c.CoordinatedLeadershipLeaseDuration,

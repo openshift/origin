@@ -10,7 +10,7 @@ import (
 // AuthenticationSpecApplyConfiguration represents a declarative configuration of the AuthenticationSpec type for use
 // with apply.
 type AuthenticationSpecApplyConfiguration struct {
-	OperatorSpecApplyConfiguration `json:",inline"`
+	OperatorSpecApplyConfiguration `json:""`
 	// proxy configures proxy settings for outbound connections made
 	// by the authentication stack. When set, it replaces the
 	// cluster-wide proxy (proxy.config.openshift.io/cluster)

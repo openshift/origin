@@ -270,20 +270,20 @@ func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod, specPath *fiel
 
 	allErrs = append(allErrs, s.seLinuxStrategy.Validate(scPath.Child("seLinuxOptions"), pod, nil, sc.SELinuxOptions())...)
 
-	if !s.scc.AllowHostNetwork && sc.HostNetwork() {
-		allErrs = append(allErrs, field.Invalid(specPath.Child("hostNetwork"), sc.HostNetwork(), "Host network is not allowed to be used"))
+	if !s.scc.AllowHostNetwork && pod.Spec.HostNetwork {
+		allErrs = append(allErrs, field.Invalid(specPath.Child("hostNetwork"), pod.Spec.HostNetwork, "Host network is not allowed to be used"))
 	}
 
-	if !s.scc.AllowHostPID && sc.HostPID() {
-		allErrs = append(allErrs, field.Invalid(specPath.Child("hostPID"), sc.HostPID(), "Host PID is not allowed to be used"))
+	if !s.scc.AllowHostPID && pod.Spec.HostPID {
+		allErrs = append(allErrs, field.Invalid(specPath.Child("hostPID"), pod.Spec.HostPID, "Host PID is not allowed to be used"))
 	}
 
-	if !s.scc.AllowHostIPC && sc.HostIPC() {
-		allErrs = append(allErrs, field.Invalid(specPath.Child("hostIPC"), sc.HostIPC(), "Host IPC is not allowed to be used"))
+	if !s.scc.AllowHostIPC && pod.Spec.HostIPC {
+		allErrs = append(allErrs, field.Invalid(specPath.Child("hostIPC"), pod.Spec.HostIPC, "Host IPC is not allowed to be used"))
 	}
 
-	if s.scc.UserNamespaceLevel == securityv1.NamespaceLevelRequirePod && (sc.HostUsers() == nil || *sc.HostUsers()) {
-		allErrs = append(allErrs, field.Invalid(specPath.Child("hostUsers"), sc.HostUsers(), "Host Users must be set to false"))
+	if s.scc.UserNamespaceLevel == securityv1.NamespaceLevelRequirePod && (pod.Spec.HostUsers == nil || *pod.Spec.HostUsers) {
+		allErrs = append(allErrs, field.Invalid(specPath.Child("hostUsers"), pod.Spec.HostUsers, "Host Users must be set to false"))
 	}
 
 	allErrs = append(allErrs, s.sysctlsStrategy.Validate(pod)...)
@@ -348,8 +348,8 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 
 	allErrs = append(allErrs, s.capabilitiesStrategy.Validate(fldPath, pod, container, sc.Capabilities())...)
 
-	if !s.scc.AllowHostNetwork && podSC.HostNetwork() {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostNetwork"), podSC.HostNetwork(), "Host network is not allowed to be used"))
+	if !s.scc.AllowHostNetwork && pod.Spec.HostNetwork {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostNetwork"), pod.Spec.HostNetwork, "Host network is not allowed to be used"))
 	}
 
 	if !s.scc.AllowHostPorts {
@@ -359,12 +359,12 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 		})
 	}
 
-	if !s.scc.AllowHostPID && podSC.HostPID() {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostPID"), podSC.HostPID(), "Host PID is not allowed to be used"))
+	if !s.scc.AllowHostPID && pod.Spec.HostPID {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostPID"), pod.Spec.HostPID, "Host PID is not allowed to be used"))
 	}
 
-	if !s.scc.AllowHostIPC && podSC.HostIPC() {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostIPC"), podSC.HostIPC(), "Host IPC is not allowed to be used"))
+	if !s.scc.AllowHostIPC && pod.Spec.HostIPC {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostIPC"), pod.Spec.HostIPC, "Host IPC is not allowed to be used"))
 	}
 
 	if s.scc.ReadOnlyRootFilesystem {

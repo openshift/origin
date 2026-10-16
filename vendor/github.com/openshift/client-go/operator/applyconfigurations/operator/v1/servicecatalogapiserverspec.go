@@ -10,7 +10,7 @@ import (
 // ServiceCatalogAPIServerSpecApplyConfiguration represents a declarative configuration of the ServiceCatalogAPIServerSpec type for use
 // with apply.
 type ServiceCatalogAPIServerSpecApplyConfiguration struct {
-	OperatorSpecApplyConfiguration `json:",inline"`
+	OperatorSpecApplyConfiguration `json:""`
 }
 
 // ServiceCatalogAPIServerSpecApplyConfiguration constructs a declarative configuration of the ServiceCatalogAPIServerSpec type for use with

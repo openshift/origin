@@ -9,7 +9,7 @@ package v1alpha1
 // Administrators must specify defaults for all certificates and may optionally
 // override specific categories of certificates.
 type CustomPKIPolicyApplyConfiguration struct {
-	PKIProfileApplyConfiguration `json:",inline"`
+	PKIProfileApplyConfiguration `json:""`
 }
 
 // CustomPKIPolicyApplyConfiguration constructs a declarative configuration of the CustomPKIPolicy type for use with

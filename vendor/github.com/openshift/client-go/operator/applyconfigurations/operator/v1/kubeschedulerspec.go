@@ -10,7 +10,7 @@ import (
 // KubeSchedulerSpecApplyConfiguration represents a declarative configuration of the KubeSchedulerSpec type for use
 // with apply.
 type KubeSchedulerSpecApplyConfiguration struct {
-	StaticPodOperatorSpecApplyConfiguration `json:",inline"`
+	StaticPodOperatorSpecApplyConfiguration `json:""`
 }
 
 // KubeSchedulerSpecApplyConfiguration constructs a declarative configuration of the KubeSchedulerSpec type for use with

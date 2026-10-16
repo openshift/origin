@@ -12,7 +12,7 @@ import (
 //
 // CloudCredentialSpec is the specification of the desired behavior of the cloud-credential-operator.
 type CloudCredentialSpecApplyConfiguration struct {
-	OperatorSpecApplyConfiguration `json:",inline"`
+	OperatorSpecApplyConfiguration `json:""`
 	// credentialsMode allows informing CCO that it should not attempt to dynamically
 	// determine the root cloud credentials capabilities, and it should just run in
 	// the specified mode.
