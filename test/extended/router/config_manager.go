@@ -382,71 +382,75 @@ http {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
-		g.By("creating route Pods")
-		routerPods := []corev1.Pod{
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "router-haproxy-cfgmgr",
-					Labels: map[string]string{
-						"test": "router-haproxy-cfgmgr",
-					},
+		g.By("creating router pods")
+		routerPod := corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "router-haproxy-cfgmgr",
+				Labels: map[string]string{
+					"test": "router-haproxy-cfgmgr",
 				},
-				Spec: corev1.PodSpec{
-					TerminationGracePeriodSeconds: utilpointer.Int64(1),
-					Containers: []corev1.Container{
-						{
-							Name:            "router",
-							Image:           routerImage,
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Env: []corev1.EnvVar{
-								{
-									Name: "POD_NAMESPACE",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "metadata.namespace",
-										},
+			},
+			Spec: corev1.PodSpec{
+				TerminationGracePeriodSeconds: utilpointer.Int64(1),
+				Containers: []corev1.Container{
+					{
+						Name:            "router",
+						Image:           routerImage,
+						ImagePullPolicy: corev1.PullIfNotPresent,
+						Env: []corev1.EnvVar{
+							{
+								Name: "POD_NAMESPACE",
+								ValueFrom: &corev1.EnvVarSource{
+									FieldRef: &corev1.ObjectFieldSelector{
+										FieldPath: "metadata.namespace",
 									},
 								},
-								{
-									Name:  "ROUTER_IP_V4_V6_MODE",
-									Value: "v4v6",
-								},
-								{
-									Name:  "ROUTER_BLUEPRINT_ROUTE_POOL_SIZE",
-									Value: strconv.Itoa(ROUTER_BLUEPRINT_ROUTE_POOL_SIZE),
-								},
-								{
-									Name:  "ROUTER_MAX_DYNAMIC_SERVERS",
-									Value: strconv.Itoa(ROUTER_MAX_DYNAMIC_SERVERS),
-								},
 							},
-							Args: []string{
-								"--namespace=$(POD_NAMESPACE)",
-								"-v=4",
-								"--haproxy-config-manager=true",
-								"--blueprint-route-labels=select=hapcm-blueprint",
-								"--labels=select=haproxy-cfgmgr",
-								"--stats-password=password",
-								"--stats-port=1936",
-								"--stats-user=admin",
+							{
+								Name:  "ROUTER_IP_V4_V6_MODE",
+								Value: "v4v6",
 							},
-							Ports: []corev1.ContainerPort{
-								{
-									ContainerPort: 80,
-								},
-								{
-									ContainerPort: 443,
-								},
-								{
-									ContainerPort: 1936,
-									Name:          "stats",
-									Protocol:      corev1.ProtocolTCP,
-								},
+							{
+								Name:  "ROUTER_BLUEPRINT_ROUTE_POOL_SIZE",
+								Value: strconv.Itoa(ROUTER_BLUEPRINT_ROUTE_POOL_SIZE),
+							},
+							{
+								Name:  "ROUTER_MAX_DYNAMIC_SERVERS",
+								Value: strconv.Itoa(ROUTER_MAX_DYNAMIC_SERVERS),
+							},
+						},
+						Args: []string{
+							"--namespace=$(POD_NAMESPACE)",
+							"-v=4",
+							"--haproxy-config-manager=true",
+							"--blueprint-route-labels=select=hapcm-blueprint",
+							"--labels=select=haproxy-cfgmgr",
+							"--stats-password=password",
+							"--stats-port=1936",
+							"--stats-user=admin",
+						},
+						Ports: []corev1.ContainerPort{
+							{
+								ContainerPort: 80,
+							},
+							{
+								ContainerPort: 443,
+							},
+							{
+								ContainerPort: 1936,
+								Name:          "stats",
+								Protocol:      corev1.ProtocolTCP,
 							},
 						},
 					},
 				},
 			},
+		}
+		err = applyHAProxySidecarToPod(context.Background(), oc, &routerPod.Spec)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		testingPods := []corev1.Pod{
+			routerPod,
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "insecure-endpoint",
@@ -552,7 +556,7 @@ http {
 			},
 		}
 		for i := range NUM_CONCURRENT_SERVICES {
-			routerPods = append(routerPods, corev1.Pod{
+			testingPods = append(testingPods, corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: fmt.Sprintf("insecure-concurrent-endpoint-%d", i),
 					Labels: map[string]string{
@@ -579,7 +583,7 @@ http {
 			})
 		}
 		for i := range NUM_CONCURRENT_REPLICAS {
-			routerPods = append(routerPods, corev1.Pod{
+			testingPods = append(testingPods, corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: fmt.Sprintf("insecure-concurrent-endpoint-replicas-%d", i),
 					Labels: map[string]string{
@@ -607,7 +611,7 @@ http {
 			})
 		}
 
-		for _, pod := range routerPods {
+		for _, pod := range testingPods {
 			_, err = kubeClient.CoreV1().Pods(ns).Create(context.Background(), &pod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}

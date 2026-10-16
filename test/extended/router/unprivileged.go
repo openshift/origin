@@ -22,9 +22,8 @@ import (
 var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc          *exutil.CLI
-		ns          string
-		routerImage string
+		oc *exutil.CLI
+		ns string
 	)
 
 	// this hook must be registered before the framework namespace teardown
@@ -44,22 +43,20 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 	g.BeforeEach(func() {
 		ns = oc.Namespace()
 
-		var err error
-		routerImage, err = exutil.FindRouterImage(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		configPath := exutil.FixturePath("testdata", "router", "router-common.yaml")
-		err = oc.AsAdmin().Run("apply").Args("-f", configPath).Execute()
+		err := oc.AsAdmin().Run("apply").Args("-f", configPath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should run even if it has no access to update status [apigroup:image.openshift.io]", func() {
 
-			routerPod := createScopedRouterPod(routerImage, "test-unprivileged", defaultPemData, "false")
+			routerPod, err := createScopedRouterPod(oc, "test-unprivileged", defaultPemData, "false")
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			g.By("creating a router")
 			ns := oc.KubeFramework().Namespace.Name
-			_, err := oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), routerPod, metav1.CreateOptions{})
+			_, err = oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), routerPod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
