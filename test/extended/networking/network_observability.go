@@ -53,7 +53,8 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Fe
 			"Network Observability should not have any pods running on single node clusters")
 	})
 
-	g.Context("health checks", func() {
+	// These checks require NetObserv to be installed from the default operator catalog.
+	g.Context("health checks [Skipped:Disconnected]", func() {
 		g.BeforeEach(func(ctx context.Context) {
 			isSingleNode, err := exutil.IsSingleNode(ctx, oc.AdminConfigClient())
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to determine cluster topology")
@@ -350,7 +351,8 @@ func verifyNetObservHealthy(ctx context.Context, client kubernetes.Interface) {
 		"FLP pods should be Running in %s", netobservNamespace)
 }
 
-var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Feature:NetObserv][Serial][Disruptive]", g.Ordered, func() {
+// This policy test requires NetObserv to be installed from the default operator catalog.
+var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Feature:NetObserv][Serial][Disruptive][Skipped:Disconnected]", g.Ordered, func() {
 	oc := exutil.NewCLIWithoutNamespace("netobserv-policy-e2e")
 
 	g.BeforeAll(func(ctx context.Context) {

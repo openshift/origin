@@ -19,7 +19,8 @@ import (
 
 const netobservDeployedCondition = "NetworkObservabilityDeployed"
 
-var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Feature:NetObserv][Serial]", g.Serial, func() {
+// This test requires a preinstalled NetObserv operator and manipulates the default catalog.
+var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Feature:NetObserv][Serial][Skipped:Disconnected]", g.Serial, func() {
 	oc := exutil.NewCLIWithoutNamespace("netobserv-timeout-e2e")
 
 	g.BeforeEach(func(ctx context.Context) {
