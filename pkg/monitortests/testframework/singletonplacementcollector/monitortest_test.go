@@ -296,6 +296,60 @@ func TestCollectPodDetailsAndUsage(t *testing.T) {
 	}
 }
 
+func TestSummarizePlacementUsage(t *testing.T) {
+	masters := []string{"master-0", "master-1", "master-2"}
+
+	testCases := []struct {
+		name             string
+		pods             []singletonPod
+		haveCurrentUsage bool
+		// expected currentUsageBytes per master, in master order
+		expected []*float64
+	}{
+		{
+			name: "partial samples on a master are summed",
+			pods: []singletonPod{
+				{nodeName: "master-0", currentUsageBytes: ptr.To(100.0)},
+				{nodeName: "master-0"},
+				{nodeName: "master-1", currentUsageBytes: ptr.To(50.0)},
+			},
+			haveCurrentUsage: true,
+			expected:         []*float64{ptr.To(100.0), ptr.To(50.0), ptr.To(0.0)},
+		},
+		{
+			name: "master whose singletons all lack samples is left unset",
+			pods: []singletonPod{
+				{nodeName: "master-0", currentUsageBytes: ptr.To(100.0)},
+				{nodeName: "master-1"},
+				{nodeName: "master-1"},
+			},
+			haveCurrentUsage: true,
+			expected:         []*float64{ptr.To(100.0), nil, ptr.To(0.0)},
+		},
+		{
+			name: "source without data leaves every master unset",
+			pods: []singletonPod{
+				{nodeName: "master-0"},
+			},
+			haveCurrentUsage: false,
+			expected:         []*float64{nil, nil, nil},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			placement := summarizePlacement(masters, tc.pods, tc.haveCurrentUsage, false)
+			var actual []*float64
+			for _, p := range placement {
+				actual = append(actual, p.currentUsageBytes)
+				assert.Nil(t, p.peakUsageBytes)
+				assert.Nil(t, p.avgUsageBytes)
+			}
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
 func TestUsageStatsFromQueryResult(t *testing.T) {
 	sample := func(namespace, pod, stat string, v float64) *prometheustypes.Sample {
 		return &prometheustypes.Sample{

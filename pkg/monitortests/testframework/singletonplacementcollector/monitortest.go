@@ -142,10 +142,12 @@ func (w *singletonPlacementCollector) collectFromClient(ctx context.Context, kub
 	currentUsage, err := w.fetchCurrentUsage(ctx, kubeClient)
 	if err != nil {
 		logger.WithError(err).Warn("unable to get current pod memory usage from metrics API")
+		currentUsage = nil
 	}
 	stats, err := w.fetchUsageStats(ctx, w.adminRESTConfig, kubeClient, beginning, end)
 	if err != nil {
 		logger.WithError(err).Warn("unable to get peak/average pod memory usage from Prometheus")
+		stats = nil
 	}
 
 	for i := range pods {
@@ -160,7 +162,7 @@ func (w *singletonPlacementCollector) collectFromClient(ctx context.Context, kub
 	}
 
 	w.pods = pods
-	w.placement = summarizePlacement(masters, pods, currentUsage != nil, stats != nil)
+	w.placement = summarizePlacement(masters, pods, len(currentUsage) > 0, len(stats) > 0)
 	return nil
 }
 
@@ -248,12 +250,28 @@ func listSingletonPods(ctx context.Context, kubeClient kubernetes.Interface, now
 }
 
 // summarizePlacement produces one entry per master, including masters with no singletons, so skew
-// can be computed in BigQuery without knowing the master count.
+// can be computed in BigQuery without knowing the master count. A master's usage sum is only set
+// when at least one of its pods has a sample, so missing data loads as NULL rather than zero.
+// Masters without singletons get a zero sum as long as the metric source returned data at all.
 func summarizePlacement(masters []string, pods []singletonPod, haveCurrentUsage, haveUsageStats bool) []masterPlacement {
 	byNode := map[string]*masterPlacement{}
 	placement := make([]masterPlacement, len(masters))
 	for i, name := range masters {
 		placement[i].nodeName = name
+		byNode[name] = &placement[i]
+	}
+	for _, pod := range pods {
+		p := byNode[pod.nodeName]
+		p.singletonPods++
+		p.memoryRequestBytes += pod.memoryRequestBytes
+		addSample(&p.currentUsageBytes, pod.currentUsageBytes)
+		addSample(&p.peakUsageBytes, pod.peakUsageBytes)
+		addSample(&p.avgUsageBytes, pod.avgUsageBytes)
+	}
+	for i := range placement {
+		if placement[i].singletonPods > 0 {
+			continue
+		}
 		if haveCurrentUsage {
 			placement[i].currentUsageBytes = new(float64)
 		}
@@ -261,23 +279,18 @@ func summarizePlacement(masters []string, pods []singletonPod, haveCurrentUsage,
 			placement[i].peakUsageBytes = new(float64)
 			placement[i].avgUsageBytes = new(float64)
 		}
-		byNode[name] = &placement[i]
-	}
-	for _, pod := range pods {
-		p := byNode[pod.nodeName]
-		p.singletonPods++
-		p.memoryRequestBytes += pod.memoryRequestBytes
-		addIfBothSet(p.currentUsageBytes, pod.currentUsageBytes)
-		addIfBothSet(p.peakUsageBytes, pod.peakUsageBytes)
-		addIfBothSet(p.avgUsageBytes, pod.avgUsageBytes)
 	}
 	return placement
 }
 
-func addIfBothSet(sum, v *float64) {
-	if sum != nil && v != nil {
-		*sum += *v
+func addSample(sum **float64, v *float64) {
+	if v == nil {
+		return
 	}
+	if *sum == nil {
+		*sum = new(float64)
+	}
+	**sum += *v
 }
 
 func isMaster(node *corev1.Node) bool {
