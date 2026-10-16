@@ -188,6 +188,10 @@
       return eventInterval.source === "CPUMonitor" && eventInterval.message.reason === "HighCPUUsage"
     }
 
+    function isMemoryThrashing(eventInterval) {
+      return eventInterval.source === "MemoryMonitor" && eventInterval.message.reason === "MemoryThrashing"
+    }
+
     function isTestBucket(eventInterval) {
         return eventInterval.source === "TestBucket"
     }
@@ -517,6 +521,9 @@
 
         timelineGroups.push({group: "high-cpu", data: []})
         createTimelineData("HighCPU", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isHighCPU, regex)
+
+        timelineGroups.push({group: "memory-thrashing", data: []})
+        createTimelineData("MemoryThrashing", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isMemoryThrashing, regex)
 
         timelineGroups.push({group: "disruption", data: []})
         createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
