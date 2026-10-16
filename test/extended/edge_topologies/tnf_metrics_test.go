@@ -93,7 +93,9 @@ func TestDisruptionExpectationsMatchValidatedJourneys(t *testing.T) {
 	}{
 		{name: "cluster maintenance", got: clusterMaintenanceTNFGauges(nodes), want: 16},
 		{name: "resource unmanage", got: resourceUnmanagedTNFGauges(nodes), want: 4},
-		{name: "node maintenance", got: nodeMaintenanceTNFGauges("master-1"), want: 10},
+		{name: "node maintenance without hosted fencing agents", got: nodeMaintenanceTNFGauges("master-1", nil), want: 9},
+		{name: "node maintenance with one hosted fencing agent", got: nodeMaintenanceTNFGauges("master-1", []string{"master-0"}), want: 10},
+		{name: "node maintenance with two hosted fencing agents", got: nodeMaintenanceTNFGauges("master-1", nodes), want: 11},
 		{name: "fence disabled", got: fenceDisabledTNFGauges("master-0"), want: 4},
 	}
 
@@ -111,11 +113,43 @@ func TestDisruptionExpectationsMatchValidatedJourneys(t *testing.T) {
 	}
 }
 
-func TestNodeMaintenanceExpectationsIncludeFencingHealth(t *testing.T) {
-	key := metricKey{name: "tnf_node_fencing_healthy", node: "master-1"}
-	value, ok := nodeMaintenanceTNFGauges("master-1")[key]
-	if !ok || value != 0 {
-		t.Fatalf("node maintenance expected %s=%v, %t; want 0, true", key, value, ok)
+func TestNodeMaintenanceUsesFencingAgentHostButTargetMetricLabel(t *testing.T) {
+	pc := &etcdv1.PacemakerCluster{}
+	pc.Status.Nodes = &[]etcdv1.PacemakerClusterNodeStatus{
+		{NodeName: "master-0", FencingAgents: []etcdv1.PacemakerClusterFencingAgentStatus{{Name: "master-0_redfish"}}},
+		{NodeName: "master-1", FencingAgents: []etcdv1.PacemakerClusterFencingAgentStatus{{Name: "master-1_redfish"}}},
+	}
+	statusXML := `<pacemaker-result><resources>
+		<resource id="master-0_redfish" resource_agent="stonith:fence_redfish" role="Started" active="true" managed="true"><node name="master-1"/></resource>
+		<resource id="master-1_redfish" resource_agent="stonith:fence_redfish" role="Started" active="true" managed="true"><node name="master-0"/></resource>
+	</resources></pacemaker-result>`
+	targets, err := fencingTargetsOnNode(pc, statusXML, "master-0")
+	if err != nil {
+		t.Fatalf("fencingTargetsOnNode() returned an error: %v", err)
+	}
+	if len(targets) != 1 || targets[0] != "master-1" {
+		t.Fatalf("fencingTargetsOnNode() = %v, want [master-1]", targets)
+	}
+
+	actual := tnfGaugesWithOverrides(expectedHealthyTNFGauges([]string{"master-0", "master-1"}), nodeMaintenanceTNFGauges("master-0", targets))
+	for key, want := range map[metricKey]float64{
+		{name: "tnf_node_fencing_healthy", node: "master-0"}: 1,
+		{name: "tnf_node_fencing_healthy", node: "master-1"}: 0,
+		{name: "tnf_node_in_service", node: "master-0"}:      0,
+		{name: "tnf_node_in_service", node: "master-1"}:      1,
+	} {
+		if got := actual[key]; got != want {
+			t.Errorf("metric %+v = %v, want %v", key, got, want)
+		}
+	}
+}
+
+func TestFencingTargetsOnNodeRejectsMissingAgentPlacement(t *testing.T) {
+	pc := &etcdv1.PacemakerCluster{}
+	pc.Status.Nodes = &[]etcdv1.PacemakerClusterNodeStatus{{NodeName: "master-1", FencingAgents: []etcdv1.PacemakerClusterFencingAgentStatus{{Name: "master-1_redfish"}}}}
+	statusXML := `<pacemaker-result><resources><resource id="master-1_redfish" resource_agent="stonith:fence_redfish" role="Stopped" active="false" managed="true"/></resources></pacemaker-result>`
+	if _, err := fencingTargetsOnNode(pc, statusXML, "master-0"); err == nil {
+		t.Fatal("accepted an agent with no running-node placement")
 	}
 }
 

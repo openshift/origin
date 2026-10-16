@@ -110,10 +110,16 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 	g.It("reports node maintenance and recovery", func() {
 		targetNode := nodes[1]
+		pacemakerCluster, err := apis.GetPacemakerCluster(oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "read PacemakerCluster before resolving fencing agent placement")
+		statusXML, err := pcs.output(context.Background(), nodes[0], "status", "xml")
+		o.Expect(err).NotTo(o.HaveOccurred(), "read Pacemaker status before node maintenance")
+		fencingTargets, err := fencingTargetsOnNode(pacemakerCluster, statusXML, targetNode)
+		o.Expect(err).NotTo(o.HaveOccurred(), "resolve fencing-health targets from agent placement")
 		exerciseTNFMetricsDisruption(
 			oc,
 			"node maintenance",
-			nodeMaintenanceTNFGauges(targetNode),
+			nodeMaintenanceTNFGauges(targetNode, fencingTargets),
 			expectedHealthyTNFGauges(nodes),
 			func(ctx context.Context) error {
 				return pcs.run(ctx, nodes[0], "node", "maintenance", targetNode)

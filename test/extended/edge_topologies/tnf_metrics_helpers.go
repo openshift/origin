@@ -3,6 +3,7 @@ package edge_topologies
 import (
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"os"
@@ -146,12 +147,14 @@ func resourceUnmanagedTNFGauges(nodes []string) map[metricKey]float64 {
 	return expected
 }
 
-func nodeMaintenanceTNFGauges(node string) map[metricKey]float64 {
+func nodeMaintenanceTNFGauges(node string, fencingTargets []string) map[metricKey]float64 {
 	expected := map[metricKey]float64{
-		{name: "tnf_cluster_healthy"}:                  0,
-		{name: "tnf_node_healthy", node: node}:         0,
-		{name: "tnf_node_in_service", node: node}:      0,
-		{name: "tnf_node_fencing_healthy", node: node}: 0,
+		{name: "tnf_cluster_healthy"}:             0,
+		{name: "tnf_node_healthy", node: node}:    0,
+		{name: "tnf_node_in_service", node: node}: 0,
+	}
+	for _, target := range fencingTargets {
+		expected[metricKey{name: "tnf_node_fencing_healthy", node: target}] = 0
 	}
 	for _, resource := range []string{"Etcd", "Kubelet"} {
 		for _, name := range []string{"tnf_resource_healthy", "tnf_resource_in_service", "tnf_resource_managed"} {
@@ -159,6 +162,62 @@ func nodeMaintenanceTNFGauges(node string) map[metricKey]float64 {
 		}
 	}
 	return expected
+}
+
+type tnfPCSResourcePlacement struct {
+	ID   string `xml:"id,attr"`
+	Node struct {
+		Name string `xml:"name,attr"`
+	} `xml:"node"`
+}
+
+type tnfPCSStatus struct {
+	XMLName   xml.Name `xml:"pacemaker-result"`
+	Resources struct {
+		Resource []tnfPCSResourcePlacement `xml:"resource"`
+		Clone    []struct {
+			Resource []tnfPCSResourcePlacement `xml:"resource"`
+		} `xml:"clone"`
+	} `xml:"resources"`
+}
+
+// The fencing-health gauge is labelled by the agent's target, not the node
+// hosting the agent. Node maintenance degrades agents hosted on that node.
+func fencingTargetsOnNode(pc *etcdv1.PacemakerCluster, statusXML, host string) ([]string, error) {
+	if pc == nil || pc.Status.Nodes == nil || len(*pc.Status.Nodes) == 0 {
+		return nil, errors.New("PacemakerCluster has no node status for fencing placement")
+	}
+	var status tnfPCSStatus
+	if err := xml.Unmarshal([]byte(statusXML), &status); err != nil {
+		return nil, errors.New("parse Pacemaker status XML for fencing placement")
+	}
+	placements := make(map[string]string)
+	for _, resource := range status.Resources.Resource {
+		placements[resource.ID] = resource.Node.Name
+	}
+	for _, clone := range status.Resources.Clone {
+		for _, resource := range clone.Resource {
+			placements[resource.ID] = resource.Node.Name
+		}
+	}
+
+	var targets []string
+	for _, node := range *pc.Status.Nodes {
+		if len(node.FencingAgents) == 0 {
+			return nil, errors.New("PacemakerCluster node has no fencing agents")
+		}
+		for _, agent := range node.FencingAgents {
+			placement := placements[agent.Name]
+			if placement == "" {
+				return nil, errors.New("fencing agent has no running-node placement in Pacemaker status XML")
+			}
+			if placement == host {
+				targets = append(targets, node.NodeName)
+			}
+		}
+	}
+	sort.Strings(targets)
+	return targets, nil
 }
 
 func fenceDisabledTNFGauges(node string) map[metricKey]float64 {
@@ -368,9 +427,14 @@ type tnfPCSRunner struct {
 	pendingNamespace string
 }
 
-func (runner *tnfPCSRunner) run(ctx context.Context, node string, args ...string) (result error) {
+func (runner *tnfPCSRunner) run(ctx context.Context, node string, args ...string) error {
+	_, err := runner.output(ctx, node, args...)
+	return err
+}
+
+func (runner *tnfPCSRunner) output(ctx context.Context, node string, args ...string) (output string, result error) {
 	if err := runner.cleanup(ctx); err != nil {
-		return fmt.Errorf("previous debug command has not been cleaned up: %w", err)
+		return "", fmt.Errorf("previous debug command has not been cleaned up: %w", err)
 	}
 	commandCtx, cancel := context.WithTimeout(ctx, tnfCommandTimeout)
 	defer cancel()
@@ -392,7 +456,7 @@ func (runner *tnfPCSRunner) run(ctx context.Context, node string, args ...string
 		},
 	}, metav1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("create TNF debug namespace: %w", err)
+		return "", fmt.Errorf("create TNF debug namespace: %w", err)
 	}
 	runner.pendingNamespace = ns.Name
 	defer func() {
@@ -400,12 +464,12 @@ func (runner *tnfPCSRunner) run(ctx context.Context, node string, args ...string
 		result = errors.Join(result, runner.cleanup(context.Background()))
 	}()
 	if err := waitForTNFDefaultServiceAccount(commandCtx, runner.serviceAccounts(ns.Name)); err != nil {
-		return fmt.Errorf("wait for default ServiceAccount in TNF debug namespace %s: %w", ns.Name, err)
+		return "", fmt.Errorf("wait for default ServiceAccount in TNF debug namespace %s: %w", ns.Name, err)
 	}
 	ocArgs := []string{"debug", "-q", "node/" + node, "--preserve-pod", "--to-namespace=" + ns.Name, "--", "chroot", "/host", "pcs"}
 	ocArgs = append(ocArgs, args...)
-	_, err = runTNFOC(commandCtx, runner.oc, ocArgs...)
-	return err
+	output, err = runTNFOC(commandCtx, runner.oc, ocArgs...)
+	return output, err
 }
 
 func waitForTNFDefaultServiceAccount(ctx context.Context, serviceAccounts coreclient.ServiceAccountInterface) error {
