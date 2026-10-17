@@ -112,8 +112,8 @@ func RunAlertTests(jobType *platformidentification.JobType,
 	// Run the backstop catch all for all other alerts:
 	ret = append(ret, runBackstopTest(allowancesFunc, featureSet, pendingIntervals, firingIntervals, alertTests)...)
 
-	// TODO: Run a test to ensure no new alerts fired:
-	ret = append(ret, runNoNewAlertsFiringTest(allowedalerts.GetHistoricalData(), firingIntervals)...)
+	isUpgrade := platformidentification.DidUpgradeHappenDuringCollection(events, time.Time{}, time.Time{})
+	ret = append(ret, runNoNewAlertsFiringTest(allowedalerts.GetHistoricalData(), jobType, isUpgrade, firingIntervals)...)
 
 	return ret
 }
@@ -175,13 +175,13 @@ func runBackstopTest(
 		if isSkippedAlert(fan) {
 			continue
 		}
-		seconds := firing.To.Sub(firing.From)
-		violation := fmt.Sprintf("V2 alert %s fired for %s seconds with labels: %s", fan, seconds, firing.Message.OldMessage())
 		if cause := allowedFiringAlerts.MatchesInterval(firing); cause != nil {
 			// TODO: this seems to never be happening? no search.ci results show allowed
-			debug.Insert(fmt.Sprintf("%s result=allow (%s)", violation, cause.Text))
+			debug.Insert(allowedAlertDiagnostic(firing, cause.Text))
 			continue
 		}
+		seconds := firing.To.Sub(firing.From)
+		violation := fmt.Sprintf("V2 alert %s fired for %s seconds with labels: %s", fan, seconds, firing.Message.OldMessage())
 		if cause := firingAlertsWithBugs.MatchesInterval(firing); cause != nil {
 			knownViolations.Insert(fmt.Sprintf("%s result=allow bug=%s", violation, cause.Text))
 		} else {
@@ -236,6 +236,13 @@ func runBackstopTest(
 	return ret
 }
 
+// allowedAlertDiagnostic summarizes an allowed alert without exposing its message or annotations.
+func allowedAlertDiagnostic(alertInterval monitorapi.Interval, cause string) string {
+	alertName := alertInterval.Locator.Keys[monitorapi.LocatorAlertKey]
+	duration := alertInterval.To.Sub(alertInterval.From)
+	return fmt.Sprintf("V2 alert %s fired for %s seconds result=allow (%s)", alertName, duration, cause)
+}
+
 func isSkippedAlert(alertName string) bool {
 	// Some alerts we always skip over in CI:
 	for _, a := range allowedalerts.AllowedAlertNames {
@@ -257,9 +264,12 @@ func isSkippedAlert(alertName string) bool {
 //   - have historical data but it was first observed less than 2 weeks ago
 //
 // If either is true, this test will fail. We do not want new product alerts being added to the product that
-// will trigger routinely and affect the fleet when they ship.
-// The two week limit is our window to address these kinds of problems, after that the failure will stop.
+// will trigger routinely and affect the fleet when they ship. The two week limit is our window to address these
+// kinds of problems, after that the failure will stop. TNFNodeOffline is ignored only for the etcd-operator
+// namespace during metal dual-topology upgrades.
 func runNoNewAlertsFiringTest(historicalData *historicaldata.AlertBestMatcher,
+	jobType *platformidentification.JobType,
+	isUpgrade bool,
 	firingIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[sig-trt][invariant] No new alerts should be firing"
 	// accumulate all alerts firing that we have no historical data for this release, or we know it only
@@ -270,6 +280,9 @@ func runNoNewAlertsFiringTest(historicalData *historicaldata.AlertBestMatcher,
 		alertName := interval.Locator.Keys[monitorapi.LocatorAlertKey]
 
 		if isSkippedAlert(alertName) {
+			continue
+		}
+		if isUpgrade && jobType != nil && jobType.Platform == "metal" && jobType.Topology == "dual" && alertName == "TNFNodeOffline" && interval.Locator.Keys[monitorapi.LocatorNamespaceKey] == "openshift-etcd-operator" {
 			continue
 		}
 
