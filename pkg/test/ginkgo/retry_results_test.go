@@ -11,13 +11,16 @@ func TestProcessRetryResults(t *testing.T) {
 	for _, scenario := range []struct {
 		name         string
 		unretried    int
+		priorSuccess bool
 		outcome      string
 		wantFailures int
 		wantTests    int
 		wantFlaky    int
 	}{
 		{name: "permanent failure has one rollup", outcome: "failed", wantFailures: 1, wantTests: 1},
-		{name: "three unretried failures plus FIPS", unretried: 3, outcome: "failed", wantFailures: 4, wantTests: 4},
+		{name: "unretried failures are preserved alongside a permanent retry failure", unretried: 3, outcome: "failed", wantFailures: 4, wantTests: 4},
+		{name: "permanent retry failure preserves an earlier same-name success", priorSuccess: true, outcome: "failed", wantFailures: 1, wantTests: 2},
+		{name: "permanent retry failure preserves earlier success and unrelated failures", unretried: 1, priorSuccess: true, outcome: "failed", wantFailures: 2, wantTests: 3},
 		{name: "successful retry is flaky", outcome: "success", wantTests: 2, wantFlaky: 1},
 		{name: "successful retry preserves unretried failure", unretried: 1, outcome: "success", wantFailures: 1, wantTests: 3, wantFlaky: 1},
 		{name: "no eligible tests unchanged", unretried: 3, wantFailures: 3, wantTests: 3},
@@ -34,8 +37,13 @@ func TestProcessRetryResults(t *testing.T) {
 			}
 			originalFailures := append([]*testCase(nil), failing...)
 			attempts := map[string][]*testCase{}
+			var priorSuccess *testCase
 			if scenario.outcome != "" {
 				original := &testCase{name: "FIPS", failed: true, testOutputBytes: []byte("original failure evidence")}
+				if scenario.priorSuccess {
+					priorSuccess = &testCase{name: original.name, success: true, testOutputBytes: []byte("earlier success evidence")}
+					tests = append(tests, priorSuccess)
+				}
 				retry := &testCase{name: original.name, failed: scenario.outcome == "failed", success: scenario.outcome == "success", skipped: scenario.outcome == "skipped", testOutputBytes: []byte("retry evidence")}
 				tests = append(tests, original)
 				failing = append(failing, original)
@@ -53,6 +61,13 @@ func TestProcessRetryResults(t *testing.T) {
 				}
 			}
 			if scenario.outcome == "failed" {
+				fullJUnit := generateJUnitTestSuiteResults("retry-results", 0, results)
+				if fullJUnit.NumTests != uint(scenario.wantTests) || len(fullJUnit.TestCases) != scenario.wantTests || fullJUnit.NumFailed != uint(len(failures)) {
+					t.Errorf("full JUnit has tests=%d cases=%d failures=%d, want tests=%d failures=%d", fullJUnit.NumTests, len(fullJUnit.TestCases), fullJUnit.NumFailed, scenario.wantTests, len(failures))
+				}
+				if priorSuccess != nil && (results[scenario.unretried] != priorSuccess || !priorSuccess.success || priorSuccess.failed) {
+					t.Error("earlier same-name success must retain its execution identity and status")
+				}
 				rollup := failures[len(failures)-1]
 				if !rollup.failed || rollup.success || rollup.skipped || !isBlockingFailure(rollup) {
 					t.Fatal("rollup no longer represents a blocking failure")

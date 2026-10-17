@@ -1055,6 +1055,8 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 	return o.processRetryResults(tests, failing, testAttempts)
 }
 
+// processRetryResults aggregates retry outcomes while preserving other executions.
+// Each attempts slice starts with the original failed execution shared by tests and failing.
 func (o *GinkgoRunSuiteOptions) processRetryResults(tests, failing []*testCase, testAttempts map[string][]*testCase) ([]*testCase, []*testCase, int) {
 	var finalFlaky []string
 	var finalSkipped []string
@@ -1082,13 +1084,13 @@ func (o *GinkgoRunSuiteOptions) processRetryResults(tests, failing []*testCase, 
 
 			// Replace original failed test with rollup test
 			for i, t := range tests {
-				if t.name == testName {
+				if t == attempts[0] {
 					tests[i] = rollupTest
 					break
 				}
 			}
 			for index, failedTest := range failing {
-				if failedTest.name == testName {
+				if failedTest == attempts[0] {
 					failing[index] = rollupTest
 					break
 				}
