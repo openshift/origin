@@ -569,7 +569,7 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 
 	// AuthenticationComponentProxy tests intentionally trigger multiple oauth-openshift rollouts
 	// (set proxy → operator rolls out → restore → operator rolls out again), repeated for each
-	// test in the suite. This causes DeploymentUpdated and ScalingReplicaSet events in the
+	// test in the suite. This causes DeploymentUpdated, OperatorStatusChanged, and ScalingReplicaSet events in the
 	// authentication namespaces to exceed the default threshold of 20.
 	if authenticationComponentProxyTestsDetected(finalIntervals) {
 		registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
@@ -580,6 +580,16 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 			},
 			messageReasonRegex:      regexp.MustCompile(`^DeploymentUpdated$`),
 			repeatThresholdOverride: 70,
+		})
+		registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+			name: "AuthenticationComponentProxyOperatorStatusChanged",
+			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+				monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication-operator$`),
+				monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^authentication-operator$`),
+			},
+			messageReasonRegex: regexp.MustCompile(`^OperatorStatusChanged$`),
+			// Observed 21 times as the proxy tests complete rollouts, including cleanup.
+			repeatThresholdOverride: 30,
 		})
 		registry.AddPathologicalEventMatcherOrDie(newAuthenticationComponentProxyScalingReplicaSetMatcher(finalIntervals))
 	}
