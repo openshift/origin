@@ -48,8 +48,8 @@ spec:
               version: 2                                                              
               ethernets:                                                              
                 eth0:                                                                 
-                  dhcp4: true                                                         
-                  dhcp6: true                                                         
+                  dhcp4: {{ .DHCPv4 }}
+                  dhcp6: {{ .DHCPv6 }}
             userData: |-
               #cloud-config
               password: fedora
@@ -98,8 +98,8 @@ spec:
               version: 2                                                              
               ethernets:                                                              
                 eth0:                                                                 
-                  dhcp4: true                                                         
-                  dhcp6: true                                                         
+                  dhcp4: {{ .DHCPv4 }}
+                  dhcp6: {{ .DHCPv6 }}
             userData: |-
               #cloud-config
               password: fedora
@@ -143,8 +143,8 @@ spec:
         version: 2                                                              
         ethernets:                                                              
           eth0:                                                                 
-            dhcp4: true                                                         
-            dhcp6: true                                                         
+            dhcp4: {{ .DHCPv4 }}
+            dhcp6: {{ .DHCPv6 }}
       userData: |-
         #cloud-config
         password: fedora
@@ -189,8 +189,8 @@ spec:
         version: 2                                                              
         ethernets:                                                              
           eth0:                                                                 
-            dhcp4: true                                                         
-            dhcp6: true                                                         
+            dhcp4: {{ .DHCPv4 }}
+            dhcp6: {{ .DHCPv6 }}
       userData: |-
         #cloud-config
         password: fedora
@@ -247,8 +247,8 @@ spec:
               version: 2                                                              
               ethernets:                                                              
                 eth0:                                                                 
-                  dhcp4: true                                                         
-                  dhcp6: true                                                         
+                  dhcp4: {{ .DHCPv4 }}
+                  dhcp6: {{ .DHCPv6 }}
             userData: |-
               #cloud-config
               password: fedora
@@ -273,6 +273,8 @@ type CreationTemplateParams struct {
 	NetworkName               string
 	PreconfiguredIP           string
 	PreconfiguredMAC          string
+	DHCPv4                    bool
+	DHCPv6                    bool
 }
 
 func renderVMTemplate(vmTemplateString string, params CreationTemplateParams) (string, error) {
