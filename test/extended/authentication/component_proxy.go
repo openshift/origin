@@ -108,6 +108,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 })
 
 func testProxyConfigPerformOIDCLogin(ctx context.Context, oc *exutil.CLI, cleanups *[]removalFunc, kcSetup *keycloakProxySetup, httpProxyURL, proxyNamespace string) {
+	const namespace, name = "openshift-authentication", "oauth-openshift"
 	g.By("Setting direct access grant for oauth flow")
 	err := enableDirectAccessGrant(kcSetup)
 	o.Expect(err).NotTo(o.HaveOccurred(), "direct access grant should be enabled")
@@ -117,18 +118,38 @@ func testProxyConfigPerformOIDCLogin(ctx context.Context, oc *exutil.CLI, cleanu
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Updating Auth Proxy Config")
+	deployment, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	generationBeforeProxy := deployment.Generation
+
 	err = updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{
 		HTTPSProxy: httpProxyURL,
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("Waiting for operator to pick up proxy changes and stabilize")
+	err = waitForOperatorToPickUpChanges(ctx, oc, "authentication")
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("Waiting for OAuth server rollout after proxy changes before registering IdP")
+	err = waitForDeploymentRollout(ctx, oc, name, namespace, generationBeforeProxy)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	deployment, err = oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	generationBeforeIdP := deployment.Generation
 
 	g.By("Registering Keycloak as OIDC IdP")
 	idpCleanups, err := addKeycloakOIDCIdPForProxy(ctx, oc, kcSetup)
 	*cleanups = append(*cleanups, idpCleanups...)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	g.By("Waiting for operator to pick up proxy and IdP changes and stabilize")
+	g.By("Waiting for operator to pick up IdP changes and stabilize")
 	err = waitForOperatorToPickUpChanges(ctx, oc, "authentication")
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("Waiting for OAuth server rollout after IdP changes")
+	err = waitForDeploymentRollout(ctx, oc, name, namespace, generationBeforeIdP)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Verifying oauth-server has HTTPS_PROXY but not HTTP_PROXY")
@@ -153,6 +174,7 @@ func testProxyConfigPerformOIDCLogin(ctx context.Context, oc *exutil.CLI, cleanu
 }
 
 func testHotReloadCAFileChange(ctx context.Context, oc *exutil.CLI, cleanups *[]removalFunc, caCertPEM []byte, kcSetup *keycloakProxySetup, httpsProxyURL, proxyNamespace string) {
+	const namespace, name = "openshift-authentication", "oauth-openshift"
 	g.By("Setting direct access grant for oauth flow")
 	err := enableDirectAccessGrant(kcSetup)
 	o.Expect(err).NotTo(o.HaveOccurred(), "direct access grant should be enabled")
@@ -168,6 +190,10 @@ func testHotReloadCAFileChange(ctx context.Context, oc *exutil.CLI, cleanups *[]
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Setting component-scoped proxy with trustedCA")
+	deployment, err := kubeClient.AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	generationBeforeProxy := deployment.Generation
+
 	err = updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{
 		HTTPSProxy: httpsProxyURL,
 		TrustedCA: operatorv1.AuthenticationConfigMapReference{
@@ -176,13 +202,29 @@ func testHotReloadCAFileChange(ctx context.Context, oc *exutil.CLI, cleanups *[]
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
+	g.By("Waiting for operator to pick up proxy and trustedCA changes and stabilize")
+	err = waitForOperatorToPickUpChanges(ctx, oc, "authentication")
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("Waiting for OAuth server rollout after proxy changes before registering IdP")
+	err = waitForDeploymentRollout(ctx, oc, name, namespace, generationBeforeProxy)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	deployment, err = kubeClient.AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	generationBeforeIdP := deployment.Generation
+
 	g.By("Registering Keycloak as OIDC IdP")
 	idpCleanups, err := addKeycloakOIDCIdPForProxy(ctx, oc, kcSetup)
 	*cleanups = append(*cleanups, idpCleanups...)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	g.By("Waiting for operator to pick up proxy, trustedCA and IdP changes and stabilize")
+	g.By("Waiting for operator to pick up IdP changes and stabilize")
 	err = waitForOperatorToPickUpChanges(ctx, oc, "authentication")
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("Waiting for OAuth server rollout after IdP changes")
+	err = waitForDeploymentRollout(ctx, oc, name, namespace, generationBeforeIdP)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Verifying trustedCA ConfigMap is synced to openshift-authentication namespace")
@@ -206,7 +248,7 @@ func testHotReloadCAFileChange(ctx context.Context, oc *exutil.CLI, cleanups *[]
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Recording Deployment generation before CA rotation")
-	deployment, err := kubeClient.AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+	deployment, err = kubeClient.AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	generationBefore := deployment.Generation
 
@@ -300,6 +342,7 @@ func testHotReloadCAFileChange(ctx context.Context, oc *exutil.CLI, cleanups *[]
 }
 
 func testBypassProxyNoProxyHost(ctx context.Context, oc *exutil.CLI, cleanups *[]removalFunc, caCertPEM []byte, kcSetup *keycloakProxySetup, httpProxyURL, httpsProxyURL, proxyNamespace string) {
+	const namespace, name = "openshift-authentication", "oauth-openshift"
 	g.By("Setting direct access grant for oauth flow")
 	err := enableDirectAccessGrant(kcSetup)
 	o.Expect(err).NotTo(o.HaveOccurred(), "direct access grant should be enabled")
@@ -317,6 +360,10 @@ func testBypassProxyNoProxyHost(ctx context.Context, oc *exutil.CLI, cleanups *[
 
 	keycloakHost := issuerURL.Hostname()
 	g.By("Setting component-scoped proxy with noProxy")
+	deployment, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	generationBeforeProxy := deployment.Generation
+
 	err = updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{
 		HTTPProxy:  httpProxyURL,
 		HTTPSProxy: httpsProxyURL,
@@ -327,13 +374,29 @@ func testBypassProxyNoProxyHost(ctx context.Context, oc *exutil.CLI, cleanups *[
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
+	g.By("Waiting for operator to pick up proxy changes and stabilize")
+	err = waitForOperatorToPickUpChanges(ctx, oc, "authentication")
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("Waiting for OAuth server rollout after proxy changes before registering IdP")
+	err = waitForDeploymentRollout(ctx, oc, name, namespace, generationBeforeProxy)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	deployment, err = oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	generationBeforeIdP := deployment.Generation
+
 	g.By("Registering Keycloak as OIDC IdP")
 	idpCleanups, err := addKeycloakOIDCIdPForProxy(ctx, oc, kcSetup)
 	*cleanups = append(*cleanups, idpCleanups...)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	g.By("Waiting for operator to pick up proxy and IdP changes and stabilize")
+	g.By("Waiting for operator to pick up IdP changes and stabilize")
 	err = waitForOperatorToPickUpChanges(ctx, oc, "authentication")
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("Waiting for OAuth server rollout after IdP changes")
+	err = waitForDeploymentRollout(ctx, oc, name, namespace, generationBeforeIdP)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Verifying oauth-server has HTTP_PROXY, HTTPS_PROXY, and NO_PROXY with custom entry")
@@ -350,6 +413,7 @@ func testBypassProxyNoProxyHost(ctx context.Context, oc *exutil.CLI, cleanups *[
 }
 
 func testOIDCIdPThroughComponentProxy(ctx context.Context, oc *exutil.CLI, kcSetup *keycloakProxySetup, proxyURL string, trustedCACertPEM []byte, proxyNamespace string) {
+	const namespace, name = "openshift-authentication", "oauth-openshift"
 	withTrustedCA := len(trustedCACertPEM) > 0
 
 	var trustedCAConfigMapName string
@@ -363,6 +427,10 @@ func testOIDCIdPThroughComponentProxy(ctx context.Context, oc *exutil.CLI, kcSet
 
 	proxyTrafficStart := time.Now()
 
+	deployment, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	generationBeforeProxy := deployment.Generation
+
 	g.By("Setting component-scoped proxy")
 	proxyConfig := operatorv1.AuthenticationProxyConfig{
 		HTTPSProxy: proxyURL,
@@ -370,7 +438,15 @@ func testOIDCIdPThroughComponentProxy(ctx context.Context, oc *exutil.CLI, kcSet
 	if withTrustedCA {
 		proxyConfig.TrustedCA = operatorv1.AuthenticationConfigMapReference{Name: trustedCAConfigMapName}
 	}
-	err := updateAuthenticationProxy(ctx, oc, proxyConfig)
+	err = updateAuthenticationProxy(ctx, oc, proxyConfig)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("Waiting for operator to pick up proxy changes and stabilize")
+	err = waitForOperatorToPickUpChanges(ctx, oc, "authentication")
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("Waiting for OAuth server rollout after proxy changes before registering IdP")
+	err = waitForDeploymentRollout(ctx, oc, name, namespace, generationBeforeProxy)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	if withTrustedCA {
@@ -378,6 +454,10 @@ func testOIDCIdPThroughComponentProxy(ctx context.Context, oc *exutil.CLI, kcSet
 		err = verifyTrustedCAConfigMapSynced(ctx, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
+
+	deployment, err = oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	generationBeforeIdP := deployment.Generation
 
 	g.By("Registering Keycloak as OIDC IdP (operator discovers it through the proxy)")
 	idpCleanups, err := addKeycloakOIDCIdPForProxy(ctx, oc, kcSetup)
@@ -388,6 +468,10 @@ func testOIDCIdPThroughComponentProxy(ctx context.Context, oc *exutil.CLI, kcSet
 
 	g.By("Waiting for operator to pick up IdP changes and stabilize")
 	err = waitForOperatorToPickUpChanges(ctx, oc, "authentication")
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("Waiting for OAuth server rollout after IdP changes")
+	err = waitForDeploymentRollout(ctx, oc, name, namespace, generationBeforeIdP)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Verifying OAuth server deployment has proxy env vars and trustedCA volume/mount")
@@ -409,11 +493,28 @@ func testOIDCIdPThroughComponentProxy(ctx context.Context, oc *exutil.CLI, kcSet
 }
 
 func testFallbackOnProxyRemoval(ctx context.Context, oc *exutil.CLI, kcSetup *keycloakProxySetup, httpProxyURL string, proxyNamespace string) {
+	const namespace, name = "openshift-authentication", "oauth-openshift"
+	deployment, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	generationBeforeProxy := deployment.Generation
+
 	g.By("Setting component-scoped proxy")
-	err := updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{
+	err = updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{
 		HTTPSProxy: httpProxyURL,
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("Waiting for operator to pick up proxy changes and stabilize")
+	err = waitForOperatorToPickUpChanges(ctx, oc, "authentication")
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("Waiting for OAuth server rollout after proxy changes before registering IdP")
+	err = waitForDeploymentRollout(ctx, oc, name, namespace, generationBeforeProxy)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	deployment, err = oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	generationBeforeIdP := deployment.Generation
 
 	g.By("Registering Keycloak as OIDC IdP")
 	idpCleanups, err := addKeycloakOIDCIdPForProxy(ctx, oc, kcSetup)
@@ -426,20 +527,36 @@ func testFallbackOnProxyRemoval(ctx context.Context, oc *exutil.CLI, kcSetup *ke
 	err = waitForOperatorToPickUpChanges(ctx, oc, "authentication")
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	g.By("Removing spec.proxy from Authentication CR")
-	err = updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{})
+	g.By("Waiting for OAuth server rollout after IdP changes")
+	err = waitForDeploymentRollout(ctx, oc, name, namespace, generationBeforeIdP)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	g.By("Deleting Squid to prove the operator no longer routes through it")
-	err = deleteNamespaceSync(ctx, oc, proxyNamespace, 5*time.Minute)
+	deployment, err = oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	generationBeforeProxyRemoval := deployment.Generation
+
+	g.By("Removing spec.proxy from Authentication CR")
+	err = updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Waiting for operator to pick up proxy removal and stabilize")
 	err = waitForOperatorToPickUpChanges(ctx, oc, "authentication")
 	o.Expect(err).NotTo(o.HaveOccurred())
 
+	g.By("Waiting for OAuth server rollout after proxy removal")
+	err = waitForDeploymentRollout(ctx, oc, name, namespace, generationBeforeProxyRemoval)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
 	g.By("Verifying proxy env vars are no longer set on OAuth server deployment")
 	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, "", "", "", false)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("Deleting Squid to prove the operator no longer routes through it")
+	err = deleteNamespaceSync(ctx, oc, proxyNamespace, 5*time.Minute)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("Waiting for operator to remain stable after Squid deletion")
+	err = operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
