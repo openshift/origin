@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/pod-security-admission/api"
 
 	"github.com/openshift/library-go/pkg/operator/condition"
@@ -972,6 +973,212 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 			})
 		})
 
+		// CNTRLPLANE-3481: sourcing from >1 ExternalClaimsSources entries.
+		// Dual Keycloak hosts are not available in CI, so distinct sources are two
+		// ExternalClaimsSources against the same /userinfo with different mapping names.
+		// Setup lives in each It because openshift-tests does not reliably honor Ordered/BeforeAll
+		// when running a single test name.
+		g.Describe("with multiple external claims sources", func() {
+			g.It("should merge claims from two reachable external claims sources", func() {
+				testID := rand.String(8)
+				o.Expect(keycloakCli.ConfigureClientForExternalClaims(externalClaimsKeycloakClientID)).To(o.Succeed(),
+					"should configure a Keycloak client for external claims testing")
+
+				user := fmt.Sprintf("two-src-user-%s", testID)
+				userPassword := fmt.Sprintf("password-two-src-%s", testID)
+				sourceAGroup := fmt.Sprintf("msrca-group-%s", testID)
+				sourceBGroup := fmt.Sprintf("msrcb-group-%s", testID)
+
+				for _, grp := range []string{sourceAGroup, sourceBGroup} {
+					o.Expect(keycloakCli.CreateGroup(grp)).To(o.Succeed(), "should create two-source test group")
+				}
+				o.Expect(keycloakCli.CreateUser(user, userPassword, sourceAGroup, sourceBGroup)).To(o.Succeed(),
+					"should create user with groups for both reachable sources")
+
+				hostname := keycloakHostname(ctx, oc, keycloakNamespace)
+				ensureOIDCConfigured(ctx, oc, keycloakNamespace, oidcClientSecret)
+				baselineRevision := kubeAPIServerLatestRevision(ctx, oc)
+
+				hotReloadExternalClaimsAndWait(ctx, oc, baselineRevision, "groups_src_a", "", func(provider *configv1.OIDCProvider) {
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{
+						keycloakUserInfoClaimsSource(hostname, configv1.SourcedClaimMapping{
+							Name:       "groups_src_a",
+							Expression: "response.body.groups.filter(g, g.startsWith('msrca-')).join(',')",
+						}),
+						keycloakUserInfoClaimsSource(hostname, configv1.SourcedClaimMapping{
+							Name:       "groups_src_b",
+							Expression: "response.body.groups.filter(g, g.startsWith('msrcb-')).join(',')",
+						}),
+					}
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: "(claims.?groups_src_a.orValue('') + ',' + claims.?groups_src_b.orValue('')).split(',').filter(g, size(g) > 0)",
+						},
+					}
+				})
+
+				o.Eventually(func(gomega o.Gomega) {
+					groups, err := selfSubjectGroups(ctx, oc, keycloakCli, externalClaimsKeycloakClientID, user, userPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "two reachable sources: should authenticate")
+					gomega.Expect(groups).To(o.ContainElement(sourceAGroup), "two reachable sources: should include claims from source A")
+					gomega.Expect(groups).To(o.ContainElement(sourceBGroup), "two reachable sources: should include claims from source B")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+
+			g.It("should honor predicates when deciding whether to fetch an external claims source", func() {
+				testID := rand.String(8)
+				o.Expect(keycloakCli.ConfigureClientForExternalClaims(externalClaimsKeycloakClientID)).To(o.Succeed(),
+					"should configure a Keycloak client for external claims testing")
+
+				matchUser := fmt.Sprintf("pred-match-%s", testID)
+				skipUser := fmt.Sprintf("pred-skip-%s", testID)
+				userPassword := fmt.Sprintf("password-pred-%s", testID)
+				predGroup := fmt.Sprintf("pred-group-%s", testID)
+
+				o.Expect(keycloakCli.CreateGroup(predGroup)).To(o.Succeed(), "should create predicate test group")
+				o.Expect(keycloakCli.CreateUser(matchUser, userPassword, predGroup)).To(o.Succeed(),
+					"should create predicate-matching user")
+				o.Expect(keycloakCli.CreateUser(skipUser, userPassword, predGroup)).To(o.Succeed(),
+					"should create predicate-skipping user")
+
+				hostname := keycloakHostname(ctx, oc, keycloakNamespace)
+				ensureOIDCConfigured(ctx, oc, keycloakNamespace, oidcClientSecret)
+				baselineRevision := kubeAPIServerLatestRevision(ctx, oc)
+
+				predicateNeedle := fmt.Sprintf("pred-match-%s", testID)
+				predSource := keycloakUserInfoClaimsSource(hostname, configv1.SourcedClaimMapping{
+					Name:       "groups_predicate",
+					Expression: "response.body.groups.filter(g, g.startsWith('pred-group-')).join(',')",
+				})
+				predSource.Predicates = []configv1.ExternalSourcePredicate{
+					{
+						// preferred_username is present on Keycloak access tokens; email is
+						// the username claim but is not always copied onto the access token.
+						Expression: fmt.Sprintf("has(claims.preferred_username) && claims.preferred_username == '%s'", matchUser),
+					},
+				}
+
+				hotReloadExternalClaimsAndWait(ctx, oc, baselineRevision, predicateNeedle, "", func(provider *configv1.OIDCProvider) {
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{predSource}
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: "claims.?groups_predicate.orValue('').split(',').filter(g, size(g) > 0)",
+						},
+					}
+				})
+
+				o.Eventually(func(gomega o.Gomega) {
+					groups, err := selfSubjectGroups(ctx, oc, keycloakCli, externalClaimsKeycloakClientID, matchUser, userPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "predicate true: should authenticate and fetch the source")
+					gomega.Expect(groups).To(o.ContainElement(predGroup), "predicate true: should include groups from the source")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+
+				o.Eventually(func(gomega o.Gomega) {
+					groups, err := selfSubjectGroups(ctx, oc, keycloakCli, externalClaimsKeycloakClientID, skipUser, userPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "predicate false: authentication should still succeed")
+					gomega.Expect(groups).NotTo(o.ContainElement(predGroup), "predicate false: source must not be fetched")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+
+			g.It("should omit claims from an unreachable source while keeping claims from a reachable one", func() {
+				testID := rand.String(8)
+				o.Expect(keycloakCli.ConfigureClientForExternalClaims(externalClaimsKeycloakClientID)).To(o.Succeed(),
+					"should configure a Keycloak client for external claims testing")
+
+				user := fmt.Sprintf("partial-user-%s", testID)
+				userPassword := fmt.Sprintf("password-partial-%s", testID)
+				okGroup := fmt.Sprintf("msrcok-group-%s", testID)
+				badGroup := fmt.Sprintf("msrcbad-group-%s", testID)
+
+				for _, grp := range []string{okGroup, badGroup} {
+					o.Expect(keycloakCli.CreateGroup(grp)).To(o.Succeed(), "should create partial-failure test group")
+				}
+				o.Expect(keycloakCli.CreateUser(user, userPassword, okGroup, badGroup)).To(o.Succeed(),
+					"should create user with groups for reachable and omitted sources")
+
+				hostname := keycloakHostname(ctx, oc, keycloakNamespace)
+				ensureOIDCConfigured(ctx, oc, keycloakNamespace, oidcClientSecret)
+				baselineRevision := kubeAPIServerLatestRevision(ctx, oc)
+
+				const unreachableHost = "unreachable-host-that-does-not-exist.example.com"
+				hotReloadExternalClaimsAndWait(ctx, oc, baselineRevision, unreachableHost, "", func(provider *configv1.OIDCProvider) {
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{
+						keycloakUserInfoClaimsSource(hostname, configv1.SourcedClaimMapping{
+							Name:       "groups_ok",
+							Expression: "response.body.groups.filter(g, g.startsWith('msrcok-')).join(',')",
+						}),
+						{
+							Authentication: configv1.ExternalSourceAuthentication{
+								Type: configv1.ExternalSourceAuthenticationTypeRequestProvidedToken,
+							},
+							URL: configv1.SourceURL{
+								Hostname:       unreachableHost,
+								PathExpression: "['userinfo']",
+							},
+							Mappings: []configv1.SourcedClaimMapping{
+								{
+									Name:       "groups_bad",
+									Expression: "response.body.groups.filter(g, g.startsWith('msrcbad-')).join(',')",
+								},
+							},
+						},
+					}
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: "(claims.?groups_ok.orValue('') + ',' + claims.?groups_bad.orValue('')).split(',').filter(g, size(g) > 0)",
+						},
+					}
+				})
+
+				o.Eventually(func(gomega o.Gomega) {
+					groups, err := selfSubjectGroups(ctx, oc, keycloakCli, externalClaimsKeycloakClientID, user, userPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "partial failure: reachable source should still allow authentication")
+					gomega.Expect(groups).To(o.ContainElement(okGroup), "partial failure: groups from the reachable source should be present")
+					gomega.Expect(groups).NotTo(o.ContainElement(badGroup), "partial failure: groups from the unreachable source should be omitted")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+
+			g.It("should evaluate dynamic pathExpression using claims.sub", func() {
+				testID := rand.String(8)
+				o.Expect(keycloakCli.ConfigureClientForExternalClaims(externalClaimsKeycloakClientID)).To(o.Succeed(),
+					"should configure a Keycloak client for external claims testing")
+
+				user := fmt.Sprintf("dynpath-user-%s", testID)
+				userPassword := fmt.Sprintf("password-dynpath-%s", testID)
+				dynGroup := fmt.Sprintf("dynpath-group-%s", testID)
+
+				o.Expect(keycloakCli.CreateGroup(dynGroup)).To(o.Succeed(), "should create dynamic-path test group")
+				o.Expect(keycloakCli.CreateUser(user, userPassword, dynGroup)).To(o.Succeed(),
+					"should create user for dynamic pathExpression test")
+
+				hostname := keycloakHostname(ctx, oc, keycloakNamespace)
+				ensureOIDCConfigured(ctx, oc, keycloakNamespace, oidcClientSecret)
+				baselineRevision := kubeAPIServerLatestRevision(ctx, oc)
+
+				const missingPathMarker = "does-not-exist"
+				hotReloadExternalClaimsAndWait(ctx, oc, baselineRevision, missingPathMarker, "", func(provider *configv1.OIDCProvider) {
+					dynSource := keycloakUserInfoClaimsSource(hostname, configv1.SourcedClaimMapping{
+						Name:       "groups_dyn",
+						Expression: "response.body.groups.filter(g, g.startsWith('dynpath-')).join(',')",
+					})
+					// Keycloak userinfo is a fixed path; claims.sub selects that path vs a 404.
+					dynSource.URL.PathExpression = fmt.Sprintf("has(claims.sub) && size(claims.sub) > 0 ? ['realms', 'master', 'protocol', 'openid-connect', 'userinfo'] : ['%s']", missingPathMarker)
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{dynSource}
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: "claims.?groups_dyn.orValue('').split(',').filter(g, size(g) > 0)",
+						},
+					}
+				})
+
+				o.Eventually(func(gomega o.Gomega) {
+					groups, err := selfSubjectGroups(ctx, oc, keycloakCli, externalClaimsKeycloakClientID, user, userPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "dynamic path: should authenticate when pathExpression uses claims.sub")
+					gomega.Expect(groups).To(o.ContainElement(dynGroup), "dynamic path: should source groups from the claims.sub-selected userinfo path")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+		})
+
 		g.Describe("with invalid external claims source", g.Ordered, func() {
 			var errorHandlingUser, errorHandlingUserPassword string
 
@@ -1314,29 +1521,33 @@ func hotReloadExternalClaimsAndWait(ctx context.Context, client *exutil.CLI, exp
 
 // updateExistingOIDCProvider applies modifier to the first configured OIDC provider in place.
 // Unlike configureOIDCAuthentication, this does not regenerate the whole provider from scratch.
+// Retries on conflict: CAO/status writers can update Authentication between Get and Update.
 func updateExistingOIDCProvider(ctx context.Context, client *exutil.CLI, modifier func(*configv1.OIDCProvider)) error {
-	authConfig, err := client.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("getting authentications.config.openshift.io/cluster: %w", err)
-	}
-	if authConfig.Spec.Type != configv1.AuthenticationTypeOIDC {
-		return fmt.Errorf("expected Authentication type OIDC, got %q", authConfig.Spec.Type)
-	}
-	if len(authConfig.Spec.OIDCProviders) == 0 {
-		return fmt.Errorf("expected at least one oidcProvider on Authentication/cluster")
-	}
+	cli := client.AdminConfigClient().ConfigV1().Authentications()
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		authConfig, err := cli.Get(ctx, "cluster", metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("getting authentications.config.openshift.io/cluster: %w", err)
+		}
+		if authConfig.Spec.Type != configv1.AuthenticationTypeOIDC {
+			return fmt.Errorf("expected Authentication type OIDC, got %q", authConfig.Spec.Type)
+		}
+		if len(authConfig.Spec.OIDCProviders) == 0 {
+			return fmt.Errorf("expected at least one oidcProvider on Authentication/cluster")
+		}
 
-	provider := authConfig.Spec.OIDCProviders[0].DeepCopy()
-	// Clear fields each phase fully replaces so stale UserValidationRules/sources do not linger.
-	provider.ExternalClaimsSources = nil
-	provider.UserValidationRules = nil
-	if modifier != nil {
-		modifier(provider)
-	}
-	authConfig.Spec.OIDCProviders[0] = *provider
+		provider := authConfig.Spec.OIDCProviders[0].DeepCopy()
+		// Clear fields each phase fully replaces so stale UserValidationRules/sources do not linger.
+		provider.ExternalClaimsSources = nil
+		provider.UserValidationRules = nil
+		if modifier != nil {
+			modifier(provider)
+		}
+		authConfig.Spec.OIDCProviders[0] = *provider
 
-	_, err = client.AdminConfigClient().ConfigV1().Authentications().Update(ctx, authConfig, metav1.UpdateOptions{})
-	return err
+		_, err = cli.Update(ctx, authConfig, metav1.UpdateOptions{})
+		return err
+	})
 }
 
 // waitForAuthConfigSync polls auth-config ConfigMaps until contents include mustContain
