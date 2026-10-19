@@ -61,3 +61,48 @@ devcontainer up --workspace-folder . --docker-path podman --remove-existing-cont
 - Go module dependencies (`go mod download`)
 - Claude Code CLI
 - Builds the `openshift-tests` binary (`make build`)
+
+## Reusing the toolchain
+
+Other devcontainers can build this Dockerfile directly and call
+`post-create.sh` from the Origin checkout to share tool versions without copying
+them. Rebuild those containers after Dockerfile changes. Recreate them after
+setup script or environment changes to rerun `post-create.sh`.
+
+Claude Code is installed during post-create by default. Set
+`SKIP_CLAUDE_INSTALL=true` to skip it. Set `INSTALL_OPENCODE=true` to install
+OpenCode V2 using `@opencode/cli`; `OPENCODE_VERSION` defaults to `latest` or can
+be an exact package version. Set these in `.devcontainer/.env` for the standalone
+container, or `containerEnv` for a consuming devcontainer. They are runtime
+variables, not build arguments. No OpenCode credentials are mounted automatically.
+
+For example, a devcontainer that covers several related checkouts can build
+this Dockerfile and install OpenCode alongside Claude Code during post-create
+setup:
+
+```json
+"build": {
+  "dockerfile": "../origin/.devcontainer/Dockerfile",
+  "context": "../origin/.devcontainer"
+},
+"containerEnv": {
+  "INSTALL_OPENCODE": "true"
+}
+```
+
+Adjust `dockerfile` and `context` relative to the consuming devcontainer's
+configuration file. Mount the Origin checkout and call its `post-create.sh`
+from `postCreateCommand`, with that checkout as the working directory. The
+setup script downloads module dependencies and builds `openshift-tests`.
+
+Set `SKIP_CLAUDE_INSTALL` to `"true"` in `containerEnv` to install OpenCode
+instead of Claude Code. Neither coding agent is installed during the image build.
+
+OpenCode is installed as the dev user into `~/.local` (already on `PATH`),
+with only `@opencode/cli`'s install script explicitly allowed. Do not install it
+with `sudo`: its postinstall verifies the binary and can leave root-owned
+OpenCode state in the dev user's home directory.
+
+Set `SKIP_GO_TOOLS_INSTALL=true` when composing with another setup script that
+already installed gopls, delve, and staticcheck. Module downloads and
+`make build` still run.
