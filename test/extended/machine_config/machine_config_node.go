@@ -149,8 +149,9 @@ func ValidateMCNPropertiesCustomMCP(oc *exutil.CLI, fixture string) {
 	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
 	o.Expect(clientErr).NotTo(o.HaveOccurred(), "Error creating client set for test.")
 
-	// Grab a random node from each default pool
-	workerNode := GetRandomNode(oc, worker)
+	// Grab a random schedulable worker node, excluding tainted dedicated nodes
+	// that must not be moved into the custom pool
+	workerNode := GetRandomSchedulableWorkerNode(oc)
 	o.Expect(workerNode.Name).NotTo(o.Equal(""), "Could not get a worker node.")
 
 	// Cleanup custom MCP on test completion or failure
@@ -191,8 +192,9 @@ func ValidateMCNConditionTransitionsOnRebootlessUpdate(oc *exutil.CLI, clientSet
 	poolName := custom
 	mcName := fmt.Sprintf("90-%v-testfile", poolName)
 
-	// Grab a random worker node
-	workerNode := GetRandomNode(oc, worker)
+	// Grab a random schedulable worker node, excluding tainted dedicated nodes
+	// that must not be moved into the custom pool
+	workerNode := GetRandomSchedulableWorkerNode(oc)
 	o.Expect(workerNode.Name).NotTo(o.Equal(""), "Could not get a worker node.")
 
 	// Remove node disruption policy on test completion or failure
