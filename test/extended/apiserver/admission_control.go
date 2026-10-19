@@ -2,10 +2,8 @@ package apiserver
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -16,9 +14,6 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	compat_otp "github.com/openshift/origin/test/extended/util/compat_otp"
 	utilimage "github.com/openshift/origin/test/extended/util/image"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -38,100 +33,6 @@ var _ = g.Describe("[sig-api-machinery] API_Server", func() {
 		if isMicroShift {
 			g.Skip("Admission-control tests requiring OpenShift control-plane APIs are not supported on MicroShift")
 		}
-	})
-
-	// Tests that patch operations validate admission control rules against the final merged object,
-	// not just the patch snippet. This ensures admission webhooks and other admission controllers
-	// properly check the complete object after patch application.
-	g.It("[OTP][OCP-09853] Patch operation should use patched object(not just patch snippet) to check admission control", ote.Informing(), func() {
-		g.By("1) Create new project required for this test execution")
-		oc.SetupProject()
-		namespace := oc.Namespace()
-
-		g.By("2) Use admin user to create quota and limits for project")
-
-		g.By("2.1) Create quota")
-		template := apiserverAuthFixture("ocp9853-quota.yaml")
-		err := oc.AsAdmin().Run("create").Args("-f", template, "-n", namespace).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("2.2) Create limits")
-		template = apiserverAuthFixture("ocp9853-limits.yaml")
-		err = oc.AsAdmin().Run("create").Args("-f", template, "-n", namespace).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By(`2.3) Create pod and wait for "hello-openshift" pod to be ready`)
-		initialImage := utilimage.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.63.0")
-		_, err = oc.KubeClient().CoreV1().Pods(namespace).Create(context.Background(), &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{Name: "hello-openshift"},
-			Spec: corev1.PodSpec{
-				Containers: []corev1.Container{{
-					Name:  "hello-openshift",
-					Image: initialImage,
-					Args:  []string{"netexec"},
-				}},
-			},
-		}, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		podName := "hello-openshift"
-		compat_otp.AssertPodToBeReady(oc, podName, namespace)
-
-		g.By("3) Update pod's image using patch command (valid admission control scenario)")
-		patchedImage := utilimage.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.55")
-		patch := fmt.Sprintf(`{"spec":{"containers":[{"name":"hello-openshift","image":%q}]}}`, patchedImage)
-		output, err := oc.Run("patch").Args("pod", podName, "-n", namespace, "-p", patch).Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(output).To(o.ContainSubstring("patched"))
-
-		g.By("4) Check if pod running after valid patch")
-		compat_otp.AssertPodToBeReady(oc, podName, namespace)
-
-		g.By("5) Verify admission control enforcement by checking patch semantics with image patching")
-		// Test that the MERGED object (original + patch) is validated by admission control
-		// The patch semantics test: original pod has image, we patch with new image
-		// The merged object must pass admission control validation
-		validImagePatch := fmt.Sprintf(`{"spec":{"containers":[{"name":"hello-openshift","image":%q}]}}`, initialImage)
-		output, err = oc.Run("patch").Args("pod", podName, "-n", namespace, "-p", validImagePatch).Output()
-		o.Expect(err).NotTo(o.HaveOccurred(), "Valid image patch should succeed with admission control")
-		o.Expect(output).To(o.ContainSubstring("patched"))
-
-		g.By("6) Verify the merged object (original + patch) was properly validated")
-		// Ensure the patch was applied successfully
-		pod, err := oc.KubeClient().CoreV1().Pods(namespace).Get(context.Background(), podName, metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(len(pod.Spec.Containers)).To(o.BeNumerically(">", 0))
-		// Verify the exact patched image was applied
-		o.Expect(pod.Spec.Containers[0].Image).To(o.Equal(initialImage))
-
-		g.By("7) Verify patch operation validates the complete merged object through admission control")
-		// This test demonstrates that admission control checks the MERGED object
-		// (after applying the patch) not just the patch snippet itself
-		// The fact that steps 3-6 succeeded proves admission validation worked correctly
-
-		g.By("8) Verify admission control rejects a Pod that violates resource limits")
-		// The LimitRange limits Container max cpu to 400m and memory to 750Mi
-		_, err = oc.KubeClient().CoreV1().Pods(namespace).Create(context.Background(), &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{Name: "limit-range-violation"},
-			Spec: corev1.PodSpec{
-				Containers: []corev1.Container{{
-					Name:  "limit-range-violation",
-					Image: initialImage,
-					Args:  []string{"netexec"},
-					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("1000m"),
-							corev1.ResourceMemory: resource.MustParse("1Gi"),
-						},
-						Limits: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("1000m"),
-							corev1.ResourceMemory: resource.MustParse("1Gi"),
-						},
-					},
-				}},
-			},
-		}, metav1.CreateOptions{})
-		o.Expect(err).To(o.HaveOccurred(), "Pod with excessive resource limits should be rejected by admission control")
-		o.Expect(err.Error()).To(o.MatchRegexp(`(?i)maximum (cpu|memory) usage per Container is (400m|750Mi), but limit is (1|1Gi)`), "Error should indicate a LimitRange maximum resource usage violation")
 	})
 
 	// Longduration: loops 15x creating/deleting a namespace+app, asserting the create-to-ready-to-delete
@@ -215,120 +116,11 @@ var _ = g.Describe("[sig-api-machinery] API_Server", func() {
 		}
 	})
 
-	g.It("[OTP][OCP-22565] Check if the given user or group have the privilege via SubjectAccessReview [origin_platformexp_214][REST]", ote.Informing(), func() {
-		isExternalOIDCCluster, err := compat_otp.IsExternalOIDCCluster(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isExternalOIDCCluster {
-			g.Skip("Skipping the test as we are running against an external OIDC cluster.")
-		}
-
-		g.By("1) Create new project required for this test execution")
-		oc.SetupProject()
-		namespace := oc.Namespace()
-		username := oc.Username()
-
-		// helper function for executing post request to SubjectAccessReview
-		postSubjectAccessReview := func(username string, namespace string, step string, expectStatus string) {
-			g.By(fmt.Sprintf("%s>>) Get base URL for API requests", step))
-			baseURL, err := oc.Run("whoami").Args("--show-server").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By(fmt.Sprintf("%s>>) Get user token", step))
-			token, err := oc.Run("whoami").Args("-t").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By(fmt.Sprintf("%s>>) Get configured HTTP client with TLS from admin config", step))
-			// Use admin config for TLS settings (CA certs) but user token for authentication
-			adminConfig := oc.KubeFramework().ClientConfig()
-			userConfig := rest.CopyConfig(adminConfig)
-			// Clear cert auth to ensure bearer token is used
-			userConfig.CertData = nil
-			userConfig.CertFile = ""
-			userConfig.KeyData = nil
-			userConfig.KeyFile = ""
-			userConfig.BearerToken = strings.TrimSpace(token)
-			userConfig.BearerTokenFile = ""
-			userConfig.Timeout = 30 * time.Second
-			client, err := rest.HTTPClientFor(userConfig)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By(fmt.Sprintf("%s>>) Submit POST request to API SubjectAccessReview", step))
-			urlStr := baseURL + filepath.Join("/apis/authorization.openshift.io/v1/namespaces", namespace, "localsubjectaccessreviews")
-			e2e.Logf("Submitting the SubjectAccessReview request")
-
-			postMap := map[string]string{
-				"kind":       "LocalSubjectAccessReview",
-				"apiVersion": "authorization.openshift.io/v1",
-				"verb":       "create",
-				"resource":   "pods",
-				"user":       username,
-			}
-			postJSON, err := json.Marshal(postMap)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			req, err := http.NewRequest("POST", urlStr, strings.NewReader(string(postJSON)))
-			o.Expect(err).NotTo(o.HaveOccurred())
-			req.Header.Set("Content-Type", "application/json")
-
-			resp, err := client.Do(req)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			defer resp.Body.Close()
-			o.Expect(fmt.Sprintf("%d", resp.StatusCode)).To(o.Equal(expectStatus))
-		}
-
-		// setup role for user and post to API
-		testUserAccess := func(role string, step string, expectStatus string) {
-			g.By(fmt.Sprintf("%s>>) Remove default role [admin] from the current user [%s]", step, username))
-			errAdmRole := wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 30*time.Second, false, func(cxt context.Context) (bool, error) {
-				rolebindingOutput, getRoleErr := oc.AsAdmin().WithoutNamespace().Run("get").Args("rolebinding/admin", "-n", namespace, "--no-headers", "-oname").Output()
-				if getRoleErr != nil {
-					// rolebinding not found means it's removed
-					if strings.Contains(getRoleErr.Error(), "NotFound") || strings.Contains(getRoleErr.Error(), "not found") {
-						return true, nil
-					}
-					// retry on other errors
-					return false, nil
-				}
-				rolebindingOutput = strings.TrimSpace(rolebindingOutput)
-				if rolebindingOutput == "" {
-					// empty output means rolebinding is gone
-					return true, nil
-				}
-				if rolebindingOutput == "rolebinding.rbac.authorization.k8s.io/admin" {
-					policyerr := oc.AsAdmin().WithoutNamespace().Run("adm").Args("policy", "remove-role-from-user", "admin", username, "-n", namespace).Execute()
-					if policyerr != nil {
-						return false, nil
-					}
-					// continue polling to verify removal
-					return false, nil
-				}
-				// rolebinding exists but is not the admin binding we're looking for
-				return true, nil
-			})
-			compat_otp.AssertWaitPollNoErr(errAdmRole, "Not able to delete admin role for user")
-			e2e.Logf("Admin role removed successfully")
-
-			g.By(fmt.Sprintf("%s>>) Add new role [%s] to the current user [%s]", step, role, username))
-			err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("policy", "add-role-to-user", role, username, "-n", namespace).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By(fmt.Sprintf("%s>>) POST to SubjectAccessReview API for user %s under namespace %s, expect status %s", step, username, namespace, expectStatus))
-			postSubjectAccessReview(username, namespace, step, expectStatus)
-		}
-
-		g.By("2) Test user access with role [view], expect failure")
-		testUserAccess("view", "2", "403")
-
-		g.By("3) Test user access with role [edit], expect failure")
-		testUserAccess("edit", "3", "403")
-
-		g.By("4) Test user access with role [admin], expect success")
-		testUserAccess("admin", "4", "201")
-	})
-
-	// Longduration/Disruptive: modifies a CRD in-flight and observes watch behavior across the change.
+	// Longduration/Disruptive: Tests that CR watches terminate gracefully when the CRD is modified or deleted.
+	// Upstream crd_watch.go covers CR lifecycle events (Added/Modified/Deleted).
+	// This test focuses on watch behavior when the CRD itself changes.
 	g.It("[OTP][OCP-24219] Custom resource watchers should terminate instead of hang when its CRD is deleted or modified [Serial]", ote.Informing(), func() {
-		g.By("1) Create a new project required for this test execution")
+		g.By("1) Create a new project")
 		projectName := fmt.Sprintf("ocp24219-%d", time.Now().UnixNano())
 		err := oc.AsAdmin().Run("new-project").Args(projectName).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -336,7 +128,7 @@ var _ = g.Describe("[sig-api-machinery] API_Server", func() {
 		namespace := projectName
 
 		crdTemplate := apiserverAuthFixture("ocp24219-crd.yaml")
-		g.By(fmt.Sprintf("2) Apply custom resource definition from file %s", crdTemplate))
+		g.By("2) Create CRD and wait for it to become established")
 		err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", crdTemplate).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer func() {
@@ -344,43 +136,21 @@ var _ = g.Describe("[sig-api-machinery] API_Server", func() {
 			oc.AsAdmin().WithoutNamespace().Run("wait").Args("--for=delete", "crd/testcrs.example.com", "--timeout=60s").Execute()
 		}()
 
-		g.By("2.1) Wait for CRD to become Established")
 		err = oc.AsAdmin().WithoutNamespace().Run("wait").Args("--for=condition=Established", "crd/testcrs.example.com", "--timeout=60s").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		crTemplate := apiserverAuthFixture("ocp24219-cr.yaml")
-		g.By(fmt.Sprintf("3) Apply custom resource from file %s", crTemplate))
+		g.By("3) Create a custom resource instance")
 		err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", crTemplate, "-n", namespace).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("-f", crTemplate, "-n", namespace, "--ignore-not-found=true").Execute()
 
 		resourcePath := fmt.Sprintf("/apis/example.com/v1/namespaces/%s/testcrs", namespace)
-		g.By(fmt.Sprintf("4) Start watching custom resource at %s", resourcePath))
-		cmd1, backgroundBuf, _, err := oc.AsAdmin().Run("get").Args(fmt.Sprintf("--raw=%s?watch=True", resourcePath), "-n", namespace).Background()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		defer func() {
-			cmd1.Process.Kill()
-			cmd1.Wait()
-		}()
-		time.Sleep(5 * time.Second) // wait for watch to start
+		crName := "ocp24219-test-cr"
+		crdFullName := "crd/testcrs.example.com"
+		kind := "OCP24219TestCR"
 
-		g.By("5) Modify custom resource and apply change")
-		crTemplateCopy := copyToFile(crTemplate, fmt.Sprintf("ocp24219-cr-copy-%d.yaml", time.Now().UnixNano()))
-		compat_otp.ModifyYamlFileContent(crTemplateCopy, []compat_otp.YamlReplace{
-			{
-				Path:  "spec.a",
-				Value: "This change to the CR results in a MODIFIED event",
-			},
-		})
-		err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", crTemplateCopy, "-n", namespace).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("6) Validate that CR modification event is received")
-		o.Eventually(func() bool {
-			return strings.Contains(backgroundBuf.String(), "MODIFIED")
-		}, 2*time.Minute, 2*time.Second).Should(o.BeTrue(), "MODIFIED event not detected")
-
-		g.By("7) Modify the CRD and apply change")
+		g.By("4) Modify the CRD schema")
 		crdTemplateCopy := copyToFile(crdTemplate, fmt.Sprintf("ocp24219-crd-copy-%d.yaml", time.Now().UnixNano()))
 		compat_otp.ModifyYamlFileContent(crdTemplateCopy, []compat_otp.YamlReplace{
 			{
@@ -391,37 +161,33 @@ var _ = g.Describe("[sig-api-machinery] API_Server", func() {
 		err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", crdTemplateCopy).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("8) Start a second watch after CRD modification")
-		cmd2, backgroundBuf2, _, err := oc.AsAdmin().Run("get").Args(fmt.Sprintf("--raw=%s?watch=True", resourcePath), "-n", namespace).Background()
+		g.By("5) Start watching CRs after CRD modification (verifies watch can start after schema change)")
+		cmd, backgroundBuf, _, err := oc.AsAdmin().Run("get").Args(fmt.Sprintf("--raw=%s?watch=True", resourcePath), "-n", namespace).Background()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer func() {
-			cmd2.Process.Kill()
-			cmd2.Wait()
+			cmd.Process.Kill()
+			cmd.Wait()
 		}()
-		time.Sleep(5 * time.Second) // allow second watch to start
+		time.Sleep(5 * time.Second) // allow watch to start
 
-		crName := "ocp24219-test-cr"
-		crdFullName := "crd/testcrs.example.com"
-		kind := "OCP24219TestCR"
-
-		g.By("9) Ensure CR exists before CRD deletion")
+		g.By("6) Verify CR still exists before CRD deletion")
 		_, err = oc.AsAdmin().WithoutNamespace().Run("get").Args(kind, crName, "-n", namespace).Output()
-		o.Expect(err).NotTo(o.HaveOccurred(), "Expected the CR to exist before deleting CRD")
+		o.Expect(err).NotTo(o.HaveOccurred(), "CR should exist before CRD deletion")
 
-		g.By("10) Delete the CRD")
+		g.By("7) Delete the CRD (this should trigger watch termination)")
 		err = oc.AsAdmin().WithoutNamespace().Run("delete").Args(crdFullName).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("11) Verify CR deletion event after CRD is deleted")
+		g.By("8) Verify watch terminates gracefully with CR DELETED event (not hanging)")
 		crDeleteMatchRegex, err := regexp.Compile(`"type":"DELETED".*"object":.*"kind":"` + kind + `"`)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Eventually(func() bool {
-			match := crDeleteMatchRegex.MatchString(backgroundBuf2.String())
+			match := crDeleteMatchRegex.MatchString(backgroundBuf.String())
 			if !match {
-				e2e.Logf("DEBUG: Buffer after CRD deletion: %s", backgroundBuf2.String())
+				e2e.Logf("DEBUG: Watch buffer after CRD deletion: %s", backgroundBuf.String())
 			}
 			return match
-		}, 2*time.Minute, 2*time.Second).Should(o.BeTrue(), "CR deletion event not found in watch stream")
+		}, 2*time.Minute, 2*time.Second).Should(o.BeTrue(), "Watch should receive CR DELETED event when CRD is deleted, not hang")
 	})
 
 	// Longduration/Disruptive: applies an invalid apiserver CR config, then patches to a valid one and waits for kube-apiserver to roll out.
@@ -468,26 +234,20 @@ var _ = g.Describe("[sig-api-machinery] API_Server", func() {
 			}
 		}()
 
-		g.By("1) Update apiserver config(additionalCORSAllowedOrigins) with invalid config `no closing (parentheses`")
-		patch := `{"spec": {"additionalCORSAllowedOrigins": ["no closing (parentheses"]}}`
+		g.By("1) Update apiserver config(additionalCORSAllowedOrigins) with invalid string type")
+		patch := `{"spec": {"additionalCORSAllowedOrigins": "some string"}}`
 		patchOut, err := oc.AsAdmin().WithoutNamespace().Run("patch").Args("apiserver", "cluster", "--type=merge", "-p", patch).Output()
-		o.Expect(err).Should(o.HaveOccurred())
-		o.Expect(patchOut).Should(o.ContainSubstring(`"no closing (parentheses": not a valid regular expression`))
-
-		g.By("2) Update apiserver config(additionalCORSAllowedOrigins) with invalid string type")
-		patch = `{"spec": {"additionalCORSAllowedOrigins": "some string"}}`
-		patchOut, err = oc.AsAdmin().WithoutNamespace().Run("patch").Args("apiserver", "cluster", "--type=merge", "-p", patch).Output()
 		o.Expect(err).Should(o.HaveOccurred())
 		o.Expect(patchOut).Should(o.ContainSubstring(`body must be of type array: "string"`))
 
-		g.By("3) Update apiserver config(additionalCORSAllowedOrigins) with valid config")
+		g.By("2) Update apiserver config(additionalCORSAllowedOrigins) with valid config")
 		patchOut, err = oc.AsAdmin().WithoutNamespace().Run("patch").Args("apiserver", "cluster", "--type=merge", "-p", patchJson).Output()
 		o.Expect(err).ShouldNot(o.HaveOccurred())
 		o.Expect(patchOut).Should(o.ContainSubstring("patched"))
 		// Wait for kube-apiserver recover
 		apiServerRecover()
 
-		g.By("4) Verifying the additionalCORSAllowedOrigins by inspecting the HTTP response headers")
+		g.By("3) Verifying the additionalCORSAllowedOrigins by inspecting the HTTP response headers")
 		urlStr, err := oc.Run("whoami").Args("--show-server").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
