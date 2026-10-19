@@ -114,10 +114,17 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						createNetworkFn(netConfig)
 
 						httpServerPods := prepareHTTPServerPods(f, netConfig, workerNodes)
+						hasIPv4, hasIPv6, err := GetIPAddressFamily(oc)
+						Expect(err).NotTo(HaveOccurred())
+						// Cloud-init 23.2.1 in this guest image makes each requested IP family
+						// mandatory in NetworkManager. Requesting IPv6 on an IPv4-only network
+						// also tears down the IPv4 address.
 						vmCreationParams := kubevirt.CreationTemplateParams{
 							VMName:                    vmName,
 							VMNamespace:               f.Namespace.Name,
 							FedoraContainterDiskImage: image.LocationFor("quay.io/kubevirt/fedora-with-test-tooling-container-disk:v1.8.2"),
+							DHCPv4:                    netConfig.role != "primary" || hasIPv4,
+							DHCPv6:                    netConfig.role == "primary" && hasIPv6,
 						}
 
 						if netConfig.role == "primary" {
@@ -126,8 +133,6 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							vmCreationParams.NetworkName = nadName
 						}
 
-						hasIPv4, hasIPv6, err := GetIPAddressFamily(oc)
-						Expect(err).NotTo(HaveOccurred())
 						var filteredPreconfiguredIPs []string
 						for _, ip := range workloadConfig.preconfiguredIPs {
 							if utilnet.IsIPv4String(ip) && hasIPv4 {
