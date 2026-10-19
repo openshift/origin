@@ -15,7 +15,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	osconfigv1 "github.com/openshift/api/config/v1"
-	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	opv1 "github.com/openshift/api/operator/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
@@ -32,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
-	"k8s.io/utils/ptr"
 )
 
 const (
@@ -143,16 +141,6 @@ func GetRolesToTest(oc *exutil.CLI, machineConfigClient *machineconfigclient.Cli
 	}
 
 	return rolesToTest
-}
-
-// getRandomMachineSet picks a random machineset present on the cluster
-func getRandomMachineSet(machineClient *machineclient.Clientset) machinev1beta1.MachineSet {
-	machineSets, err := machineClient.MachineV1beta1().MachineSets("openshift-machine-api").List(context.TODO(), metav1.ListOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	machineSetUnderTest := machineSets.Items[rnd.Intn(len(machineSets.Items))]
-	return machineSetUnderTest
 }
 
 // WaitForBootImageControllerToComplete waits until the boot image controller is no longer progressing
@@ -818,52 +806,6 @@ func ScaleMachineSet(oc *exutil.CLI, machineSetName string, replicaValue string)
 	return oc.Run("scale").Args(fmt.Sprintf("--replicas=%v", replicaValue), "machinesets.machine.openshift.io", machineSetName, "-n", "openshift-machine-api").Execute()
 }
 
-// `GetMachinesByPhase` get machine by phase e.g. Running, Provisioning, Provisioned, Deleting etc.
-func GetMachinesByPhase(machineClient *machineclient.Clientset, machineSetName string, desiredPhase string) (machinev1beta1.Machine, error) {
-	desiredMachine := machinev1beta1.Machine{}
-	err := fmt.Errorf("no %v machine found in %v MachineSet", desiredPhase, machineSetName)
-	o.Eventually(func() bool {
-		framework.Logf("Trying to get machine with phase %v from MachineSet '%v'.", desiredPhase, machineSetName)
-
-		// Get machines in desired MachineSet
-		machines, machinesErr := machineClient.MachineV1beta1().Machines(mapiNamespace).List(context.Background(), metav1.ListOptions{LabelSelector: fmt.Sprintf("machine.openshift.io/cluster-api-machineset=%v", machineSetName)})
-		o.Expect(machinesErr).NotTo(o.HaveOccurred())
-
-		// Find machine in desired phase
-		for _, machine := range machines.Items {
-			machinePhase := ptr.Deref(machine.Status.Phase, "")
-			if machinePhase == desiredPhase {
-				desiredMachine = machine
-				err = nil
-				return true
-			}
-		}
-		return false
-	}, 8*time.Minute, 3*time.Second).Should(o.BeTrue())
-	return desiredMachine, err
-}
-
-// `UpdateDeleteMachineAnnotation` updates the provided MachineSet's `deletePolicy` to be true.
-// This will ensure the create machine is the one deleted on cleanup.
-func UpdateDeleteMachineAnnotation(oc *exutil.CLI, machineSetName string) error {
-	return oc.Run("patch").Args(fmt.Sprintf("machines.machine.openshift.io/%v", machineSetName), "-n", "openshift-machine-api", "--patch", `{"metadata":{"annotations":{"machine.openshift.io/delete-machine":"true"}}}`, "--type=merge").Execute()
-}
-
-// `WaitForMachineInState` waits up to 7 minutes for the desired machine to be in the desired state
-func WaitForMachineInState(machineClient *machineclient.Clientset, machineName string, desiredPhase string) error {
-	o.Eventually(func() bool {
-		// Get the desired machine
-		machine, machineErr := machineClient.MachineV1beta1().Machines(mapiNamespace).Get(context.TODO(), machineName, metav1.GetOptions{})
-		o.Expect(machineErr).NotTo(o.HaveOccurred())
-
-		// Check if machine phase is desired phase
-		machinePhase := ptr.Deref(machine.Status.Phase, "")
-		framework.Logf("Machine '%v' is in %v phase.", machineName, machinePhase)
-		return machinePhase == desiredPhase
-	}, 10*time.Minute, 10*time.Second).Should(o.BeTrue())
-	return nil
-}
-
 // `GetNodeInMachine` gets the node associated with a machine
 func GetNodeInMachine(oc *exutil.CLI, machineName string) (corev1.Node, error) {
 	// Get name of nodes associated with the desired machine
@@ -888,227 +830,6 @@ func GetNodeInMachine(oc *exutil.CLI, machineName string) (corev1.Node, error) {
 	}
 
 	return *node, nil
-}
-
-// `GetNewReadyNodeInMachine` waits up to 4 minutes for the newly provisioned node in a desired machine node to be ready
-func GetNewReadyNodeInMachine(oc *exutil.CLI, machineName string) (corev1.Node, error) {
-	desiredNode := corev1.Node{}
-	err := fmt.Errorf("no ready node in Machine: %s", machineName)
-	o.Eventually(func() bool {
-		// Get the desired node
-		node, nodeErr := GetNodeInMachine(oc, machineName)
-		o.Expect(nodeErr).NotTo(o.HaveOccurred())
-
-		// Check if node is in desiredStatus
-		framework.Logf("Checking if node '%v' is ready.", node.Name)
-		if IsNodeReady(node) {
-			framework.Logf("Node '%v' is ready.", node.Name)
-			desiredNode = node
-			err = nil
-			return true
-		}
-
-		return false
-	}, 4*time.Minute, 5*time.Second).Should(o.BeTrue(), fmt.Sprintf("Node in machine %v never became ready.", machineName))
-	return desiredNode, err
-}
-
-// `WaitForValidMCNProperties` waits for the MCN of a node to be valid. To be valid, the following must be true:
-//   - MCN with name equivalent to node name exists (waits up to 20 sec)
-//   - Pool name in MCN spec matches node MCP association (waits up to 1 min)
-//   - Desired config version of node matches desired config version in MCN spec (waits up to 1 min)
-//   - Current config version of node matches current config version in MCN status (waits up to 2 min)
-//   - Desired config version of node matches desired config version in MCN status (waits up to 1 min)
-func WaitForValidMCNProperties(clientSet *machineconfigclient.Clientset, node corev1.Node) error {
-	nodeDesiredConfig := node.Annotations[desiredConfigAnnotationKey]
-	nodeCurrentConfig := node.Annotations[currentConfigAnnotationKey]
-
-	// Check MCN exists and that its name and node name match
-	framework.Logf("Checking MCN exists and name matches node name '%v'.", node.Name)
-	o.Eventually(func() bool {
-		// Get the desired MCN
-		newMCN, newMCNErr := clientSet.MachineconfigurationV1().MachineConfigNodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
-		if newMCNErr != nil {
-			framework.Logf("Failed getting MCN '%v'.", node.Name)
-			return false
-		}
-
-		// Check if MCN name matches node's name
-		framework.Logf("Node name: %v. MCN name: %v.", node.Name, newMCN.Name)
-		return node.Name == newMCN.Name
-	}, 20*time.Second, 2*time.Second).Should(o.BeTrue(), fmt.Sprintf("Could not get MCN for node %v", node.Name))
-
-	// Check pool name in MCN matches node MCP association
-	// Note: pool name should be default value of `worker`
-	framework.Logf("Waiting for node MCP to match pool name in MCN '%v' spec.", node.Name)
-	nodeMCP := ""
-	var ok bool
-	if _, ok = node.Labels["node-role.kubernetes.io/worker"]; ok {
-		nodeMCP = "worker"
-	} else {
-		return fmt.Errorf("node MCP association could be determined for node %v; node is not in default worker pool", node.Name)
-	}
-	o.Eventually(func() bool {
-		// Get the desired MCN
-		newMCN, newMCNErr := clientSet.MachineconfigurationV1().MachineConfigNodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
-		if newMCNErr != nil {
-			framework.Logf("Failed getting MCN '%v'.", node.Name)
-			return false
-		}
-
-		// Check if MCN pool name in spec matches node's MCP association
-		framework.Logf("Node MCP association: %v. MCN spec pool name: %v.", nodeMCP, newMCN.Spec.Pool.Name)
-		return newMCN.Spec.Pool.Name == nodeMCP
-	}, 1*time.Minute, 5*time.Second).Should(o.BeTrue())
-
-	// Check desired config version matches for node and MCN spec config version
-	framework.Logf("Waiting for node desired config version to match desired config version in MCN '%v' spec.", node.Name)
-	o.Eventually(func() bool {
-		// Get the desired MCN
-		newMCN, newMCNErr := clientSet.MachineconfigurationV1().MachineConfigNodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
-		if newMCNErr != nil {
-			framework.Logf("Failed getting MCN '%v'.", node.Name)
-			return false
-		}
-
-		// Check if MCN desired config version in spec matches node's desired config version
-		framework.Logf("Node desired config version: %v. MCN spec desired config version: %v.", nodeDesiredConfig, newMCN.Spec.ConfigVersion.Desired)
-		return newMCN.Spec.ConfigVersion.Desired == nodeDesiredConfig
-	}, 1*time.Minute, 5*time.Second).Should(o.BeTrue())
-
-	// Check current config version matches for node and MCN status config version
-	framework.Logf("Waiting for node current config version to match current config version in MCN '%v' status.", node.Name)
-	o.Eventually(func() bool {
-		// Get the desired MCN
-		newMCN, newMCNErr := clientSet.MachineconfigurationV1().MachineConfigNodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
-		if newMCNErr != nil {
-			framework.Logf("Failed getting MCN '%v'.", node.Name)
-			return false
-		}
-
-		// Check if MCN current config version in status matches node's current config version
-		framework.Logf("Node current config version: %v. MCN status current config version: %v.", nodeCurrentConfig, newMCN.Status.ConfigVersion.Current)
-		return newMCN.Status.ConfigVersion.Current == nodeCurrentConfig
-	}, 2*time.Minute, 5*time.Second).Should(o.BeTrue())
-
-	// Check desired config version matches for node and MCN status config version
-	framework.Logf("Waiting for node desired config version to match desired config version in MCN '%v' status.", node.Name)
-	o.Eventually(func() bool {
-		// Get the desired MCN
-		newMCN, newMCNErr := clientSet.MachineconfigurationV1().MachineConfigNodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
-		if newMCNErr != nil {
-			framework.Logf("Failed getting MCN '%v'.", node.Name)
-			return false
-		}
-
-		// Check if MCN desired config version in status matches node's desired config version
-		framework.Logf("Node desired config version: %v. MCN status desired config version: %v.", nodeDesiredConfig, newMCN.Status.ConfigVersion.Desired)
-		return newMCN.Status.ConfigVersion.Desired == nodeDesiredConfig
-	}, 2*time.Minute, 5*time.Second).Should(o.BeTrue())
-	return nil
-}
-
-// `ScaleMachineSetDown` will determine whether a MachineSet needs to be scaled and, if so, will
-// scale it. A MachineSet needs to be scaled if its desired replica value does not match its
-// current replica value.
-func ScaleMachineSetDown(oc *exutil.CLI, machineSet machinev1beta1.MachineSet, desiredReplicaValue int, cleanupCompleted bool) error {
-	// Skip when cleanup is not needed
-	if cleanupCompleted {
-		return nil
-	}
-
-	// Check if MachineSet needs to be scaled
-	if int(*machineSet.Spec.Replicas) == desiredReplicaValue {
-		framework.Logf("MachineSet '%v' does not need to be scaled. Current replica value %v matches desired replica value of %v.", machineSet.Name, *machineSet.Spec.Replicas, desiredReplicaValue)
-		return nil
-	}
-
-	// Scale MachineSet to desired replica value
-	framework.Logf("Scaling MachineSet '%s' to replica value %v.", machineSet.Name, desiredReplicaValue)
-	return ScaleMachineSet(oc, machineSet.Name, fmt.Sprintf("%d", desiredReplicaValue))
-}
-
-// `CleanupProvisionedMachine` scales down the replica count for a given MachineSet and checks whether the
-// provisioned Machine provided is deleted.
-func CleanupProvisionedMachine(oc *exutil.CLI, machineClient *machineclient.Clientset, machineSetName string, desiredReplicaValue int,
-	machineName string, cleanupCompleted bool) error {
-	// Skip when cleanup is not needed
-	if cleanupCompleted {
-		return nil
-	}
-
-	// Scale MachineSet to desired replica value
-	framework.Logf("Scaling MachineSet '%s' to replica value %v.", machineSetName, desiredReplicaValue)
-	scaleErr := ScaleMachineSet(oc, machineSetName, fmt.Sprintf("%d", desiredReplicaValue))
-	if scaleErr != nil {
-		return scaleErr
-	}
-
-	// Check that provisioned machine is deleted
-	return WaitForMachineToBeDeleted(machineClient, machineName)
-}
-
-// `CleanupCreatedNode` scales down the replica count for a given MachineSet and checks whether the
-// created Node provided is deleted.
-func CleanupCreatedNode(oc *exutil.CLI, machineSetName string, desiredReplicaValue int, nodeName string, cleanupCompleted bool) error {
-	// Skip when cleanup is not needed
-	if cleanupCompleted {
-		return nil
-	}
-
-	// Scale MachineSet to desired replica value
-	framework.Logf("Scaling MachineSet '%s' to replica value %v.", machineSetName, desiredReplicaValue)
-	scaleErr := ScaleMachineSet(oc, machineSetName, fmt.Sprintf("%d", desiredReplicaValue))
-	if scaleErr != nil {
-		return scaleErr
-	}
-
-	// Check that created node is deleted
-	return WaitForNodeToBeDeleted(oc, nodeName)
-}
-
-// `WaitForNodeToBeDeleted` waits up to 10 minutes for a node to be deleted (no longer exist)
-func WaitForNodeToBeDeleted(oc *exutil.CLI, nodeName string) error {
-	o.Eventually(func() bool {
-		framework.Logf("Checking if node '%v' is deleted.", nodeName)
-
-		// Check if node still exists
-		_, nodeErr := oc.AsAdmin().KubeClient().CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
-		if apierrors.IsNotFound(nodeErr) {
-			framework.Logf("Node '%v' has been deleted.", nodeName)
-			return true
-		}
-		if nodeErr != nil {
-			framework.Logf("Error trying to get node: %v.", nodeErr)
-			return false
-		}
-
-		framework.Logf("Node '%v' still exists.", nodeName)
-		return false
-	}, 10*time.Minute, 5*time.Second).Should(o.BeTrue())
-	return nil
-}
-
-// `WaitForMCNToBeDeleted` up waits to 4 minutes for a MCN to be deleted (no longer exist)
-func WaitForMCNToBeDeleted(clientSet *machineconfigclient.Clientset, mcnName string) error {
-	o.Eventually(func() bool {
-		framework.Logf("Check if MCN '%v' is deleted.", mcnName)
-
-		// Check if MCN still exists
-		_, mcnErr := clientSet.MachineconfigurationV1().MachineConfigNodes().Get(context.TODO(), mcnName, metav1.GetOptions{})
-		if apierrors.IsNotFound(mcnErr) {
-			framework.Logf("MCN '%v' has been deleted.", mcnName)
-			return true
-		}
-		if mcnErr != nil {
-			framework.Logf("Error trying to get MCN: '%v'.", mcnErr)
-			return false
-		}
-
-		framework.Logf("MCN '%v' still exists.", mcnName)
-		return false
-	}, 4*time.Minute, 3*time.Second).Should(o.BeTrue())
-	return nil
 }
 
 // `WaitForMachineToBeDeleted` waits up to 10 minutes for a machine to be deleted (no longer exist)
