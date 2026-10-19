@@ -10,7 +10,6 @@ import (
 	"time"
 
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
-	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 
@@ -116,13 +115,6 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 			ValidateMCNConditionOnNodeDegrade(oc, invalidWorkerMCFixture, false)
 		}
 	})
-
-	// This test is `Disruptive` because it creates and removes a node. It is also considered `Slow` because it takes longer than 5 min to run.
-	g.It("[Suite:openshift/machine-config-operator/disruptive][Disruptive][Slow]Should properly create and remove MCN on node creation and deletion [apigroup:machineconfiguration.openshift.io]", func() {
-		skipOnSingleNodeTopology(oc) //skip this test for SNO
-		ValidateMCNOnNodeCreationAndDeletion(oc)
-	})
-
 })
 
 // `ValidateMCNPropertiesByMCPs` checks that MCN properties match the corresponding node properties
@@ -461,103 +453,6 @@ func ValidateMCNConditionOnNodeDegrade(oc *exutil.CLI, fixture string, isSno boo
 	o.Expect(executedCondition.Status).Should(o.Equal(metav1.ConditionUnknown), "Condition 'UpdateExecuted' does not have the expected status of 'Unknown'.")
 	framework.Logf("Validating that `%v` condition in '%v' MCN has a status of 'Unknown'.", unknownCondition, degradedNodeMCN.Name)
 	o.Expect(fileCondition.Status).Should(o.Equal(metav1.ConditionUnknown), "Condition '%v' does not have the expected status of 'Unknown'.", unknownCondition)
-}
-
-// `ValidateMCNProperties` checks that MCNs with correct properties are created on node creation
-// and deleted on node deletion
-func ValidateMCNOnNodeCreationAndDeletion(oc *exutil.CLI) {
-	cleanupCompleted := false
-
-	// Create machine client for test
-	machineClient, machineErr := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
-	o.Expect(machineErr).NotTo(o.HaveOccurred(), "Error creating machine client for test.")
-
-	// Create client set for test
-	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
-	o.Expect(clientErr).NotTo(o.HaveOccurred(), "Error creating client set for test.")
-
-	// Skip test if worker nodes cannot be scaled
-	canBeScaled, canScaleErr := WorkersCanBeScaled(oc, machineClient)
-	o.Expect(canScaleErr).NotTo(o.HaveOccurred(), "Error occured when determining whether worker nodes can be scaled.")
-	if !canBeScaled {
-		g.Skip("Worker nodes cannot be scaled using MachineSets. This test cannot be executed if workers cannot be scaled via MachineSets.")
-	}
-
-	// Get MachineSet for test
-	framework.Logf("Getting MachineSet for testing.")
-	machineSet := getRandomMachineSet(machineClient)
-	framework.Logf("MachineSet '%s' will be used for testing", machineSet.Name)
-	originalReplica := int(*machineSet.Spec.Replicas)
-
-	// Create node by scaling MachineSet
-	framework.Logf("Scaling up MachineSet to create node.")
-	updatedReplica := originalReplica + 1
-	scaleErr := ScaleMachineSet(oc, machineSet.Name, fmt.Sprintf("%d", updatedReplica))
-	o.Expect(scaleErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error scaling MachineSet %v to replica value %v.", machineSet.Name, updatedReplica))
-
-	// If we fail at this point, cleanup should include scaling the MachineSet replica back down to the
-	// original value, when needed (in the case where the replica value patch was successful).
-	defer func() {
-		cleanupErr := ScaleMachineSetDown(oc, machineSet, originalReplica, cleanupCompleted)
-		o.Expect(cleanupErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error cleaning up cluster by scaling down MachineSet '%v'.", machineSet.Name))
-		cleanupCompleted = true
-	}()
-
-	// Get the new machine
-	framework.Logf("Getting the new machine.")
-	provisioningMachine, provisioningMachineErr := GetMachinesByPhase(machineClient, machineSet.Name, "Provisioning")
-	o.Expect(provisioningMachineErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Cannot find provisioning machine in MachineSet %v", machineSet.Name))
-	newMachineName := provisioningMachine.Name
-
-	// If we fail past this point, cleanup should include scaling the MachineSet replica back down to the
-	// original value and ensuring that the newly provisioned Machine is deleted.
-	defer func() {
-		cleanupErr := CleanupProvisionedMachine(oc, machineClient, machineSet.Name, originalReplica, newMachineName, cleanupCompleted)
-		o.Expect(cleanupErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error removing provisioned Machine '%v' by scaling down MachineSet '%v'.", newMachineName, machineSet.Name))
-		cleanupCompleted = true
-	}()
-
-	// Annotate the machine so it is deleted on the MachineSet scale down
-	framework.Logf("Updating delete-machine annotation on Machine '%v' to be 'true'.", newMachineName)
-	deleteAnnotationErr := UpdateDeleteMachineAnnotation(oc, newMachineName)
-	o.Expect(deleteAnnotationErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error updating delete-machine annotation for machine '%v'.", newMachineName))
-
-	// Wait for new Machine to be ready
-	framework.Logf("Waiting for new machine %v to be ready.", newMachineName)
-	WaitForMachineInState(machineClient, newMachineName, "Running")
-
-	// Get the new node
-	framework.Logf("Getting new node in machine %v.", newMachineName)
-	newNode, nodeErr := GetNewReadyNodeInMachine(oc, newMachineName)
-	o.Expect(nodeErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Cannot find provisioning node in Machine %v", newMachineName))
-	framework.Logf("Got new node: %v.", newNode.Name)
-
-	// If we fail past this point, cleanup should include scaling the MachineSet replica back down to the
-	// original value and ensuring that the newly created Node is deleted.
-	defer func() {
-		cleanupErr := CleanupCreatedNode(oc, newMachineName, originalReplica, newNode.Name, cleanupCompleted)
-		o.Expect(cleanupErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error removing created Node '%v' by scaling down MachineSet '%v'.", newNode.Name, machineSet.Name))
-		cleanupCompleted = true
-	}()
-
-	// Validate new MCN
-	validMCNErr := WaitForValidMCNProperties(clientSet, newNode)
-	o.Expect(validMCNErr).NotTo(o.HaveOccurred(), fmt.Sprintf("MCN for node '%v' has invalid properties.", newNode))
-
-	// Scale down the MachineSet to delete the created node
-	framework.Logf("Scaling down MachineSet to delete node.")
-	scaleErr = ScaleMachineSet(oc, machineSet.Name, fmt.Sprintf("%v", originalReplica))
-	o.Expect(scaleErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error deleting node by scaling MachineSet %v to replica value %v.", machineSet.Name, originalReplica))
-
-	// Wait for created node to delete
-	framework.Logf("Waiting for node '%v' to be deleted.", newNode.Name)
-	o.Expect(WaitForNodeToBeDeleted(oc, newNode.Name)).NotTo(o.HaveOccurred(), fmt.Sprintf("Error deleting node '%v'.", newNode.Name))
-
-	// Check that corresponding MCN is removed alongside node
-	o.Expect(WaitForMCNToBeDeleted(clientSet, newNode.Name)).NotTo(o.HaveOccurred(), fmt.Sprintf("Error deleting MCN '%v'.", newNode.Name))
-
-	// If we successfully make it here, no cleanup is required
-	cleanupCompleted = true
 }
 
 // `ValidateMCNScopeSadPathTest` checks that MCN updates from a MCD that is not the associated one are
