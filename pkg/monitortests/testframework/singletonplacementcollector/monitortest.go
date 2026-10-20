@@ -106,7 +106,8 @@ func (w *singletonPlacementCollector) StartCollection(ctx context.Context, admin
 		w.startErr = err
 		return nil
 	}
-	// Failures are reported from CollectData so they surface as a flake rather than failing the run.
+	// Kubernetes API failures are reported from CollectData so they surface as a flake rather than
+	// failing the run.
 	w.startErr = w.collectStartUsage(ctx, kubeClient, time.Now())
 	return nil
 }
@@ -121,9 +122,11 @@ func (w *singletonPlacementCollector) collectStartUsage(ctx context.Context, kub
 	if len(masters) < 2 {
 		return nil
 	}
+	// Best effort like the end of run usage: a metrics API outage leaves the start columns NULL.
 	usage, err := w.fetchCurrentUsage(ctx, kubeClient)
 	if err != nil {
-		return fmt.Errorf("unable to get pod memory usage at start from metrics API: %w", err)
+		logrus.WithField("MonitorTest", "SingletonPlacementCollector").WithError(err).Warn("unable to get pod memory usage at start from metrics API")
+		return nil
 	}
 	w.startUsage = map[string]float64{}
 	for _, pod := range pods {

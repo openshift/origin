@@ -320,7 +320,6 @@ func TestCollectStartUsage(t *testing.T) {
 		name       string
 		startUsage map[string]float64
 
-		expectStartErr bool
 		// expected start usage per end pod name, and per master in master order
 		expectedPods      map[string]*float64
 		expectedPlacement []*float64
@@ -341,8 +340,7 @@ func TestCollectStartUsage(t *testing.T) {
 			expectedPlacement: []*float64{ptr.To(mb(100)), ptr.To(mb(40)), ptr.To(0.0)},
 		},
 		{
-			name:           "metrics API unavailable at start leaves start usage unset",
-			expectStartErr: true,
+			name: "metrics API unavailable at start leaves start usage unset",
 			expectedPods: map[string]*float64{
 				"a-abc123-xyz": nil,
 				"b-abc123-new": nil,
@@ -355,12 +353,7 @@ func TestCollectStartUsage(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			w := newTestCollector(tc.startUsage, map[string]usageStats{})
-			err := w.collectStartUsage(context.Background(), fake.NewSimpleClientset(startObjs...), testBeginning)
-			if tc.expectStartErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
+			require.NoError(t, w.collectStartUsage(context.Background(), fake.NewSimpleClientset(startObjs...), testBeginning))
 
 			w.fetchCurrentUsage = func(context.Context, kubernetes.Interface) (map[string]float64, error) {
 				return map[string]float64{}, nil
