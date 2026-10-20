@@ -20,14 +20,16 @@ import (
 
 const cpPrefix = `[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial]`
 
-// The exact five eligible test full names (prefix + " " + suffix). T3 (hot-reload) is an
-// authorized eligible test by design.
+// The exact eligible test full names (prefix + " " + suffix). T3 (hot-reload) is an
+// authorized eligible test by design. The noProxy bypass test is also eligible even though it
+// directly connects to the IdP, bypassing the proxy.
 var cpEligibleFullNames = []string{
 	cpPrefix + " operator should validate OIDC IdP through component proxy with trustedCA",
 	cpPrefix + " operator should validate OIDC IdP through component proxy",
 	cpPrefix + " oauth-server/operator should hot-reload mounted CA file on change when spec.proxy.trustedCA is set",
 	cpPrefix + " oauth-server should perform full OIDC login flow through the proxy when auth proxy config is applied",
 	cpPrefix + " operator should fall back to original configuration on spec.proxy removal",
+	cpPrefix + " oauth-server should bypass proxy by directly connecting to idp to perform OIDC login flow when spec.proxy.noProxy contains idp",
 }
 
 func cpTestInterval(fullName, status string, from, to time.Time) monitorapi.Interval {
@@ -283,6 +285,63 @@ func TestAuthenticationComponentProxyScalingReplicaSet_ThroughLegacyConsumer(t *
 	assert.False(t, run(oauthScaleEvent(70, to.Add(90*time.Second))).failed, "70 within +120s grace must pass")
 	assert.True(t, run(oauthScaleEvent(71, from.Add(2*time.Minute))).failed, "71 must be rejected")
 	assert.True(t, run(oauthScaleEvent(70, to.Add(150*time.Second))).failed, "70 past the +120s grace must be rejected")
+}
+
+// cpNoProxyName is the exact noProxy bypass test added to the eligible set by this change.
+const cpNoProxyName = cpPrefix + " oauth-server should bypass proxy by directly connecting to idp to perform OIDC login flow when spec.proxy.noProxy contains idp"
+
+// TestAuthenticationComponentProxyScalingReplicaSet_NoProxyWindow pins the newly eligible
+// noProxy bypass test through the actual registry and legacy consumer. The window behaves
+// exactly like the other eligible tests: a pathological repeat (>20) whose latest occurrence
+// falls inside the passing window or within the 120s post-test grace is tolerated up to 70;
+// everything else is rejected. Only a completed, Passed noProxy run grants the window, and the
+// name must match exactly.
+func TestAuthenticationComponentProxyScalingReplicaSet_NoProxyWindow(t *testing.T) {
+	from := cpT0
+	to := cpT0.Add(4 * time.Minute)
+
+	// Legacy-consumer path: eligibility is granted only by a Passed noProxy window.
+	runWith := func(win monitorapi.Interval, ev monitorapi.Interval) bool {
+		events := monitorapi.Intervals{win, ev}
+		evaluator := duplicateEventsEvaluator{registry: NewUniversalPathologicalEventMatchers(nil, events)}
+		junits := evaluator.testDuplicatedEvents("events should not repeat", false, events, nil, false)
+		name := getJUnitName("events should not repeat", "openshift-authentication")
+		for _, j := range junits {
+			if j.Name == name && j.FailureOutput != nil {
+				return true // failed
+			}
+		}
+		return false
+	}
+
+	passing := cpTestInterval(cpNoProxyName, "Passed", from, to)
+	// A pathological repeat (24 > default 20) inside the passing noProxy window is accepted.
+	assert.False(t, runWith(passing, oauthScaleEvent(24, from.Add(2*time.Minute))),
+		"count 24 inside the passing noProxy window must be accepted")
+
+	// Non-Passed noProxy runs (failed/skipped/incomplete) grant no window: 24 is then rejected.
+	for _, status := range []string{"Failed", "Skipped", "DidNotFinish"} {
+		win := cpTestInterval(cpNoProxyName, status, from, to)
+		assert.Truef(t, runWith(win, oauthScaleEvent(24, from.Add(2*time.Minute))),
+			"status %q must NOT grant the noProxy window", status)
+	}
+
+	// A near-name but unlisted test (truncated suffix) must not grant the window.
+	nearName := cpPrefix + " oauth-server should bypass proxy by directly connecting to idp to perform OIDC login flow"
+	assert.True(t, runWith(cpTestInterval(nearName, "Passed", from, to), oauthScaleEvent(24, from.Add(2*time.Minute))),
+		"a near-name unlisted test must not grant the noProxy window")
+
+	// Matcher-level boundary checks scoped to the passing noProxy window.
+	m := scalingMatcher(t, monitorapi.Intervals{passing})
+	assert.True(t, m.Allows(oauthScaleEvent(70, to.Add(90*time.Second)), v1.HighlyAvailableTopologyMode),
+		"70 within +120s grace of the noProxy window is accepted")
+	assert.False(t, m.Allows(oauthScaleEvent(70, to.Add(150*time.Second)), v1.HighlyAvailableTopologyMode),
+		"70 past the +120s noProxy grace is rejected")
+	// end+119.5s: cover [end+119.5s, end+120.5s) straddles the +120s boundary -> rejected.
+	assert.False(t, m.Allows(oauthScaleEvent(70, to.Add(119500*time.Millisecond)), v1.HighlyAvailableTopologyMode),
+		"one-second cover straddling the +120s noProxy boundary is rejected")
+	assert.False(t, m.Allows(oauthScaleEvent(71, from.Add(2*time.Minute)), v1.HighlyAvailableTopologyMode),
+		"71 inside the noProxy window is rejected")
 }
 
 type junitapiCaseResult struct {
