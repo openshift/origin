@@ -14,7 +14,7 @@ import (
 )
 
 func shouldCheckPlatformWorkload(ctx context.Context, namespaces coreclient.NamespaceInterface, namespace string, templateAnnotations map[string]string, partitioned bool) (bool, error) {
-	platformNamespace := strings.HasPrefix(namespace, "openshift-") && !strings.HasPrefix(namespace, "openshift-e2e-")
+	platformNamespace := strings.HasPrefix(namespace, "openshift-") && !strings.HasPrefix(namespace, "openshift-e2e-") && !strings.HasPrefix(namespace, "openshift-debug-")
 	_, annotated := templateAnnotations[workloadAnnotations]
 	if platformNamespace && !annotated {
 		return false, fmt.Errorf("workload in platform namespace %s must have pod templates annotated with %s", namespace, workloadAnnotations)
