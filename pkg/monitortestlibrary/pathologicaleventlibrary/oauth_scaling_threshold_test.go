@@ -15,7 +15,7 @@ import (
 // These tests pin the scoped, proximity-bounded tolerance for oauth-openshift ScalingReplicaSet
 // repeats during the AuthenticationComponentProxy serial tests. The finite cap (70) applies
 // only to repeats whose LATEST occurrence falls during one of the eligible passing tests or
-// within 120s AFTER that test ends (no pre-test grace). It is a bounded proximity allowance, not
+// within 10m AFTER that test ends (no pre-test grace). It is a bounded proximity allowance, not
 // a causal claim that the tests cause the rollouts, and not a claim the events are harmless.
 
 const cpPrefix = `[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial]`
@@ -104,7 +104,7 @@ func onePassingWindow() (monitorapi.Intervals, time.Time, time.Time) {
 }
 
 func TestAuthenticationComponentProxyScalingReplicaSet_EligibleDuringEachTest(t *testing.T) {
-	// Every one of the five names (including the T3 hot-reload no-rollout test) authorizes the
+	// Every one of the six names (including the T3 hot-reload no-rollout test) authorizes the
 	// tolerance for an in-window repeat at the cap.
 	for i, name := range cpEligibleFullNames {
 		from := cpT0.Add(time.Duration(i) * 10 * time.Minute)
@@ -129,9 +129,13 @@ func TestAuthenticationComponentProxyScalingReplicaSet_PostTestGraceAndBoundarie
 		{"inside window", from.Add(2 * time.Minute), true},
 		{"exact window end", to, true},
 		{"29s after end (observed real offset)", to.Add(29 * time.Second), true},
-		{"90s after end (within 120s grace)", to.Add(90 * time.Second), true},
+		{"90s after end (within 10m grace)", to.Add(90 * time.Second), true},
+		{"150s after end (within expanded grace)", to.Add(150 * time.Second), true},
+		{"cover strictly within grace", to.Add(598 * time.Second), true},
+		{"cover ends at grace boundary", to.Add(599 * time.Second), false},
+		{"exact grace end", to.Add(10 * time.Minute), false},
 		{"before test start", from.Add(-10 * time.Second), false},
-		{"150s after end (past 120s grace)", to.Add(150 * time.Second), false},
+		{"630s after end (past 10m grace)", to.Add(630 * time.Second), false},
 	}
 	for _, c := range cases {
 		got := m.Allows(oauthScaleEvent(70, c.latest), v1.HighlyAvailableTopologyMode)
@@ -144,16 +148,16 @@ func TestAuthenticationComponentProxyScalingReplicaSet_SecondPrecisionGraceBound
 	m := scalingMatcher(t, events)
 
 	// The latest occurrence's whole second-precision cover [t, t+1s) must fit within the
-	// post-grace window; an occurrence whose cover extends past end+120s is NOT allowed, avoiding
+	// post-grace window; an occurrence whose cover extends past end+10m is NOT allowed, avoiding
 	// the earlier unsafe point assumption that accepted +500ms past the end.
-	wellWithin := to.Add(90 * time.Second)
+	wellWithin := to.Add(9 * time.Minute)
 	assert.True(t, m.Allows(oauthScaleEvent(70, wellWithin), v1.HighlyAvailableTopologyMode),
-		"90s after end: whole [t,t+1s) cover fits within +120s grace")
+		"9m after end: whole [t,t+1s) cover fits within +10m grace")
 
-	// end+119.5s: cover is [end+119.5s, end+120.5s), which extends past end+120s -> not allowed.
-	straddles := to.Add(119500 * time.Millisecond)
+	// end+599.5s: cover is [end+599.5s, end+600.5s), which extends past end+10m -> not allowed.
+	straddles := to.Add(599500 * time.Millisecond)
 	assert.False(t, m.Allows(oauthScaleEvent(70, straddles), v1.HighlyAvailableTopologyMode),
-		"end+119.5s: cover straddles the +120s grace boundary -> conservatively rejected")
+		"end+599.5s: cover straddles the +10m grace boundary -> conservatively rejected")
 }
 
 func TestAuthenticationComponentProxyScalingReplicaSet_OverCapRejectedEvenInWindow(t *testing.T) {
@@ -165,7 +169,7 @@ func TestAuthenticationComponentProxyScalingReplicaSet_OverCapRejectedEvenInWind
 	// The cap is enforced across the whole eligibility window, including the post-test grace.
 	overInGrace := oauthScaleEvent(71, to.Add(90*time.Second))
 	assert.False(t, m.Allows(overInGrace, v1.HighlyAvailableTopologyMode),
-		"count 71 must be rejected even within the +120s post-test grace")
+		"count 71 must be rejected even within the +10m post-test grace")
 }
 
 func TestAuthenticationComponentProxyScalingReplicaSet_NegativeControls(t *testing.T) {
@@ -180,18 +184,21 @@ func TestAuthenticationComponentProxyScalingReplicaSet_NegativeControls(t *testi
 	assert.False(t, m.Allows(oauthScaleEventNS("openshift-other", "oauth-openshift", "ScalingReplicaSet", 30, in), v1.HighlyAvailableTopologyMode),
 		"wrong namespace not allowed")
 
-	// No eligible feature test at all -> the exception is not even registered.
-	reg := NewUniversalPathologicalEventMatchers(nil, monitorapi.Intervals{})
-	_, err := reg.GetMatcherByName("AuthenticationComponentProxyScalingReplicaSet")
-	assert.Error(t, err, "without the eligible feature test the oauth scaling exception must be absent")
+	// Without eligible test intervals, the matcher is not registered and grants no exception.
+	withoutTests := NewUniversalPathologicalEventMatchers(nil, nil)
+	matcher, err := withoutTests.GetMatcherByName("AuthenticationComponentProxyScalingReplicaSet")
+	assert.Error(t, err)
+	assert.Nil(t, matcher)
+	allowed, _ := withoutTests.AllowedByAny(oauthScaleEvent(70, in), v1.HighlyAvailableTopologyMode)
+	assert.False(t, allowed,
+		"without an eligible test the oauth scaling exception must not apply")
 }
 
 func TestAuthenticationComponentProxyScalingReplicaSet_FailedOrSkippedWindowExcluded(t *testing.T) {
 	from := cpT0
 	to := cpT0.Add(4 * time.Minute)
 	for _, status := range []string{"Failed", "Skipped", "DidNotFinish"} {
-		// The gate substring is present (so the matcher registers), but a non-Passed test grants
-		// no eligible window.
+		// A non-Passed eligible test registers the matcher but grants no allowance window.
 		events := monitorapi.Intervals{cpTestInterval(cpEligibleFullNames[0], status, from, to)}
 		m := scalingMatcher(t, events)
 		inWindow := oauthScaleEvent(70, from.Add(2*time.Minute))
@@ -213,14 +220,14 @@ func TestAuthenticationComponentProxyScalingReplicaSet_AdjacentWindowGapNotAllow
 		cpTestInterval(cpEligibleFullNames[3], "Passed", wB0, wB1),
 	}
 	m := scalingMatcher(t, events)
-	inGap := oauthScaleEvent(70, wA1.Add(5*time.Minute)) // well past A+grace, before B
+	inGap := oauthScaleEvent(70, wA1.Add(11*time.Minute)) // well past A+grace, before B
 	assert.False(t, m.Allows(inGap, v1.HighlyAvailableTopologyMode),
 		"latest occurrence in the inter-test gap must not be allowed despite earlier overlap")
 }
 
 func TestAuthenticationComponentProxyScalingReplicaSet_DegenerateWindowExcluded(t *testing.T) {
 	// Fail-closed: a test that reports Passed but has a missing or non-positive span (zero
-	// timestamps, or To not strictly after From) is treated as incomplete and grants no window.
+	// timestamps, or To not strictly after From) registers the matcher but grants no window.
 	zero := time.Time{}
 	cases := []struct {
 		name     string
@@ -241,21 +248,42 @@ func TestAuthenticationComponentProxyScalingReplicaSet_DegenerateWindowExcluded(
 	}
 }
 
-// TestAuthenticationComponentProxyDeploymentUpdated_Unchanged guards that the separate
-// DeploymentUpdated allowance remains a flat cap of 70 and is unaffected by this change.
-func TestAuthenticationComponentProxyDeploymentUpdated_Unchanged(t *testing.T) {
-	events := monitorapi.Intervals{cpTestInterval(cpEligibleFullNames[0], "Passed", cpT0, cpT0.Add(4*time.Minute))}
+// The operator event allowances apply only during eligible passing tests and their
+// post-test grace, with separate caps for DeploymentUpdated and OperatorStatusChanged.
+func TestAuthenticationComponentProxyOperatorEvents(t *testing.T) {
+	events, from, to := onePassingWindow()
 	reg := NewUniversalPathologicalEventMatchers(nil, events)
-	m, err := reg.GetMatcherByName("AuthenticationComponentProxyDeploymentUpdated")
-	require.NoError(t, err)
-	sm, ok := m.(*SimplePathologicalEventMatcher)
-	require.True(t, ok, "DeploymentUpdated must remain a plain threshold matcher")
-	assert.Equal(t, 70, sm.repeatThresholdOverride, "DeploymentUpdated allowance must remain 70")
-
-	at70 := oauthScaleEventNS("openshift-authentication-operator", "authentication-operator", "DeploymentUpdated", 70, cpT0.Add(time.Minute))
-	assert.True(t, m.Allows(at70, v1.HighlyAvailableTopologyMode), "DeploymentUpdated 70 must remain allowed (flat, timing-agnostic)")
-	at71 := oauthScaleEventNS("openshift-authentication-operator", "authentication-operator", "DeploymentUpdated", 71, cpT0.Add(time.Minute))
-	assert.False(t, m.Allows(at71, v1.HighlyAvailableTopologyMode), "DeploymentUpdated 71 must remain rejected")
+	for _, event := range []struct {
+		reason string
+		cap    int
+	}{
+		{reason: "DeploymentUpdated", cap: 70},
+		{reason: "OperatorStatusChanged", cap: 30},
+	} {
+		t.Run(event.reason, func(t *testing.T) {
+			m, err := reg.GetMatcherByName("AuthenticationComponentProxy" + event.reason)
+			require.NoError(t, err)
+			for _, tc := range []struct {
+				name   string
+				count  int
+				latest time.Time
+				allow  bool
+			}{
+				{"at cap during test", event.cap, from.Add(time.Minute), true},
+				{"over cap during test", event.cap + 1, from.Add(time.Minute), false},
+				{"at cap within grace", event.cap, to.Add(9 * time.Minute), true},
+				{"over cap within grace", event.cap + 1, to.Add(9 * time.Minute), false},
+				{"before test", event.cap, from.Add(-time.Second), false},
+				{"past grace", event.cap, to.Add(630 * time.Second), false},
+				{"straddling grace boundary", event.cap, to.Add(599500 * time.Millisecond), false},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					ev := oauthScaleEventNS("openshift-authentication-operator", "authentication-operator", event.reason, tc.count, tc.latest)
+					assert.Equal(t, tc.allow, m.Allows(ev, v1.HighlyAvailableTopologyMode))
+				})
+			}
+		})
+	}
 }
 
 // TestAuthenticationComponentProxyScalingReplicaSet_ThroughLegacyConsumer drives the actual
@@ -282,9 +310,9 @@ func TestAuthenticationComponentProxyScalingReplicaSet_ThroughLegacyConsumer(t *
 	}
 
 	assert.False(t, run(oauthScaleEvent(70, from.Add(2*time.Minute))).failed, "in-window 70 must pass the legacy consumer")
-	assert.False(t, run(oauthScaleEvent(70, to.Add(90*time.Second))).failed, "70 within +120s grace must pass")
+	assert.False(t, run(oauthScaleEvent(70, to.Add(90*time.Second))).failed, "70 within +10m grace must pass")
 	assert.True(t, run(oauthScaleEvent(71, from.Add(2*time.Minute))).failed, "71 must be rejected")
-	assert.True(t, run(oauthScaleEvent(70, to.Add(150*time.Second))).failed, "70 past the +120s grace must be rejected")
+	assert.True(t, run(oauthScaleEvent(70, to.Add(630*time.Second))).failed, "70 past the +10m grace must be rejected")
 }
 
 // cpNoProxyName is the exact noProxy bypass test added to the eligible set by this change.
@@ -293,7 +321,7 @@ const cpNoProxyName = cpPrefix + " oauth-server should bypass proxy by directly 
 // TestAuthenticationComponentProxyScalingReplicaSet_NoProxyWindow pins the newly eligible
 // noProxy bypass test through the actual registry and legacy consumer. The window behaves
 // exactly like the other eligible tests: a pathological repeat (>20) whose latest occurrence
-// falls inside the passing window or within the 120s post-test grace is tolerated up to 70;
+// falls inside the passing window or within the 10m post-test grace is tolerated up to 70;
 // everything else is rejected. Only a completed, Passed noProxy run grants the window, and the
 // name must match exactly.
 func TestAuthenticationComponentProxyScalingReplicaSet_NoProxyWindow(t *testing.T) {
@@ -334,12 +362,12 @@ func TestAuthenticationComponentProxyScalingReplicaSet_NoProxyWindow(t *testing.
 	// Matcher-level boundary checks scoped to the passing noProxy window.
 	m := scalingMatcher(t, monitorapi.Intervals{passing})
 	assert.True(t, m.Allows(oauthScaleEvent(70, to.Add(90*time.Second)), v1.HighlyAvailableTopologyMode),
-		"70 within +120s grace of the noProxy window is accepted")
-	assert.False(t, m.Allows(oauthScaleEvent(70, to.Add(150*time.Second)), v1.HighlyAvailableTopologyMode),
-		"70 past the +120s noProxy grace is rejected")
-	// end+119.5s: cover [end+119.5s, end+120.5s) straddles the +120s boundary -> rejected.
-	assert.False(t, m.Allows(oauthScaleEvent(70, to.Add(119500*time.Millisecond)), v1.HighlyAvailableTopologyMode),
-		"one-second cover straddling the +120s noProxy boundary is rejected")
+		"70 within +10m grace of the noProxy window is accepted")
+	assert.False(t, m.Allows(oauthScaleEvent(70, to.Add(630*time.Second)), v1.HighlyAvailableTopologyMode),
+		"70 past the +10m noProxy grace is rejected")
+	// end+599.5s: cover [end+599.5s, end+600.5s) straddles the +10m boundary -> rejected.
+	assert.False(t, m.Allows(oauthScaleEvent(70, to.Add(599500*time.Millisecond)), v1.HighlyAvailableTopologyMode),
+		"one-second cover straddling the +10m noProxy boundary is rejected")
 	assert.False(t, m.Allows(oauthScaleEvent(71, from.Add(2*time.Minute)), v1.HighlyAvailableTopologyMode),
 		"71 inside the noProxy window is rejected")
 }

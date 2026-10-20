@@ -13,6 +13,7 @@ import (
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -569,19 +570,54 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 
 	// AuthenticationComponentProxy tests intentionally trigger multiple oauth-openshift rollouts
 	// (set proxy → operator rolls out → restore → operator rolls out again), repeated for each
-	// test in the suite. This causes DeploymentUpdated and ScalingReplicaSet events in the
+	// test in the suite. This causes DeploymentUpdated, OperatorStatusChanged, and ScalingReplicaSet events in the
 	// authentication namespaces to exceed the default threshold of 20.
 	if authenticationComponentProxyTestsDetected(finalIntervals) {
-		registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
-			name: "AuthenticationComponentProxyDeploymentUpdated",
-			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-				monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication-operator$`),
-				monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^authentication-operator$`),
+		eligibleWindows := eligibleWindows(
+			finalIntervals,
+			authenticationComponentProxyEligibleTestNames,
+			authenticationComponentProxyPostTestGrace,
+		)
+		registry.AddPathologicalEventMatcherOrDie(&OverlapOtherIntervalsPathologicalEventMatcher{
+			delegate: &SimplePathologicalEventMatcher{
+				name: "AuthenticationComponentProxyDeploymentUpdated",
+				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication-operator$`),
+					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^authentication-operator$`),
+				},
+				messageReasonRegex:      regexp.MustCompile(`^DeploymentUpdated$`),
+				repeatThresholdOverride: 70,
 			},
-			messageReasonRegex:      regexp.MustCompile(`^DeploymentUpdated$`),
-			repeatThresholdOverride: 70,
+			allowIfWithinIntervals: eligibleWindows,
+			useLastTimestamp:       true,
 		})
-		registry.AddPathologicalEventMatcherOrDie(newAuthenticationComponentProxyScalingReplicaSetMatcher(finalIntervals))
+		registry.AddPathologicalEventMatcherOrDie(&OverlapOtherIntervalsPathologicalEventMatcher{
+			delegate: &SimplePathologicalEventMatcher{
+				name: "AuthenticationComponentProxyOperatorStatusChanged",
+				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication-operator$`),
+					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^authentication-operator$`),
+				},
+				messageReasonRegex: regexp.MustCompile(`^OperatorStatusChanged$`),
+				// Observed 21 times as the proxy tests complete rollouts, including cleanup.
+				repeatThresholdOverride: 30,
+			},
+			allowIfWithinIntervals: eligibleWindows,
+			useLastTimestamp:       true,
+		})
+		registry.AddPathologicalEventMatcherOrDie(&OverlapOtherIntervalsPathologicalEventMatcher{
+			delegate: &SimplePathologicalEventMatcher{
+				name: "AuthenticationComponentProxyScalingReplicaSet",
+				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication$`),
+					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^oauth-openshift$`),
+				},
+				messageReasonRegex:      regexp.MustCompile(`^ScalingReplicaSet$`),
+				repeatThresholdOverride: 70,
+			},
+			allowIfWithinIntervals: eligibleWindows,
+			useLastTimestamp:       true,
+		})
 	}
 
 	// OVN-Kuberentes EVPN e2e tests running in parallel incorrectly create
@@ -1244,64 +1280,19 @@ func newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals monitorapi.Inter
 	}
 }
 
-// authenticationComponentProxyTestsDetected returns true if authentication
-// component-proxy tests ran in this job. These tests intentionally trigger
-// oauth-openshift rollouts that exceed the default duplicate-event threshold.
-func authenticationComponentProxyTestsDetected(finalIntervals monitorapi.Intervals) bool {
-	for _, eventInterval := range finalIntervals {
-		if eventInterval.Source != monitorapi.SourceE2ETest {
-			continue
-		}
-		if strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "[OCPFeatureGate:AuthenticationComponentProxy]") {
-			return true
-		}
-	}
-	return false
-}
-
-// authComponentProxyPostTestGrace is how long AFTER an eligible AuthenticationComponentProxy
-// test ends the scoped oauth-openshift scaling tolerance still applies. The oauth rollout that
-// a test drives can land slightly after the test interval closes; this bounded post-test
-// window covers that without any pre-test grace. It is a proximity allowance, not a claim the
-// tests necessarily cause the rollouts.
-const authComponentProxyPostTestGrace = 120 * time.Second
-
-// authComponentProxyEligibleTestNames are the exact, full e2e test names whose runs authorize
-// the scoped oauth-openshift ScalingReplicaSet tolerance. The hot-reload test (T3) is included
-// deliberately as an authorized eligible test even though it is not expected to roll the
-// deployment. Matching is by exact full-name equality (never substring) so unrelated tests
-// cannot widen the exception.
-var authComponentProxyEligibleTestNames = map[string]struct{}{
-	`[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial] operator should validate OIDC IdP through component proxy with trustedCA`:                                                       {},
-	`[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial] operator should validate OIDC IdP through component proxy`:                                                                      {},
-	`[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial] oauth-server/operator should hot-reload mounted CA file on change when spec.proxy.trustedCA is set`:                             {},
-	`[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial] oauth-server should perform full OIDC login flow through the proxy when auth proxy config is applied`:                           {},
-	`[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial] operator should fall back to original configuration on spec.proxy removal`:                                                      {},
-	`[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial] oauth-server should bypass proxy by directly connecting to idp to perform OIDC login flow when spec.proxy.noProxy contains idp`: {},
-}
-
-// newAuthenticationComponentProxyScalingReplicaSetMatcher builds the scoped oauth-openshift
-// ScalingReplicaSet allowance as a PROXIMITY allowance instead of a flat job-wide cap: the
-// finite tolerance (70) applies only to repeats whose latest occurrence falls DURING one of the
-// eligible, passing AuthenticationComponentProxy serial tests, or within
-// authComponentProxyPostTestGrace AFTER that test ends. There is no pre-test grace. Repeats
-// above 70 are still rejected, and repeats outside every eligible window fall through to the
-// registry default (20). Only completed, Passed tests with a real span are eligible;
-// failed/skipped/incomplete/missing tests grant nothing.
-//
-// It reuses OverlapOtherIntervalsPathologicalEventMatcher with useLastTimestamp=true so the
-// check is against the event's latest occurrence (i.From/i.To), not the full lifetime of the
-// aggregated Kubernetes Event (which can begin inside one test and extend across later tests
-// and gaps). Containment is strict, so the whole second-precision cover [t, t+1s) of the latest
-// occurrence must fit within the (post-grace-extended) window; an occurrence at or past the
-// grace boundary is not allowed.
-func newAuthenticationComponentProxyScalingReplicaSetMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+// eligibleWindows returns the time windows granted by passing e2e test intervals
+// whose exact names appear in eligibleTestNames. It ignores non-e2e intervals,
+// tests that did not pass, and intervals without a valid start and end time. For
+// each remaining interval, it preserves the start time and extends the end by
+// postTestGrace, so the returned window includes the test run and the grace period
+// after it. A zero grace period limits the window to the test run itself.
+func eligibleWindows(finalIntervals monitorapi.Intervals, eligibleTestNames sets.Set[string], postTestGrace time.Duration) monitorapi.Intervals {
 	var eligibleWindows monitorapi.Intervals
 	for _, eventInterval := range finalIntervals {
 		if eventInterval.Source != monitorapi.SourceE2ETest {
 			continue
 		}
-		if _, ok := authComponentProxyEligibleTestNames[eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey]]; !ok {
+		if _, ok := eligibleTestNames[eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey]]; !ok {
 			continue
 		}
 		if eventInterval.Message.Annotations[monitorapi.AnnotationStatus] != "Passed" {
@@ -1311,23 +1302,11 @@ func newAuthenticationComponentProxyScalingReplicaSetMatcher(finalIntervals moni
 			continue
 		}
 		window := eventInterval
-		window.To = eventInterval.To.Add(authComponentProxyPostTestGrace) // post-test grace only
+		window.To = eventInterval.To.Add(postTestGrace)
 		eligibleWindows = append(eligibleWindows, window)
 	}
 
-	return &OverlapOtherIntervalsPathologicalEventMatcher{
-		delegate: &SimplePathologicalEventMatcher{
-			name: "AuthenticationComponentProxyScalingReplicaSet",
-			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-				monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication$`),
-				monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^oauth-openshift$`),
-			},
-			messageReasonRegex:      regexp.MustCompile(`^ScalingReplicaSet$`),
-			repeatThresholdOverride: 70,
-		},
-		allowIfWithinIntervals: eligibleWindows,
-		useLastTimestamp:       true,
-	}
+	return eligibleWindows
 }
 
 // EncryptionTestsDetected returns true if OCP encryption tests are
