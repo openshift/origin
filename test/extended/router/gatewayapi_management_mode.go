@@ -91,9 +91,8 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		assertGatewayAPICRDsInstalled(ctx, oc)
 
 		g.By("Verifying the admission policy and binding exist without former CVO metadata")
-		o.Eventually(func() error {
-			return checkGatewayAPIAdmissionMetadata(ctx, oc)
-		}).WithTimeout(platformAwareTimeout(oc, 2*time.Minute)).WithPolling(5 * time.Second).Should(o.Succeed())
+		err = assertVAPExists(ctx, oc, gwapiCRDVAPName)
+		o.Expect(err).NotTo(o.HaveOccurred(), "VAP %s and binding should exist without former CVO metadata in Managed mode", gwapiCRDVAPName)
 
 		// Istio installation is driven by the gatewayclass controller
 		// reconciling an existing GatewayClass, and is torn down again
@@ -779,63 +778,61 @@ func checkIngressCondition(ctx context.Context, oc *exutil.CLI, conditionType st
 	return nil
 }
 
-// checkGatewayAPIAdmissionMetadata checks that CIO-managed protection exists
-// without the former payload annotations or ClusterVersion/version ownership.
-// Return diagnostic errors for Eventually to retry while CIO reconciles.
-func checkGatewayAPIAdmissionMetadata(ctx context.Context, oc *exutil.CLI) error {
-	policy, err := oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicies().Get(ctx, gwapiCRDVAPName, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("get ValidatingAdmissionPolicy %s: %w", gwapiCRDVAPName, err)
-	}
-	binding, err := oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Get(ctx, gwapiCRDVAPName, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("get ValidatingAdmissionPolicyBinding %s: %w", gwapiCRDVAPName, err)
-	}
-	for _, resource := range []struct {
-		kind     string
-		metadata metav1.Object
-	}{
-		{kind: "ValidatingAdmissionPolicy", metadata: policy},
-		{kind: "ValidatingAdmissionPolicyBinding", metadata: binding},
-	} {
-		for _, key := range []string{
-			"capability.openshift.io/name",
-			"include.release.openshift.io/ibm-cloud-managed",
-			"include.release.openshift.io/self-managed-high-availability",
-			"include.release.openshift.io/single-node-developer",
-			"release.openshift.io/feature-set",
-		} {
-			if _, exists := resource.metadata.GetAnnotations()[key]; exists {
-				return fmt.Errorf("%s %s retains CVO annotation %s", resource.kind, resource.metadata.GetName(), key)
-			}
-		}
-		for _, owner := range resource.metadata.GetOwnerReferences() {
-			if owner.APIVersion == configv1.GroupVersion.String() && owner.Kind == "ClusterVersion" && owner.Name == "version" {
-				return fmt.Errorf("%s %s retains the ClusterVersion/version owner reference", resource.kind, resource.metadata.GetName())
-			}
-		}
-	}
-	return nil
-}
-
+// assertVAPExists waits for the policy and binding to exist without former CVO
+// metadata, including after a transition back to CIO management.
 func assertVAPExists(ctx context.Context, oc *exutil.CLI, vapName string) error {
 	var lastErr error
 	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, platformAwareTimeout(oc, 2*time.Minute), true, func(ctx context.Context) (bool, error) {
-		_, err := oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicies().Get(ctx, vapName, metav1.GetOptions{})
+		lastErr = nil
+		policy, err := oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicies().Get(ctx, vapName, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
-			lastErr = err
+			lastErr = fmt.Errorf("get ValidatingAdmissionPolicy %s: %w", vapName, err)
 			return false, nil
 		}
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("get ValidatingAdmissionPolicy %s: %w", vapName, err)
+		}
+		binding, err := oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Get(ctx, vapName, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			lastErr = fmt.Errorf("get ValidatingAdmissionPolicyBinding %s: %w", vapName, err)
+			return false, nil
+		}
+		if err != nil {
+			return false, fmt.Errorf("get ValidatingAdmissionPolicyBinding %s: %w", vapName, err)
+		}
+		for _, resource := range []struct {
+			kind     string
+			metadata metav1.Object
+		}{
+			{kind: "ValidatingAdmissionPolicy", metadata: policy},
+			{kind: "ValidatingAdmissionPolicyBinding", metadata: binding},
+		} {
+			for _, key := range []string{
+				"capability.openshift.io/name",
+				"include.release.openshift.io/ibm-cloud-managed",
+				"include.release.openshift.io/self-managed-high-availability",
+				"include.release.openshift.io/single-node-developer",
+				"release.openshift.io/feature-set",
+			} {
+				if _, exists := resource.metadata.GetAnnotations()[key]; exists {
+					lastErr = fmt.Errorf("%s %s retains CVO annotation %s", resource.kind, resource.metadata.GetName(), key)
+					return false, nil
+				}
+			}
+			for _, owner := range resource.metadata.GetOwnerReferences() {
+				if owner.APIVersion == configv1.GroupVersion.String() && owner.Kind == "ClusterVersion" && owner.Name == "version" {
+					lastErr = fmt.Errorf("%s %s retains the ClusterVersion/version owner reference", resource.kind, resource.metadata.GetName())
+					return false, nil
+				}
+			}
 		}
 		return true, nil
 	})
 	if err != nil {
 		if lastErr != nil {
-			return fmt.Errorf("VAP %s not found: %w", vapName, lastErr)
+			return fmt.Errorf("VAP %s and binding not ready: %w (last observation: %v)", vapName, err, lastErr)
 		}
-		return fmt.Errorf("VAP %s not found: %w", vapName, err)
+		return fmt.Errorf("VAP %s and binding not ready: %w", vapName, err)
 	}
 	return nil
 }
