@@ -392,6 +392,7 @@ const (
 	SourceStaticPodInstallMonitor  IntervalSource = "StaticPodInstallMonitor"
 	SourceCPUMonitor               IntervalSource = "CPUMonitor"
 	SourceMemoryMonitor            IntervalSource = "MemoryMonitor"
+	SourceCPUSaturation            IntervalSource = "CPUSaturation"
 	SourceEtcdDiskCommitDuration   IntervalSource = "EtcdDiskCommitDuration"
 	SourceEtcdDiskWalFsyncDuration IntervalSource = "EtcdDiskWalFsyncDuration"
 	SourceTestBucket               IntervalSource = "TestBucket"

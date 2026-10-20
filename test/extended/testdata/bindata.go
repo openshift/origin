@@ -55483,6 +55483,10 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
       return eventInterval.source === "CPUMonitor" && eventInterval.message.reason === "HighCPUUsage"
     }
 
+    function isCPUSaturation(eventInterval) {
+      return eventInterval.source === "CPUSaturation" && eventInterval.message.reason === "CPURunQueueSaturation"
+    }
+
     function isMemoryThrashing(eventInterval) {
       return eventInterval.source === "MemoryMonitor" && eventInterval.message.reason === "MemoryThrashing"
     }
@@ -55816,6 +55820,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
         timelineGroups.push({group: "high-cpu", data: []})
         createTimelineData("HighCPU", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isHighCPU, regex)
+
+        timelineGroups.push({group: "cpu-saturation", data: []})
+        createTimelineData("CPUSaturation", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isCPUSaturation, regex)
 
         timelineGroups.push({group: "memory-thrashing", data: []})
         createTimelineData("MemoryThrashing", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isMemoryThrashing, regex)

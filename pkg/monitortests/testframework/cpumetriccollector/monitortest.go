@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
@@ -33,12 +34,21 @@ type cpuDataPoint struct {
 type cpuMetricCollector struct {
 	adminRESTConfig  *rest.Config
 	highCPUThreshold float64
-	cpuDataPoints    []cpuDataPoint
+	// runQueueThreshold is the CPU-seconds threads spend waiting to run, per second per core,
+	// above which a node is CPU saturated. CPU usage tops out at 100% and hides how backed up
+	// a node is; run-queue wait keeps growing. Healthy nodes stay well under 1.
+	runQueueThreshold float64
+	cpuDataPoints     []cpuDataPoint
 }
+
+// saturationQueryStep is the sample spacing of the run-queue query. Each sample above the
+// threshold counts for one full step, so an interval ends one step after its last such sample.
+const saturationQueryStep = 30 * time.Second
 
 func NewCPUMetricCollector() monitortestframework.MonitorTest {
 	return &cpuMetricCollector{
-		highCPUThreshold: 95.0, // Default to 95% threshold
+		highCPUThreshold:  95.0, // Default to 95% threshold
+		runQueueThreshold: 4.0,
 	}
 }
 
@@ -140,7 +150,96 @@ func (w *cpuMetricCollector) collectCPUMetricsFromPrometheusClient(ctx context.C
 	w.collectCPUDataPointsFromMetrics(cpuMetrics, nodeInfoMap)
 
 	// Create intervals for high CPU periods
-	return w.createIntervalsFromCPUMetrics(logger, cpuMetrics, nodeInfoMap)
+	intervals, err := w.createIntervalsFromCPUMetrics(logger, cpuMetrics, nodeInfoMap)
+	if err != nil {
+		return nil, err
+	}
+
+	// Query for run-queue wait per core, to find CPU saturated periods
+	runQueueQuery := `sum by (instance) (rate(node_schedstat_waiting_seconds_total[1m])) / count by (instance) (node_cpu_seconds_total{mode="idle"})`
+	runQueueMetrics, warningsForRunQueue, err := prometheusClient.QueryRange(ctx, runQueueQuery, prometheusv1.Range{
+		Start: timeRange.Start,
+		End:   timeRange.End,
+		Step:  saturationQueryStep,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to query run-queue wait per instance: %w", err)
+	}
+	for _, warning := range warningsForRunQueue {
+		logger.Warnf("run-queue metric query warning: %s", warning)
+	}
+
+	return append(intervals, w.createSaturationIntervals(logger, runQueueMetrics, nodeInfoMap)...), nil
+}
+
+// createSaturationIntervals builds a CPUSaturation interval for each run of consecutive samples
+// where a node's run-queue wait per core is above the threshold. These use their own source so
+// they get their own timeline row and don't mix with HighCPUUsage intervals in the high CPU
+// test overlap data.
+func (w *cpuMetricCollector) createSaturationIntervals(logger logrus.FieldLogger, promVal prometheustypes.Value, nodeInfoMap map[string]nodeInfo) []monitorapi.Interval {
+	ret := []monitorapi.Interval{}
+
+	promMatrix, ok := promVal.(prometheustypes.Matrix)
+	if !ok {
+		logger.WithField("type", promVal.Type()).Warning("unhandled prometheus value type received")
+		return ret
+	}
+
+	for _, promSampleStream := range promMatrix {
+		instance := string(promSampleStream.Metric["instance"])
+		info := nodeInfoMap[instance]
+		if info.name == "" {
+			// Fallback to instance if name not found (transient nodes may not be mapped)
+			info.name = instance
+		}
+		locator := monitorapi.NewLocator().NodeFromNameWithRole(info.name, info.nodeRole)
+
+		var start, end time.Time
+		var peak float64
+		inPeriod := false
+		for _, sample := range promSampleStream.Values {
+			ts := sample.Timestamp.Time()
+			waiting := float64(sample.Value)
+			// Prometheus omits steps with no value (e.g. failed scrapes), so a gap ends the
+			// current interval rather than bridging it.
+			if inPeriod && ts.After(end) {
+				ret = append(ret, w.createSaturationInterval(locator, info.name, start, end, peak))
+				inPeriod = false
+			}
+			if waiting > w.runQueueThreshold {
+				if !inPeriod {
+					start, peak, inPeriod = ts, waiting, true
+				}
+				end = ts.Add(saturationQueryStep)
+				peak = max(peak, waiting)
+				continue
+			}
+			if inPeriod {
+				ret = append(ret, w.createSaturationInterval(locator, info.name, start, end, peak))
+				inPeriod = false
+			}
+		}
+		// Handle a saturated period that extends to the end of the monitoring window
+		if inPeriod {
+			ret = append(ret, w.createSaturationInterval(locator, info.name, start, end, peak))
+		}
+	}
+
+	return ret
+}
+
+func (w *cpuMetricCollector) createSaturationInterval(locator monitorapi.Locator, nodeName string, start, end time.Time, peak float64) monitorapi.Interval {
+	msg := monitorapi.NewMessage().
+		Reason(monitorapi.IntervalReason("CPURunQueueSaturation")).
+		HumanMessage(fmt.Sprintf("threads waiting more than %.1f CPU-seconds per second per core to run on node %s", w.runQueueThreshold, nodeName)).
+		WithAnnotation("run_queue_threshold", fmt.Sprintf("%.1f", w.runQueueThreshold)).
+		WithAnnotation("peak_run_queue_wait_per_core", fmt.Sprintf("%.2f", peak))
+
+	return monitorapi.NewInterval(monitorapi.SourceCPUSaturation, monitorapi.Warning).
+		Locator(locator).
+		Message(msg).
+		Display().
+		Build(start, end)
 }
 
 func (w *cpuMetricCollector) collectCPUDataPointsFromMetrics(promVal prometheustypes.Value, nodeInfoMap map[string]nodeInfo) {
@@ -267,9 +366,31 @@ func (*cpuMetricCollector) ConstructComputedIntervals(ctx context.Context, start
 	return nil, nil
 }
 
+const cpuSaturationTestName = "[sig-node] nodes should not be CPU saturated"
+
+// EvaluateTestsFromConstructedIntervals flakes (a failure plus a pass) when any node was CPU
+// saturated, so we can track which jobs hit it and how often without failing them. High CPU
+// usage intervals don't produce test results.
 func (w *cpuMetricCollector) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	// This monitor test is purely for data collection, not for generating test cases
-	return nil, nil
+	saturated := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceCPUSaturation
+	})
+
+	junits := []*junitapi.JUnitTestCase{}
+	if len(saturated) > 0 {
+		lines := []string{}
+		for _, interval := range saturated {
+			lines = append(lines, interval.String())
+		}
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name: cpuSaturationTestName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("found CPU saturated nodes:\n  %s", strings.Join(lines, "\n  ")),
+			},
+		})
+	}
+	// Add a success so this is marked as a flake at worst
+	return append(junits, &junitapi.JUnitTestCase{Name: cpuSaturationTestName}), nil
 }
 
 func (w *cpuMetricCollector) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
