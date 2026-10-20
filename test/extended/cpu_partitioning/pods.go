@@ -12,8 +12,10 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -79,6 +81,48 @@ func isExcluded(list map[string][]string, namespace, name string) bool {
 	return false
 }
 
+func scanPlatformDeployments(ctx context.Context, namespaces coreclient.NamespaceInterface, deployments []appsv1.Deployment, partitioned bool, visit func(appsv1.Deployment)) []error {
+	var eligibilityErrors []error
+	for _, deployment := range deployments {
+		name := deployment.Name
+		if deployment.Namespace == "openshift-ingress" && strings.HasPrefix(name, "gateway-") {
+			name = "gateway"
+		}
+		if isExcluded(excludedBestEffortDeployments, deployment.Namespace, name) {
+			framework.Logf("skipping resource check on deployment (%s/%s) due to presence in BestEffort exclude list", deployment.Namespace, name)
+			continue
+		}
+		checkPods, err := shouldCheckPlatformWorkload(ctx, namespaces, deployment.Namespace, deployment.Spec.Template.Annotations, partitioned)
+		if err != nil {
+			eligibilityErrors = append(eligibilityErrors, fmt.Errorf("checking deployment %s/%s: %w", deployment.Namespace, deployment.Name, err))
+			continue
+		}
+		if checkPods {
+			visit(deployment)
+		}
+	}
+	return eligibilityErrors
+}
+
+func scanPlatformDaemonSets(ctx context.Context, namespaces coreclient.NamespaceInterface, daemonsets []appsv1.DaemonSet, partitioned bool, visit func(appsv1.DaemonSet)) []error {
+	var eligibilityErrors []error
+	for _, daemonset := range daemonsets {
+		if isExcluded(excludedBestEffortDaemonSets, daemonset.Namespace, daemonset.Name) {
+			framework.Logf("skipping resource check on daemonset (%s/%s) due to presence in BestEffort exclude list", daemonset.Namespace, daemonset.Name)
+			continue
+		}
+		checkPods, err := shouldCheckPlatformWorkload(ctx, namespaces, daemonset.Namespace, daemonset.Spec.Template.Annotations, partitioned)
+		if err != nil {
+			eligibilityErrors = append(eligibilityErrors, fmt.Errorf("checking daemonset %s/%s: %w", daemonset.Namespace, daemonset.Name, err))
+			continue
+		}
+		if checkPods {
+			visit(daemonset)
+		}
+	}
+	return eligibilityErrors
+}
+
 var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cluster platform workloads", func() {
 	defer g.GinkgoRecover()
 
@@ -104,48 +148,27 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 		deployments, err := oc.KubeClient().AppsV1().Deployments("").List(ctx, metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		var deploymentErrors []error
-		for _, deployment := range deployments.Items {
-			if deployment.Namespace == "openshift-ingress" && strings.HasPrefix(deployment.Name, "gateway-") {
-				// The gateway deployment's name contains a hash, which
-				// must be removed in order to be able to define an
-				// exception.  Remove this if block when the
-				// corresponding exception is removed.
-				deployment.Name = "gateway"
-			}
-			// If we find a deployment that is to be excluded from resource checks, we skip looking for their pods.
-			if isExcluded(excludedBestEffortDeployments, deployment.Namespace, deployment.Name) {
-				framework.Logf("skipping resource check on deployment (%s/%s) due to presence in BestEffort exclude list", deployment.Namespace, deployment.Name)
-				continue
-			}
+		deploymentErrors := scanPlatformDeployments(ctx, oc.KubeClient().CoreV1().Namespaces(), deployments.Items, isClusterCPUPartitioned, func(deployment appsv1.Deployment) {
+			pods, err := oc.KubeClient().CoreV1().Pods(deployment.Namespace).List(ctx, metav1.ListOptions{
+				LabelSelector: labels.SelectorFromSet(deployment.Spec.Template.Labels).String(),
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-			checkPods, err := shouldCheckPlatformWorkload(ctx, oc.KubeClient().CoreV1().Namespaces(), deployment.Namespace, deployment.Spec.Template.Annotations, isClusterCPUPartitioned)
-			if err != nil {
-				deploymentErrors = append(deploymentErrors, fmt.Errorf("checking deployment %s/%s: %w", deployment.Namespace, deployment.Name, err))
-				continue
-			}
-			if checkPods {
-				pods, err := oc.KubeClient().CoreV1().Pods(deployment.Namespace).List(ctx, metav1.ListOptions{
-					LabelSelector: labels.SelectorFromSet(deployment.Spec.Template.Labels).String(),
-				})
-				o.Expect(err).NotTo(o.HaveOccurred())
+			for _, pod := range pods.Items {
 
-				for _, pod := range pods.Items {
+				o.Expect(pod.Annotations).To(
+					matcher, "pod (%s/%s) %s have workload annotations", pod.Namespace, pod.Name, messageFormat)
 
-					o.Expect(pod.Annotations).To(
-						matcher, "pod (%s/%s) %s have workload annotations", pod.Namespace, pod.Name, messageFormat)
-
-					for _, container := range pod.Spec.Containers {
-						_, ok := container.Resources.Limits[resourceLabel]
-						o.Expect(ok).To(o.Equal(isClusterCPUPartitioned),
-							"limits resources %s be present for container %s in pod %s/%s", messageFormat, container.Name, pod.Name, pod.Namespace)
-						_, ok = container.Resources.Requests[resourceLabel]
-						o.Expect(ok).To(o.Equal(isClusterCPUPartitioned),
-							"requests resources %s be present for container %s in pod %s/%s", messageFormat, container.Name, pod.Name, pod.Namespace)
-					}
+				for _, container := range pod.Spec.Containers {
+					_, ok := container.Resources.Limits[resourceLabel]
+					o.Expect(ok).To(o.Equal(isClusterCPUPartitioned),
+						"limits resources %s be present for container %s in pod %s/%s", messageFormat, container.Name, pod.Name, pod.Namespace)
+					_, ok = container.Resources.Requests[resourceLabel]
+					o.Expect(ok).To(o.Equal(isClusterCPUPartitioned),
+						"requests resources %s be present for container %s in pod %s/%s", messageFormat, container.Name, pod.Name, pod.Namespace)
 				}
 			}
-		}
+		})
 		o.Expect(deploymentErrors).To(o.BeEmpty())
 	})
 
@@ -154,41 +177,27 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 		daemonsets, err := oc.KubeClient().AppsV1().DaemonSets("").List(ctx, metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		var daemonsetErrors []error
-		for _, daemonset := range daemonsets.Items {
-			// If we find a daemonset that is to be excluded from resource checks, we skip looking for their pods.
-			if isExcluded(excludedBestEffortDaemonSets, daemonset.Namespace, daemonset.Name) {
-				framework.Logf("skipping resource check on daemonset (%s/%s) due to presence in BestEffort exclude list", daemonset.Namespace, daemonset.Name)
-				continue
-			}
+		daemonsetErrors := scanPlatformDaemonSets(ctx, oc.KubeClient().CoreV1().Namespaces(), daemonsets.Items, isClusterCPUPartitioned, func(daemonset appsv1.DaemonSet) {
+			pods, err := oc.KubeClient().CoreV1().Pods(daemonset.Namespace).List(ctx, metav1.ListOptions{
+				LabelSelector: labels.SelectorFromSet(daemonset.Spec.Template.Labels).String(),
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-			checkPods, err := shouldCheckPlatformWorkload(ctx, oc.KubeClient().CoreV1().Namespaces(), daemonset.Namespace, daemonset.Spec.Template.Annotations, isClusterCPUPartitioned)
-			if err != nil {
-				daemonsetErrors = append(daemonsetErrors, fmt.Errorf("checking daemonset %s/%s: %w", daemonset.Namespace, daemonset.Name, err))
-				continue
-			}
-			if checkPods {
-				pods, err := oc.KubeClient().CoreV1().Pods(daemonset.Namespace).List(ctx, metav1.ListOptions{
-					LabelSelector: labels.SelectorFromSet(daemonset.Spec.Template.Labels).String(),
-				})
-				o.Expect(err).NotTo(o.HaveOccurred())
+			for _, pod := range pods.Items {
 
-				for _, pod := range pods.Items {
+				o.Expect(pod.Annotations).To(
+					matcher, "pod (%s/%s) %s have workload annotations", pod.Namespace, pod.Name, messageFormat)
 
-					o.Expect(pod.Annotations).To(
-						matcher, "pod (%s/%s) %s have workload annotations", pod.Namespace, pod.Name, messageFormat)
-
-					for _, container := range pod.Spec.Containers {
-						_, ok := container.Resources.Limits[resourceLabel]
-						o.Expect(ok).To(o.Equal(isClusterCPUPartitioned),
-							"limits resources %s be present for container %s in pod %s/%s", messageFormat, container.Name, pod.Name, pod.Namespace)
-						_, ok = container.Resources.Requests[resourceLabel]
-						o.Expect(ok).To(o.Equal(isClusterCPUPartitioned),
-							"requests resources %s be present for container %s in pod %s/%s", messageFormat, container.Name, pod.Name, pod.Namespace)
-					}
+				for _, container := range pod.Spec.Containers {
+					_, ok := container.Resources.Limits[resourceLabel]
+					o.Expect(ok).To(o.Equal(isClusterCPUPartitioned),
+						"limits resources %s be present for container %s in pod %s/%s", messageFormat, container.Name, pod.Name, pod.Namespace)
+					_, ok = container.Resources.Requests[resourceLabel]
+					o.Expect(ok).To(o.Equal(isClusterCPUPartitioned),
+						"requests resources %s be present for container %s in pod %s/%s", messageFormat, container.Name, pod.Name, pod.Namespace)
 				}
 			}
-		}
+		})
 		o.Expect(daemonsetErrors).To(o.BeEmpty())
 	})
 })

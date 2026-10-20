@@ -38,6 +38,12 @@ func TestShouldCheckPlatformWorkload(t *testing.T) {
 		{name: "platform template missing annotation", namespace: "openshift-platform", allowed: namespaceAnnotation, wantError: true},
 		{name: "ordinary template missing annotation", namespace: "application", allowed: namespaceAnnotation},
 		{name: "e2e namespace is not a platform namespace", namespace: "openshift-e2e-workload", annotated: true},
+		{name: "debug namespace without annotations", namespace: "openshift-debug-workload"},
+		{name: "debug namespace remains opted out", namespace: "openshift-debug-workload", annotated: true},
+		{name: "eligible debug workload", namespace: "openshift-debug-workload", allowed: namespaceAnnotation, annotated: true, wantCheck: true},
+		{name: "eligible debug namespace without template annotation", namespace: "openshift-debug-workload", allowed: namespaceAnnotation},
+		{name: "debug lookalike remains platform", namespace: "openshift-debugging-workload", annotated: true, wantError: true},
+		{name: "debug namespace API failure", namespace: "openshift-debug-workload", annotated: true, lookupError: apierrors.NewForbidden(schema.GroupResource{Resource: "namespaces"}, "openshift-debug-workload", errors.New("denied")), wantError: true},
 		{name: "multiple allowed workload types", namespace: "application", allowed: map[string]string{namespaceAnnotationKey: "other,management"}, annotated: true, wantCheck: true},
 		{name: "annotation value is not a substring match", namespace: "application", allowed: map[string]string{namespaceAnnotationKey: "not-management"}, annotated: true},
 		{name: "namespace lookup forbidden", namespace: "application", annotated: true, lookupError: apierrors.NewForbidden(schema.GroupResource{Resource: "namespaces"}, "application", errors.New("denied")), wantError: true},
@@ -49,6 +55,8 @@ func TestShouldCheckPlatformWorkload(t *testing.T) {
 		{name: "None platform still needs template annotation", namespace: "openshift-platform", unpartitioned: true, wantError: true},
 		{name: "None ordinary annotated workload", namespace: "application", annotated: true, unpartitioned: true, wantCheck: true},
 		{name: "None ordinary unannotated workload", namespace: "application", unpartitioned: true},
+		{name: "None debug annotated workload", namespace: "openshift-debug-workload", annotated: true, unpartitioned: true, wantCheck: true},
+		{name: "None debug unannotated workload", namespace: "openshift-debug-workload", unpartitioned: true},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
@@ -74,33 +82,78 @@ func TestShouldCheckPlatformWorkload(t *testing.T) {
 	}
 }
 
-func TestPlatformWorkloadEligibilityReportsMultipleNamespaceErrors(t *testing.T) {
+func TestPlatformScansCollectErrorsAndVisitEligibleWorkloads(t *testing.T) {
 	t.Parallel()
-	client := fake.NewSimpleClientset()
-	expectedErrors := map[string]error{
-		"openshift-first":  apierrors.NewForbidden(schema.GroupResource{Resource: "namespaces"}, "openshift-first", errors.New("denied")),
-		"openshift-second": apierrors.NewInternalError(errors.New("server unavailable")),
-	}
-	client.PrependReactor("get", "namespaces", func(action clienttesting.Action) (bool, runtime.Object, error) {
-		return true, nil, expectedErrors[action.(clienttesting.GetAction).GetName()]
-	})
-	var namespaceErrors []error
-	for _, namespace := range []string{"openshift-first", "openshift-second"} {
-		check, err := shouldCheckPlatformWorkload(context.Background(), client.CoreV1().Namespaces(), namespace, deploymentPodAnnotation, true)
-		if check || !errors.Is(err, expectedErrors[namespace]) || !strings.Contains(err.Error(), namespace) {
-			t.Fatalf("namespace %s lost eligibility error context: check=%t, error=%v", namespace, check, err)
-		}
-		namespaceErrors = append(namespaceErrors, err)
-	}
-	if len(namespaceErrors) != 2 || len(client.Actions()) != 2 {
-		t.Fatalf("not all namespace failures were collected: errors=%v, actions=%d", namespaceErrors, len(client.Actions()))
+	for _, kind := range []string{"deployment", "daemonset"} {
+		t.Run(kind, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			client := fake.NewSimpleClientset()
+			expectedErrors := []error{
+				apierrors.NewForbidden(schema.GroupResource{Resource: "namespaces"}, "openshift-first", errors.New("denied")),
+				apierrors.NewInternalError(errors.New("server unavailable")),
+			}
+			client.PrependReactor("get", "namespaces", func(action clienttesting.Action) (bool, runtime.Object, error) {
+				switch action.(clienttesting.GetAction).GetName() {
+				case "openshift-first":
+					return true, nil, expectedErrors[0]
+				case "openshift-second":
+					return true, nil, expectedErrors[1]
+				default:
+					return false, nil, nil
+				}
+			})
+			var deployments []appsv1.Deployment
+			var daemonsets []appsv1.DaemonSet
+			for _, namespace := range []string{"openshift-first", "openshift-second", "openshift-eligible", "openshift-debug-eligible", "openshift-debug-opted-out"} {
+				annotations := namespaceAnnotation
+				if namespace == "openshift-debug-opted-out" {
+					annotations = nil
+				}
+				if _, err := client.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace, Annotations: annotations}}, metav1.CreateOptions{}); err != nil {
+					t.Fatal(err)
+				}
+				metadata := metav1.ObjectMeta{Name: "workload", Namespace: namespace}
+				template := corev1.PodTemplateSpec{ObjectMeta: metav1.ObjectMeta{Annotations: deploymentPodAnnotation}}
+				deployments = append(deployments, appsv1.Deployment{ObjectMeta: metadata, Spec: appsv1.DeploymentSpec{Template: template}})
+				daemonsets = append(daemonsets, appsv1.DaemonSet{ObjectMeta: metadata, Spec: appsv1.DaemonSetSpec{Template: template}})
+				if _, err := client.CoreV1().Pods(namespace).Create(ctx, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod", Namespace: namespace, Annotations: deploymentPodAnnotation}}, metav1.CreateOptions{}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			var visited []string
+			visit := func(namespace string) {
+				pods, err := client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+				if err != nil || len(pods.Items) != 1 || pods.Items[0].Annotations[workloadAnnotations] == "" {
+					t.Fatalf("eligible Pod check failed in %s: pods=%v, error=%v", namespace, pods, err)
+				}
+				visited = append(visited, namespace)
+			}
+			var collected []error
+			if kind == "deployment" {
+				collected = scanPlatformDeployments(ctx, client.CoreV1().Namespaces(), deployments, true, func(workload appsv1.Deployment) { visit(workload.Namespace) })
+			} else {
+				collected = scanPlatformDaemonSets(ctx, client.CoreV1().Namespaces(), daemonsets, true, func(workload appsv1.DaemonSet) { visit(workload.Namespace) })
+			}
+			if len(collected) != 2 {
+				t.Fatalf("not all eligibility errors collected: %v", collected)
+			}
+			for index, namespace := range []string{"openshift-first", "openshift-second"} {
+				if !errors.Is(collected[index], expectedErrors[index]) || !strings.Contains(collected[index].Error(), kind+" "+namespace+"/workload") {
+					t.Fatalf("lost workload context or API error identity: %v", collected[index])
+				}
+			}
+			if len(visited) != 2 || visited[0] != "openshift-eligible" || visited[1] != "openshift-debug-eligible" {
+				t.Fatalf("later eligible Pod checks were not preserved: %v", visited)
+			}
+		})
 	}
 }
 
 func TestWorkloadNamespaceDisappearsAfterList(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	for _, namespace := range []string{"workload-non-pinning", "openshift-e2e-workload", "openshift-platform"} {
+	for _, namespace := range []string{"workload-non-pinning", "openshift-e2e-workload", "openshift-debug-workload", "openshift-platform"} {
 		t.Run(namespace, func(t *testing.T) {
 			client := fake.NewSimpleClientset(
 				&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}},
