@@ -59,9 +59,18 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 	var oidcClientSecret string
 
 	var keycloakNamespace string
+	var webhookArchitecture bool
 
 	g.BeforeAll(func() {
 		var err error
+
+		clusterVersion, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting ClusterVersion")
+		desiredVersion := clusterVersion.Status.Desired.Version
+
+		fgs, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting cluster FeatureGates")
+		webhookArchitecture = isWebhookOIDCArchitecture(fgs, desiredVersion)
 
 		// waitTime is in minutes - set to 30 minute wait for cluster operators to settle before starting tests.
 		err = operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 30)
@@ -120,31 +129,12 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 			_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, nil)
 			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
 
-			waitForRollout(ctx, oc)
+			waitForRollout(ctx, oc, webhookArchitecture)
 			waitForHealthyOIDCClients(ctx, oc)
 		})
 
 		g.Describe("external IdP is configured", g.Ordered, func() {
 			g.It("should configure kube-apiserver", func() {
-				// Get the FeatureGates resource
-				fgs, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred(), "error getting cluster FeatureGates.")
-
-				// Loop through the feature gates to see if the desired one is enabled
-				externalClaimsSourcingEnabled := false
-				for _, fg := range fgs.Status.FeatureGates {
-					for _, enabledFG := range fg.Enabled {
-						if enabledFG.Name == features.FeatureGateExternalOIDCExternalClaimsSourcing {
-							externalClaimsSourcingEnabled = true
-							break
-						}
-					}
-				}
-
-				if externalClaimsSourcingEnabled {
-					g.Skip("ExternalOIDCExternalClaimsSourcing is enabled which makes this test case obsolete, skipping.")
-				}
-
 				kas, err := oc.AdminOperatorClient().OperatorV1().KubeAPIServers().Get(ctx, "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting the kubeapiservers.operator.openshift.io/cluster")
 
@@ -156,11 +146,16 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 
 				apiServerArgs := observedConfig["apiServerArguments"].(map[string]interface{})
 
-				o.Expect(apiServerArgs["authentication-token-webhook-config-file"]).To(o.BeNil(), "authentication-token-webhook-config-file argument should not be specified when OIDC authentication is configured")
-				o.Expect(apiServerArgs["authentication-token-webhook-version"]).To(o.BeNil(), "authentication-token-webhook-version argument should not be specified when OIDC authentication is configured")
-
-				o.Expect(apiServerArgs["authentication-config"]).NotTo(o.BeNil(), "authentication-config argument should be specified when OIDC authentication is configured")
-				o.Expect(apiServerArgs["authentication-config"].([]interface{})[0].(string)).To(o.Equal("/etc/kubernetes/static-pod-resources/configmaps/auth-config/auth-config.json"))
+				if webhookArchitecture {
+					o.Expect(apiServerArgs["authentication-token-webhook-config-file"]).NotTo(o.BeNil(), "authentication-token-webhook-config-file argument should be specified when webhook OIDC architecture is active")
+					o.Expect(apiServerArgs["authentication-token-webhook-version"]).NotTo(o.BeNil(), "authentication-token-webhook-version argument should be specified when webhook OIDC architecture is active")
+					o.Expect(apiServerArgs["authentication-config"]).To(o.BeNil(), "authentication-config argument should not be specified when webhook OIDC architecture is active")
+				} else {
+					o.Expect(apiServerArgs["authentication-token-webhook-config-file"]).To(o.BeNil(), "authentication-token-webhook-config-file argument should not be specified when direct OIDC architecture is active")
+					o.Expect(apiServerArgs["authentication-token-webhook-version"]).To(o.BeNil(), "authentication-token-webhook-version argument should not be specified when direct OIDC architecture is active")
+					o.Expect(apiServerArgs["authentication-config"]).NotTo(o.BeNil(), "authentication-config argument should be specified when direct OIDC architecture is active")
+					o.Expect(apiServerArgs["authentication-config"].([]interface{})[0].(string)).To(o.Equal("/etc/kubernetes/static-pod-resources/configmaps/auth-config/auth-config.json"))
+				}
 			})
 
 			g.It("should remove the OpenShift OAuth stack", func() {
@@ -169,6 +164,37 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 					gomega.Expect(err).NotTo(o.BeNil(), "should not be able to get the integrated oauth stack")
 					gomega.Expect(apierrors.IsNotFound(err)).To(o.BeTrue(), "integrated oauth stack should not be present when OIDC authentication is configured")
 				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+
+				if webhookArchitecture {
+					o.Eventually(func(gomega o.Gomega) {
+						deploy, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-oauth-apiserver").Get(ctx, "apiserver", metav1.GetOptions{})
+						gomega.Expect(err).NotTo(o.HaveOccurred(), "oauth-apiserver deployment should be present when webhook OIDC architecture is active")
+						gomega.Expect(deploy.Status.AvailableReplicas).To(o.BeNumerically(">", 0), "oauth-apiserver should have available replicas when webhook OIDC architecture is active")
+						gomega.Expect(deploy.Status.UpdatedReplicas).To(o.Equal(deploy.Status.Replicas), "oauth-apiserver rollout should be complete")
+						gomega.Expect(deploy.Status.UnavailableReplicas).To(o.Equal(int32(0)), "oauth-apiserver should have no unavailable replicas")
+					}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+
+					_, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(ctx, "auth-config", metav1.GetOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred(), "auth-config ConfigMap should exist in openshift-config-managed when webhook OIDC architecture is active")
+				}
+			})
+
+			g.It("should report the oauth-apiserver operand version in webhook OIDC mode", func() {
+				if !webhookArchitecture {
+					g.Skip("operand version assertions only apply to webhook OIDC architecture")
+				}
+
+				authnCO, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "authentication", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting the authentication ClusterOperator")
+
+				hasOAuthAPIServer := false
+				for _, v := range authnCO.Status.Versions {
+					if v.Name == "oauth-apiserver" {
+						hasOAuthAPIServer = true
+						break
+					}
+				}
+				o.Expect(hasOAuthAPIServer).To(o.BeTrue(), "oauth-apiserver operand version should be present when webhook OIDC architecture is active")
 			})
 
 			g.It("should not accept tokens provided by the OAuth server", func() {
@@ -236,7 +262,10 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
 
 				if modified {
-					waitForRollout(ctx, oc)
+					if webhookArchitecture {
+						waitForResetReconciliation(ctx, oc)
+					}
+					waitForRollout(ctx, oc, false)
 				}
 			})
 
@@ -307,7 +336,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, nil)
 					o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
 
-					waitForRollout(ctx, oc)
+					waitForRollout(ctx, oc, webhookArchitecture)
 					waitForHealthyOIDCClients(ctx, oc)
 				})
 
@@ -347,7 +376,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 					})
 					o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
 
-					waitForRollout(ctx, oc)
+					waitForRollout(ctx, oc, webhookArchitecture)
 					waitForHealthyOIDCClients(ctx, oc)
 				})
 
@@ -481,7 +510,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				})
 				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
 
-				waitForRollout(ctx, oc)
+				waitForRollout(ctx, oc, webhookArchitecture)
 				waitForHealthyOIDCClients(ctx, oc)
 			})
 
@@ -631,7 +660,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				})
 				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication with CEL expression mappings")
 
-				waitForRollout(ctx, oc)
+				waitForRollout(ctx, oc, webhookArchitecture)
 				waitForHealthyOIDCClients(ctx, oc)
 			})
 
@@ -829,7 +858,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				})
 				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC with external claims sourcing")
 
-				waitForRollout(ctx, oc)
+				waitForRollout(ctx, oc, webhookArchitecture)
 				waitForHealthyOIDCClients(ctx, oc)
 			})
 
@@ -940,7 +969,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				})
 				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring multi-mapping external claims")
 
-				waitForRollout(ctx, oc)
+				waitForRollout(ctx, oc, webhookArchitecture)
 				waitForHealthyOIDCClients(ctx, oc)
 			})
 
@@ -1027,7 +1056,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				waitForRollout(ctx, oc)
+				waitForRollout(ctx, oc, webhookArchitecture)
 				waitForHealthyOIDCClients(ctx, oc)
 			})
 
@@ -1223,7 +1252,10 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 
 		// Only if we modified the Authentication resource during the reset should we wait for a rollout
 		if modified {
-			waitForRollout(ctx, oc)
+			if webhookArchitecture {
+				waitForResetReconciliation(ctx, oc)
+			}
+			waitForRollout(ctx, oc, false)
 		}
 
 		err = removeResources(ctx, cleanups...)
@@ -1297,7 +1329,13 @@ func ensureOIDCConfigured(ctx context.Context, client *exutil.CLI, keycloakNS, o
 
 	_, _, err = configureOIDCAuthentication(ctx, client, keycloakNS, oidcClientSecret, nil)
 	o.Expect(err).NotTo(o.HaveOccurred(), "should bootstrap OIDC authentication for hot-reload testing")
-	waitForRollout(ctx, client)
+
+	clusterVersion, err := client.AdminConfigClient().ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting ClusterVersion")
+
+	fgs, err := client.AdminConfigClient().ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting cluster FeatureGates")
+	waitForRollout(ctx, client, isWebhookOIDCArchitecture(fgs, clusterVersion.Status.Desired.Version))
 	waitForHealthyOIDCClients(ctx, client)
 }
 
@@ -1598,16 +1636,27 @@ func resetAuthentication(ctx context.Context, client *exutil.CLI, original *conf
 	return err, modified
 }
 
-func waitForRollout(ctx context.Context, client *exutil.CLI) {
-	kasCli := client.AdminOperatorClient().OperatorV1().KubeAPIServers()
+func waitForRollout(ctx context.Context, client *exutil.CLI, webhookArch bool) {
+	if webhookArch {
+		// In webhook mode, KAS is not reconfigured — oauth-apiserver handles
+		// authentication as a webhook. Wait for the managed source ConfigMap
+		// in openshift-config-managed (not the destination in openshift-oauth-apiserver,
+		// which is retained across resets and cannot confirm reconciliation).
+		o.Eventually(func(gomega o.Gomega) {
+			_, err := client.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(ctx, "auth-config", metav1.GetOptions{})
+			gomega.Expect(err).NotTo(o.HaveOccurred(), "auth-config ConfigMap should exist in openshift-config-managed")
+		}).WithTimeout(10*time.Minute).WithPolling(20*time.Second).Should(o.Succeed(), "should eventually find auth-config ConfigMap in openshift-config-managed")
+	} else {
+		kasCli := client.AdminOperatorClient().OperatorV1().KubeAPIServers()
 
-	// First wait for KAS NodeInstallerProgressing condition to flip to "True".
-	// This means that the KAS-O has successfully started being configured
-	// with our auth resource changes.
-	o.Eventually(func(gomega o.Gomega) {
-		err := checkKubeAPIServerCondition(ctx, kasCli, condition.NodeInstallerProgressingConditionType, operatorv1.ConditionTrue)
-		gomega.Expect(err).NotTo(o.HaveOccurred())
-	}).WithTimeout(10*time.Minute).WithPolling(20*time.Second).Should(o.Succeed(), "should eventually begin rolling out a new revision")
+		// Wait for KAS NodeInstallerProgressing condition to flip to "True".
+		// This means that the KAS-O has successfully started being configured
+		// with our auth resource changes.
+		o.Eventually(func(gomega o.Gomega) {
+			err := checkKubeAPIServerCondition(ctx, kasCli, condition.NodeInstallerProgressingConditionType, operatorv1.ConditionTrue)
+			gomega.Expect(err).NotTo(o.HaveOccurred())
+		}).WithTimeout(10*time.Minute).WithPolling(20*time.Second).Should(o.Succeed(), "should eventually begin rolling out a new revision")
+	}
 
 	// waitTime is in minutes - set to 50 minute wait for cluster operators to settle
 	// Usually, it doesn't take nearly an hour for cluster operators to settle
@@ -1619,6 +1668,16 @@ func waitForRollout(ctx context.Context, client *exutil.CLI) {
 	// doing whatever configurations it needs to.
 	err := operator.WaitForOperatorsToSettle(ctx, client.AdminConfigClient(), 50)
 	o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error waiting for the cluster operators to settle")
+}
+
+func waitForResetReconciliation(ctx context.Context, client *exutil.CLI) {
+	// When reverting from webhook OIDC to IntegratedOAuth, wait for the managed
+	// source ConfigMap to be deleted. The destination ConfigMap in
+	// openshift-oauth-apiserver is retained and cannot confirm reconciliation.
+	o.Eventually(func(gomega o.Gomega) {
+		_, err := client.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(ctx, "auth-config", metav1.GetOptions{})
+		gomega.Expect(apierrors.IsNotFound(err)).To(o.BeTrue(), "auth-config ConfigMap in openshift-config-managed should be deleted after reverting to IntegratedOAuth")
+	}).WithTimeout(10*time.Minute).WithPolling(20*time.Second).Should(o.Succeed(), "should eventually delete auth-config ConfigMap from openshift-config-managed")
 }
 
 // checkKubeAPIServerCondition is a utility function to check that the KubeAPIServer
@@ -1653,6 +1712,24 @@ func checkKubeAPIServerCondition(ctx context.Context, kasCli operatorv1client.Ku
 
 func isDefaultPlatformOIDCClient(c configv1.OIDCClientStatus) bool {
 	return c.ComponentNamespace == "openshift-console" && (c.ComponentName == "console" || c.ComponentName == "cli")
+}
+
+// TODO: replace with features.FeatureGateExternalOIDCAsWebhook once openshift/api is vendored
+const featureGateExternalOIDCAsWebhook configv1.FeatureGateName = "ExternalOIDCAsWebhook"
+
+func isWebhookOIDCArchitecture(fgs *configv1.FeatureGate, desiredVersion string) bool {
+	for _, fg := range fgs.Status.FeatureGates {
+		if fg.Version != desiredVersion {
+			continue
+		}
+		for _, enabled := range fg.Enabled {
+			if enabled.Name == featureGateExternalOIDCAsWebhook ||
+				enabled.Name == features.FeatureGateExternalOIDCExternalClaimsSourcing {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // waitForHealthyOIDCClients waits until platform OIDC clients are healthy.
