@@ -81,6 +81,14 @@ func withPhase(objs []runtime.Object, phase corev1.PodPhase) []runtime.Object {
 	return objs
 }
 
+// replaced moves the singleton's pod to a new name and node, as if it was rescheduled.
+func replaced(objs []runtime.Object, podName, nodeName string) []runtime.Object {
+	pod := objs[2].(*corev1.Pod)
+	pod.Name = podName
+	pod.Spec.NodeName = nodeName
+	return objs
+}
+
 func objects(groups ...[]runtime.Object) []runtime.Object {
 	var ret []runtime.Object
 	for _, g := range groups {
@@ -296,6 +304,84 @@ func TestCollectPodDetailsAndUsage(t *testing.T) {
 	}
 }
 
+func TestCollectStartUsage(t *testing.T) {
+	mb := func(v float64) float64 { return v * bytesPerMB }
+	startObjs := objects(threeMasters(),
+		singleton("openshift-a", "a", "master-0", 1, "50Mi"),
+		singleton("openshift-b", "b", "master-0", 1, "50Mi"),
+	)
+	endObjs := objects(threeMasters(),
+		singleton("openshift-a", "a", "master-0", 1, "50Mi"),
+		replaced(singleton("openshift-b", "b", "master-0", 1, "50Mi"), "b-abc123-new", "master-1"),
+		singleton("openshift-c", "c", "master-1", 1, "50Mi"),
+	)
+
+	testCases := []struct {
+		name       string
+		startUsage map[string]float64
+
+		expectStartErr bool
+		// expected start usage per end pod name, and per master in master order
+		expectedPods      map[string]*float64
+		expectedPlacement []*float64
+	}{
+		{
+			name: "start usage joined by deployment",
+			startUsage: map[string]float64{
+				"openshift-a/a-abc123-xyz": mb(100),
+				"openshift-b/b-abc123-xyz": mb(40),
+			},
+			expectedPods: map[string]*float64{
+				"a-abc123-xyz": ptr.To(mb(100)),
+				// replaced pod keeps its deployment's start value
+				"b-abc123-new": ptr.To(mb(40)),
+				// deployment created during the run has no start value
+				"c-abc123-xyz": nil,
+			},
+			expectedPlacement: []*float64{ptr.To(mb(100)), ptr.To(mb(40)), ptr.To(0.0)},
+		},
+		{
+			name:           "metrics API unavailable at start leaves start usage unset",
+			expectStartErr: true,
+			expectedPods: map[string]*float64{
+				"a-abc123-xyz": nil,
+				"b-abc123-new": nil,
+				"c-abc123-xyz": nil,
+			},
+			expectedPlacement: []*float64{nil, nil, nil},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := newTestCollector(tc.startUsage, map[string]usageStats{})
+			err := w.collectStartUsage(context.Background(), fake.NewSimpleClientset(startObjs...), testBeginning)
+			if tc.expectStartErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			w.fetchCurrentUsage = func(context.Context, kubernetes.Interface) (map[string]float64, error) {
+				return map[string]float64{}, nil
+			}
+			require.NoError(t, w.collectFromClient(context.Background(), fake.NewSimpleClientset(endObjs...), testBeginning, testNow, testNow))
+
+			actualPods := map[string]*float64{}
+			for _, p := range w.pods {
+				actualPods[p.podName] = p.startUsageBytes
+			}
+			assert.Equal(t, tc.expectedPods, actualPods)
+
+			var actualPlacement []*float64
+			for _, p := range w.placement {
+				actualPlacement = append(actualPlacement, p.startUsageBytes)
+			}
+			assert.Equal(t, tc.expectedPlacement, actualPlacement)
+		})
+	}
+}
+
 func TestSummarizePlacementUsage(t *testing.T) {
 	masters := []string{"master-0", "master-1", "master-2"}
 
@@ -338,10 +424,11 @@ func TestSummarizePlacementUsage(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			placement := summarizePlacement(masters, tc.pods, tc.haveCurrentUsage, false)
+			placement := summarizePlacement(masters, tc.pods, false, tc.haveCurrentUsage, false)
 			var actual []*float64
 			for _, p := range placement {
 				actual = append(actual, p.currentUsageBytes)
+				assert.Nil(t, p.startUsageBytes)
 				assert.Nil(t, p.peakUsageBytes)
 				assert.Nil(t, p.avgUsageBytes)
 			}
@@ -408,10 +495,11 @@ func TestWriteContentToStorage(t *testing.T) {
 			pods: []singletonPod{{
 				namespace: "openshift-a", deployment: "a", podName: "a-1", nodeName: "master-0",
 				memoryRequestBytes: 50 * bytesPerMB, podAge: 90 * time.Second,
+				startUsageBytes: ptr.To(120.0 * bytesPerMB), currentUsageBytes: ptr.To(250.0 * bytesPerMB),
 				peakUsageBytes: ptr.To(300.0 * bytesPerMB), avgUsageBytes: ptr.To(200.0 * bytesPerMB),
 			}},
 			placement: []masterPlacement{
-				{nodeName: "master-0", singletonPods: 1, memoryRequestBytes: 50 * bytesPerMB},
+				{nodeName: "master-0", singletonPods: 1, memoryRequestBytes: 50 * bytesPerMB, startUsageBytes: ptr.To(120.0 * bytesPerMB), currentUsageBytes: ptr.To(250.0 * bytesPerMB)},
 				{nodeName: "master-1"},
 			},
 		}
@@ -421,20 +509,22 @@ func TestWriteContentToStorage(t *testing.T) {
 		assert.Equal(t, "control_plane_singleton_pods", pods.TableName)
 		require.Len(t, pods.Rows, 1)
 		assert.Equal(t, map[string]string{
-			"Namespace":         "openshift-a",
-			"Deployment":        "a",
-			"PodName":           "a-1",
-			"NodeName":          "master-0",
-			"MemoryRequestMB":   "50.00",
-			"PodAgeSeconds":     "90",
-			"PeakMemoryUsageMB": "300.00",
-			"AvgMemoryUsageMB":  "200.00",
+			"Namespace":          "openshift-a",
+			"Deployment":         "a",
+			"PodName":            "a-1",
+			"NodeName":           "master-0",
+			"MemoryRequestMB":    "50.00",
+			"PodAgeSeconds":      "90",
+			"StartMemoryUsageMB": "120.00",
+			"EndMemoryUsageMB":   "250.00",
+			"PeakMemoryUsageMB":  "300.00",
+			"AvgMemoryUsageMB":   "200.00",
 		}, pods.Rows[0])
 
 		placement := readDataFile(t, filepath.Join(dir, "control-plane-singleton-placement_suffix-autodl.json"))
 		assert.Equal(t, "control_plane_singleton_placement", placement.TableName)
 		assert.Equal(t, []map[string]string{
-			{"NodeName": "master-0", "SingletonPods": "1", "SingletonMemoryRequestMB": "50.00", "TotalMasters": "2"},
+			{"NodeName": "master-0", "SingletonPods": "1", "SingletonMemoryRequestMB": "50.00", "SingletonStartMemoryUsageMB": "120.00", "SingletonEndMemoryUsageMB": "250.00", "TotalMasters": "2"},
 			{"NodeName": "master-1", "SingletonPods": "0", "SingletonMemoryRequestMB": "0.00", "TotalMasters": "2"},
 		}, placement.Rows)
 	})

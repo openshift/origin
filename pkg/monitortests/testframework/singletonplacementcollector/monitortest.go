@@ -1,13 +1,15 @@
 // Package singletonplacementcollector records where single-replica openshift-* Deployment pods
-// landed across the control plane nodes at the end of a run. Rolling master reboots during
-// install and upgrade can leave most of these singletons on one master, and because their memory
-// requests are far below actual usage the scheduler cannot see the imbalance (OCPBUGS-131892).
+// landed across the control plane nodes at the end of a run, along with their memory usage before
+// the e2e suite started. Rolling master reboots during install and upgrade can leave most of these
+// singletons on one master, and because their memory requests are far below actual usage the
+// scheduler cannot see the imbalance (OCPBUGS-131892).
 // This is data collection only; results are written to autodl for analysis in BigQuery.
 package singletonplacementcollector
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -46,6 +48,7 @@ type singletonPod struct {
 	podAge             time.Duration
 
 	// nil when the metric could not be obtained for this pod
+	startUsageBytes   *float64
 	currentUsageBytes *float64
 	peakUsageBytes    *float64
 	avgUsageBytes     *float64
@@ -57,6 +60,7 @@ type masterPlacement struct {
 	memoryRequestBytes int64
 
 	// nil when the metric source was unavailable
+	startUsageBytes   *float64
 	currentUsageBytes *float64
 	peakUsageBytes    *float64
 	avgUsageBytes     *float64
@@ -75,6 +79,11 @@ type singletonPlacementCollector struct {
 	fetchCurrentUsage func(ctx context.Context, kubeClient kubernetes.Interface) (map[string]float64, error)
 	fetchUsageStats   func(ctx context.Context, restConfig *rest.Config, kubeClient kubernetes.Interface, beginning, end time.Time) (map[string]usageStats, error)
 
+	// startUsage is the memory usage of each singleton before the e2e suite ran, keyed by
+	// "namespace/deployment" so it still applies if the pod is replaced during the run.
+	startUsage map[string]float64
+	startErr   error
+
 	pods      []singletonPod
 	placement []masterPlacement
 }
@@ -92,13 +101,43 @@ func (w *singletonPlacementCollector) PrepareCollection(ctx context.Context, adm
 
 func (w *singletonPlacementCollector) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
+	kubeClient, err := kubernetes.NewForConfig(adminRESTConfig)
+	if err != nil {
+		w.startErr = err
+		return nil
+	}
+	// Failures are reported from CollectData so they surface as a flake rather than failing the run.
+	w.startErr = w.collectStartUsage(ctx, kubeClient, time.Now())
+	return nil
+}
+
+// collectStartUsage records the steady state memory usage of the singletons after install,
+// for tuning operator memory requests.
+func (w *singletonPlacementCollector) collectStartUsage(ctx context.Context, kubeClient kubernetes.Interface, now time.Time) error {
+	masters, pods, err := listSingletonPods(ctx, kubeClient, now)
+	if err != nil {
+		return fmt.Errorf("failed to list singleton pods at start: %w", err)
+	}
+	if len(masters) < 2 {
+		return nil
+	}
+	usage, err := w.fetchCurrentUsage(ctx, kubeClient)
+	if err != nil {
+		return fmt.Errorf("unable to get pod memory usage at start from metrics API: %w", err)
+	}
+	w.startUsage = map[string]float64{}
+	for _, pod := range pods {
+		if v, ok := usage[pod.namespace+"/"+pod.podName]; ok {
+			w.startUsage[pod.namespace+"/"+pod.deployment] = v
+		}
+	}
 	return nil
 }
 
 func (w *singletonPlacementCollector) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
 	logger := logrus.WithField("MonitorTest", "SingletonPlacementCollector")
 
-	if err := w.collect(ctx, beginning, end, time.Now()); err != nil {
+	if err := errors.Join(w.startErr, w.collect(ctx, beginning, end, time.Now())); err != nil {
 		logger.WithError(err).Warn("failed during collection; recording as flake")
 		return nil, []*junitapi.JUnitTestCase{
 			{
@@ -151,6 +190,9 @@ func (w *singletonPlacementCollector) collectFromClient(ctx context.Context, kub
 	}
 
 	for i := range pods {
+		if v, ok := w.startUsage[pods[i].namespace+"/"+pods[i].deployment]; ok {
+			pods[i].startUsageBytes = &v
+		}
 		key := pods[i].namespace + "/" + pods[i].podName
 		if v, ok := currentUsage[key]; ok {
 			pods[i].currentUsageBytes = &v
@@ -162,7 +204,7 @@ func (w *singletonPlacementCollector) collectFromClient(ctx context.Context, kub
 	}
 
 	w.pods = pods
-	w.placement = summarizePlacement(masters, pods, len(currentUsage) > 0, len(stats) > 0)
+	w.placement = summarizePlacement(masters, pods, len(w.startUsage) > 0, len(currentUsage) > 0, len(stats) > 0)
 	return nil
 }
 
@@ -253,7 +295,8 @@ func listSingletonPods(ctx context.Context, kubeClient kubernetes.Interface, now
 // can be computed in BigQuery without knowing the master count. A master's usage sum is only set
 // when at least one of its pods has a sample, so missing data loads as NULL rather than zero.
 // Masters without singletons get a zero sum as long as the metric source returned data at all.
-func summarizePlacement(masters []string, pods []singletonPod, haveCurrentUsage, haveUsageStats bool) []masterPlacement {
+// The start usage sum covers the singletons on the master at the end, not those there at start.
+func summarizePlacement(masters []string, pods []singletonPod, haveStartUsage, haveCurrentUsage, haveUsageStats bool) []masterPlacement {
 	byNode := map[string]*masterPlacement{}
 	placement := make([]masterPlacement, len(masters))
 	for i, name := range masters {
@@ -264,6 +307,7 @@ func summarizePlacement(masters []string, pods []singletonPod, haveCurrentUsage,
 		p := byNode[pod.nodeName]
 		p.singletonPods++
 		p.memoryRequestBytes += pod.memoryRequestBytes
+		addSample(&p.startUsageBytes, pod.startUsageBytes)
 		addSample(&p.currentUsageBytes, pod.currentUsageBytes)
 		addSample(&p.peakUsageBytes, pod.peakUsageBytes)
 		addSample(&p.avgUsageBytes, pod.avgUsageBytes)
@@ -271,6 +315,9 @@ func summarizePlacement(masters []string, pods []singletonPod, haveCurrentUsage,
 	for i := range placement {
 		if placement[i].singletonPods > 0 {
 			continue
+		}
+		if haveStartUsage {
+			placement[i].startUsageBytes = new(float64)
 		}
 		if haveCurrentUsage {
 			placement[i].currentUsageBytes = new(float64)
@@ -420,7 +467,8 @@ func (w *singletonPlacementCollector) WriteContentToStorage(ctx context.Context,
 			"MemoryRequestMB": formatMB(float64(pod.memoryRequestBytes)),
 			"PodAgeSeconds":   fmt.Sprintf("%d", int64(pod.podAge.Seconds())),
 		}
-		setMB(row, "MemoryUsageMB", pod.currentUsageBytes)
+		setMB(row, "StartMemoryUsageMB", pod.startUsageBytes)
+		setMB(row, "EndMemoryUsageMB", pod.currentUsageBytes)
 		setMB(row, "PeakMemoryUsageMB", pod.peakUsageBytes)
 		setMB(row, "AvgMemoryUsageMB", pod.avgUsageBytes)
 		podRows = append(podRows, row)
@@ -428,15 +476,16 @@ func (w *singletonPlacementCollector) WriteContentToStorage(ctx context.Context,
 	podsFile := dataloader.DataFile{
 		TableName: "control_plane_singleton_pods",
 		Schema: map[string]dataloader.DataType{
-			"Namespace":         dataloader.DataTypeString,
-			"Deployment":        dataloader.DataTypeString,
-			"PodName":           dataloader.DataTypeString,
-			"NodeName":          dataloader.DataTypeString,
-			"MemoryRequestMB":   dataloader.DataTypeFloat64,
-			"MemoryUsageMB":     dataloader.DataTypeFloat64,
-			"PeakMemoryUsageMB": dataloader.DataTypeFloat64,
-			"AvgMemoryUsageMB":  dataloader.DataTypeFloat64,
-			"PodAgeSeconds":     dataloader.DataTypeInteger,
+			"Namespace":          dataloader.DataTypeString,
+			"Deployment":         dataloader.DataTypeString,
+			"PodName":            dataloader.DataTypeString,
+			"NodeName":           dataloader.DataTypeString,
+			"MemoryRequestMB":    dataloader.DataTypeFloat64,
+			"StartMemoryUsageMB": dataloader.DataTypeFloat64,
+			"EndMemoryUsageMB":   dataloader.DataTypeFloat64,
+			"PeakMemoryUsageMB":  dataloader.DataTypeFloat64,
+			"AvgMemoryUsageMB":   dataloader.DataTypeFloat64,
+			"PodAgeSeconds":      dataloader.DataTypeInteger,
 		},
 		Rows: podRows,
 	}
@@ -449,7 +498,8 @@ func (w *singletonPlacementCollector) WriteContentToStorage(ctx context.Context,
 			"SingletonMemoryRequestMB": formatMB(float64(p.memoryRequestBytes)),
 			"TotalMasters":             fmt.Sprintf("%d", len(w.placement)),
 		}
-		setMB(row, "SingletonMemoryUsageMB", p.currentUsageBytes)
+		setMB(row, "SingletonStartMemoryUsageMB", p.startUsageBytes)
+		setMB(row, "SingletonEndMemoryUsageMB", p.currentUsageBytes)
 		setMB(row, "SingletonPeakMemoryUsageMB", p.peakUsageBytes)
 		setMB(row, "SingletonAvgMemoryUsageMB", p.avgUsageBytes)
 		placementRows = append(placementRows, row)
@@ -457,13 +507,14 @@ func (w *singletonPlacementCollector) WriteContentToStorage(ctx context.Context,
 	placementFile := dataloader.DataFile{
 		TableName: "control_plane_singleton_placement",
 		Schema: map[string]dataloader.DataType{
-			"NodeName":                   dataloader.DataTypeString,
-			"SingletonPods":              dataloader.DataTypeInteger,
-			"SingletonMemoryRequestMB":   dataloader.DataTypeFloat64,
-			"SingletonMemoryUsageMB":     dataloader.DataTypeFloat64,
-			"SingletonPeakMemoryUsageMB": dataloader.DataTypeFloat64,
-			"SingletonAvgMemoryUsageMB":  dataloader.DataTypeFloat64,
-			"TotalMasters":               dataloader.DataTypeInteger,
+			"NodeName":                    dataloader.DataTypeString,
+			"SingletonPods":               dataloader.DataTypeInteger,
+			"SingletonMemoryRequestMB":    dataloader.DataTypeFloat64,
+			"SingletonStartMemoryUsageMB": dataloader.DataTypeFloat64,
+			"SingletonEndMemoryUsageMB":   dataloader.DataTypeFloat64,
+			"SingletonPeakMemoryUsageMB":  dataloader.DataTypeFloat64,
+			"SingletonAvgMemoryUsageMB":   dataloader.DataTypeFloat64,
+			"TotalMasters":                dataloader.DataTypeInteger,
 		},
 		Rows: placementRows,
 	}
