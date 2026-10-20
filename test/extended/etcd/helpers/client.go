@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"net"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -38,6 +39,8 @@ func (e *EtcdClientFactoryImpl) NewEtcdClientForMember(memberName string) (*clie
 	return e.newEtcdClientForTarget(fmt.Sprintf("pod/etcd-%v", memberName))
 }
 
+// newEtcdClientForTarget opens a local port-forward to an etcd target and
+// returns a TLS-configured client plus its cleanup function.
 func (e *EtcdClientFactoryImpl) newEtcdClientForTarget(target string) (*clientv3.Client, func(), error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cmd := exec.CommandContext(ctx, "oc", "port-forward", target, ":2379", "-n", "openshift-etcd")
@@ -72,10 +75,9 @@ func (e *EtcdClientFactoryImpl) newEtcdClientForTarget(target string) (*clientv3
 	}
 	output := scanner.Text()
 
-	port := strings.TrimSuffix(strings.TrimPrefix(output, "Forwarding from 127.0.0.1:"), " -> 2379")
-	_, err = strconv.Atoi(port)
+	endpoint, err := parsePortForwardEndpoint(output)
 	if err != nil {
-		return nil, nil, fmt.Errorf("port forward output not in expected format: %s", output)
+		return nil, nil, err
 	}
 
 	coreV1 := e.kubeClient.CoreV1()
@@ -100,7 +102,7 @@ func (e *EtcdClientFactoryImpl) newEtcdClientForTarget(target string) (*clientv3
 	}
 
 	etcdClient3, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{"https://127.0.0.1:" + port},
+		Endpoints:   []string{"https://" + endpoint},
 		DialTimeout: 30 * time.Second,
 		TLS:         tlsConfig,
 	})
@@ -114,4 +116,26 @@ func (e *EtcdClientFactoryImpl) newEtcdClientForTarget(target string) (*clientv3
 	}
 
 	return etcdClient3, done, nil
+}
+
+// parsePortForwardEndpoint extracts an IPv4 or IPv6 loopback endpoint from
+// kubectl port-forward output.
+func parsePortForwardEndpoint(output string) (string, error) {
+	const (
+		prefix = "Forwarding from "
+		suffix = " -> 2379"
+	)
+	if !strings.HasPrefix(output, prefix) || !strings.HasSuffix(output, suffix) {
+		return "", fmt.Errorf("port forward output not in expected format: %s", output)
+	}
+
+	address := strings.TrimSuffix(strings.TrimPrefix(output, prefix), suffix)
+	host, port, err := net.SplitHostPort(address)
+	if err != nil || host == "" {
+		return "", fmt.Errorf("port forward output not in expected format: %s", output)
+	}
+	if _, err := strconv.Atoi(port); err != nil {
+		return "", fmt.Errorf("port forward output not in expected format: %s", output)
+	}
+	return net.JoinHostPort(host, port), nil
 }

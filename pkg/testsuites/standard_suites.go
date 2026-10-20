@@ -142,7 +142,7 @@ var staticSuites = []ginkgo.TestSuite{
 	{
 		Name: "openshift/disruptive",
 		Description: templates.LongDesc(`
-		The disruptive test suite.  Disruptive tests interrupt the cluster function such as by stopping/restarting the control plane or 
+		The disruptive test suite.  Disruptive tests interrupt the cluster function such as by stopping/restarting the control plane or
 		changing the global cluster configuration in a way that can affect other tests.
 		`),
 		Qualifiers: []string{
@@ -425,6 +425,33 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		TestTimeout:                60 * time.Minute,
 		Parallelism:                1, // Tests must run serially as they involve node reboots and fencing
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
+	{
+		Name: "openshift/topology-transitions/preflight",
+		Description: templates.LongDesc(`
+        This suite checks expected topology preflight failures on the initial SNO
+        cluster without submitting a transition request. Requires MutableTopology
+        and the TARGET_* topology and node-count variables.
+        `),
+		Qualifiers: []string{
+			`name.contains("[Suite:openshift/topology-transitions/preflight]") && name.contains("[OCPFeatureGate:MutableTopology]")`,
+		},
+		TestTimeout:                30 * time.Minute,
+		Parallelism:                1,
+		ClusterStabilityDuringTest: ginkgo.Stable,
+	},
+	{
+		Name: "openshift/topology-transitions",
+		Description: templates.LongDesc(`
+        This suite runs a topology transition after the lane provisions nodes.
+        Requires MutableTopology and the TARGET_* topology and node-count variables.
+        `),
+		Qualifiers: []string{
+			`name.contains("[Suite:openshift/topology-transitions]") && name.contains("[OCPFeatureGate:MutableTopology]")`,
+		},
+		TestTimeout:                150 * time.Minute,
+		Parallelism:                1,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
