@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
@@ -12,6 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/prometheus"
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	prometheustypes "github.com/prometheus/common/model"
@@ -374,11 +376,45 @@ func (*cpuMetricCollector) ConstructComputedIntervals(ctx context.Context, start
 	return nil, nil
 }
 
+const cpuSaturationTestName = "[sig-node] nodes should not be CPU saturated"
+
+// EvaluateTestsFromConstructedIntervals flakes (a failure plus a pass) when any node was CPU
+// saturated, so we can track which jobs hit it and how often without failing them. Saturation
+// that overlaps a must-gather e2e test is ignored: those tests run several must-gathers at once
+// on one master and saturate it in nearly every run. High CPU usage intervals don't produce test
+// results.
 func (w *cpuMetricCollector) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	// This monitor test is purely for data collection, not for generating test cases. CPU
-	// saturation doesn't flake a test because the oc adm must-gather tests saturate a master in
-	// nearly every run.
-	return nil, nil
+	mustGatherTests := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceE2ETest && eventInterval.Display &&
+			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "must-gather")
+	})
+	saturated := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		if eventInterval.Source != monitorapi.SourceCPUSaturation {
+			return false
+		}
+		for _, test := range mustGatherTests {
+			if utility.IntervalsOverlap(eventInterval, test) {
+				return false
+			}
+		}
+		return true
+	})
+
+	junits := []*junitapi.JUnitTestCase{}
+	if len(saturated) > 0 {
+		lines := []string{}
+		for _, interval := range saturated {
+			lines = append(lines, interval.String())
+		}
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name: cpuSaturationTestName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("found CPU saturated nodes outside of must-gather tests:\n  %s", strings.Join(lines, "\n  ")),
+			},
+		})
+	}
+	// Add a success so this is marked as a flake at worst
+	return append(junits, &junitapi.JUnitTestCase{Name: cpuSaturationTestName}), nil
 }
 
 func (w *cpuMetricCollector) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {

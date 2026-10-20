@@ -349,14 +349,70 @@ func TestCPUMetricCollector_DefaultRunQueueThreshold(t *testing.T) {
 	assert.Equal(t, 4.0, collector.runQueueThreshold)
 }
 
-func TestEvaluateTestsReportsNoResults(t *testing.T) {
-	logger := logrus.WithField("test", "saturation")
-	start := time.Date(2026, 10, 19, 13, 57, 0, 0, time.UTC)
-	collector := &cpuMetricCollector{highCPUThreshold: 95, runQueueThreshold: 4}
-	saturated := collector.createSaturationIntervals(logger, runQueueMatrix("master-0", start, 6.5, 68), map[string]nodeInfo{})
-	require.NotEmpty(t, saturated)
+func e2eTestInterval(name string, from, to time.Time) monitorapi.Interval {
+	return monitorapi.NewInterval(monitorapi.SourceE2ETest, monitorapi.Info).
+		Locator(monitorapi.NewLocator().E2ETest(name)).
+		Message(monitorapi.NewMessage().HumanMessage("e2e test")).
+		Display().
+		Build(from, to)
+}
 
-	junits, err := collector.EvaluateTestsFromConstructedIntervals(context.Background(), saturated)
-	require.NoError(t, err)
-	assert.Empty(t, junits, "CPU saturation is recorded as intervals only")
+func TestEvaluateTestsFlakesOnSaturation(t *testing.T) {
+	logger := logrus.WithField("test", "saturation")
+	start := time.Date(2026, 10, 20, 6, 0, 0, 0, time.UTC)
+	collector := &cpuMetricCollector{highCPUThreshold: 95, runQueueThreshold: 4}
+	// saturated 06:00:00-06:01:00 on master-0
+	early := collector.createSaturationIntervals(logger, runQueueMatrix("master-0", start, 6.5, 7), map[string]nodeInfo{})
+	// saturated 06:39:00-06:40:00 on master-1
+	late := collector.createSaturationIntervals(logger, runQueueMatrix("master-1", start.Add(39*time.Minute), 68, 40), map[string]nodeInfo{})
+	require.Len(t, early, 1)
+	require.Len(t, late, 1)
+	mustGather := e2eTestInterval("[sig-cli] oc adm must-gather runs successfully", start.Add(38*time.Minute), start.Add(42*time.Minute))
+	otherTest := e2eTestInterval("[sig-network] some other test", start, start.Add(time.Minute))
+	highCPU := collector.createCPUInterval(monitorapi.NewLocator().NodeFromNameWithRole("master-0", "master"), "master-0", "master", start, start.Add(time.Minute), 98)
+
+	testCases := []struct {
+		name        string
+		intervals   monitorapi.Intervals
+		expectFlake bool
+		expectNode  string
+	}{
+		{
+			name:        "saturation outside must-gather flakes",
+			intervals:   monitorapi.Intervals{otherTest, early[0]},
+			expectFlake: true,
+			expectNode:  "master-0",
+		},
+		{
+			name:      "saturation during a must-gather test is ignored",
+			intervals: monitorapi.Intervals{mustGather, late[0]},
+		},
+		{
+			name:        "only the saturation outside must-gather is reported",
+			intervals:   monitorapi.Intervals{mustGather, otherTest, early[0], late[0]},
+			expectFlake: true,
+			expectNode:  "master-0",
+		},
+		{
+			name:      "high CPU usage alone is a pass",
+			intervals: monitorapi.Intervals{highCPU},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			junits, err := collector.EvaluateTestsFromConstructedIntervals(context.Background(), tc.intervals)
+			require.NoError(t, err)
+			if !tc.expectFlake {
+				require.Len(t, junits, 1, "a plain pass")
+				assert.Equal(t, cpuSaturationTestName, junits[0].Name)
+				assert.Nil(t, junits[0].FailureOutput)
+				return
+			}
+			require.Len(t, junits, 2, "a failure and a pass make a flake")
+			require.NotNil(t, junits[0].FailureOutput)
+			assert.Contains(t, junits[0].FailureOutput.Output, tc.expectNode)
+			assert.NotContains(t, junits[0].FailureOutput.Output, "master-1", "saturation during must-gather is not reported")
+			assert.Nil(t, junits[1].FailureOutput)
+		})
+	}
 }
