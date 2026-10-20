@@ -21,6 +21,7 @@ import (
 	operatorclient "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
 )
 
+// dcmDiagnosticTestPod supplies synthetic lifecycle failures and sensitive fields for isolation tests.
 func dcmDiagnosticTestPod(name, controllerName string) corev1.Pod {
 	return corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "openshift-ingress", Labels: map[string]string{dcmRouterControllerLabel: controllerName}},
@@ -28,10 +29,20 @@ func dcmDiagnosticTestPod(name, controllerName string) corev1.Pod {
 			InitContainers: []corev1.Container{{Name: "init-router"}, {Name: "haproxy"}},
 			Containers:     []corev1.Container{{Name: "router", Env: []corev1.EnvVar{{Name: "PASSWORD", Value: "test-sensitive-config"}}}},
 		},
-		Status: corev1.PodStatus{Phase: corev1.PodPending},
+		Status: corev1.PodStatus{
+			Phase: corev1.PodPending,
+			InitContainerStatuses: []corev1.ContainerStatus{
+				{Name: "init-router", State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "PodInitializing", Message: "SYNTHETIC_STATUS_MESSAGE"}}},
+				{Name: "haproxy", State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{ExitCode: 17, Signal: 9, Reason: "SYNTHETIC_TERMINATION_REASON", Message: "SYNTHETIC_TERMINATION_MESSAGE"}}},
+			},
+			ContainerStatuses: []corev1.ContainerStatus{
+				{Name: "router", RestartCount: 2, State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "CrashLoopBackOff"}}},
+			},
+		},
 	}
 }
 
+// TestDCMFailureDiagnosticsBeforeCleanup protects collection ordering and unmodified deletion behavior.
 func TestDCMFailureDiagnosticsBeforeCleanup(t *testing.T) {
 	for _, testCase := range []struct {
 		name           string
@@ -137,6 +148,7 @@ func TestDCMFailureDiagnosticsBeforeCleanup(t *testing.T) {
 	}
 }
 
+// TestDCMRouterDiagnosticsBoundsAndRedaction checks useful allowlisted evidence and bounded isolation.
 func TestDCMRouterDiagnosticsBoundsAndRedaction(t *testing.T) {
 	var mutex sync.Mutex
 	var containers []string
@@ -147,7 +159,11 @@ func TestDCMRouterDiagnosticsBoundsAndRedaction(t *testing.T) {
 		if request.URL.Path == "/api/v1/namespaces/openshift-ingress/pods" {
 			pods := corev1.PodList{}
 			for podIndex := 0; podIndex < dcmDiagnosticMaxPods+2; podIndex++ {
-				pod := dcmDiagnosticTestPod(fmt.Sprintf("router-%d", podIndex), "test-controller")
+				pod := dcmDiagnosticTestPod(fmt.Sprintf("synthetic.example.invalid-%d", podIndex), "test-controller")
+				pod.Spec.NodeName = "SYNTHETIC_HOSTNAME"
+				if podIndex == 1 {
+					pod.Status.Phase = "SYNTHETIC_PHASE"
+				}
 				pod.Spec.Containers = append(pod.Spec.Containers, corev1.Container{Name: "extra"}, corev1.Container{Name: "excluded"})
 				pods.Items = append(pods.Items, pod)
 			}
@@ -157,7 +173,7 @@ func TestDCMRouterDiagnosticsBoundsAndRedaction(t *testing.T) {
 			return
 		}
 		containers = append(containers, request.URL.Query().Get("container"))
-		fmt.Fprint(writer, "Authorization: Bearer test-bearer-value\n-----BEGIN PRIVATE KEY-----\nTEST_KEY_MATERIAL\n-----END PRIVATE KEY-----\n"+strings.Repeat("log line\n", dcmDiagnosticLogBytes))
+		fmt.Fprint(writer, "password=SYNTHETIC_PASSWORD api_key=SYNTHETIC_API_KEY session=SYNTHETIC_SESSION user=synthetic@example.invalid\n"+strings.Repeat("unknown log line\n", dcmDiagnosticLogBytes))
 	}))
 	defer server.Close()
 	kubeClient, err := kubernetes.NewForConfig(&rest.Config{Host: server.URL})
@@ -173,54 +189,109 @@ func TestDCMRouterDiagnosticsBoundsAndRedaction(t *testing.T) {
 	if !reflect.DeepEqual(containers[:4], []string{"init-router", "haproxy", "router", "extra"}) {
 		t.Fatalf("init and regular containers not covered: %v", containers)
 	}
-	for _, excluded := range []string{"test-bearer-value", "TEST_KEY_MATERIAL", "test-sensitive-config", "router-3", "excluded"} {
+	for _, excluded := range []string{"SYNTHETIC", "synthetic@example.invalid", "synthetic.example.invalid", "test-sensitive-config", "test-controller", "unknown log line", "extra", "excluded"} {
 		if strings.Contains(output, excluded) {
 			t.Errorf("diagnostics contain excluded content %q", excluded)
 		}
 	}
-	if !strings.Contains(output, "<redacted>") || !strings.Contains(output, "<redacted PEM>") {
-		t.Error("expected redaction markers")
+	for _, expected := range []string{"Pod 1 phase=Pending", "Pod 2 phase=Other", "init=true", "waiting:PodInitializing", "terminated:exit=17,signal=9", "restarts=2 state=waiting:CrashLoopBackOff", "Log sample bytes=16384", "clipped=true (body suppressed)"} {
+		if !strings.Contains(output, expected) {
+			t.Errorf("missing useful allowlisted evidence %q", expected)
+		}
 	}
-	if len(output) > dcmDiagnosticMaxPods*dcmDiagnosticMaxContainers*(dcmDiagnosticLogBytes+256) {
+	if len(output) > 4096 {
 		t.Fatalf("diagnostic output exceeded size bound: %d", len(output))
 	}
 }
 
-func TestDCMRouterLogRedactsTruncatedPEM(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		fmt.Fprint(writer, "startup\n-----BEGIN RSA PRIVATE KEY-----\n"+strings.Repeat("TEST_KEY_MATERIAL", dcmDiagnosticLogBytes))
-	}))
-	defer server.Close()
-	kubeClient, err := kubernetes.NewForConfig(&rest.Config{Host: server.URL})
-	if err != nil {
-		t.Fatal(err)
-	}
-	output, err := readDCMRouterLog(context.Background(), kubeClient, "router", "haproxy")
-	if err != nil || output != "startup\n<redacted PEM>" {
-		t.Fatalf("truncated PEM was not suppressed: error=%v bytes=%d", err, len(output))
-	}
-}
-
-func TestDCMRouterLogRedaction(t *testing.T) {
+// TestDCMRouterLogMetadata proves that no body text survives unknown, partial or failed reads.
+func TestDCMRouterLogMetadata(t *testing.T) {
 	for _, testCase := range []struct {
-		name  string
-		input string
-		want  string
+		name       string
+		input      string
+		want       string
+		status     int
+		incomplete bool
+		wantError  bool
 	}{
-		{name: "ordinary router log", input: "router startup\n", want: "router startup\n"},
-		{name: "bearer authorization", input: "Authorization: Bearer synthetic-token", want: "Authorization: Bearer <redacted>"},
-		{name: "bearer config", input: `BearerToken:"synthetic-token"`, want: `BearerToken:"<redacted>"`},
-		{name: "PEM tail without header", input: "SYNTHETIC_KEY_FRAGMENT\n-----END EC PRIVATE KEY-----\nrouter startup", want: "<redacted PEM>\nrouter startup"},
-		{name: "PEM body without delimiters", input: "router startup\n" + strings.Repeat("QUJD", 16) + "\nrouter ready", want: "router startup\n<redacted key data>\nrouter ready"},
+		{name: "empty body", want: "Log sample bytes=0 completeLines=0 clipped=false (body suppressed)"},
+		{name: "unrecognized messages", input: "password=SYNTHETIC_PASSWORD\napi_key=SYNTHETIC_API_KEY\n", want: "Log sample bytes=54 completeLines=2 clipped=false (body suppressed)"},
+		{name: "unterminated line", input: "SYNTHETIC_SESSION", want: "Log sample bytes=17 completeLines=0 clipped=false (body suppressed)"},
+		{name: "over byte bound", input: strings.Repeat("S", dcmDiagnosticLogBytes*2), want: "Log sample bytes=16384 completeLines=0 clipped=true (body suppressed)"},
+		{name: "at byte bound", input: strings.Repeat("S", dcmDiagnosticLogBytes), want: "Log sample bytes=16384 completeLines=0 clipped=true (body suppressed)"},
+		{name: "API error body", input: "SYNTHETIC_ERROR_BODY", status: http.StatusBadRequest, wantError: true},
+		{name: "incomplete response", input: "SYNTHETIC_PARTIAL_BODY", incomplete: true, wantError: true},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			if got := redactDCMRouterLog(testCase.input); got != testCase.want {
-				t.Fatalf("unexpected sanitized output: %q", got)
+			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+				if testCase.incomplete {
+					writer.Header().Set("Content-Length", "1024")
+				}
+				if testCase.status != 0 {
+					writer.WriteHeader(testCase.status)
+				}
+				fmt.Fprint(writer, testCase.input)
+			}))
+			defer server.Close()
+			kubeClient, err := kubernetes.NewForConfig(&rest.Config{Host: server.URL})
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := readDCMRouterLog(context.Background(), kubeClient, "router", "haproxy")
+			if (err != nil) != testCase.wantError || got != testCase.want {
+				t.Fatalf("unexpected log metadata: %q, errorPresent=%t", got, err != nil)
 			}
 		})
 	}
 }
 
+// TestDCMContainerState rejects unknown reasons and messages while retaining lifecycle facts.
+func TestDCMContainerState(t *testing.T) {
+	for _, testCase := range []struct {
+		state corev1.ContainerState
+		want  string
+	}{
+		{want: "unobserved"},
+		{state: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}, want: "running"},
+		{state: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "password=SYNTHETIC_PASSWORD", Message: "SYNTHETIC_MESSAGE"}}, want: "waiting:Other"},
+		{state: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{ExitCode: 23, Signal: 9, Message: "SYNTHETIC_MESSAGE", Reason: "SYNTHETIC_REASON"}}, want: "terminated:exit=23,signal=9"},
+	} {
+		t.Run(testCase.want, func(t *testing.T) {
+			if got := dcmContainerState(testCase.state); got != testCase.want {
+				t.Fatalf("unexpected state classification: %q", got)
+			}
+		})
+	}
+}
+
+// TestDCMDiagnosticErrorsSuppressDetails checks the final output boundary, not just the reader.
+func TestDCMDiagnosticErrorsSuppressDetails(t *testing.T) {
+	for _, failList := range []bool{true, false} {
+		t.Run(fmt.Sprintf("listFailure=%t", failList), func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+				if !failList && request.URL.Path == "/api/v1/namespaces/openshift-ingress/pods" {
+					writer.Header().Set("Content-Type", "application/json")
+					if err := json.NewEncoder(writer).Encode(corev1.PodList{Items: []corev1.Pod{dcmDiagnosticTestPod("router", "test-controller")}}); err != nil {
+						t.Errorf("encode pods: %v", err)
+					}
+					return
+				}
+				http.Error(writer, "password=SYNTHETIC_PASSWORD host=synthetic.example.invalid", http.StatusBadRequest)
+			}))
+			defer server.Close()
+			kubeClient, err := kubernetes.NewForConfig(&rest.Config{Host: server.URL})
+			if err != nil {
+				t.Fatal(err)
+			}
+			output := collectDCMRouterDiagnostics(context.Background(), kubeClient, "test-controller")
+			if !strings.Contains(output, "Unable to") || strings.Contains(output, "SYNTHETIC") || strings.Contains(output, "synthetic.example.invalid") {
+				t.Fatalf("unexpected error classification output: %q", output)
+			}
+		})
+	}
+}
+
+// TestDCMRouterDiagnosticsContextDeadline protects both API and streaming-body deadlines.
 func TestDCMRouterDiagnosticsContextDeadline(t *testing.T) {
 	for _, blockedOperation := range []string{"list", "log body"} {
 		t.Run(blockedOperation, func(t *testing.T) {
@@ -254,6 +325,7 @@ func TestDCMRouterDiagnosticsContextDeadline(t *testing.T) {
 	}
 }
 
+// TestDCMDiagnosticsDeadlineStillAllowsCleanup ensures collection timeouts cannot skip deletion.
 func TestDCMDiagnosticsDeadlineStillAllowsCleanup(t *testing.T) {
 	var mutex sync.Mutex
 	var requests int

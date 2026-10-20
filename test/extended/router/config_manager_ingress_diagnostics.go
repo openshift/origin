@@ -1,10 +1,10 @@
 package router
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
-	"regexp"
 	"strings"
 	"time"
 
@@ -17,7 +17,6 @@ import (
 	"k8s.io/utils/ptr"
 
 	operatorclient "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
-	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (
@@ -30,12 +29,7 @@ const (
 	dcmRouterControllerLabel    = "ingresscontroller.operator.openshift.io/deployment-ingresscontroller"
 )
 
-var (
-	dcmDiagnosticPEM     = regexp.MustCompile(`(?s)-----BEGIN [^-\r\n]+-----.*?(?:-----END [^-\r\n]+-----|$)`)
-	dcmDiagnosticPEMTail = regexp.MustCompile(`(?s)^.*?-----END [^-\r\n]+-----`)
-	dcmDiagnosticKeyLine = regexp.MustCompile(`(?m)^[\t ]*[A-Za-z0-9+/]{32,}={0,2}[\t ]*\r?$`)
-)
-
+// cleanupDCMIngressController captures failure evidence before deleting the test controller.
 func cleanupDCMIngressController(ctx context.Context, kubeClient kubernetes.Interface, operatorClient operatorclient.OperatorV1Interface, controller types.NamespacedName, failed bool) error {
 	if controller.Name == "" {
 		return nil
@@ -46,11 +40,13 @@ func cleanupDCMIngressController(ctx context.Context, kubeClient kubernetes.Inte
 	return operatorClient.IngressControllers(controller.Namespace).Delete(ctx, controller.Name, *metav1.NewDeleteOptions(1))
 }
 
+// collectDCMRouterDiagnostics emits only fixed classifications, counters and booleans.
+// Resource names, free-form status messages and log bodies are not diagnostic output.
 func collectDCMRouterDiagnostics(ctx context.Context, kubeClient kubernetes.Interface, controllerName string) string {
 	ctx, cancel := context.WithTimeout(ctx, dcmDiagnosticsTimeout)
 	defer cancel()
 	var output strings.Builder
-	fmt.Fprintf(&output, "DCM router diagnostics for %s\n", controllerName)
+	output.WriteString("DCM router diagnostics (log bodies suppressed)\n")
 	requestCtx, requestCancel := context.WithTimeout(ctx, dcmDiagnosticRequestTimeout)
 	pods, err := kubeClient.CoreV1().Pods("openshift-ingress").List(requestCtx, metav1.ListOptions{
 		LabelSelector: labels.Set{dcmRouterControllerLabel: controllerName}.String(),
@@ -70,26 +66,64 @@ func collectDCMRouterDiagnostics(ctx context.Context, kubeClient kubernetes.Inte
 			continue
 		}
 		collected++
-		fmt.Fprintf(&output, "Pod %s phase=%s deleting=%t\n", pod.Name, pod.Status.Phase, pod.DeletionTimestamp != nil)
+		phase := "Other"
+		switch pod.Status.Phase {
+		case corev1.PodPending, corev1.PodRunning, corev1.PodSucceeded, corev1.PodFailed, corev1.PodUnknown:
+			phase = string(pod.Status.Phase)
+		}
+		fmt.Fprintf(&output, "Pod %d phase=%s deleting=%t\n", collected, phase, pod.DeletionTimestamp != nil)
 		containers := append([]corev1.Container(nil), pod.Spec.InitContainers...)
 		containers = append(containers, pod.Spec.Containers...)
 		for containerIndex, container := range containers {
 			if ctx.Err() != nil || containerIndex >= dcmDiagnosticMaxContainers {
 				break
 			}
+			initContainer := containerIndex < len(pod.Spec.InitContainers)
+			fmt.Fprintf(&output, "Container %d init=%t", containerIndex+1, initContainer)
+			statuses := pod.Status.ContainerStatuses
+			if initContainer {
+				statuses = pod.Status.InitContainerStatuses
+			}
+			for _, status := range statuses {
+				if status.Name == container.Name {
+					fmt.Fprintf(&output, " ready=%t restarts=%d state=%s lastState=%s", status.Ready, status.RestartCount, dcmContainerState(status.State), dcmContainerState(status.LastTerminationState))
+					break
+				}
+			}
+			output.WriteByte('\n')
 			requestCtx, requestCancel := context.WithTimeout(ctx, dcmDiagnosticRequestTimeout)
 			logs, logErr := readDCMRouterLog(requestCtx, kubeClient, pod.Name, container.Name)
 			requestCancel()
 			if logErr != nil {
-				fmt.Fprintf(&output, "Unable to read logs for %s/%s\n", pod.Name, container.Name)
+				output.WriteString("Unable to read container logs\n")
 				continue
 			}
-			fmt.Fprintf(&output, "Logs for %s/%s:\n%s\n", pod.Name, container.Name, logs)
+			fmt.Fprintf(&output, "%s\n", logs)
 		}
 	}
 	return output.String()
 }
 
+// dcmContainerState preserves lifecycle failures without forwarding arbitrary reasons or messages.
+func dcmContainerState(state corev1.ContainerState) string {
+	switch {
+	case state.Waiting != nil:
+		reason := "Other"
+		switch state.Waiting.Reason {
+		case "PodInitializing", "ContainerCreating", "CrashLoopBackOff", "ErrImagePull", "ImagePullBackOff", "CreateContainerConfigError", "CreateContainerError", "RunContainerError":
+			reason = state.Waiting.Reason
+		}
+		return "waiting:" + reason
+	case state.Running != nil:
+		return "running"
+	case state.Terminated != nil:
+		return fmt.Sprintf("terminated:exit=%d,signal=%d", state.Terminated.ExitCode, state.Terminated.Signal)
+	default:
+		return "unobserved"
+	}
+}
+
+// readDCMRouterLog reports bounded availability metadata, never log text, including partial reads.
 func readDCMRouterLog(ctx context.Context, kubeClient kubernetes.Interface, podName, containerName string) (string, error) {
 	stream, err := kubeClient.CoreV1().Pods("openshift-ingress").GetLogs(podName, &corev1.PodLogOptions{
 		Container:  containerName,
@@ -100,20 +134,13 @@ func readDCMRouterLog(ctx context.Context, kubeClient kubernetes.Interface, podN
 		return "", err
 	}
 	defer stream.Close()
-	content, err := io.ReadAll(io.LimitReader(stream, dcmDiagnosticLogBytes))
+	content, err := io.ReadAll(io.LimitReader(stream, dcmDiagnosticLogBytes+1))
 	if err != nil {
 		return "", err
 	}
-	safe := redactDCMRouterLog(string(content))
-	if len(safe) > dcmDiagnosticLogBytes {
-		safe = safe[:dcmDiagnosticLogBytes]
+	clipped := len(content) >= dcmDiagnosticLogBytes
+	if len(content) > dcmDiagnosticLogBytes {
+		content = content[:dcmDiagnosticLogBytes]
 	}
-	return safe, nil
-}
-
-func redactDCMRouterLog(content string) string {
-	content = dcmDiagnosticPEM.ReplaceAllString(content, "<redacted PEM>")
-	content = dcmDiagnosticPEMTail.ReplaceAllString(content, "<redacted PEM>")
-	content = dcmDiagnosticKeyLine.ReplaceAllString(content, "<redacted key data>")
-	return exutil.RedactBearerToken(content)
+	return fmt.Sprintf("Log sample bytes=%d completeLines=%d clipped=%t (body suppressed)", len(content), bytes.Count(content, []byte{'\n'}), clipped), nil
 }
