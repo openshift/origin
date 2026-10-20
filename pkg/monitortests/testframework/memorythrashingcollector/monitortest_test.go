@@ -1,6 +1,7 @@
 package memorythrashingcollector
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -162,4 +163,27 @@ func TestCreateIntervalsUnknownNodeFallsBackToInstance(t *testing.T) {
 	require.Len(t, intervals, 1)
 	assert.Equal(t, 30*time.Second, intervals[0].To.Sub(intervals[0].From), "a single sample counts for one query step")
 	assert.Equal(t, "10.0.0.5:9100", intervals[0].Locator.Keys[monitorapi.LocatorNodeKey])
+}
+
+func TestEvaluateTestsFlakesOnThrashing(t *testing.T) {
+	start := time.Date(2026, 9, 22, 15, 0, 0, 0, time.UTC)
+	collector := newTestCollector()
+	thrashing := collector.createIntervalsFromMetrics(logrus.WithField("test", "flake"),
+		matrix("master-0", start, 300), matrix("master-0", start, 120), map[string]nodeInfo{})
+	other := monitorapi.NewInterval(monitorapi.SourceCPUMonitor, monitorapi.Warning).
+		Locator(monitorapi.NewLocator().NodeFromName("master-0")).Message(monitorapi.NewMessage().HumanMessage("other")).Build(start, start)
+
+	junits, err := collector.EvaluateTestsFromConstructedIntervals(context.Background(), append(monitorapi.Intervals{other}, thrashing...))
+	require.NoError(t, err)
+	require.Len(t, junits, 2, "a failure and a pass make a flake")
+	assert.Equal(t, memoryThrashingTestName, junits[0].Name)
+	require.NotNil(t, junits[0].FailureOutput)
+	assert.Contains(t, junits[0].FailureOutput.Output, "master-0")
+	assert.Equal(t, memoryThrashingTestName, junits[1].Name)
+	assert.Nil(t, junits[1].FailureOutput)
+
+	junits, err = collector.EvaluateTestsFromConstructedIntervals(context.Background(), monitorapi.Intervals{other})
+	require.NoError(t, err)
+	require.Len(t, junits, 1, "no thrashing intervals is a plain pass")
+	assert.Nil(t, junits[0].FailureOutput)
 }

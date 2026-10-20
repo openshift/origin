@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
@@ -265,9 +266,30 @@ func (*memoryThrashingCollector) ConstructComputedIntervals(ctx context.Context,
 	return nil, nil
 }
 
+const memoryThrashingTestName = "[sig-node] nodes should not be thrashing memory"
+
+// EvaluateTestsFromConstructedIntervals flakes (a failure plus a pass) when any node thrashed
+// memory, so we can track which jobs hit it and how often without failing them.
 func (w *memoryThrashingCollector) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	// This monitor test is purely for data collection, not for generating test cases
-	return nil, nil
+	thrashing := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceMemoryMonitor
+	})
+
+	junits := []*junitapi.JUnitTestCase{}
+	if len(thrashing) > 0 {
+		lines := []string{}
+		for _, interval := range thrashing {
+			lines = append(lines, interval.String())
+		}
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name: memoryThrashingTestName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("found nodes thrashing memory:\n  %s", strings.Join(lines, "\n  ")),
+			},
+		})
+	}
+	// Add a success so this is marked as a flake at worst
+	return append(junits, &junitapi.JUnitTestCase{Name: memoryThrashingTestName}), nil
 }
 
 // WriteContentToStorage writes the thrashing intervals to the node_memory_thrashing_intervals autodl file.
