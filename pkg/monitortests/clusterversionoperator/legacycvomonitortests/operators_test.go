@@ -370,3 +370,26 @@ func Test_patchUpgradeWithConfigClient(t *testing.T) {
 		})
 	}
 }
+
+func TestIsTNFJobClusterOperatorReason(t *testing.T) {
+	tests := []struct {
+		reason string
+		want   bool
+	}{
+		{"tnf-setup-job_JobRunning", true},
+		{"tnf-fencing-job_JobRunning", true},
+		{"tnf-auth-job-master-0-64736551_JobRunning", true},
+		{"tnf-update-setup-job-master-1-abc12345_JobRunning", true},
+		{"tnf-after-setup-job-master-0-deadbeef_JobRunning", true},
+		{"EtcdMembersProgressing", false},
+		{"NodeInstaller_InstallerPodRunning", false},
+		{"tnf-setup-job_JobComplete", false},
+		{"setup-job_JobRunning", false},
+		{"", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.reason, func(t *testing.T) {
+			assert.Equal(t, tt.want, isTNFJobClusterOperatorReason(tt.reason))
+		})
+	}
+}
