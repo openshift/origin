@@ -97,6 +97,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 			{Namespace: "openshift-dns", Port: 9154},
 			{Namespace: "openshift-dns-operator", Port: 9393},
 			{Namespace: "openshift-ingress-operator", Port: 9393},
+			{Namespace: "openshift-cluster-node-tuning-operator", Port: 60000},
 		}
 		_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, "openshift-console", metav1.GetOptions{})
 		if err != nil && !kapierrs.IsNotFound(err) {
