@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"strings"
 	"time"
 
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
@@ -44,6 +43,10 @@ type cpuMetricCollector struct {
 // saturationQueryStep is the sample spacing of the run-queue query. Each sample above the
 // threshold counts for one full step, so an interval ends one step after its last such sample.
 const saturationQueryStep = 30 * time.Second
+
+// minSaturationDuration drops saturation shorter than two consecutive samples. Single-sample
+// blips are common on busy masters and don't indicate sustained starvation.
+const minSaturationDuration = 2 * saturationQueryStep
 
 func NewCPUMetricCollector() monitortestframework.MonitorTest {
 	return &cpuMetricCollector{
@@ -172,8 +175,9 @@ func (w *cpuMetricCollector) collectCPUMetricsFromPrometheusClient(ctx context.C
 	return append(intervals, w.createSaturationIntervals(logger, runQueueMetrics, nodeInfoMap)...), nil
 }
 
-// createSaturationIntervals builds a CPUSaturation interval for each run of consecutive samples
-// where a node's run-queue wait per core is above the threshold. These use their own source so
+// createSaturationIntervals builds a CPUSaturation interval for each run of at least two
+// consecutive samples where a node's run-queue wait per core is above the threshold. These use
+// their own source so
 // they get their own timeline row and don't mix with HighCPUUsage intervals in the high CPU
 // test overlap data.
 func (w *cpuMetricCollector) createSaturationIntervals(logger logrus.FieldLogger, promVal prometheustypes.Value, nodeInfoMap map[string]nodeInfo) []monitorapi.Interval {
@@ -197,14 +201,19 @@ func (w *cpuMetricCollector) createSaturationIntervals(logger logrus.FieldLogger
 		var start, end time.Time
 		var peak float64
 		inPeriod := false
+		flush := func() {
+			if end.Sub(start) >= minSaturationDuration {
+				ret = append(ret, w.createSaturationInterval(locator, info.name, start, end, peak))
+			}
+			inPeriod = false
+		}
 		for _, sample := range promSampleStream.Values {
 			ts := sample.Timestamp.Time()
 			waiting := float64(sample.Value)
 			// Prometheus omits steps with no value (e.g. failed scrapes), so a gap ends the
 			// current interval rather than bridging it.
 			if inPeriod && ts.After(end) {
-				ret = append(ret, w.createSaturationInterval(locator, info.name, start, end, peak))
-				inPeriod = false
+				flush()
 			}
 			if waiting > w.runQueueThreshold {
 				if !inPeriod {
@@ -215,13 +224,12 @@ func (w *cpuMetricCollector) createSaturationIntervals(logger logrus.FieldLogger
 				continue
 			}
 			if inPeriod {
-				ret = append(ret, w.createSaturationInterval(locator, info.name, start, end, peak))
-				inPeriod = false
+				flush()
 			}
 		}
 		// Handle a saturated period that extends to the end of the monitoring window
 		if inPeriod {
-			ret = append(ret, w.createSaturationInterval(locator, info.name, start, end, peak))
+			flush()
 		}
 	}
 
@@ -366,31 +374,11 @@ func (*cpuMetricCollector) ConstructComputedIntervals(ctx context.Context, start
 	return nil, nil
 }
 
-const cpuSaturationTestName = "[sig-node] nodes should not be CPU saturated"
-
-// EvaluateTestsFromConstructedIntervals flakes (a failure plus a pass) when any node was CPU
-// saturated, so we can track which jobs hit it and how often without failing them. High CPU
-// usage intervals don't produce test results.
 func (w *cpuMetricCollector) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	saturated := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceCPUSaturation
-	})
-
-	junits := []*junitapi.JUnitTestCase{}
-	if len(saturated) > 0 {
-		lines := []string{}
-		for _, interval := range saturated {
-			lines = append(lines, interval.String())
-		}
-		junits = append(junits, &junitapi.JUnitTestCase{
-			Name: cpuSaturationTestName,
-			FailureOutput: &junitapi.FailureOutput{
-				Output: fmt.Sprintf("found CPU saturated nodes:\n  %s", strings.Join(lines, "\n  ")),
-			},
-		})
-	}
-	// Add a success so this is marked as a flake at worst
-	return append(junits, &junitapi.JUnitTestCase{Name: cpuSaturationTestName}), nil
+	// This monitor test is purely for data collection, not for generating test cases. CPU
+	// saturation doesn't flake a test because the oc adm must-gather tests saturate a master in
+	// nearly every run.
+	return nil, nil
 }
 
 func (w *cpuMetricCollector) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {

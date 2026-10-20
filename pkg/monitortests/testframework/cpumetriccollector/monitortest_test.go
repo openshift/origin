@@ -282,8 +282,13 @@ func TestCreateSaturationIntervals(t *testing.T) {
 		},
 		{
 			name:          "two separate periods",
-			values:        []float64{4.5, 1, 1, 8.6, 7.3, 1},
+			values:        []float64{4.5, 5, 1, 1, 8.6, 7.3, 1},
 			expectedCount: 2,
+		},
+		{
+			name:          "single-sample blips are dropped",
+			values:        []float64{1, 11.4, 1, 5.3, 1, 4.1},
+			expectedCount: 0,
 		},
 		{
 			name:          "period extends to end of window",
@@ -325,9 +330,9 @@ func TestCreateSaturationIntervals(t *testing.T) {
 func TestCreateSaturationIntervals_SplitsOnMissingSamples(t *testing.T) {
 	logger := logrus.WithField("test", "saturation")
 	start := time.Date(2026, 10, 19, 13, 57, 0, 0, time.UTC)
-	m := runQueueMatrix("master-0", start, 5, 6, 7, 8)
+	m := runQueueMatrix("master-0", start, 5, 6, 7, 8, 9)
 	// Drop the third sample, as Prometheus does for a step with no value.
-	m[0].Values = append(m[0].Values[:2], m[0].Values[3])
+	m[0].Values = append(m[0].Values[:2], m[0].Values[3:]...)
 
 	collector := &cpuMetricCollector{runQueueThreshold: 4}
 	intervals := collector.createSaturationIntervals(logger, m, map[string]nodeInfo{})
@@ -335,6 +340,7 @@ func TestCreateSaturationIntervals_SplitsOnMissingSamples(t *testing.T) {
 	require.Len(t, intervals, 2)
 	assert.WithinDuration(t, start.Add(60*time.Second), intervals[0].To, 0)
 	assert.WithinDuration(t, start.Add(90*time.Second), intervals[1].From, 0)
+	assert.WithinDuration(t, start.Add(150*time.Second), intervals[1].To, 0)
 	assert.Equal(t, "master-0", intervals[0].Locator.Keys[monitorapi.LocatorNodeKey], "unknown nodes fall back to the instance label")
 }
 
@@ -343,23 +349,14 @@ func TestCPUMetricCollector_DefaultRunQueueThreshold(t *testing.T) {
 	assert.Equal(t, 4.0, collector.runQueueThreshold)
 }
 
-func TestEvaluateTestsFlakesOnSaturation(t *testing.T) {
+func TestEvaluateTestsReportsNoResults(t *testing.T) {
 	logger := logrus.WithField("test", "saturation")
 	start := time.Date(2026, 10, 19, 13, 57, 0, 0, time.UTC)
 	collector := &cpuMetricCollector{highCPUThreshold: 95, runQueueThreshold: 4}
-	saturated := collector.createSaturationIntervals(logger, runQueueMatrix("master-0", start, 6.5), map[string]nodeInfo{})
-	highCPU := collector.createCPUInterval(monitorapi.NewLocator().NodeFromNameWithRole("master-0", "master"), "master-0", "master", start, start.Add(time.Minute), 98)
+	saturated := collector.createSaturationIntervals(logger, runQueueMatrix("master-0", start, 6.5, 68), map[string]nodeInfo{})
+	require.NotEmpty(t, saturated)
 
-	junits, err := collector.EvaluateTestsFromConstructedIntervals(context.Background(), append(monitorapi.Intervals{highCPU}, saturated...))
+	junits, err := collector.EvaluateTestsFromConstructedIntervals(context.Background(), saturated)
 	require.NoError(t, err)
-	require.Len(t, junits, 2, "a failure and a pass make a flake")
-	assert.Equal(t, cpuSaturationTestName, junits[0].Name)
-	require.NotNil(t, junits[0].FailureOutput)
-	assert.Contains(t, junits[0].FailureOutput.Output, "master-0")
-	assert.Nil(t, junits[1].FailureOutput)
-
-	junits, err = collector.EvaluateTestsFromConstructedIntervals(context.Background(), monitorapi.Intervals{highCPU})
-	require.NoError(t, err)
-	require.Len(t, junits, 1, "high CPU usage alone is a plain pass")
-	assert.Nil(t, junits[0].FailureOutput)
+	assert.Empty(t, junits, "CPU saturation is recorded as intervals only")
 }
