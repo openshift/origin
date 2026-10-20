@@ -101,13 +101,10 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 
 	g.It("should be annotated correctly for Deployments", func() {
 
-		var (
-			deploymentErr []error
-		)
-
 		deployments, err := oc.KubeClient().AppsV1().Deployments("").List(ctx, metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		var deploymentErrors []error
 		for _, deployment := range deployments.Items {
 			if deployment.Namespace == "openshift-ingress" && strings.HasPrefix(deployment.Name, "gateway-") {
 				// The gateway deployment's name contains a hash, which
@@ -122,7 +119,12 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 				continue
 			}
 
-			if _, ok := deployment.Spec.Template.Annotations[workloadAnnotations]; ok {
+			checkPods, err := shouldCheckPlatformWorkload(ctx, oc.KubeClient().CoreV1().Namespaces(), deployment.Namespace, deployment.Spec.Template.Annotations, isClusterCPUPartitioned)
+			if err != nil {
+				deploymentErrors = append(deploymentErrors, fmt.Errorf("checking deployment %s/%s: %w", deployment.Namespace, deployment.Name, err))
+				continue
+			}
+			if checkPods {
 				pods, err := oc.KubeClient().CoreV1().Pods(deployment.Namespace).List(ctx, metav1.ListOptions{
 					LabelSelector: labels.SelectorFromSet(deployment.Spec.Template.Labels).String(),
 				})
@@ -142,23 +144,17 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 							"requests resources %s be present for container %s in pod %s/%s", messageFormat, container.Name, pod.Name, pod.Namespace)
 					}
 				}
-			} else if strings.HasPrefix(deployment.Namespace, "openshift-") && !strings.HasPrefix(deployment.Namespace, "openshift-e2e-") {
-				deploymentErr = append(deploymentErr, fmt.Errorf("deployment (%s) in openshift namespace (%s) must have pod templates annotated with %s",
-					deployment.Name, deployment.Namespace, deploymentPodAnnotation))
 			}
 		}
-		o.Expect(deploymentErr).To(o.BeEmpty())
+		o.Expect(deploymentErrors).To(o.BeEmpty())
 	})
 
 	g.It("should be annotated correctly for DaemonSets", func() {
 
-		var (
-			daemonsetErr []error
-		)
-
 		daemonsets, err := oc.KubeClient().AppsV1().DaemonSets("").List(ctx, metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		var daemonsetErrors []error
 		for _, daemonset := range daemonsets.Items {
 			// If we find a daemonset that is to be excluded from resource checks, we skip looking for their pods.
 			if isExcluded(excludedBestEffortDaemonSets, daemonset.Namespace, daemonset.Name) {
@@ -166,7 +162,12 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 				continue
 			}
 
-			if _, ok := daemonset.Spec.Template.Annotations[workloadAnnotations]; ok {
+			checkPods, err := shouldCheckPlatformWorkload(ctx, oc.KubeClient().CoreV1().Namespaces(), daemonset.Namespace, daemonset.Spec.Template.Annotations, isClusterCPUPartitioned)
+			if err != nil {
+				daemonsetErrors = append(daemonsetErrors, fmt.Errorf("checking daemonset %s/%s: %w", daemonset.Namespace, daemonset.Name, err))
+				continue
+			}
+			if checkPods {
 				pods, err := oc.KubeClient().CoreV1().Pods(daemonset.Namespace).List(ctx, metav1.ListOptions{
 					LabelSelector: labels.SelectorFromSet(daemonset.Spec.Template.Labels).String(),
 				})
@@ -186,11 +187,8 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 							"requests resources %s be present for container %s in pod %s/%s", messageFormat, container.Name, pod.Name, pod.Namespace)
 					}
 				}
-			} else if strings.HasPrefix(daemonset.Namespace, "openshift-") && !strings.HasPrefix(daemonset.Namespace, "openshift-e2e-") {
-				daemonsetErr = append(daemonsetErr, fmt.Errorf("daemonset (%s) in openshift namespace (%s) must have pod templates annotated with %s",
-					daemonset.Name, daemonset.Namespace, deploymentPodAnnotation))
 			}
 		}
-		o.Expect(daemonsetErr).To(o.BeEmpty())
+		o.Expect(daemonsetErrors).To(o.BeEmpty())
 	})
 })
