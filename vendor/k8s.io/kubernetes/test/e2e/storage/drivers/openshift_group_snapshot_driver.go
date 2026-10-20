@@ -3,6 +3,7 @@ package drivers
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -106,6 +107,9 @@ func InitGroupSnapshotHostpathCSIDriver() storageframework.TestDriver {
 		// added when patching the deployment.
 		storageframework.CapVolumeLimits: true,
 	}
+	if os.Getenv("CSI_PROW_ENABLE_SNAPSHOT_METADATA") == "true" {
+		capabilities[storageframework.CapSnapshotMetadata] = true
+	}
 	// OCP specific code: a different driver name (csi-hostpath-groupsnapshot)
 	return initGroupSnapshotHostpathCSIDriver("csi-hostpath-groupsnapshot",
 		capabilities,
@@ -115,6 +119,7 @@ func InitGroupSnapshotHostpathCSIDriver() storageframework.TestDriver {
 		},
 		"test/e2e/testing-manifests/storage-csi/external-attacher/rbac.yaml",
 		"test/e2e/testing-manifests/storage-csi/external-provisioner/rbac.yaml",
+		"test/e2e/testing-manifests/storage-csi/external-snapshot-metadata/rbac.yaml",
 		"test/e2e/testing-manifests/storage-csi/external-snapshotter/csi-snapshotter/rbac-csi-snapshotter.yaml",
 		"test/e2e/testing-manifests/storage-csi/external-health-monitor/external-health-monitor-controller/rbac.yaml",
 		"test/e2e/testing-manifests/storage-csi/external-resizer/rbac.yaml",
@@ -236,6 +241,13 @@ func (h *groupSnapshotHostpathCSIDriver) PrepareTest(ctx context.Context, f *fra
 		DriverContainerArguments: []string{"--feature-gates=CSIVolumeGroupSnapshot=true"},
 	})
 
+	if os.Getenv("CSI_PROW_ENABLE_SNAPSHOT_METADATA") == "true" {
+		patches = append(patches, utils.PatchCSIOptions{
+			DriverContainerName:      "hostpath",
+			DriverContainerArguments: []string{"--enable-snapshot-metadata"},
+		})
+	}
+
 	err = utils.CreateFromManifests(ctx, config.Framework, driverNamespace, func(item interface{}) error {
 		for _, o := range patches {
 			if err := utils.PatchCSIDeployment(config.Framework, o, item); err != nil {
@@ -287,6 +299,12 @@ func (h *groupSnapshotHostpathCSIDriver) PrepareTest(ctx context.Context, f *fra
 
 	if err != nil {
 		framework.Failf("deploying %s driver: %v", h.driverInfo.Name, err)
+	}
+
+	if h.driverInfo.Capabilities[storageframework.CapSnapshotMetadata] {
+		if err := utils.CreateSnapshotMetadataTLSSecret(ctx, f, driverns); err != nil {
+			framework.Failf("creating snapshot metadata TLS secret: %v", err)
+		}
 	}
 
 	cleanupFunc := generateDriverCleanupFunc(
