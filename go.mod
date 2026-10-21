@@ -122,6 +122,7 @@ require (
 	k8s.io/kubectl v0.36.2
 	k8s.io/kubelet v0.36.2
 	k8s.io/kubernetes v1.36.2
+	k8s.io/metrics v0.0.0
 	k8s.io/pod-security-admission v0.36.2
 	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
 	sigs.k8s.io/cloud-provider-azure v1.30.4
@@ -423,7 +424,6 @@ require (
 	k8s.io/kube-controller-manager v0.0.0 // indirect
 	k8s.io/kube-proxy v0.0.0 // indirect
 	k8s.io/kube-scheduler v0.0.0 // indirect
-	k8s.io/metrics v0.0.0 // indirect
 	k8s.io/mount-utils v0.0.0 // indirect
 	k8s.io/sample-apiserver v0.0.0 // indirect
 	k8s.io/streaming v0.36.2 // indirect
