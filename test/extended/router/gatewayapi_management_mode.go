@@ -807,23 +807,9 @@ func assertVAPExists(ctx context.Context, oc *exutil.CLI, vapName string) error 
 			{kind: "ValidatingAdmissionPolicy", metadata: policy},
 			{kind: "ValidatingAdmissionPolicyBinding", metadata: binding},
 		} {
-			for _, key := range []string{
-				"capability.openshift.io/name",
-				"include.release.openshift.io/ibm-cloud-managed",
-				"include.release.openshift.io/self-managed-high-availability",
-				"include.release.openshift.io/single-node-developer",
-				"release.openshift.io/feature-set",
-			} {
-				if _, exists := resource.metadata.GetAnnotations()[key]; exists {
-					lastErr = fmt.Errorf("%s %s retains CVO annotation %s", resource.kind, resource.metadata.GetName(), key)
-					return false, nil
-				}
-			}
-			for _, owner := range resource.metadata.GetOwnerReferences() {
-				if owner.APIVersion == configv1.GroupVersion.String() && owner.Kind == "ClusterVersion" && owner.Name == "version" {
-					lastErr = fmt.Errorf("%s %s retains the ClusterVersion/version owner reference", resource.kind, resource.metadata.GetName())
-					return false, nil
-				}
+			if err := checkCVOMetadata(resource.metadata); err != nil {
+				lastErr = fmt.Errorf("%s %s %w", resource.kind, resource.metadata.GetName(), err)
+				return false, nil
 			}
 		}
 		return true, nil
@@ -833,6 +819,28 @@ func assertVAPExists(ctx context.Context, oc *exutil.CLI, vapName string) error 
 			return fmt.Errorf("VAP %s and binding not ready: %w (last observation: %v)", vapName, err, lastErr)
 		}
 		return fmt.Errorf("VAP %s and binding not ready: %w", vapName, err)
+	}
+	return nil
+}
+
+// checkCVOMetadata returns an error if former CVO metadata remains, allowing
+// unrelated annotations and owner references.
+func checkCVOMetadata(metadata metav1.Object) error {
+	for _, key := range []string{
+		"capability.openshift.io/name",
+		"include.release.openshift.io/ibm-cloud-managed",
+		"include.release.openshift.io/self-managed-high-availability",
+		"include.release.openshift.io/single-node-developer",
+		"release.openshift.io/feature-set",
+	} {
+		if _, exists := metadata.GetAnnotations()[key]; exists {
+			return fmt.Errorf("retains CVO annotation %s", key)
+		}
+	}
+	for _, owner := range metadata.GetOwnerReferences() {
+		if owner.APIVersion == configv1.GroupVersion.String() && owner.Kind == "ClusterVersion" && owner.Name == "version" {
+			return fmt.Errorf("retains the ClusterVersion/version owner reference")
+		}
 	}
 	return nil
 }
