@@ -62,7 +62,6 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.ope
 				"X-Frame-Options":        "DENY",
 				"X-Content-Type-Options": "nosniff",
 				"X-DNS-Prefetch-Control": "off",
-				"X-XSS-Protection":       "1; mode=block",
 
 				// non-security headers, should not change
 				// adding items here should be validated to make sure they do not conflict with any security headers
