@@ -27,21 +27,29 @@ func (c checker) CheckResponse(rr backend.RequestResponse) error {
 	}
 
 	if _, retry := backend.IsRetryAfter(resp); retry {
-		if rr.ShutdownInProgress() {
-			// We will deem a Retry-After response as a failure except while
-			// the server is shutting down and is sending 429 to request(s)
-			// that are arriving late. (this points to a faulty load balancer)
+		if !rr.ShutdownInProgress() {
+			// For now, any retry-after not occurring during a graceful shutdown is
+			// deemed as error since we don't expect the server to be sending
+			// retry-after in CI.
+			return &KnownError{
+				category: "APIServerAvailability",
+				err:      fmt.Errorf("server overwhelmed: %v body: %v", resp.Status, string(rr.ResponseBody)),
+			}
+		}
+
+		if rr.ConnectionReused() != "true" {
+			// The server should reach the HTTP 429 shutdown stage before it has been
+			// marked unhealthy by load balancers.
 			return &KnownError{
 				category: "FaultyLoadBalancer",
 				err:      fmt.Errorf("very late request: %v body: %v", resp.Status, string(rr.ResponseBody)),
 			}
 		}
-		// For now, any other retry-after is deemed as error since we don't
-		// expect the server to be sending retry-after in CI.
-		return &KnownError{
-			category: "APIServerAvailability",
-			err:      fmt.Errorf("server overwhelmed: %v body: %v", resp.Status, string(rr.ResponseBody)),
-		}
+
+		// Requests on reused connections may be initiated until the moment the connection
+		// is closed. If that happens in the final moments of shutdown, an HTTP 429 is
+		// expected.
+		return nil
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 399 {
