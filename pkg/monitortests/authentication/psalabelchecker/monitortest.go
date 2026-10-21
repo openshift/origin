@@ -63,6 +63,15 @@ var exceptedNamespaces = map[string]string{
 	"openshift-operators":                              "CNTRLPLANE-4636",
 }
 
+// microshiftExceptedNamespaces tracks namespaces that MicroShift ships its own
+// manifests for. Where a namespace is excepted on both platforms, the MicroShift
+// manifest has to be fixed separately, so it is tracked under its own ticket.
+var microshiftExceptedNamespaces = map[string]string{
+	"openshift-controller-manager":       "CNTRLPLANE-4751",
+	"openshift-route-controller-manager": "CNTRLPLANE-4751",
+	"openshift-service-ca":               "CNTRLPLANE-4751",
+}
+
 type noPodSecurityAdmissionLabelNamespaceChecker struct {
 	kubeClient kubernetes.Interface
 }
@@ -77,7 +86,7 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) Cleanup(ctx context.Contex
 // The namespaces that end up being checked here should be managed by OpenShift. Ideally, these namespaces will set the
 // `enforce`, `audit` and `warn` PSA labels to `restricted` so that they do not interfere with the global PSA enforcement,
 // and the PSA Label Syncer label should be removed as the managed namespaces eventually become appropriately labelled.
-func generateTestCase(namespace corev1.Namespace) []*junitapi.JUnitTestCase {
+func generateTestCase(namespace corev1.Namespace, isMicroShift bool) []*junitapi.JUnitTestCase {
 	namespaceName := namespace.Name
 
 	testName := fmt.Sprintf("[sig-auth] namespace %s must set the pod security admission level labels", namespaceName)
@@ -97,7 +106,7 @@ func generateTestCase(namespace corev1.Namespace) []*junitapi.JUnitTestCase {
 	// this can happen safely.
 	sccPsaLabelSyncPrefix := "security.openshift.io/scc.podSecurityLabelSync"
 	if _, ok := namespace.Labels[sccPsaLabelSyncPrefix]; ok {
-		problems = append(problems, "%s is set and needs to be removed", sccPsaLabelSyncPrefix)
+		problems = append(problems, fmt.Sprintf("%s is set and needs to be removed", sccPsaLabelSyncPrefix))
 	}
 
 	if len(problems) == 0 {
@@ -105,10 +114,19 @@ func generateTestCase(namespace corev1.Namespace) []*junitapi.JUnitTestCase {
 	}
 
 	failure := fmt.Sprintf("namespace %q does not set the pod security admission level labels: %s", namespaceName, strings.Join(problems, ", "))
+
+	reason, isException := exceptedNamespaces[namespaceName]
+
+	// On MicroShift the namespace comes from a MicroShift-specific manifest, so point at
+	// the MicroShift ticket instead of the standalone one when we have it.
+	if microshiftReason, isMicroShiftException := microshiftExceptedNamespaces[namespaceName]; isMicroShift && isMicroShiftException {
+		reason, isException = microshiftReason, true
+	}
+
 	// Reported as a flake while managed namespaces are being labelled ahead of the PSA label
 	// syncer retirement. Many are still unlabelled, so failing hard would fail every job.
 	// Remove the trailing success case to turn this into a hard failure.
-	if reason, isException := exceptedNamespaces[namespaceName]; isException {
+	if isException {
 		exceptionMsg := fmt.Sprintf("namespace %q has an exception in place. See https://redhat.atlassian.net/browse/%s for reference. ", namespaceName, reason)
 		return []*junitapi.JUnitTestCase{
 			{
@@ -147,6 +165,7 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) CollectData(ctx context.Co
 	oc := exutil.NewCLI("psa-label-syncer").AsAdmin()
 
 	isHyperShift, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+	isMicroShift, _ := exutil.IsMicroShiftCluster(n.kubeClient)
 
 	junits := []*junitapi.JUnitTestCase{}
 	for _, ns := range namespaces.Items {
@@ -182,7 +201,7 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) CollectData(ctx context.Co
 		if !isManagedNamespace {
 			continue
 		}
-		junits = append(junits, generateTestCase(ns)...)
+		junits = append(junits, generateTestCase(ns, isMicroShift)...)
 	}
 	return nil, junits, nil
 }
