@@ -14,6 +14,7 @@ RUN dnf install -y \
     procps-ng \
     sudo \
     golang \
+    npm \
     which \
     && dnf clean all
 
@@ -40,7 +41,12 @@ RUN chgrp -R 0 /home/vscode && chmod -R g=u /home/vscode
 ENV GOPATH=/home/vscode/go
 ENV PATH="/home/vscode/.local/bin:${GOPATH}/bin:/usr/local/go/bin:${PATH}"
 
-RUN curl -LsSf https://astral.sh/uv/install.sh | env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=/usr/local/bin sh
+# Do not pipe into sh: a failed download can otherwise look like a successful install.
+RUN curl --retry 3 -LsSf https://astral.sh/uv/install.sh -o /tmp/uv-install.sh && \
+    env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=/usr/local/bin sh /tmp/uv-install.sh && \
+    /usr/local/bin/uv --version && \
+    /usr/local/bin/uvx --version && \
+    rm /tmp/uv-install.sh
 
 # Cursor's install script calls base64 -D (macOS flag) but GNU coreutils uses -d
 RUN cp /usr/bin/base64 /usr/bin/base64.gnu && \
