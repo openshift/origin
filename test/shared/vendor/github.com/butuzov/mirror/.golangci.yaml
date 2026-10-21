@@ -1,0 +1,26 @@
+version: "2"
+
+linters:
+  enable:
+    - nolintlint
+    - testifylint
+  settings:
+    nolintlint:
+      require-specific: true
+      allow-unused: false
+  exclusions:
+    presets:
+      - comments
+      - common-false-positives
+      - std-error-handling
+
+formatters:
+  enable:
+    - gci
+    - gofumpt
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/butuzov/mirror)

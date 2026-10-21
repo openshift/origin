@@ -1,0 +1,25 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": [
+		"config:recommended",
+		":semanticCommits",
+		":semanticCommitTypeAll(chore)",
+		":semanticCommitScope(deps)",
+		"group:allNonMajor",
+		"schedule:earlyMondays", // Run once a week.
+		'helpers:pinGitHubActionDigests',
+	],
+	"postUpdateOptions": ["gomodTidy"],
+	"packageRules": [
+		{
+			"matchPackageNames": ["golangci-lint"],
+			"matchManagers": ["hermit"],
+			"enabled": false
+		},
+		{
+			"matchPackageNames": ["github.com/gorilla/csrf"],
+			"matchManagers": ["gomod"],
+			"enabled": false
+		}
+	]
+}

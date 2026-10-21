@@ -1,0 +1,73 @@
+version: "2"
+run:
+  tests: true
+linters:
+  default: all
+  disable:
+    - cyclop
+    - depguard
+    - dupl
+    - dupword
+    - err113
+    - errorlint
+    - exhaustive
+    - exhaustruct
+    - forcetypeassert
+    - funlen
+    - gochecknoglobals
+    - gocognit
+    - goconst
+    - gocyclo
+    - godoclint
+    - godot
+    - gomodguard
+    - godox
+    - govet
+    - ireturn
+    - lll
+    - maintidx
+    - mnd
+    - musttag
+    - nestif
+    - nilnil
+    - nlreturn
+    - nolintlint
+    - nonamedreturns
+    - paralleltest
+    - perfsprint
+    - predeclared
+    - revive
+    - testableexamples
+    - testpackage
+    - thelper
+    - varnamelen
+    - wrapcheck
+    - wsl
+    - wsl_v5
+  settings:
+    dupl:
+      threshold: 100
+    forbidigo:
+      exclude-godoc-examples: false
+    goconst:
+      min-len: 8
+      min-occurrences: 3
+    gocyclo:
+      min-complexity: 10
+    govet:
+      enable:
+        - shadow
+  exclusions:
+    warn-unused: true
+    presets:
+      - std-error-handling
+      - common-false-positives
+      - comments
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+formatters:
+  enable:
+    - gofmt
+    - goimports

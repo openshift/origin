@@ -3,12 +3,8 @@ package adm_upgrade
 import (
 	"context"
 	"fmt"
-	"net"
-	"net/url"
 	"os"
-	"strconv"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/blang/semver/v4"
@@ -19,9 +15,8 @@ import (
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
-	appsv1 "k8s.io/api/apps/v1"
+	"github.com/openshift/origin/test/shared/updateservice"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
@@ -95,9 +90,17 @@ var _ = g.Describe("[Serial][sig-cli] oc adm upgrade recommend", g.Ordered, func
 				g.Skip("HyperShift does not support configuring the upstream OpenShift Update Service directoly via ClusterVersion (it must be configured via HostedCluster on the management cluster)")
 			}
 
-			graph := fmt.Sprintf(`{"nodes": [{"version": "%s","payload": "%s", "metadata": {"io.openshift.upgrades.graph.release.channels": "test-channel,other-channel"}}]}`, cv.Status.Desired.Version, cv.Status.Desired.Image)
-			newUpstream, err := runUpdateService(ctx, oc, graph)
+			updateService, err := updateservice.Run(ctx, oc.AdminKubeClient(), oc.Namespace(), image.ShellImage(), updateservice.Graph{
+				Nodes: []updateservice.Node{{
+					Version: cv.Status.Desired.Version,
+					Payload: cv.Status.Desired.Image,
+					Metadata: map[string]string{
+						"io.openshift.upgrades.graph.release.channels": "test-channel,other-channel",
+					},
+				}},
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
+			newUpstream := updateService.URL
 
 			err = oc.Run("adm", "upgrade", "channel", "test-channel").Execute()
 			if err != nil {
@@ -139,44 +142,51 @@ No updates available. You may still upgrade to a specific release image.*`)
 				currentVersion = &curVer
 			}
 
-			var buf strings.Builder
-			err := template.Must(template.New("letter").Parse(`{
-  "nodes": [
-    {"version": "{{.CurrentVersion}}","payload": "{{.CurrentImage}}", "metadata": {"io.openshift.upgrades.graph.release.channels": "test-channel,other-channel"}},
-    {"version": "4.{{.CurrentMinor}}.998","payload": "example.com/test@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
-    {"version": "4.{{.CurrentMinor}}.999","payload": "example.com/test@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
-    {"version": "4.{{.NextMinor}}.0","payload": "example.com/test@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "metadata": {"url": "https://example.com/release/4.{{.NextMinor}}.0"}}
-  ],
-  "edges": [[0, 1], [0, 2]],
-  "conditionalEdges": [
-    {
-      "edges": [{"from": "{{.CurrentVersion}}", "to": "4.{{.NextMinor}}.0"}],
-      "risks": [
-        {
-          "url": "https://example.com/testRiskA",
-          "name": "TestRiskA",
-          "message": "This is a test risk.",
-          "matchingRules": [{"type": "PromQL", "promql": {"promql": "group(max_over_time(cluster_version[1h]))"}}]
-        }
-      ]
-    }
-  ]
-}`)).Execute(&buf, struct {
-				CurrentVersion string
-				CurrentImage   string
-				CurrentMinor   uint64
-				NextMinor      uint64
-			}{
-				CurrentVersion: cv.Status.Desired.Version,
-				CurrentImage:   cv.Status.Desired.Image,
-				CurrentMinor:   currentVersion.Minor,
-				NextMinor:      currentVersion.Minor + 1,
-			})
-			o.Expect(err).NotTo(o.HaveOccurred())
-			graph := buf.String()
+			targetVersion := fmt.Sprintf("4.%d.0", currentVersion.Minor+1)
+			graph := updateservice.Graph{
+				Nodes: []updateservice.Node{
+					{
+						Version: cv.Status.Desired.Version,
+						Payload: cv.Status.Desired.Image,
+						Metadata: map[string]string{
+							"io.openshift.upgrades.graph.release.channels": "test-channel,other-channel",
+						},
+					},
+					{
+						Version: fmt.Sprintf("4.%d.998", currentVersion.Minor),
+						Payload: "example.com/test@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+					},
+					{
+						Version: fmt.Sprintf("4.%d.999", currentVersion.Minor),
+						Payload: "example.com/test@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+					},
+					{
+						Version:  targetVersion,
+						Payload:  "example.com/test@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+						Metadata: map[string]string{"url": fmt.Sprintf("https://example.com/release/%s", targetVersion)},
+					},
+				},
+				Edges: []updateservice.Edge{{0, 1}, {0, 2}},
+				ConditionalEdges: []updateservice.ConditionalEdge{{
+					Edges: []updateservice.VersionEdge{{
+						From: cv.Status.Desired.Version,
+						To:   targetVersion,
+					}},
+					Risks: []updateservice.Risk{{
+						URL:     "https://example.com/testRiskA",
+						Name:    "TestRiskA",
+						Message: "This is a test risk.",
+						MatchingRules: []updateservice.MatchingRule{{
+							Type:   "PromQL",
+							PromQL: &updateservice.PromQL{PromQL: "group(max_over_time(cluster_version[1h]))"},
+						}},
+					}},
+				}},
+			}
 
-			newUpstream, err := runUpdateService(ctx, oc, graph)
+			updateService, err := updateservice.Run(ctx, oc.AdminKubeClient(), oc.Namespace(), image.ShellImage(), graph)
 			o.Expect(err).NotTo(o.HaveOccurred())
+			newUpstream := updateService.URL
 
 			err = oc.Run("adm", "upgrade", "channel", "test-channel").Execute()
 			if err != nil {
@@ -312,84 +322,6 @@ func alertsEvaluatedByCVO(ctx context.Context, cv *configv1.ClusterVersion, isHy
 	}
 
 	return false, nil
-}
-
-func runUpdateService(ctx context.Context, oc *exutil.CLI, graph string) (*url.URL, error) {
-	deployment, err := oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()).Create(ctx,
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test-update-service-",
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"app": "test-update-service",
-					},
-				},
-				Template: corev1.PodTemplateSpec{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: map[string]string{
-							"app": "test-update-service",
-						},
-					},
-					Spec: corev1.PodSpec{
-						Containers: []corev1.Container{{
-							Name:  "update-service",
-							Image: image.ShellImage(),
-							Args: []string{
-								"/bin/sh",
-								"-c",
-								fmt.Sprintf(`DIR="$(mktemp -d)" &&
-cd "${DIR}" &&
-printf '%%s' '%s' >graph &&
-python3 -m http.server --bind ::
-`, graph),
-							},
-							Ports: []corev1.ContainerPort{{
-								Name:          "update-service",
-								ContainerPort: 8000,
-							}},
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("10m"),
-									corev1.ResourceMemory: resource.MustParse("20Mi"),
-								},
-							},
-						}},
-					},
-				},
-			},
-		}, metav1.CreateOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	service, err := oc.AdminKubeClient().CoreV1().Services(oc.Namespace()).Create(ctx,
-		&corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: deployment.ObjectMeta.Name,
-			},
-			Spec: corev1.ServiceSpec{
-				Selector: deployment.Spec.Template.ObjectMeta.Labels,
-				Ports: []corev1.ServicePort{{
-					Name: deployment.Spec.Template.Spec.Containers[0].Ports[0].Name,
-					Port: deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort,
-				}},
-			},
-		}, metav1.CreateOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	if err = exutil.WaitForDeploymentReady(oc, deployment.ObjectMeta.Name, oc.Namespace(), -1); err != nil {
-		return nil, err
-	}
-
-	return &url.URL{
-		Scheme: "http",
-		Host:   net.JoinHostPort(service.Spec.ClusterIP, strconv.Itoa(int(service.Spec.Ports[0].Port))),
-		Path:   "graph",
-	}, nil
 }
 
 func getDefaultIngressCertificate(ctx context.Context, oc *exutil.CLI) (string, error) {
