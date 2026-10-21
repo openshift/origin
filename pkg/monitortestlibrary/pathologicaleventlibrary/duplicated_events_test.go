@@ -249,6 +249,46 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 				Reason("NetworkNotReady").Build(),
 			expectedAllowName: "NetworkNotReady",
 		},
+		{
+			// Guard pod is allowed unconditionally. Use a count well over the static
+			// matcher's bound (50) so that even though the static matcher ^etcd- also
+			// matches this locator, it cannot be the allower here; the guard matcher is.
+			// This proves the guard allowance remains unconditional.
+			name: "etcd readiness probe connection refused on guard pod is allowed unconditionally",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-etcd",
+					monitorapi.LocatorPodKey:       "etcd-guard-ip-10-0-30-87.us-east-2.compute.internal",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Readiness probe error: Get \"https://10.0.30.87:9980/readyz\": dial tcp 10.0.30.87:9980: connect: connection refused").
+				Reason("ProbeError").WithAnnotation(monitorapi.AnnotationCount, "500").Build(),
+			expectedAllowName: "EtcdReadinessProbeError",
+		},
+		{
+			name: "etcd readiness probe connection refused on static pod under threshold is allowed",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-etcd",
+					monitorapi.LocatorPodKey:       "etcd-ip-10-0-53-242.us-east-2.compute.internal",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Readiness probe error: Get \"https://10.0.53.242:9980/readyz\": dial tcp 10.0.53.242:9980: connect: connection refused").
+				Reason("ProbeError").WithAnnotation(monitorapi.AnnotationCount, "31").Build(),
+			expectedAllowName: "EtcdStaticPodReadinessProbeError",
+		},
+		{
+			name: "etcd readiness probe connection refused on static pod over threshold is NOT allowed",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-etcd",
+					monitorapi.LocatorPodKey:       "etcd-ip-10-0-53-242.us-east-2.compute.internal",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Readiness probe error: Get \"https://10.0.53.242:9980/readyz\": dial tcp 10.0.53.242:9980: connect: connection refused").
+				Reason("ProbeError").WithAnnotation(monitorapi.AnnotationCount, "200").Build(),
+			expectedAllowName: "",
+		},
 	}
 	for _, test := range tests {
 		registry := NewUpgradePathologicalEventMatchers(nil, nil)
