@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/pkg/alerts"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/historicaldata"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
@@ -53,6 +55,14 @@ func TestNoNewAlertsFiringBackstop(t *testing.T) {
 		From:    time.Now().Add(-5 * time.Hour),
 		To:      time.Now().Add(-6 * time.Hour),
 	}
+	intervalWithAlertName := func(alertName string) monitorapi.Interval {
+		alertInterval := interval
+		alertInterval.Locator.Keys = map[monitorapi.LocatorKey]string{
+			monitorapi.LocatorAlertKey:     alertName,
+			monitorapi.LocatorNamespaceKey: "fakens",
+		}
+		return alertInterval
+	}
 
 	tests := []struct {
 		name            string
@@ -60,6 +70,20 @@ func TestNoNewAlertsFiringBackstop(t *testing.T) {
 		firingIntervals monitorapi.Intervals
 		expectedStatus  []string // "pass", "fail", in the order we expect them to appear, one of each for flakes
 	}{
+		{
+			name: "excluded firing alert never seen before",
+			historicalData: historicaldata.NewAlertMatcherWithHistoricalData(
+				map[historicaldata.AlertDataKey]historicaldata.AlertStatisticalData{}),
+			firingIntervals: monitorapi.Intervals{intervalWithAlertName("VirtPlatformDependencyMissing")},
+			expectedStatus:  []string{"pass"},
+		},
+		{
+			name: "similarly named firing alert never seen before",
+			historicalData: historicaldata.NewAlertMatcherWithHistoricalData(
+				map[historicaldata.AlertDataKey]historicaldata.AlertStatisticalData{}),
+			firingIntervals: monitorapi.Intervals{intervalWithAlertName("VirtPlatformDependencyMissingOther")},
+			expectedStatus:  []string{"fail"},
+		},
 		{
 			name: "firing alert first observed recently in few jobs",
 			historicalData: historicaldata.NewAlertMatcherWithHistoricalData(
@@ -149,4 +173,88 @@ func TestNoNewAlertsFiringBackstop(t *testing.T) {
 		})
 	}
 
+}
+
+func TestIsSkippedAlert(test *testing.T) {
+	for _, testCase := range []struct {
+		alertName string
+		skipped   bool
+	}{
+		{alertName: "VirtPlatformDependencyMissing", skipped: true},
+		{alertName: "VirtPlatformDependencyMissingOther"},
+		{alertName: "OtherVirtPlatformDependencyMissing"},
+		{alertName: "FakeAlert"},
+	} {
+		test.Run(testCase.alertName, func(test *testing.T) {
+			assert.Equal(test, testCase.skipped, isSkippedAlert(testCase.alertName))
+		})
+	}
+}
+
+func TestSkippedAlertBackstop(test *testing.T) {
+	for _, suite := range []struct {
+		name       string
+		allowances AllowedAlertsFunc
+	}{
+		{name: "conformance", allowances: alerts.AllowedAlertsDuringConformance},
+		{name: "upgrade", allowances: alerts.AllowedAlertsDuringUpgrade},
+	} {
+		test.Run(suite.name, func(test *testing.T) {
+			for _, featureSet := range []configv1.FeatureSet{configv1.Default, configv1.TechPreviewNoUpgrade} {
+				test.Run(string(featureSet), func(test *testing.T) {
+					for _, state := range []string{"pending", "firing"} {
+						test.Run(state, func(test *testing.T) {
+							for _, testCase := range []struct {
+								alertName string
+								skipped   bool
+							}{
+								{alertName: "VirtPlatformDependencyMissing", skipped: true},
+								{alertName: "VirtPlatformDependencyMissingOther"},
+								{alertName: "FakeAlert"},
+							} {
+								test.Run(testCase.alertName, func(test *testing.T) {
+									interval := monitorapi.Interval{
+										Condition: monitorapi.Condition{
+											Level: monitorapi.Warning,
+											Locator: monitorapi.Locator{
+												Type: monitorapi.LocatorTypeAlert,
+												Keys: map[monitorapi.LocatorKey]string{monitorapi.LocatorAlertKey: testCase.alertName},
+											},
+											Message: monitorapi.Message{Annotations: map[monitorapi.AnnotationKey]string{
+												monitorapi.AnnotationAlertState: state,
+												monitorapi.AnnotationSeverity:   "warning",
+											}},
+										},
+										Source: monitorapi.SourceAlert,
+										From:   time.Now().Add(-time.Hour),
+										To:     time.Now(),
+									}
+									var pendingIntervals, firingIntervals monitorapi.Intervals
+									if state == "pending" {
+										pendingIntervals = monitorapi.Intervals{interval}
+									} else {
+										firingIntervals = monitorapi.Intervals{interval}
+									}
+									allowances := func(featureSet configv1.FeatureSet) (alerts.MetricConditions, alerts.MetricConditions, alerts.MetricConditions, alerts.MetricConditions) {
+										firingWithBugs, firing, pendingWithBugs, pending := suite.allowances(featureSet)
+										pendingWithBugs = append(pendingWithBugs, alerts.MetricCondition{AlertName: testCase.alertName, Text: "pending backstop regression"})
+										return firingWithBugs, firing, pendingWithBugs, pending
+									}
+									results := runBackstopTest(allowances, featureSet, pendingIntervals, firingIntervals, nil)
+									if testCase.skipped {
+										require.Len(test, results, 1)
+										assert.Nil(test, results[0].FailureOutput)
+									} else {
+										require.Len(test, results, 2)
+										require.NotNil(test, results[1].FailureOutput)
+										assert.Contains(test, results[1].FailureOutput.Output, testCase.alertName)
+									}
+								})
+							}
+						})
+					}
+				})
+			}
+		})
+	}
 }
