@@ -363,16 +363,20 @@ func BuildInterval(nodeName string, target Target, reason FailureReason, from, f
 }
 
 // JSONEmitter writes intervals as one-line JSON to out. Safe for concurrent use.
-func JSONEmitter(out io.Writer) func(monitorapi.Interval) {
+func JSONEmitter(out, errOut io.Writer) func(monitorapi.Interval) {
+	return newJSONEmitter(out, errOut, monitorserialization.IntervalToOneLineJSON)
+}
+
+func newJSONEmitter(out, errOut io.Writer, serialize func(monitorapi.Interval) ([]byte, error)) func(monitorapi.Interval) {
 	var lock sync.Mutex
 	return func(i monitorapi.Interval) {
-		b, err := monitorserialization.IntervalToOneLineJSON(i)
-		if err != nil {
-			fmt.Fprintf(out, "failed to serialize interval: %v\n", err)
-			return
-		}
+		b, err := serialize(i)
 		lock.Lock()
 		defer lock.Unlock()
+		if err != nil {
+			fmt.Fprintf(errOut, "failed to serialize interval: %v\n", err)
+			return
+		}
 		fmt.Fprintln(out, string(b))
 	}
 }

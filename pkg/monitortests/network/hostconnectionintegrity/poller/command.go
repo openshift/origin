@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/cmd"
 	"github.com/spf13/cobra"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,7 +53,8 @@ name order, as a ring), to the api-int endpoint (when --api-int-url is set) and 
 local kube-apiserver. Probe over it periodically and report, as one-line JSON
 intervals on stdout, every episode where the established connection was reset or silently stopped passing
 traffic while a new connection to the same target still worked.`,
-		SilenceUsage: true,
+		SilenceUsage:     true,
+		PersistentPreRun: cmd.NoPrintVersion,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Validate(); err != nil {
 				return err
@@ -173,7 +175,7 @@ func (o *Options) Run(ctx context.Context) error {
 
 	peers, _ := ParsePeers(o.Peers)
 	targets := BuildTargets(o.MyNodeName, peers, o.MaxPeers, o.ControlPlaneNodes, o.APIIntURL)
-	emit := JSONEmitter(o.Out)
+	emit := JSONEmitter(o.Out, o.ErrOut)
 	klog.Infof("node/%s probing %d targets every %v (timeout %v)", o.MyNodeName, len(targets), o.ProbeInterval, o.ProbeTimeout)
 
 	pollCtx, stopPolling := context.WithCancel(ctx)
