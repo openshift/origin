@@ -72,6 +72,7 @@ require (
 	github.com/openshift/build-machinery-go v0.0.0-20250530140348-dc5b2804eeee
 	github.com/openshift/client-go v0.0.0-20261014115618-03a1e773ff3d
 	github.com/openshift/library-go v0.0.0-20261001144932-192662696fc7
+	github.com/openshift/origin/test/shared v0.0.0
 	github.com/openshift/osincli v0.0.0-20160924135400-fababb0555f2
 	github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250118001652-a8b9c3c31417
 	github.com/pborman/uuid v1.2.0
@@ -440,6 +441,7 @@ require (
 
 replace (
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20260807173042-3ac00363bb14
+	github.com/openshift/origin/test/shared => ./test/shared
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.53.0
 	k8s.io/api => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20261001225056-adecb44d9f88
 	k8s.io/apiextensions-apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20261001225056-adecb44d9f88
