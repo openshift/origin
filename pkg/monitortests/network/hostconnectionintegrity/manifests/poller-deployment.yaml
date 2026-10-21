@@ -32,7 +32,8 @@ spec:
           terminationMessagePolicy: FallbackToLogsOnError
           securityContext:
             # hostNetwork is all the poller needs: it only opens outbound connections.
-            runAsUser: 0
+            runAsNonRoot: true
+            runAsUser: 65534
             allowPrivilegeEscalation: false
             capabilities:
               drop:

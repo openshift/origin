@@ -348,16 +348,64 @@ func TestNodesWithoutReadyPoller(t *testing.T) {
 	}
 }
 
+func TestPollerManifestSecurity(t *testing.T) {
+	t.Parallel()
+	deployment := buildDeployment("img", []string{"worker-a=10.0.0.1", "worker-b=10.0.0.2"}, nil, "https://api-int.example:6443")
+	podSpec := deployment.Spec.Template.Spec
+	if !podSpec.HostNetwork {
+		t.Error("poller must retain host networking")
+	}
+	if len(podSpec.Containers) != 1 {
+		t.Fatalf("expected one poller container, got %d", len(podSpec.Containers))
+	}
+	securityContext := podSpec.Containers[0].SecurityContext
+	if securityContext == nil {
+		t.Fatal("poller must have an explicit security context")
+	}
+	if securityContext.RunAsNonRoot == nil || !*securityContext.RunAsNonRoot {
+		t.Error("poller must explicitly require non-root execution")
+	}
+	if securityContext.RunAsUser == nil || *securityContext.RunAsUser != 65534 {
+		t.Error("poller must explicitly run as UID 65534 without relying on SCC mutation")
+	}
+	if securityContext.AllowPrivilegeEscalation == nil || *securityContext.AllowPrivilegeEscalation {
+		t.Error("poller must explicitly disallow privilege escalation")
+	}
+	capabilities := securityContext.Capabilities
+	if capabilities == nil || len(capabilities.Add) != 0 || len(capabilities.Drop) != 1 || capabilities.Drop[0] != "ALL" {
+		t.Errorf("poller must drop ALL capabilities without adding any, got %+v", capabilities)
+	}
+
+	for label, expected := range map[string]string{
+		"pod-security.kubernetes.io/enforce":                       "privileged",
+		"pod-security.kubernetes.io/audit":                         "privileged",
+		"pod-security.kubernetes.io/warn":                          "privileged",
+		"security.openshift.io/disable-securitycontextconstraints": "true",
+		"security.openshift.io/scc.podSecurityLabelSync":           "false",
+	} {
+		if actual := namespaceTemplate.Labels[label]; actual != expected {
+			t.Errorf("namespace label %s must remain %q, got %q", label, expected, actual)
+		}
+	}
+}
+
 func TestPollerRBACIsLeastPrivilege(t *testing.T) {
 	if len(roleTemplate.Rules) != 1 {
 		t.Fatalf("expected a single rule, got %v", roleTemplate.Rules)
 	}
 	r := roleTemplate.Rules[0]
-	if strings.Join(r.Resources, ",") != "configmaps" || strings.Join(r.Verbs, ",") != "get" || strings.Join(r.ResourceNames, ",") != stopConfigMapName {
+	if len(r.APIGroups) != 1 || r.APIGroups[0] != "" || len(r.NonResourceURLs) != 0 || strings.Join(r.Resources, ",") != "configmaps" || strings.Join(r.Verbs, ",") != "get" || strings.Join(r.ResourceNames, ",") != stopConfigMapName {
 		t.Errorf("unexpected rule %+v", r)
 	}
-	if roleBindingTemplate.RoleRef.Kind != "Role" || roleBindingTemplate.RoleRef.Name != roleTemplate.Name {
+	if roleBindingTemplate.RoleRef.APIGroup != "rbac.authorization.k8s.io" || roleBindingTemplate.RoleRef.Kind != "Role" || roleBindingTemplate.RoleRef.Name != roleTemplate.Name {
 		t.Errorf("role binding must reference the namespaced role, got %+v", roleBindingTemplate.RoleRef)
+	}
+	if len(roleBindingTemplate.Subjects) != 1 {
+		t.Fatalf("expected a single role binding subject, got %v", roleBindingTemplate.Subjects)
+	}
+	subject := roleBindingTemplate.Subjects[0]
+	if subject.Kind != "ServiceAccount" || subject.Name != "default" || subject.APIGroup != "" || subject.Namespace != "" {
+		t.Errorf("role binding must retain the default service account in its own namespace, got %+v", subject)
 	}
 }
 
