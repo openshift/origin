@@ -12,6 +12,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	machinev1 "github.com/openshift/api/machine/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machinev1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1"
 	machinev1beta1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1"
@@ -383,6 +384,92 @@ func EnsureCPMSReplicasConverged(ctx context.Context, cpmsClient machinev1client
 		return fmt.Errorf("CPMS replicas failed to converge, expected status.readyReplicas '%d' to be equal to spec.replicas '%v'", cpms.Status.ReadyReplicas, cpms.Spec.Replicas)
 	}
 	return nil
+}
+
+// WaitForEtcdToStabilize waits until all etcd static pods are running and ready on the same revision and the etcd
+// ClusterOperator is Available, not Progressing and not Degraded, and all of that holds on one revision for 6
+// consecutive minutes. Any change of revision or unsettled observation restarts the window.
+// After the last old member is removed, the etcd operator prunes that node's certs from etcd-all-certs,
+// which triggers one more revision a minute or two later. The stability window ensures the scaling tests
+// do not finish while that rollout is still pending or in progress.
+func WaitForEtcdToStabilize(ctx context.Context, t TestingT, podClient v1.PodInterface, clusterOperatorClient configv1client.ClusterOperatorInterface) error {
+	stableDuration := 6 * time.Minute
+	pollInterval := 30 * time.Second
+	timeout := 22 * time.Minute
+	t.Logf("Waiting up to %s for etcd to stabilize on the same revision for %s", timeout, stableDuration)
+
+	stableRevision := ""
+	var stableSince time.Time
+	return wait.PollUntilContextTimeout(ctx, pollInterval, timeout, true, func(ctx context.Context) (bool, error) {
+		revision, reason := settledEtcdRevision(ctx, podClient, clusterOperatorClient)
+		if len(revision) == 0 {
+			t.Logf("etcd is not settled: %s", reason)
+			stableRevision = ""
+			return false, nil
+		}
+		if revision != stableRevision {
+			t.Logf("etcd is settled on revision %s, waiting for it to remain stable for %s", revision, stableDuration)
+			stableRevision = revision
+			stableSince = time.Now()
+			return false, nil
+		}
+		if time.Since(stableSince) < stableDuration {
+			return false, nil
+		}
+		t.Logf("etcd has been stable on revision %s for %s", revision, stableDuration)
+		return true, nil
+	})
+}
+
+// settledEtcdRevision returns the revision all etcd pods are running and ready on, provided the etcd ClusterOperator
+// is Available, not Progressing and not Degraded. Otherwise it returns an empty revision and the reason.
+func settledEtcdRevision(ctx context.Context, podClient v1.PodInterface, clusterOperatorClient configv1client.ClusterOperatorInterface) (string, string) {
+	etcdOperator, err := clusterOperatorClient.Get(ctx, "etcd", metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Sprintf("failed to get clusteroperator/etcd: %v", err)
+	}
+	expectedConditions := map[configv1.ClusterStatusConditionType]configv1.ConditionStatus{
+		configv1.OperatorAvailable:   configv1.ConditionTrue,
+		configv1.OperatorProgressing: configv1.ConditionFalse,
+		configv1.OperatorDegraded:    configv1.ConditionFalse,
+	}
+	for conditionType, expectedStatus := range expectedConditions {
+		status := configv1.ConditionUnknown
+		for _, condition := range etcdOperator.Status.Conditions {
+			if condition.Type == conditionType {
+				status = condition.Status
+			}
+		}
+		if status != expectedStatus {
+			return "", fmt.Sprintf("clusteroperator/etcd has %s=%s", conditionType, status)
+		}
+	}
+
+	etcdPods, err := podClient.List(ctx, metav1.ListOptions{LabelSelector: "etcd=true"})
+	if err != nil {
+		return "", fmt.Sprintf("failed to list etcd pods: %v", err)
+	}
+	if len(etcdPods.Items) == 0 {
+		return "", "no etcd pods found"
+	}
+	revisions := sets.New[string]()
+	for _, pod := range etcdPods.Items {
+		ready := false
+		for _, condition := range pod.Status.Conditions {
+			if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
+				ready = true
+			}
+		}
+		if pod.Status.Phase != corev1.PodRunning || !ready {
+			return "", fmt.Sprintf("pod %s is not running and ready", pod.Name)
+		}
+		revisions.Insert(pod.Labels["revision"])
+	}
+	if revisions.Len() != 1 {
+		return "", fmt.Sprintf("etcd pods are on multiple revisions: %v", sets.List(revisions))
+	}
+	revision, _ := revisions.PopAny()
+	return revision, ""
 }
 
 // UpdateCPMSStrategy updates the CPMS strategy to the specified type (OnDelete, RollingUpdate, or Recreate)
