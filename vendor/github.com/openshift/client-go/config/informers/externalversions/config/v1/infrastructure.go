@@ -18,11 +18,39 @@ import (
 )
 
 // InfrastructureInformer provides access to a shared informer and lister for
-// Infrastructures.
+// Infrastructures. Prefer using the type-safe variant (see [TypedInfrastructureInformer]).
 type InfrastructureInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1.InfrastructureLister
 }
+
+// TypedInfrastructureInformer provides access to a shared informer and lister for
+// Infrastructures, including the type-safe TypedInformer variant.
+// It is a superset of InfrastructureInformer.
+type TypedInfrastructureInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() InfrastructureIndexInformer
+	Lister() configv1.InfrastructureLister
+}
+
+// InfrastructureIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type InfrastructureIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1.Infrastructure]
+
+// InfrastructureHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for Infrastructure.
+type InfrastructureHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1.Infrastructure]
+
+// InfrastructureDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for Infrastructure.
+type InfrastructureDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1.Infrastructure]
+
+// InfrastructureFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for Infrastructure.
+type InfrastructureFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1.Infrastructure]
+
+// InfrastructureIndexers is a specialization of [cache.TypedIndexers] for Infrastructure.
+type InfrastructureIndexers = cache.TypedIndexers[*apiconfigv1.Infrastructure]
+
+// DeletedInfrastructure is a specialization of [cache.DeletedObject] for Infrastructure.
+type DeletedInfrastructure = cache.DeletedObject[*apiconfigv1.Infrastructure]
 
 type infrastructureInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type infrastructureInformer struct {
 // NewInfrastructureInformer constructs a new informer for Infrastructure type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedInfrastructureInformer]).
 func NewInfrastructureInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewInfrastructureInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedInfrastructureInformer constructs a new informer for Infrastructure type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedInfrastructureInformer(client versioned.Interface, resyncPeriod time.Duration, indexers InfrastructureIndexers) InfrastructureIndexInformer {
+	return NewTypedInfrastructureInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredInfrastructureInformer constructs a new informer for Infrastructure type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredInfrastructureInformer]).
 func NewFilteredInfrastructureInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewInfrastructureInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedInfrastructureInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredInfrastructureInformer constructs a new informer for Infrastructure type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredInfrastructureInformer(client versioned.Interface, resyncPeriod time.Duration, indexers InfrastructureIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) InfrastructureIndexInformer {
+	return NewTypedInfrastructureInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewInfrastructureInformerWithOptions constructs a new informer for Infrastructure type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedInfrastructureInformerWithOptions]).
 func NewInfrastructureInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedInfrastructureInformerWithOptions(client, options)
+}
+
+// NewTypedInfrastructureInformerWithOptions constructs a new informer for Infrastructure type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedInfrastructureInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) InfrastructureIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "infrastructures"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Infrastructure](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewInfrastructureInformerWithOptions(client versioned.Interface, options in
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *infrastructureInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewInfrastructureInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedInfrastructureInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *infrastructureInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1.Infrastructure{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *infrastructureInformer) TypedInformer() InfrastructureIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Infrastructure](f.factory.InformerFor(&apiconfigv1.Infrastructure{}, f.defaultInformer))
 }
 
 func (f *infrastructureInformer) Lister() configv1.InfrastructureLister {
 	return configv1.NewInfrastructureLister(f.Informer().GetIndexer())
+}
+
+// ToTypedInfrastructureInformer converts an untyped informer into a TypedInfrastructureInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Infrastructure. If that is not the case, calling type-safe methods of the returned
+// TypedInfrastructureInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedInfrastructureInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedInfrastructureInformer(informer InfrastructureInformer) TypedInfrastructureInformer {
+	if informer, ok := informer.(TypedInfrastructureInformer); ok {
+		return informer
+	}
+	return &infrastructureTypedInformerAdapter{informer}
+}
+
+type infrastructureTypedInformerAdapter struct {
+	InfrastructureInformer
+}
+
+func (a *infrastructureTypedInformerAdapter) TypedInformer() InfrastructureIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Infrastructure](a.Informer())
+}
+
+// ToInfrastructureIndexInformer converts an untyped informer into a InfrastructureIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Infrastructure. If that is not the case, calling type-safe methods of the returned
+// InfrastructureIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a InfrastructureIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToInfrastructureIndexInformer(informer cache.SharedIndexInformer) InfrastructureIndexInformer {
+	if informer, ok := informer.(InfrastructureIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Infrastructure](informer)
 }

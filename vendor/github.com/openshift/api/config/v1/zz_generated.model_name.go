@@ -871,6 +871,11 @@ func (in KMSPluginConfig) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in KMSPluginConfigReference) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1.KMSPluginConfigReference"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in KeystoneIdentityProvider) OpenAPIModelName() string {
 	return "com.github.openshift.api.config.v1.KeystoneIdentityProvider"
 }

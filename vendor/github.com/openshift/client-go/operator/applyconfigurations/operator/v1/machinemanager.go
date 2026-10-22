@@ -13,13 +13,15 @@ import (
 // such as the resource type and the API Group of the resource. It also provides granular control via the selection field.
 type MachineManagerApplyConfiguration struct {
 	// resource is the machine management resource's type.
-	// Valid values are machinesets and controlplanemachinesets.
+	// Valid values are machinesets, controlplanemachinesets and machinedeployments.
 	// machinesets means that the machine manager will only register resources of the kind MachineSet.
 	// controlplanemachinesets means that the machine manager will only register resources of the kind ControlPlaneMachineSet.
+	// machinedeployments means that the machine manager will only register resources of the kind MachineDeployment.
 	Resource *operatorv1.MachineManagerMachineSetsResourceType `json:"resource,omitempty"`
 	// apiGroup is name of the APIGroup that the machine management resource belongs to.
-	// The only current valid value is machine.openshift.io.
+	// Valid values are machine.openshift.io and cluster.x-k8s.io.
 	// machine.openshift.io means that the machine manager will only register resources that belong to OpenShift machine API group.
+	// cluster.x-k8s.io means that the machine manager will only register resources that belong to the Cluster API group.
 	APIGroup *operatorv1.MachineManagerMachineSetsAPIGroupType `json:"apiGroup,omitempty"`
 	// selection allows granular control of the machine management resources that will be registered for boot image updates.
 	Selection *MachineManagerSelectorApplyConfiguration `json:"selection,omitempty"`

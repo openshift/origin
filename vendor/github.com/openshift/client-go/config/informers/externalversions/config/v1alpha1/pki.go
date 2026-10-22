@@ -18,11 +18,39 @@ import (
 )
 
 // PKIInformer provides access to a shared informer and lister for
-// PKIs.
+// PKIs. Prefer using the type-safe variant (see [TypedPKIInformer]).
 type PKIInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1alpha1.PKILister
 }
+
+// TypedPKIInformer provides access to a shared informer and lister for
+// PKIs, including the type-safe TypedInformer variant.
+// It is a superset of PKIInformer.
+type TypedPKIInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() PKIIndexInformer
+	Lister() configv1alpha1.PKILister
+}
+
+// PKIIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type PKIIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1alpha1.PKI]
+
+// PKIHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for PKI.
+type PKIHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1alpha1.PKI]
+
+// PKIDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for PKI.
+type PKIDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1alpha1.PKI]
+
+// PKIFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for PKI.
+type PKIFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1alpha1.PKI]
+
+// PKIIndexers is a specialization of [cache.TypedIndexers] for PKI.
+type PKIIndexers = cache.TypedIndexers[*apiconfigv1alpha1.PKI]
+
+// DeletedPKI is a specialization of [cache.DeletedObject] for PKI.
+type DeletedPKI = cache.DeletedObject[*apiconfigv1alpha1.PKI]
 
 type pKIInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type pKIInformer struct {
 // NewPKIInformer constructs a new informer for PKI type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedPKIInformer]).
 func NewPKIInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewPKIInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedPKIInformer constructs a new informer for PKI type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedPKIInformer(client versioned.Interface, resyncPeriod time.Duration, indexers PKIIndexers) PKIIndexInformer {
+	return NewTypedPKIInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredPKIInformer constructs a new informer for PKI type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredPKIInformer]).
 func NewFilteredPKIInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewPKIInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedPKIInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredPKIInformer constructs a new informer for PKI type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredPKIInformer(client versioned.Interface, resyncPeriod time.Duration, indexers PKIIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) PKIIndexInformer {
+	return NewTypedPKIInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewPKIInformerWithOptions constructs a new informer for PKI type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedPKIInformerWithOptions]).
 func NewPKIInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedPKIInformerWithOptions(client, options)
+}
+
+// NewTypedPKIInformerWithOptions constructs a new informer for PKI type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedPKIInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) PKIIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1alpha1", Resource: "pkis"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1alpha1.PKI](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewPKIInformerWithOptions(client versioned.Interface, options internalinter
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *pKIInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewPKIInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedPKIInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *pKIInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1alpha1.PKI{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *pKIInformer) TypedInformer() PKIIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1alpha1.PKI](f.factory.InformerFor(&apiconfigv1alpha1.PKI{}, f.defaultInformer))
 }
 
 func (f *pKIInformer) Lister() configv1alpha1.PKILister {
 	return configv1alpha1.NewPKILister(f.Informer().GetIndexer())
+}
+
+// ToTypedPKIInformer converts an untyped informer into a TypedPKIInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *PKI. If that is not the case, calling type-safe methods of the returned
+// TypedPKIInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedPKIInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedPKIInformer(informer PKIInformer) TypedPKIInformer {
+	if informer, ok := informer.(TypedPKIInformer); ok {
+		return informer
+	}
+	return &pKITypedInformerAdapter{informer}
+}
+
+type pKITypedInformerAdapter struct {
+	PKIInformer
+}
+
+func (a *pKITypedInformerAdapter) TypedInformer() PKIIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1alpha1.PKI](a.Informer())
+}
+
+// ToPKIIndexInformer converts an untyped informer into a PKIIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *PKI. If that is not the case, calling type-safe methods of the returned
+// PKIIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a PKIIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToPKIIndexInformer(informer cache.SharedIndexInformer) PKIIndexInformer {
+	if informer, ok := informer.(PKIIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1alpha1.PKI](informer)
 }

@@ -5,7 +5,7 @@ package v1
 // ConfigStatusApplyConfiguration represents a declarative configuration of the ConfigStatus type for use
 // with apply.
 type ConfigStatusApplyConfiguration struct {
-	OperatorStatusApplyConfiguration `json:",inline"`
+	OperatorStatusApplyConfiguration `json:""`
 }
 
 // ConfigStatusApplyConfiguration constructs a declarative configuration of the ConfigStatus type for use with

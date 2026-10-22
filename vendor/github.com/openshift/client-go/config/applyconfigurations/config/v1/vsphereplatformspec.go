@@ -15,12 +15,10 @@ import (
 type VSpherePlatformSpecApplyConfiguration struct {
 	// vcenters holds the connection details for services to communicate with vCenter.
 	// Up to 3 vCenters are supported.
-	// Once the cluster has been installed, you are unable to change the current number of defined
-	// vCenters except when 1.) the cluster has been upgraded from a version of OpenShift
-	// where the vsphere platform spec was not present or 2.) in TechPreview you are able to add and
-	// remove vCenters but may not remove all vCenters.  You may make modifications to the existing
-	// vCenters that are defined in the vcenters list in order to match with any added or modified
-	// failure domains.
+	// After installation, you can add or change vCenters, or remove some of them, but you must keep
+	// at least one and may not add and remove vCenters during the same update.  You may make modifications
+	// to the existing vCenters that are defined in the vcenters list in order to match with any added or
+	// modified failure domains.
 	// ---
 	VCenters []VSpherePlatformVCenterSpecApplyConfiguration `json:"vcenters,omitempty"`
 	// failureDomains contains the definition of region, zone and the vCenter topology.

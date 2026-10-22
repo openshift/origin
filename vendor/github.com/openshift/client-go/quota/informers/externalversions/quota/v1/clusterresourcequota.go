@@ -18,11 +18,39 @@ import (
 )
 
 // ClusterResourceQuotaInformer provides access to a shared informer and lister for
-// ClusterResourceQuotas.
+// ClusterResourceQuotas. Prefer using the type-safe variant (see [TypedClusterResourceQuotaInformer]).
 type ClusterResourceQuotaInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() quotav1.ClusterResourceQuotaLister
 }
+
+// TypedClusterResourceQuotaInformer provides access to a shared informer and lister for
+// ClusterResourceQuotas, including the type-safe TypedInformer variant.
+// It is a superset of ClusterResourceQuotaInformer.
+type TypedClusterResourceQuotaInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() ClusterResourceQuotaIndexInformer
+	Lister() quotav1.ClusterResourceQuotaLister
+}
+
+// ClusterResourceQuotaIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type ClusterResourceQuotaIndexInformer cache.TypedSharedIndexInformer[*apiquotav1.ClusterResourceQuota]
+
+// ClusterResourceQuotaHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for ClusterResourceQuota.
+type ClusterResourceQuotaHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiquotav1.ClusterResourceQuota]
+
+// ClusterResourceQuotaDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for ClusterResourceQuota.
+type ClusterResourceQuotaDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiquotav1.ClusterResourceQuota]
+
+// ClusterResourceQuotaFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for ClusterResourceQuota.
+type ClusterResourceQuotaFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiquotav1.ClusterResourceQuota]
+
+// ClusterResourceQuotaIndexers is a specialization of [cache.TypedIndexers] for ClusterResourceQuota.
+type ClusterResourceQuotaIndexers = cache.TypedIndexers[*apiquotav1.ClusterResourceQuota]
+
+// DeletedClusterResourceQuota is a specialization of [cache.DeletedObject] for ClusterResourceQuota.
+type DeletedClusterResourceQuota = cache.DeletedObject[*apiquotav1.ClusterResourceQuota]
 
 type clusterResourceQuotaInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type clusterResourceQuotaInformer struct {
 // NewClusterResourceQuotaInformer constructs a new informer for ClusterResourceQuota type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedClusterResourceQuotaInformer]).
 func NewClusterResourceQuotaInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewClusterResourceQuotaInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedClusterResourceQuotaInformer constructs a new informer for ClusterResourceQuota type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedClusterResourceQuotaInformer(client versioned.Interface, resyncPeriod time.Duration, indexers ClusterResourceQuotaIndexers) ClusterResourceQuotaIndexInformer {
+	return NewTypedClusterResourceQuotaInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredClusterResourceQuotaInformer constructs a new informer for ClusterResourceQuota type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredClusterResourceQuotaInformer]).
 func NewFilteredClusterResourceQuotaInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewClusterResourceQuotaInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedClusterResourceQuotaInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredClusterResourceQuotaInformer constructs a new informer for ClusterResourceQuota type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredClusterResourceQuotaInformer(client versioned.Interface, resyncPeriod time.Duration, indexers ClusterResourceQuotaIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) ClusterResourceQuotaIndexInformer {
+	return NewTypedClusterResourceQuotaInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewClusterResourceQuotaInformerWithOptions constructs a new informer for ClusterResourceQuota type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedClusterResourceQuotaInformerWithOptions]).
 func NewClusterResourceQuotaInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedClusterResourceQuotaInformerWithOptions(client, options)
+}
+
+// NewTypedClusterResourceQuotaInformerWithOptions constructs a new informer for ClusterResourceQuota type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedClusterResourceQuotaInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) ClusterResourceQuotaIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "quota.openshift.io", Version: "v1", Resource: "clusterresourcequotas"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiquotav1.ClusterResourceQuota](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewClusterResourceQuotaInformerWithOptions(client versioned.Interface, opti
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *clusterResourceQuotaInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewClusterResourceQuotaInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedClusterResourceQuotaInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *clusterResourceQuotaInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiquotav1.ClusterResourceQuota{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *clusterResourceQuotaInformer) TypedInformer() ClusterResourceQuotaIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiquotav1.ClusterResourceQuota](f.factory.InformerFor(&apiquotav1.ClusterResourceQuota{}, f.defaultInformer))
 }
 
 func (f *clusterResourceQuotaInformer) Lister() quotav1.ClusterResourceQuotaLister {
 	return quotav1.NewClusterResourceQuotaLister(f.Informer().GetIndexer())
+}
+
+// ToTypedClusterResourceQuotaInformer converts an untyped informer into a TypedClusterResourceQuotaInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ClusterResourceQuota. If that is not the case, calling type-safe methods of the returned
+// TypedClusterResourceQuotaInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedClusterResourceQuotaInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedClusterResourceQuotaInformer(informer ClusterResourceQuotaInformer) TypedClusterResourceQuotaInformer {
+	if informer, ok := informer.(TypedClusterResourceQuotaInformer); ok {
+		return informer
+	}
+	return &clusterResourceQuotaTypedInformerAdapter{informer}
+}
+
+type clusterResourceQuotaTypedInformerAdapter struct {
+	ClusterResourceQuotaInformer
+}
+
+func (a *clusterResourceQuotaTypedInformerAdapter) TypedInformer() ClusterResourceQuotaIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiquotav1.ClusterResourceQuota](a.Informer())
+}
+
+// ToClusterResourceQuotaIndexInformer converts an untyped informer into a ClusterResourceQuotaIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ClusterResourceQuota. If that is not the case, calling type-safe methods of the returned
+// ClusterResourceQuotaIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a ClusterResourceQuotaIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToClusterResourceQuotaIndexInformer(informer cache.SharedIndexInformer) ClusterResourceQuotaIndexInformer {
+	if informer, ok := informer.(ClusterResourceQuotaIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiquotav1.ClusterResourceQuota](informer)
 }

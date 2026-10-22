@@ -21,7 +21,7 @@ type BuildConfigSpecApplyConfiguration struct {
 	// This is optional, if not specified we default to "Serial".
 	RunPolicy *buildv1.BuildRunPolicy `json:"runPolicy,omitempty"`
 	// CommonSpec is the desired build specification
-	CommonSpecApplyConfiguration `json:",inline"`
+	CommonSpecApplyConfiguration `json:""`
 	// successfulBuildsHistoryLimit is the number of old successful builds to retain.
 	// When a BuildConfig is created, the 5 most recent successful builds are retained unless this value is set.
 	// If removed after the BuildConfig has been created, all successful builds are retained.
