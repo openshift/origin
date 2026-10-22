@@ -39,6 +39,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 		caCertPEM      []byte
 		proxyNamespace string
 		kcSetup        *keycloakProxySetup
+		originalProxy  oauthServerProxyConfig
 		cleanups       []removalFunc
 	)
 
@@ -50,6 +51,8 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 		authRestore, err := saveAndRestoreAuthState(ctx, oc)
 		cleanups = append(cleanups, authRestore)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		originalProxy, err = getOAuthServerProxyConfig(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to capture the OAuth server proxy configuration")
 
 		g.By("Deploying Squid forward proxy")
 		var proxyCleanup removalFunc
@@ -68,7 +71,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Waiting for OAuth server deployment to be stable before test")
-		err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, "", "", "", false)
+		err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, originalProxy.httpProxy, originalProxy.httpsProxy, originalProxy.noProxy, originalProxy.hasTrustedCA)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.GinkgoWriter.Printf("Squid proxy URL: http=%s https=%s\n", httpProxyURL, httpsProxyURL)
@@ -93,7 +96,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 	g.It("operator should validate OIDC IdP through component proxy with trustedCA", func() {
 		testOIDCIdPThroughComponentProxy(ctx, oc, kcSetup, httpsProxyURL, caCertPEM, proxyNamespace)
 	})
-	g.It("operator should fall back to original configuration on spec.proxy removal", func() {
+	g.It("operator should fall back to cluster proxy defaults on spec.proxy removal", func() {
 		testFallbackOnProxyRemoval(ctx, oc, kcSetup, httpProxyURL, proxyNamespace)
 	})
 	g.It("oauth-server should perform full OIDC login flow through the proxy when auth proxy config is applied", func() {
@@ -408,9 +411,14 @@ func testOIDCIdPThroughComponentProxy(ctx context.Context, oc *exutil.CLI, kcSet
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
+// testFallbackOnProxyRemoval verifies that removing the component proxy restores
+// the cluster proxy defaults, including no proxy when none is configured.
 func testFallbackOnProxyRemoval(ctx context.Context, oc *exutil.CLI, kcSetup *keycloakProxySetup, httpProxyURL string, proxyNamespace string) {
+	clusterProxy, err := oc.AdminConfigClient().ConfigV1().Proxies().Get(ctx, "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to read the cluster-wide proxy configuration")
+
 	g.By("Setting component-scoped proxy")
-	err := updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{
+	err = updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{
 		HTTPSProxy: httpProxyURL,
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -438,9 +446,60 @@ func testFallbackOnProxyRemoval(ctx context.Context, oc *exutil.CLI, kcSetup *ke
 	err = waitForOperatorToPickUpChanges(ctx, oc, "authentication")
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	g.By("Verifying proxy env vars are no longer set on OAuth server deployment")
-	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, "", "", "", false)
+	g.By("Verifying OAuth server deployment uses cluster proxy defaults, including no proxy when none is configured")
+	// The component trustedCA mount is removed; cluster trust uses the system CA bundle.
+	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, clusterProxy.Status.HTTPProxy, clusterProxy.Status.HTTPSProxy, clusterProxy.Status.NoProxy, false)
 	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+type oauthServerProxyConfig struct {
+	httpProxy    string
+	httpsProxy   string
+	noProxy      string
+	hasTrustedCA bool
+}
+
+// getOAuthServerProxyConfig captures the effective deployment proxy settings for startup checks.
+func getOAuthServerProxyConfig(ctx context.Context, oc *exutil.CLI) (oauthServerProxyConfig, error) {
+	g.GinkgoHelper()
+
+	deployment, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+	if err != nil {
+		return oauthServerProxyConfig{}, err
+	}
+
+	// A cluster without a global proxy does not add these environment variables.
+	// Start with that baseline, then replace only the values present on the
+	// existing oauth-openshift deployment.
+	config := oauthServerProxyConfig{
+		httpProxy:    "",
+		httpsProxy:   "",
+		noProxy:      "",
+		hasTrustedCA: false,
+	}
+	for _, container := range deployment.Spec.Template.Spec.Containers {
+		if container.Name != "oauth-openshift" {
+			continue
+		}
+		for _, env := range container.Env {
+			switch env.Name {
+			case "HTTP_PROXY":
+				config.httpProxy = env.Value
+			case "HTTPS_PROXY":
+				config.httpsProxy = env.Value
+			case "NO_PROXY":
+				config.noProxy = env.Value
+			}
+		}
+		for _, mount := range container.VolumeMounts {
+			if mount.Name == "v4-0-config-system-auth-proxy-ca" {
+				config.hasTrustedCA = true
+			}
+		}
+		return config, nil
+	}
+
+	return oauthServerProxyConfig{}, fmt.Errorf("oauth-openshift container not found in oauth-openshift deployment")
 }
 
 // createKeycloakUserPassword creates a Keycloak user for the login flows. The user is
