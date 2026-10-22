@@ -416,6 +416,8 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 
 	// Formerly bug: https://bugzilla.redhat.com/show_bug.cgi?id=2075204
 	// Left stale and closed automatically. Assuming we can live with it now.
+	// This allowance is unconditional (no repeatThresholdOverride) and intentionally
+	// left that way for the guard pod to preserve long-standing behavior.
 	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
 		name: "EtcdReadinessProbeError",
 		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
@@ -424,6 +426,31 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		},
 		messageReasonRegex: regexp.MustCompile(`^ProbeError$`),
 		messageHumanRegex:  regexp.MustCompile(`Readiness probe error: .* connect: connection refused`),
+	})
+
+	// The same readyz connection-refused ProbeError that historically landed on the
+	// guard pod now also surfaces on the static etcd pod (etcd-<node>) when a mid-run
+	// roll (e.g. a TLS security-profile change) triggers a late etcd revision. Unlike
+	// the guard allowance above, this one is BOUNDED by a repeatThresholdOverride so
+	// that the known revision/roll churn is tolerated but a genuine blow-up in static
+	// pod readyz refusals still trips the pathological-events test.
+	//
+	// The pod regex ^etcd- also matches guard pods, but that is harmless: a guard pod
+	// is already allowed unconditionally by EtcdReadinessProbeError above (AllowedByAny
+	// returns on the first matcher that allows), so this bound only has teeth on the
+	// static pod. In openshift-etcd the only etcd-* pods are the static and guard pods
+	// (the operator lives in openshift-etcd-operator), so ^etcd- does not over-match.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "EtcdStaticPodReadinessProbeError",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-etcd`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^etcd-`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^ProbeError$`),
+		messageHumanRegex:  regexp.MustCompile(`Readiness probe error: .* connect: connection refused`),
+		// Observed in-suite churn peaks around ~31; 50 tolerates that with headroom
+		// while still catching a true escalation.
+		repeatThresholdOverride: 50,
 	})
 
 	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
