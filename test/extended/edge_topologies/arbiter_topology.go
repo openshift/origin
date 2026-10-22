@@ -55,6 +55,17 @@ var expectedPodsByPlatform = map[v1.PlatformType]map[string]int{
 var expectedPods map[string]int
 var expectedPodsOnce sync.Once
 
+func countArbiterPodsByNamespace(pods []corev1.Pod) map[string]int {
+	counts := map[string]int{}
+	for _, pod := range pods {
+		if strings.HasPrefix(pod.Namespace, "e2e-") || strings.HasPrefix(pod.Namespace, "openshift-e2e-") {
+			continue
+		}
+		counts[pod.Namespace]++
+	}
+	return counts
+}
+
 func initExpectedPods(oc *exutil.CLI) {
 	expectedPodsOnce.Do(func() {
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
@@ -113,10 +124,8 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:High
 				FieldSelector: fmt.Sprintf("spec.nodeName=%s,status.phase=Running", node.Name),
 			})
 			o.Expect(err).To(o.BeNil(), "Expected to retrieve pods without error")
-			for _, pod := range pods.Items {
-				if !strings.HasPrefix(pod.Namespace, "e2e-") {
-					countedPods[pod.Namespace] += 1
-				}
+			for namespace, count := range countArbiterPodsByNamespace(pods.Items) {
+				countedPods[namespace] += count
 			}
 		}
 		o.Expect(countedPods).To(o.Equal(expectedPods), "Expected the max number of running pods on the Arbiter node")
