@@ -1,0 +1,9 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: host-connection-integrity-poller
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["stop-collecting"]
+  verbs: ["get"]

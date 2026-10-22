@@ -1,0 +1,13 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  generateName: e2e-host-connection-integrity-
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+    # bypass SCC, same as the pod-network availability monitor (see disruptionpodnetwork/namespace.yaml).
+    security.openshift.io/disable-securitycontextconstraints: "true"
+    security.openshift.io/scc.podSecurityLabelSync: "false"
+  annotations:
+    workload.openshift.io/allowed: management

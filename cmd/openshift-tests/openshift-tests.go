@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"syscall"
 
+	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/cmd/cmdinfo"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/cmd/cmdrun"
+	extensionginkgo "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -16,6 +19,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
 	"k8s.io/kubectl/pkg/util/templates"
 
 	"github.com/openshift/origin/pkg/cmd"
@@ -53,6 +57,12 @@ func main() {
 		return
 	}
 
+	if isConnectionWatchCommand(os.Args[1:]) {
+		ginkgo.GinkgoWriter = ginkgo.NewWriter(os.Stderr)
+		ginkgo.GinkgoLogr = extensionginkgo.GinkgoLogrFunc(ginkgo.GinkgoWriter)
+		klog.ClearLogger()
+		klog.LogToStderr(true)
+	}
 	logs.InitLogs()
 	defer logs.FlushLogs()
 	logrus.SetLevel(logrus.InfoLevel)
@@ -130,4 +140,20 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func isConnectionWatchCommand(args []string) bool {
+	root := &cobra.Command{Use: "openshift-tests"}
+	root.PersistentFlags().FuncP("v", "v", "log verbosity", func(value string) error {
+		_, err := strconv.ParseInt(value, 10, 32)
+		return err
+	})
+	disruptionCommand := disruption.NewDisruptionCommand(genericclioptions.IOStreams{})
+	root.AddCommand(disruptionCommand)
+	selected, remaining, err := root.Find(args)
+	if err != nil || selected.Parent() != disruptionCommand || selected.Name() != "watch-established-connections" {
+		return false
+	}
+	selected.InitDefaultHelpFlag()
+	return selected.ParseFlags(remaining) == nil
 }
