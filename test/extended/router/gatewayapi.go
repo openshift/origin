@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"slices"
 	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -77,16 +78,13 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][api
 				if crd.Spec.Group == "gateway.networking.x-k8s.io" {
 					e2e.Failf("Found unexpected CRD named: %v", crd.Name)
 				}
+				// Check standard group GWAPI CRDs to ensure they are not in the experimental channel
+				if slices.Contains(crdNames, crd.Name) {
+					if channel, ok := crd.Annotations["gateway.networking.k8s.io/channel"]; ok && channel == "experimental" {
+						e2e.Failf("Found experimental channel CRD: %v (expected standard channel)", crd.Name)
+					}
+				}
 			}
-		})
-
-		g.It("and ensure CRD of experimental group can not be created", func() {
-			expCRDName := "xlistenersets.gateway.networking.x-k8s.io"
-			g.By("Try to create CRD of experimental group and fail")
-			expCRD := buildGWAPICRDFromName(expCRDName)
-			_, err := oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().Create(context.Background(), expCRD, metav1.CreateOptions{})
-			o.Expect(err).To(o.HaveOccurred())
-			o.Expect(err.Error()).To(o.ContainSubstring(errorMessage))
 		})
 	})
 })
