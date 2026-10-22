@@ -159,7 +159,6 @@ func CreateLDAPTestServer(oc *CLI) (svcNs, svcName, svcHostname string, caPem []
 	// OCPBUGS-1053 add retry to see if periodic failures are intermittent
 	const maxAttempts int = 3
 	for i := 0; i < maxAttempts; i++ {
-
 		// Confirm ldap server availability. Since the ldap client does not support SNI, a TLS passthrough route will not
 		// work, so we need to talk to the server over the service network.
 		if err := checkLDAPConn(oc, svcHostname, fmt.Sprintf("runonce-ldapsearch-pod-%d", i)); err != nil {
