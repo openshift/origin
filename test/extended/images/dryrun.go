@@ -1,13 +1,16 @@
 package images
 
 import (
+	"context"
+	"time"
+
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
+	"k8s.io/apimachinery/pkg/util/wait"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/image"
 )
 
 var _ = g.Describe("[sig-imageregistry] Image --dry-run", func() {
@@ -19,7 +22,7 @@ var _ = g.Describe("[sig-imageregistry] Image --dry-run", func() {
 
 	g.It("should not delete resources [apigroup:image.openshift.io]", func() {
 		g.By("preparing the image stream where the test image will be pushed")
-		err := oc.Run("tag").Args("--source=docker", image.ShellImage(), "test:latest").Execute()
+		err := oc.Run("tag").Args("openshift/cli:latest", "test:latest").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = exutil.WaitForAnImageStreamTag(oc, oc.Namespace(), "test", "latest")
@@ -40,5 +43,37 @@ var _ = g.Describe("[sig-imageregistry] Image --dry-run", func() {
 		g.By("obtaining the test imagestream")
 		_, err = oc.Run("get").Args("imagestream", "test", "-o", "jsonpath={.image.metadata.name}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
+	g.It("should not update resources [apigroup:image.openshift.io]", func() {
+
+		g.By("actually creating imagestream for update dry-run test")
+		err := oc.Run("create").Args("imagestream", "dryrun-test").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		defer func() {
+			g.By("cleaning up imagestream")
+			err := oc.Run("delete").Args("imagestream/dryrun-test", "--ignore-not-found=true").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}()
+
+		g.By("verifying the imagestream was actually created")
+		err = wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+			_, err := oc.Run("get").Args("imagestream", "dryrun-test", "-o", "jsonpath={.metadata.name}").Output()
+			if err != nil {
+				return false, nil // Continue polling
+			}
+			return true, nil // Success
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("triggering imagestream annotation update with --dry-run=server")
+		err = oc.Run("annotate").Args("imagestream/dryrun-test", "test-annotation=value1", "--dry-run=server").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("verifying the annotation was not persisted")
+		output, err := oc.Run("get").Args("imagestream", "dryrun-test", "-o", "jsonpath={.metadata.annotations.test-annotation}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(output).To(o.BeEmpty())
 	})
 })
