@@ -15,6 +15,8 @@ func clusterOperatorsForRendering(ctx context.Context, c configv1client.Interfac
 		return err.Error()
 	}
 
+	// TODO: This looks too simple
+
 	retBytes, err := json.Marshal(clusterOperators)
 	if err != nil {
 		return err.Error()
