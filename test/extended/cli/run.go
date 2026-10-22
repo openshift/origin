@@ -20,7 +20,10 @@ var _ = g.Describe("[sig-cli] oc run", func() {
 
 		_, err = oc.Run("run").Args("newdcforimage2", "--image=\"InvalidImageValue0192\"").Output()
 		o.Expect(err).To(o.HaveOccurred())
-		o.Expect(err.Error()).To(o.ContainSubstring("error: Invalid image name \"\\\"InvalidImageValue0192\\\"\": invalid reference format"))
+		o.Expect(err.Error()).To(o.Or(
+			o.ContainSubstring("error: invalid image name \"\\\"InvalidImageValue0192\\\"\": invalid reference format"),
+			o.ContainSubstring("error: Invalid image name \"\\\"InvalidImageValue0192\\\"\": invalid reference format"),
+		))
 	})
 
 	g.It("can use --image flag correctly for deployment", func() {
@@ -29,6 +32,9 @@ var _ = g.Describe("[sig-cli] oc run", func() {
 
 		_, err = oc.Run("run").Args("newdcforimage2", "--image=\"InvalidImageValue0192\"").Output()
 		o.Expect(err).To(o.HaveOccurred())
-		o.Expect(err.Error()).To(o.ContainSubstring("error: Invalid image name \"\\\"InvalidImageValue0192\\\"\": invalid reference format"))
+		o.Expect(err.Error()).To(o.Or(
+			o.ContainSubstring("error: invalid image name \"\\\"InvalidImageValue0192\\\"\": invalid reference format"),
+			o.ContainSubstring("error: Invalid image name \"\\\"InvalidImageValue0192\\\"\": invalid reference format"),
+		))
 	})
 })
