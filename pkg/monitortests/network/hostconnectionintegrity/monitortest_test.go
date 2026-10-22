@@ -1,6 +1,7 @@
 package hostconnectionintegrity
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -64,8 +65,9 @@ var ciCases = []struct {
 }
 
 func TestCorrelateCICases(t *testing.T) {
-	for _, c := range ciCases {
-		t.Run(c.run, func(t *testing.T) {
+	for caseIndex, c := range ciCases {
+		t.Run(fmt.Sprintf("gateway-reconcile-replay-%02d", caseIndex+1), func(t *testing.T) {
+			t.Logf("replay source Prow run: %s", c.run)
 			trigger := mustTime(t, c.trigger)
 			for _, reason := range []poller.FailureReason{poller.ReasonReset, poller.ReasonStalled} {
 				intervals := monitorapi.Intervals{
