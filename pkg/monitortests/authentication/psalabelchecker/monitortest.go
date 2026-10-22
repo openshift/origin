@@ -72,6 +72,23 @@ var microshiftExceptedNamespaces = map[string]string{
 	"openshift-service-ca":               "CNTRLPLANE-4751",
 }
 
+// hypershiftExceptedNamespaces tracks namespaces that HyperShift ships its own
+// manifests for. Where a namespace is excepted on both platforms, the HyperShift
+// manifest has to be fixed separately, so it is tracked under its own ticket.
+// Namespaces not listed here are bundled with the images HyperShift includes and
+// are tracked in exceptedNamespaces under the standalone ticket instead.
+var hypershiftExceptedNamespaces = map[string]string{
+	"openshift-cloud-controller-manager": "CNTRLPLANE-4825",
+	"openshift-apiserver":                "CNTRLPLANE-4825",
+	"openshift-controller-manager":       "CNTRLPLANE-4825",
+	"openshift-kube-apiserver":           "CNTRLPLANE-4825",
+	"openshift-kube-controller-manager":  "CNTRLPLANE-4825",
+	"openshift-kube-scheduler":           "CNTRLPLANE-4825",
+	"openshift-etcd":                     "CNTRLPLANE-4825",
+	"openshift-authentication":           "CNTRLPLANE-4825",
+	"openshift-route-controller-manager": "CNTRLPLANE-4825",
+}
+
 type noPodSecurityAdmissionLabelNamespaceChecker struct {
 	kubeClient kubernetes.Interface
 }
@@ -86,7 +103,7 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) Cleanup(ctx context.Contex
 // The namespaces that end up being checked here should be managed by OpenShift. Ideally, these namespaces will set the
 // `enforce`, `audit` and `warn` PSA labels to `restricted` so that they do not interfere with the global PSA enforcement,
 // and the PSA Label Syncer label should be removed as the managed namespaces eventually become appropriately labelled.
-func generateTestCase(namespace corev1.Namespace, isMicroShift bool) []*junitapi.JUnitTestCase {
+func generateTestCase(namespace corev1.Namespace, isMicroShift bool, isHyperShift bool) []*junitapi.JUnitTestCase {
 	namespaceName := namespace.Name
 
 	testName := fmt.Sprintf("[sig-auth] namespace %s must set the pod security admission level labels", namespaceName)
@@ -117,6 +134,12 @@ func generateTestCase(namespace corev1.Namespace, isMicroShift bool) []*junitapi
 
 	reason, isException := exceptedNamespaces[namespaceName]
 
+	// On HyperShift the namespace comes from a HyperShift-specific manifest, so point at
+	// the HyperShift ticket instead of the standalone one when we have it.
+	if hypershiftReason, isHyperShiftException := hypershiftExceptedNamespaces[namespaceName]; isHyperShift && isHyperShiftException {
+		reason, isException = hypershiftReason, true
+	}
+
 	// On MicroShift the namespace comes from a MicroShift-specific manifest, so point at
 	// the MicroShift ticket instead of the standalone one when we have it.
 	if microshiftReason, isMicroShiftException := microshiftExceptedNamespaces[namespaceName]; isMicroShift && isMicroShiftException {
@@ -146,10 +169,12 @@ func generateTestCase(namespace corev1.Namespace, isMicroShift bool) []*junitapi
 			SystemOut:     failure,
 			FailureOutput: &junitapi.FailureOutput{Output: failure},
 		},
-		{
-			Name:      testName,
-			SystemOut: "Passing the case to make the overall test case flake while managed namespaces are being labelled",
-		},
+		// TODO(ehearne-redhat): Remove this passing block once we are sure we have caught all exceptions.
+		// Commenting out temporarily to view monitoring behavior clearly.
+		// {
+		// 	Name:      testName,
+		// 	SystemOut: "Passing the case to make the overall test case flake while managed namespaces are being labelled",
+		// },
 	}
 }
 
@@ -192,7 +217,7 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) CollectData(ctx context.Co
 		// Any namespaces that have include.release.openshift.io/hypershift == true annotation, are excepted,
 		// and the test case in question is ran on HyperShift platform, we can filter these results so we can
 		// focus on special OpenShift managed namespaces on HyperShift to reduce duplicate work and findings.
-		if isHyperShift && isHyperShiftIncludedNamespace && isOpenShiftAPIServerManaged && isException {
+		if isHyperShift && (isHyperShiftIncludedNamespace || isOpenShiftAPIServerManaged) && isException {
 			continue
 		}
 
@@ -201,7 +226,7 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) CollectData(ctx context.Co
 		if !isManagedNamespace {
 			continue
 		}
-		junits = append(junits, generateTestCase(ns, isMicroShift)...)
+		junits = append(junits, generateTestCase(ns, isMicroShift, isHyperShift)...)
 	}
 	return nil, junits, nil
 }
