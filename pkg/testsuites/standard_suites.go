@@ -341,8 +341,11 @@ var staticSuites = []ginkgo.TestSuite{
 		Qualifiers: []string{
 			// Exclude the etcd leader changes test — scaling operations cause expected leader elections
 			// that exceed the test's thresholds.
+			// Exclude the API LB late connections test — kube-apiservers on control plane machines being
+			// deleted see late connections during termination, which this test was not designed for.
 			`(` + withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/etcd/scaling") || name.contains("[Feature:EtcdVerticalScaling]")`) +
-				`) && !name.contains("leader changes")`,
+				`) && !name.contains("leader changes")` +
+				` && !name.contains("API LBs follow /readyz of kube-apiserver and stop sending requests")`,
 		},
 		// etcd's vertical scaling test can take a while for apiserver rollouts to stabilize on the same revision
 		TestTimeout:                60 * time.Minute,
