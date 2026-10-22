@@ -26,7 +26,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
-func restorePacemakerCluster(testConfig *TNFTestConfig, oc *exutil.CLI, nodeReadyTime time.Time) {
+func restorePacemakerCluster(testConfig *TNFTestConfig, oc *exutil.CLI, nodeCreatedTime time.Time) {
 	restorePCMStart := time.Now()
 	// Prepare known hosts file for the target node now that it has been reprovisioned
 	// The SSH key changed during reprovisioning, so we need to scan it again
@@ -37,17 +37,19 @@ func restorePacemakerCluster(testConfig *TNFTestConfig, oc *exutil.CLI, nodeRead
 	testConfig.TargetNode.KnownHostsPath = targetNodeKnownHostsPath
 	e2e.Logf("[stage timing] restorePacemakerCluster: known_hosts for reprovisioned target: %v (no poll timeout)", time.Since(khStart))
 
-	// The survivor node's update-setup job performs the actual reconciliation (add new node
-	// to Pacemaker, update fencing, start cluster). This is true in both architectures:
-	// - Old CEO: creates 2 per-node jobs; target node's job exits early, survivor does the work
-	// - New CEO: creates 1 cluster-wide job that runs on the survivor node
-	// Only wait for the survivor job since that's where the work happens in both cases.
-	minPodCreationTime := nodeReadyTime
-	e2e.Logf("Waiting for CEO update-setup job on survivor node %s", testConfig.SurvivingNode.Name)
+	// The update-setup job performs the actual reconciliation (add new node to Pacemaker,
+	// update fencing, start cluster). Which node runs the job depends on the architecture:
+	// - Old CEO: creates 2 per-node jobs; the target node's job exits early, the other node does the work
+	// - New CEO: creates 1 cluster-wide job
+	// Round-robin retry may land the successful run on either node, so completion on any node is valid.
+	// Use replacement Node creation time (not Ready time) as minimum pod timestamp because CEO
+	// may create the job as soon as the Node object appears, before it reaches Ready status.
+	minPodCreationTime := nodeCreatedTime
+	e2e.Logf("Waiting for CEO update-setup job on any node (pod created after replacement Node object created at %v)", nodeCreatedTime.UTC())
 	ceoJobsStart := time.Now()
-	errSurvivor := services.WaitForSurvivorUpdateSetupJobCompletionByNode(oc, services.EtcdNamespace, testConfig.SurvivingNode.Name, minPodCreationTime, ceoUpdateSetupJobWaitTimeout, utils.ThirtySecondPollInterval)
+	errAnyNode := services.WaitForUpdateSetupJobCompletion(oc, services.EtcdNamespace, minPodCreationTime, ceoUpdateSetupJobWaitTimeout, utils.ThirtySecondPollInterval)
 	e2e.Logf("[stage timing] restorePacemakerCluster: CEO update-setup job: %v (timeout cap: %v, poll: %v)", time.Since(ceoJobsStart), ceoUpdateSetupJobWaitTimeout, utils.ThirtySecondPollInterval)
-	o.Expect(errSurvivor).To(o.BeNil(), "Expected survivor update-setup job for node %s to complete (run after replacement node Ready)", testConfig.SurvivingNode.Name)
+	o.Expect(errAnyNode).To(o.BeNil(), "Expected update-setup job to complete on any node (run after replacement Node created)")
 
 	// Verify both nodes are online in the pacemaker cluster
 	e2e.Logf("Verifying both nodes are online in pacemaker cluster")
