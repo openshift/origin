@@ -138,6 +138,9 @@ type TestSuite struct {
 	MaximumAllowedFlakes int `json:"maximumAllowedFlakes,omitempty"`
 
 	ClusterStabilityDuringTest ClusterStabilityDuringTest `json:"clusterStabilityDuringTest,omitempty"`
+	// DisableMonitorTests removes monitor tests that are not meaningful for this suite from the set
+	// selected by ClusterStabilityDuringTest. Combined with any passed via --disable-monitor.
+	DisableMonitorTests []string `json:"disableMonitorTests,omitempty"`
 
 	TestTimeout time.Duration `json:"testTimeout,omitempty"`
 

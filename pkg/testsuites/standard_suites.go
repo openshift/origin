@@ -347,6 +347,10 @@ var staticSuites = []ginkgo.TestSuite{
 		// etcd's vertical scaling test can take a while for apiserver rollouts to stabilize on the same revision
 		TestTimeout:                60 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.SpotCheck,
+		// node-lifecycle fails when nodes go NotReady outside of an MCO update. Replacing control plane machines
+		// causes NotReady nodes for reasons unrelated to node health: deleted masters, and kubelets on other nodes
+		// missing lease renewals while etcd membership churns and the API is slow.
+		DisableMonitorTests: []string{"node-lifecycle"},
 	},
 	{
 		Name: "openshift/etcd/recovery",
