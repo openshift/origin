@@ -577,21 +577,19 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		authenticationComponentProxyEligibleTestNames,
 		authenticationComponentProxyPostTestGrace,
 	); len(windows) > 0 {
-		registry.AddPathologicalEventMatcherOrDie(&OverlapOtherIntervalsPathologicalEventMatcher{
-			delegate: &SimplePathologicalEventMatcher{
+		for _, delegate := range []*SimplePathologicalEventMatcher{
+			{
 				name: "AuthenticationComponentProxyDeploymentUpdated",
 				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication-operator$`),
 					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^authentication-operator$`),
 				},
-				messageReasonRegex:      regexp.MustCompile(`^DeploymentUpdated$`),
+				messageReasonRegex: regexp.MustCompile(`^DeploymentUpdated$`),
+				// If all the authentication component proxy tests would be grouped together, the amount
+				// of events are ~60. This amount it's ~15%.
 				repeatThresholdOverride: 70,
 			},
-			allowIfWithinIntervals: windows,
-			useLastTimestamp:       true,
-		})
-		registry.AddPathologicalEventMatcherOrDie(&OverlapOtherIntervalsPathologicalEventMatcher{
-			delegate: &SimplePathologicalEventMatcher{
+			{
 				name: "AuthenticationComponentProxyOperatorStatusChanged",
 				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication-operator$`),
@@ -601,22 +599,29 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 				// Observed 21 times as the proxy tests complete rollouts, including cleanup.
 				repeatThresholdOverride: 30,
 			},
-			allowIfWithinIntervals: windows,
-			useLastTimestamp:       true,
-		})
-		registry.AddPathologicalEventMatcherOrDie(&OverlapOtherIntervalsPathologicalEventMatcher{
-			delegate: &SimplePathologicalEventMatcher{
+			{
 				name: "AuthenticationComponentProxyScalingReplicaSet",
 				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication$`),
 					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^oauth-openshift$`),
 				},
-				messageReasonRegex:      regexp.MustCompile(`^ScalingReplicaSet$`),
+				messageReasonRegex: regexp.MustCompile(`^ScalingReplicaSet$`),
+				// Observed 58 times during the proxy tests, including cleanup.
+				// Rounded to 70, close to 15%
 				repeatThresholdOverride: 70,
 			},
-			allowIfWithinIntervals: windows,
-			useLastTimestamp:       true,
-		})
+		} {
+			matcher := &OverlapOtherIntervalsPathologicalEventMatcher{
+				delegate:               delegate,
+				allowIfWithinIntervals: windows,
+				useLastTimestamp:       true,
+			}
+
+			// Other serial tests (e.g. the OAuthServer IdP ones) also roll oauth-openshift after
+			// the proxy tests; they must not be charged for the occurrences the proxy tests produced.
+			matcher.discountInWindowOccurrences(finalIntervals)
+			registry.AddPathologicalEventMatcherOrDie(matcher)
+		}
 	}
 
 	// OVN-Kuberentes EVPN e2e tests running in parallel incorrectly create
@@ -1073,6 +1078,139 @@ type OverlapOtherIntervalsPathologicalEventMatcher struct {
 	// useLastTimestamp attributes a repeated event to its most recent occurrence instead of
 	// requiring the full lifetime of the Kubernetes Event object to fit within the interval.
 	useLastTimestamp bool
+	// inWindowOccurrences, when non-nil, enables allowing a repeat observed OUTSIDE
+	// allowIfWithinIntervals if, after subtracting the occurrences that happened INSIDE them, its
+	// count is back within DuplicateEventThreshold. Kubernetes Event counts are cumulative over
+	// the lifetime of the Event object, so without this a later, unrelated rollout of the same
+	// deployment inherits every occurrence the allowed window produced and crosses the default
+	// threshold on its own few occurrences. Populate it with discountInWindowOccurrences.
+	inWindowOccurrences map[eventObservation]int
+}
+
+// eventObservation identifies one observed revision of a repeating Kubernetes Event: which
+// Event object (eventObjectKey), when its latest occurrence happened (From, second precision)
+// and the cumulative count it reported at that point.
+type eventObservation struct {
+	event string
+	from  int64
+	count int
+}
+
+func newEventObservation(i monitorapi.Interval) eventObservation {
+	return eventObservation{
+		event: eventObjectKey(i),
+		from:  i.From.Unix(),
+		count: GetTimesAnEventHappened(i.Message),
+	}
+}
+
+// eventObjectKey identifies the Kubernetes Event object an interval is an observation of. The
+// message cannot be part of it: the Event recorder aggregates similar events into a single
+// object ("(combined from similar events): ...") whose message, and therefore hmsg, changes on
+// every update while its count keeps accumulating, as happens for ScalingReplicaSet. The
+// object's firstTimestamp stays fixed for its whole lifetime and changes if it is recreated.
+func eventObjectKey(i monitorapi.Interval) string {
+	firstTimestamp, ok := i.Message.Annotations["firstTimestamp"]
+	if !ok {
+		// Without it the object cannot be told apart from other events with the same reason
+		// on the same resource, so fall back to the exact message.
+		return fmt.Sprintf("%s - reason/%s %s", i.Locator.OldLocator(), i.Message.Reason, i.Message.HumanMessage)
+	}
+	locator := i.Locator
+	locator.Keys = map[monitorapi.LocatorKey]string{}
+	for k, v := range i.Locator.Keys {
+		if k != monitorapi.LocatorHmsgKey {
+			locator.Keys[k] = v
+		}
+	}
+	return fmt.Sprintf("%s - reason/%s firstTimestamp/%s", locator.OldLocator(), i.Message.Reason, firstTimestamp)
+}
+
+// discountInWindowOccurrences replays every observation of the events this matcher's delegate
+// matches and records, for each one, how many of its cumulative occurrences fell inside
+// allowIfWithinIntervals. Allows later subtracts that amount from out-of-window repeats.
+//
+// An Event only records its latest occurrence, so the occurrences between two consecutive
+// observations are known to lie somewhere after the earlier one and at or before the later
+// one. The tally therefore errs toward rejecting:
+//   - an increment counts as in-window only if all of it is provably inside one interval:
+//     either it is a single occurrence (it happened at the observed timestamp) or both
+//     observations bounding it fall within the same interval;
+//   - a count lower than the previous one means the Event object was recreated (e.g. TTL
+//     expiry), so the tally restarts and the old object's occurrences are never discounted
+//     from the new one;
+//   - an observation missing from finalIntervals gets no discount at all.
+func (ade *OverlapOtherIntervalsPathologicalEventMatcher) discountInWindowOccurrences(finalIntervals monitorapi.Intervals) {
+	observationsByEvent := map[string]monitorapi.Intervals{}
+	for _, i := range finalIntervals {
+		if i.Source != monitorapi.SourceKubeEvent || !ade.delegate.Matches(i) {
+			continue
+		}
+		key := eventObjectKey(i)
+		observationsByEvent[key] = append(observationsByEvent[key], i)
+	}
+
+	ade.inWindowOccurrences = map[eventObservation]int{}
+	for _, observations := range observationsByEvent {
+		sort.SliceStable(observations, func(a, b int) bool {
+			if !observations[a].From.Equal(observations[b].From) {
+				return observations[a].From.Before(observations[b].From)
+			}
+			return GetTimesAnEventHappened(observations[a].Message) < GetTimesAnEventHappened(observations[b].Message)
+		})
+
+		var previous *monitorapi.Interval
+		previousCount, inWindow := 0, 0
+		for idx := range observations {
+			observation := observations[idx]
+			count := GetTimesAnEventHappened(observation.Message)
+			increment := count - previousCount
+			if count < previousCount {
+				previous, increment, inWindow = nil, count, 0
+			}
+			if increment == 1 && ade.withinAllowedIntervals(observation) ||
+				previous != nil && ade.withinSameAllowedInterval(*previous, observation) {
+				inWindow += increment
+			}
+			previous, previousCount = &observations[idx], count
+			ade.inWindowOccurrences[newEventObservation(observation)] = inWindow
+		}
+	}
+}
+
+// withinAllowedIntervals reports whether the event falls inside one of allowIfWithinIntervals.
+func (ade *OverlapOtherIntervalsPathologicalEventMatcher) withinAllowedIntervals(i monitorapi.Interval) bool {
+	return len(ade.allowedIntervalsContaining(i)) > 0
+}
+
+// withinSameAllowedInterval reports whether a single one of allowIfWithinIntervals contains
+// both events, so that everything that happened between them is inside it too.
+func (ade *OverlapOtherIntervalsPathologicalEventMatcher) withinSameAllowedInterval(a, b monitorapi.Interval) bool {
+	containsA := sets.New[int](ade.allowedIntervalsContaining(a)...)
+	return containsA.HasAny(ade.allowedIntervalsContaining(b)...)
+}
+
+// allowedIntervalsContaining returns the indexes of the allowIfWithinIntervals containing the event.
+func (ade *OverlapOtherIntervalsPathologicalEventMatcher) allowedIntervalsContaining(i monitorapi.Interval) []int {
+	// Pathological event intervals set From to LastTimestamp (the most recent occurrence),
+	// but the event may have first fired much earlier. Use firstTimestamp from the
+	// annotations when available so the overlap check covers the full span of the event.
+	eventFrom := i.From
+	if !ade.useLastTimestamp {
+		if ft, ok := i.Message.Annotations["firstTimestamp"]; ok {
+			if parsed, err := time.Parse(time.RFC3339, ft); err == nil {
+				eventFrom = parsed
+			}
+		}
+	}
+
+	var containing []int
+	for idx, nui := range ade.allowIfWithinIntervals {
+		if nui.From.Before(eventFrom) && nui.To.After(i.To) {
+			containing = append(containing, idx)
+		}
+	}
+	return containing
 }
 
 func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Name() string {
@@ -1090,24 +1228,19 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Allows(i monitorapi.In
 		return false
 	}
 
-	// Pathological event intervals set From to LastTimestamp (the most recent occurrence),
-	// but the event may have first fired much earlier. Use firstTimestamp from the
-	// annotations when available so the overlap check covers the full span of the event.
-	eventFrom := i.From
-	if !ade.useLastTimestamp {
-		if ft, ok := i.Message.Annotations["firstTimestamp"]; ok {
-			if parsed, err := time.Parse(time.RFC3339, ft); err == nil {
-				eventFrom = parsed
-			}
-		}
+	if ade.withinAllowedIntervals(i) {
+		logrus.Infof("%s was found to overlap with the allowed intervals of %s, ignoring pathological event", i, ade.Name())
+		return true
 	}
 
-	// Match the pathological event if it overlaps with any of the given set of intervals.
-	for _, nui := range ade.allowIfWithinIntervals {
-		if nui.From.Before(eventFrom) && nui.To.After(i.To) {
-			logrus.Infof("%s was found to overlap with %s, ignoring pathological event as they fall within range of specified intervals", i, nui)
-			return true
-		}
+	if ade.inWindowOccurrences == nil {
+		return false
+	}
+	inWindow := ade.inWindowOccurrences[newEventObservation(i)]
+	if inWindow > 0 && GetTimesAnEventHappened(i.Message)-inWindow <= DuplicateEventThreshold {
+		logrus.Infof("%s repeated %d times outside the allowed intervals of %s, ignoring pathological event",
+			i, GetTimesAnEventHappened(i.Message)-inWindow, ade.Name())
+		return true
 	}
 	return false
 }

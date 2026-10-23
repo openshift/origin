@@ -7,11 +7,14 @@ import (
 )
 
 // authenticationComponentProxyPostTestGrace is how long AFTER an eligible AuthenticationComponentProxy
-// test ends the scoped oauth-openshift scaling tolerance still applies. The oauth rollout that
-// a test drives can land slightly after the test interval closes; this bounded post-test
-// window covers that without any pre-test grace. It is a proximity allowance, not a claim the
-// tests necessarily cause the rollouts.
-const authenticationComponentProxyPostTestGrace = 10 * time.Minute
+// test ends its tolerance still applies; there is no pre-test grace. Before the tests waited for
+// the oauth-openshift rollout to complete, its events were observed 2-4 minutes after the test
+// ended. Now that they wait, the last DeploymentUpdated/ScalingReplicaSet occurrence lands 1-4
+// minutes before the test ends and the final OperatorStatusChanged (Progressing=False) only
+// seconds before, so the grace mainly absorbs Event timestamp second precision and recorder
+// latency, while still covering the previously observed lag should a rollout outlive its test.
+// It is a proximity allowance, not a claim the tests necessarily cause the rollouts.
+const authenticationComponentProxyPostTestGrace = 5 * time.Minute
 
 // authenticationComponentProxyEligibleTestNames are the exact, full e2e test names whose runs authorize
 // the scoped oauth-openshift ScalingReplicaSet tolerance. The hot-reload test (T3) is included
