@@ -66,6 +66,19 @@ spec:
   running: true
   template:
     spec:
+      {{- if .NodeNames }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            {{- range .NodeNames }}
+            - matchFields:
+              - key: metadata.name
+                operator: In
+                values:
+                - {{ printf "%q" . }}
+            {{- end }}
+      {{- end }}
       domain:
         devices:
           disks:
@@ -266,6 +279,7 @@ spec:
 )
 
 type CreationTemplateParams struct {
+	NodeNames                 []string
 	VMName                    string
 	VMNamespace               string
 	FedoraContainterDiskImage string
