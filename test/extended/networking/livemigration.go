@@ -8,30 +8,42 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	testutils "k8s.io/kubernetes/test/utils"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	nadapi "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned/typed/k8s.cni.cncf.io/v1"
-
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/networking/kubevirt"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 	utilnet "k8s.io/utils/net"
 )
 
-const kvIPRequestsAnnot = "network.kubevirt.io/addresses"
+const (
+	kvIPRequestsAnnot = "network.kubevirt.io/addresses"
+
+	// Documentation-only addresses are reserved and intentionally unreachable. The
+	// test observes the egress packet, not a response.
+	vmEgressReservedIPv4 = "192.0.2.10"
+	vmEgressReservedIPv6 = "2001:db8::10"
+	vmEgressUDPPort      = 80
+)
 
 var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines", func() {
 	// disable automatic namespace creation, we need to add the required UDN label
@@ -371,6 +383,119 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 					)
 					Expect(err).NotTo(HaveOccurred())
 				}))
+		})
+	})
+})
+
+var _ = Describe("[sig-network][Feature:Layer2LiveMigration][Feature:baremetal][OCPFeatureGate:NetworkSegmentation][Suite:openshift/network/virtualization] primary UDN migration egress", func() {
+	oc := exutil.NewCLIWithoutNamespace("udn-migration-egress")
+	f := oc.KubeFramework()
+	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+
+	InOVNKubernetesContext(func() {
+		BeforeEach(func() {
+			pType, err := platformType(oc.AdminConfigClient())
+			Expect(err).NotTo(HaveOccurred(), "discover the cluster platform")
+			if pType != configv1.BareMetalPlatformType {
+				Skip("Not running in bare metal cluster")
+			}
+		})
+
+		It("should consistently egress through each VM's own node while another VM migrates", func() {
+			ctx := context.Background()
+			hasIPv4, hasIPv6, err := GetIPAddressFamily(oc)
+			Expect(err).NotTo(HaveOccurred(), "discover the cluster's IP families")
+			var families []int
+			if hasIPv4 {
+				families = append(families, 4)
+			}
+			if hasIPv6 {
+				families = append(families, 6)
+			}
+			nodes, err := e2enode.GetBoundedReadySchedulableNodes(ctx, f.ClientSet, 2)
+			Expect(err).NotTo(HaveOccurred(), "select nodes for live migration")
+			if len(nodes.Items) < 2 {
+				Skip(fmt.Sprintf("live migration requires two ready, schedulable nodes; found %d", len(nodes.Items)))
+			}
+			nodeNames := []string{nodes.Items[0].Name, nodes.Items[1].Name}
+
+			By("Creating a primary Layer 2 UDN with persistent IPs")
+			oc.CreateNamespaceUDN()
+			namespace := oc.Namespace()
+			Expect(udnWaitForOpenShift(oc, namespace)).To(Succeed(), "wait for UDN namespace %s", namespace)
+			netConfig := networkAttachmentConfigParams{
+				name: "blue", namespace: namespace, topology: "layer2", role: "primary", allowPersistentIPs: true,
+				// Reuse this file's existing migration-test subnets; each test has its own isolated UDN.
+				cidr: correctCIDRFamily(oc, "203.203.0.0/16", "2014:100:200::0/60"),
+			}
+			Expect(applyManifest(namespace, generateUserDefinedNetworkManifest(&netConfig))).To(Succeed(), "create UDN %s/%s", namespace, netConfig.name)
+			Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), namespace, netConfig.name)).
+				WithTimeout(time.Minute).WithPolling(time.Second).Should(Succeed(), "wait for UDN %s/%s", namespace, netConfig.name)
+
+			By("Creating source-IP sniffers")
+			helperNS, err := f.CreateNamespace(ctx, f.BaseName+"-captures", nil)
+			Expect(err).NotTo(HaveOccurred(), "create capture namespace")
+			sniffer, err := startVMEgressCaptures(ctx, oc, helperNS.Name, nodes.Items)
+			Expect(err).NotTo(HaveOccurred(), "start packet sniffers on %v", nodeNames)
+
+			virtClient, err := kubevirt.NewClient(oc, GinkgoT().TempDir())
+			Expect(err).NotTo(HaveOccurred(), "initialize the VM client")
+			params := kubevirt.CreationTemplateParams{
+				VMName: "migrating", VMNamespace: namespace, NetBindingName: "l2bridge",
+				FedoraContainterDiskImage: image.LocationFor("quay.io/kubevirt/fedora-with-test-tooling-container-disk:v1.8.2"),
+				DHCPv4:                    hasIPv4, DHCPv6: hasIPv6, NodeNames: nodeNames,
+			}
+			Expect(virtClient.CreateVM(kubevirt.FedoraVMWithPrimaryUDNAttachment, params)).To(Succeed(), "create migrating VM")
+			waitForVMReadiness(virtClient, namespace, params.VMName)
+			sourceNode, err := virtClient.GetJSONPath("vmi", params.VMName, "{.status.nodeName}")
+			Expect(err).NotTo(HaveOccurred(), "read migrating VM's initial node")
+			params.VMName, params.NodeNames = "stationary", []string{sourceNode}
+			Expect(virtClient.CreateVM(kubevirt.FedoraVMWithPrimaryUDNAttachment, params)).To(Succeed(), "create stationary VM on %s", sourceNode)
+			waitForVMReadiness(virtClient, namespace, params.VMName)
+
+			checkEgress := func(vm, nodeName string) error {
+				node, err := f.ClientSet.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+				if err != nil {
+					return fmt.Errorf("read VM %s's node %s: %w", vm, nodeName, err)
+				}
+				for _, family := range families {
+					if err := checkVMEgress(ctx, oc, virtClient, vm, node, family, sniffer); err != nil {
+						return err
+					}
+				}
+				return nil
+			}
+
+			By("Checking both VMs' egress traffic and source node before migration")
+			Eventually(func() error {
+				if err := checkEgress("migrating", sourceNode); err != nil {
+					return err
+				}
+				return checkEgress("stationary", sourceNode)
+			}).WithTimeout(time.Minute).WithPolling(time.Second).Should(Succeed(), "wait for both VMs to send egress with their node's source IP")
+
+			By("Checking the stationary VM's egress while the other VM migrates")
+			Expect(virtClient.CreateVMIM("migrating")).To(Succeed(), "start VM migration")
+			Eventually(func() string {
+				Expect(checkEgress("stationary", sourceNode)).To(Succeed(), "stationary VM must keep its node-local egress during migration")
+				completed, err := virtClient.GetJSONPath("vmim", "migrating", "{.status.migrationState.completed}")
+				Expect(err).NotTo(HaveOccurred(), "read migration completion status")
+				failed, err := virtClient.GetJSONPath("vmim", "migrating", "{.status.migrationState.failed}")
+				Expect(err).NotTo(HaveOccurred(), "read migration failure status")
+				Expect(failed).NotTo(Equal("true"), "VM migration must not fail")
+				return completed
+			}).WithTimeout(5*time.Minute).WithPolling(time.Second).Should(Equal("true"), "wait for VM migration")
+			targetNode, err := virtClient.GetJSONPath("vmi", "migrating", "{.status.nodeName}")
+			Expect(err).NotTo(HaveOccurred(), "read migrated VM's node")
+			Expect(targetNode).NotTo(Equal(sourceNode), "VM must migrate to the other node")
+
+			By("Consistently checking both VMs' egress traffic and node-local source IP after migration")
+			Consistently(func() error {
+				if err := checkEgress("stationary", sourceNode); err != nil {
+					return err
+				}
+				return checkEgress("migrating", targetNode)
+			}).WithTimeout(30*time.Second).WithPolling(time.Second).Should(Succeed(), "both VMs must retain node-local egress after migration")
 		})
 	})
 })
@@ -821,4 +946,87 @@ func formatAddressesAnnotation(preconfiguredIPs []string) (string, error) {
 
 func ipRequests(ips string) map[string]string {
 	return map[string]string{kvIPRequestsAnnot: ips}
+}
+
+func startVMEgressCaptures(ctx context.Context, oc *exutil.CLI, namespace string, nodes []corev1.Node) (*appsv1.DaemonSet, error) {
+	if err := udnWaitForOpenShift(oc, namespace); err != nil {
+		return nil, fmt.Errorf("wait for capture namespace %s: %w", namespace, err)
+	}
+	if _, err := oc.AsAdmin().Run("adm").Args("policy", "add-scc-to-user", "privileged", "-z", "default", "-n", namespace).Output(); err != nil {
+		return nil, fmt.Errorf("allow captures in %s: %w", namespace, err)
+	}
+	var hosts []string
+	for _, node := range nodes {
+		hosts = append(hosts, node.Labels[corev1.LabelHostname])
+	}
+	packetSnifferInterface, err := findPacketSnifferInterface(oc, hosts)
+	if err != nil {
+		return nil, fmt.Errorf("find packet sniffer interfaces on %v: %w", hosts, err)
+	}
+	ds, err := createPacketSnifferDaemonSet(oc.AsAdmin(), namespace, hosts, "udp", vmEgressUDPPort, packetSnifferInterface)
+	if err != nil {
+		return nil, fmt.Errorf("create packet sniffers: %w", err)
+	}
+	var lastErr error
+	err = wait.PollUntilContextTimeout(ctx, time.Second, time.Minute, true, func(context.Context) (bool, error) {
+		logs, err := getDaemonSetLogs(oc.KubeFramework().ClientSet, ds)
+		if err != nil {
+			lastErr = err
+			return false, nil
+		}
+		if len(logs) != len(nodes) {
+			return false, nil
+		}
+		for _, node := range nodes {
+			if !strings.Contains(logs[node.Name], "listening on") {
+				return false, nil
+			}
+		}
+		return true, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("wait for packet sniffers to listen: %w (last log error: %v)", err, lastErr)
+	}
+	return ds, nil
+}
+
+// Originate a UDP probe in the VM guest to exercise its cached gateway MAC,
+// then check its hosting node's SNAT address in the shared packet captures.
+func checkVMEgress(ctx context.Context, oc *exutil.CLI, client *kubevirt.Client, vm string, node *corev1.Node, family int, sniffer *appsv1.DaemonSet) error {
+	ipFamily := corev1.IPv4Protocol
+	if family == 6 {
+		ipFamily = corev1.IPv6Protocol
+	}
+	addresses := e2enode.GetAddressesByTypeAndFamily(node, corev1.NodeInternalIP, ipFamily)
+	if len(addresses) == 0 {
+		return fmt.Errorf("VM %s's node %s has no IPv%d internal IP", vm, node.Name, family)
+	}
+	expectedIP := net.ParseIP(addresses[0]).String()
+	if err := client.Login(vm, vm); err != nil {
+		return fmt.Errorf("log in to VM %s: %w", vm, err)
+	}
+	marker := uuid.NewString()
+	// The reserved addresses are intentionally unreachable. This test verifies
+	// the egress packet and its source IP, so no response is required.
+	target := vmEgressReservedIPv4
+	if family == 6 {
+		target = vmEgressReservedIPv6
+	}
+	command := fmt.Sprintf("printf 'START%sEOF_0' > /dev/udp/%s/%d", marker, target, vmEgressUDPPort)
+	if _, err := client.Console(vm, command); err != nil {
+		return fmt.Errorf("VM %s IPv%d egress probe: %w", vm, family, err)
+	}
+	var lastErr error
+	err := wait.PollUntilContextTimeout(ctx, time.Second, 10*time.Second, true, func(context.Context) (bool, error) {
+		observed, err := scanPacketSnifferDaemonSetPodLogs(oc, sniffer, "udp", marker)
+		if err != nil {
+			lastErr = err
+			return false, nil
+		}
+		return observed[expectedIP] > 0, nil
+	})
+	if err != nil {
+		return fmt.Errorf("verify VM %s IPv%d source IP is %s on node %s: %w (last scan error: %v)", vm, family, expectedIP, node.Name, err, lastErr)
+	}
+	return nil
 }
