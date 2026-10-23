@@ -173,7 +173,7 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 		}
 		if strings.Contains(event.Locator.Keys[monitorapi.LocatorPodKey], "whereabouts-pod") &&
 			strings.Contains(event.Message.HumanMessage, "error adding container to network") &&
-			strings.Contains(event.Message.HumanMessage, "Error at storage engine: Could not allocate IP in range: ip: 192.168.2.225 / - 192.168.2.230 ") {
+			strings.Contains(event.Message.HumanMessage, "error at storage engine: Could not allocate IP in range: ip: 192.168.2.225 / - 192.168.2.230 ") {
 			// This failed to create sandbox case is expected due to the whereabouts-e2e test which creates a pod that is expected to
 			// not come up due to IP range exhausted.
 			// See https://github.com/openshift/origin/blob/93eb467cc8d293ba977549b05ae2e4b818c64327/test/extended/networking/whereabouts.go#L52
