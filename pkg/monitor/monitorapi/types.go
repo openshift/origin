@@ -394,8 +394,10 @@ const (
 	SourceEtcdDiskCommitDuration   IntervalSource = "EtcdDiskCommitDuration"
 	SourceEtcdDiskWalFsyncDuration IntervalSource = "EtcdDiskWalFsyncDuration"
 	SourceTestBucket               IntervalSource = "TestBucket"
+	SourceKernelLog                IntervalSource = "KernelLog"
 	KubeletPanic                   IntervalReason = "KubeletPanic"
 	CrioPanic                      IntervalReason = "CrioPanic"
+	VirtioBalloonOutOfPuff         IntervalReason = "VirtioBalloonOutOfPuff"
 )
 
 type Interval struct {
