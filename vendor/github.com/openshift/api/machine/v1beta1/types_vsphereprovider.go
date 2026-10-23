@@ -73,7 +73,6 @@ type VSphereMachineProviderSpec struct {
 	// dataDisks is a list of non OS disks to be created and attached to the VM.  The max number of disk allowed to be attached is
 	// currently 29.  The max number of disks for any controller is 30, but VM template will always have OS disk so that will leave
 	// 29 disks on any controller type.
-	// +openshift:enable:FeatureGate=VSphereMultiDisk
 	// +optional
 	// +listType=map
 	// +listMapKey=name
