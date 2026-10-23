@@ -1,13 +1,17 @@
 package pki
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	ote "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -18,6 +22,7 @@ import (
 	configv1alpha1 "github.com/openshift/api/config/v1alpha1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
+	compat_otp "github.com/openshift/origin/test/extended/util/compat_otp"
 )
 
 var _ = g.Describe("[sig-service-ca][OCPFeatureGate:ConfigurablePKI][Serial][Disruptive][Suite:openshift/pkiconfig] PKI Configuration", g.Ordered, func() {
@@ -38,6 +43,175 @@ var _ = g.Describe("[sig-service-ca][OCPFeatureGate:ConfigurablePKI][Serial][Dis
 
 	g.It("should validate PKI config and regenerate signing cert [apigroup:config.openshift.io][Skipped:MicroShift]", func(ctx context.Context) {
 		testServiceCAPKIConfiguration(ctx, oc)
+	})
+})
+
+var _ = g.Describe("[sig-service-ca] Service CA serving certificate management", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("service-ca-serving-cert")
+
+	g.It("[OTP][OCP-10873] should access app through secure service and regenerate service serving certs when about to expire [Slow][ConnectedOnly][Critical]", ote.Informing(), func() {
+		var (
+			filename     = "aosqe-pod-for-ping.json"
+			podName      = "hello-pod"
+			caseID       = "ocp10873"
+			stepExecTime time.Time
+			tmpdir       = "/tmp/ocp10873-" + time.Now().Format("20060102-150405")
+		)
+
+		defer func() {
+			os.RemoveAll(tmpdir)
+		}()
+
+		err := os.MkdirAll(tmpdir, 0755)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		compat_otp.By("1) Create new project for the test case")
+		oc.SetupProject()
+		testNamespace := oc.Namespace()
+
+		compat_otp.By("2) Apply appropriate pod security labels to the new project")
+		_, err = oc.AsAdmin().WithoutNamespace().Run("label").Args("ns", testNamespace, "security.openshift.io/scc.podSecurityLabelSync=false", "--overwrite").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		_, err = oc.AsAdmin().WithoutNamespace().Run("label").Args("ns", testNamespace, "pod-security.kubernetes.io/warn=privileged", "--overwrite").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		_, err = oc.AsAdmin().WithoutNamespace().Run("label").Args("ns", testNamespace, "pod-security.kubernetes.io/audit=privileged", "--overwrite").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		_, err = oc.AsAdmin().WithoutNamespace().Run("label").Args("ns", testNamespace, "pod-security.kubernetes.io/enforce=privileged", "--overwrite").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		compat_otp.By("3) Add SCC privileged to the project")
+		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("policy", "add-scc-to-group", "privileged", "system:serviceaccounts:"+testNamespace).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		compat_otp.By("4) Create a service with serving-cert annotation")
+		template := exutil.FixturePath("testdata", "apiserver", caseID+"-svc.json")
+		svcErr := oc.Run("create").Args("-f", template).Execute()
+		o.Expect(svcErr).NotTo(o.HaveOccurred())
+
+		stepExecTime = time.Now()
+
+		compat_otp.By("5) Create a nginx webserver app with deployment")
+		template = exutil.FixturePath("testdata", "apiserver", caseID+"-dc.yaml")
+		dcErr := oc.Run("create").Args("-f", template).Execute()
+		o.Expect(dcErr).NotTo(o.HaveOccurred())
+
+		podsOutput, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("pod", "-n", testNamespace, "-l", "name=web-server-rc", "-o=jsonpath={.items[*].metadata.name}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		pods := strings.Fields(podsOutput)
+		o.Expect(pods).NotTo(o.BeEmpty())
+		appPodName := pods[0]
+		compat_otp.AssertPodToBeReady(oc, appPodName, testNamespace)
+		cmName, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("configmaps", "nginx-config", "-n", testNamespace, "-o=jsonpath={.metadata.name}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(cmName).ShouldNot(o.BeEmpty(), "The ConfigMap 'nginx-config' name should not be empty")
+
+		compat_otp.By(fmt.Sprintf("6.1) Create pod with resource file %s", filename))
+		template = exutil.FixturePath("testdata", "apiserver", filename)
+		err = oc.Run("create").Args("-f", template).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		compat_otp.By(fmt.Sprintf("6.2) Wait for pod with name %s to be ready", podName))
+		compat_otp.AssertPodToBeReady(oc, podName, testNamespace)
+
+		url := fmt.Sprintf("https://hello.%s.svc:443", testNamespace)
+		execCmd := fmt.Sprintf("curl --cacert /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt %s", url)
+		curlCmdOutput, err := oc.AsAdmin().WithoutNamespace().Run("exec").Args("-n", testNamespace, podName, "--", "/bin/sh", "-c", execCmd).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(curlCmdOutput).Should(o.ContainSubstring("Hello-OpenShift"))
+
+		compat_otp.By("7) Extract the cert and key from secret ssl-key")
+		err = oc.AsAdmin().WithoutNamespace().Run("extract").Args("-n", testNamespace, "secret/ssl-key", "--to", tmpdir).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		tlsCrtFile := filepath.Join(tmpdir, "tls.crt")
+		tlsCrt, err := os.ReadFile(tlsCrtFile)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(tlsCrt).ShouldNot(o.BeEmpty())
+
+		// Set the new expiry(1 hour + 1 minute) after the time of the secret ssl-key was created
+		compat_otp.By("8) Set the new expiry annotations to the secret ssl-key")
+		tlsCrtCreation, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("secret", "ssl-key", "-n", testNamespace, "-o=jsonpath={.metadata.creationTimestamp}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(tlsCrtCreation).ShouldNot(o.BeEmpty())
+		e2e.Logf("created time:%s", tlsCrtCreation)
+		tlsCrtCreationTime, err := time.Parse(time.RFC3339, tlsCrtCreation)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		newExpiry := tlsCrtCreationTime.Add(time.Since(stepExecTime) + 1*time.Hour + 60*time.Second)
+		newExpiryStr := fmt.Sprintf(`"%s"`, newExpiry.Format(time.RFC3339))
+		e2e.Logf("The new expiry of the secret ssl-key is %s", newExpiryStr)
+
+		annotationPatch := fmt.Sprintf(`{"metadata":{"annotations": {"service.alpha.openshift.io/expiry": %s, "service.beta.openshift.io/expiry": %s}}}`, newExpiryStr, newExpiryStr)
+		errPatch := oc.AsAdmin().WithoutNamespace().Run("patch").Args("secret", "ssl-key", "-n", testNamespace, "--type=merge", "-p", annotationPatch).Execute()
+		o.Expect(errPatch).NotTo(o.HaveOccurred())
+
+		compat_otp.By("9) Check secret ssl-key regenerates when expiry time drops below 1h")
+		o.Eventually(func() bool {
+			err = oc.AsAdmin().WithoutNamespace().Run("extract").Args("-n", testNamespace, "secret/ssl-key", "--to", tmpdir, "--confirm=true").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			tlsCrt1, err := os.ReadFile(tlsCrtFile)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(tlsCrt1).ShouldNot(o.BeEmpty())
+			if !bytes.Equal(tlsCrt, tlsCrt1) {
+				e2e.Logf("When the expiry time has less than 1h left, the cert has been regenerated")
+				return true
+			}
+			e2e.Logf("When the expiry time has more than 1h left, the cert will not regenerate")
+			return false
+		}, "25m", "60s").Should(o.Equal(true),
+			"Failed to regenerate the new secret ssl-key when the expiry time drops below 1h")
+
+		compat_otp.By(fmt.Sprintf("10) Verify web app is still accessible in pod %s with the regenerated secret ssl-key", podName))
+		compat_otp.AssertPodToBeReady(oc, podName, testNamespace)
+		curlCmdOutput, err = oc.AsAdmin().WithoutNamespace().Run("exec").Args("-n", testNamespace, podName, "--", "/bin/sh", "-c", execCmd).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(curlCmdOutput).Should(o.ContainSubstring("Hello-OpenShift"))
+	})
+})
+
+var _ = g.Describe("[sig-service-ca] Service CA certificate validation", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("service-ca-validation")
+
+	g.It("[OTP][OCP-56934] should verify no duplicate CA serial number errors in openshift-apiserver metrics [PstChkUpgrade][apigroup:config.openshift.io]", ote.Informing(), func() {
+		g.By("1) Check if it's a MicroShift cluster")
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isMicroShift {
+			g.Skip("Not supported on MicroShift - no openshift-apiserver")
+		}
+
+		g.By("2) Check if it's a proxy cluster")
+		httpProxy, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("proxy/cluster", "-o", "jsonpath={.spec.httpProxy}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		httpsProxy, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("proxy/cluster", "-o", "jsonpath={.spec.httpsProxy}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if strings.Contains(httpProxy, "http") || strings.Contains(httpsProxy, "https") {
+			g.Skip("Skip for proxy platform")
+		}
+
+		g.By("3) Get openshift-apiserver pod and pod IP")
+		podName, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-apiserver", "pod", "--field-selector=status.phase=Running", "-o", "jsonpath={.items[0].metadata.name}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(podName).NotTo(o.BeEmpty(), "no running openshift-apiserver pod found")
+
+		podIP, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-apiserver", "pod", podName, "-o", "jsonpath={.status.podIP}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(podIP).NotTo(o.BeEmpty(), "no pod IP found for pod %s", podName)
+
+		g.By("4) Check openshift-apiserver https api metrics endpoint URL for duplicate serial number errors")
+		metricsUrl := fmt.Sprintf(`https://%s:8443/metrics`, podIP)
+		cmd := fmt.Sprintf(`curl -k --connect-timeout 5 --retry 2 -N -s %s`, metricsUrl)
+
+		metricsOut, err := oc.AsAdmin().WithoutNamespace().Run("exec").Args("-n", "openshift-apiserver", podName, "-c", "openshift-apiserver", "--", "sh", "-c", cmd).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("5) Verify no duplicate serial number errors in metrics")
+		o.Expect(metricsOut).ShouldNot(o.ContainSubstring("You are attempting to import a cert with the same issuer/serial as an existing cert, but that is not the same cert"),
+			"Found duplicate CA serial number error in openshift-apiserver metrics")
+		o.Expect(metricsOut).Should(o.ContainSubstring("Forbidden"),
+			"Metrics endpoint should return 'Forbidden' for unauthenticated requests")
+
+		e2e.Logf("No duplicate CA serial number errors found in openshift-apiserver metrics")
 	})
 })
 

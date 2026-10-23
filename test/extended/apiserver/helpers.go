@@ -377,7 +377,7 @@ func (w admissionWebhook) createAdmissionWebhookFromTemplate(oc *exutil.CLI) {
 		)
 	}
 	configFile := compat_otp.ProcessTemplate(oc, params...)
-	err := oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", configFile).Execute()
+	err := oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", configFile).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 

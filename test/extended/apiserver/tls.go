@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,7 +22,9 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/crypto"
+	"github.com/openshift/origin/test/extended/apiserverauth"
 	exutil "github.com/openshift/origin/test/extended/util"
+	compat_otp "github.com/openshift/origin/test/extended/util/compat_otp"
 )
 
 const (
@@ -212,7 +215,7 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Operators / Certs"
 
 	// Add a custom TLS certificate to the cluster API server, verify it is served,
 	// then restore the original configuration.
-	g.It("[OTP][OCP-70020] should support adding a custom TLS certificate for the cluster API [Disruptive][Slow][Timeout:50m][apigroup:config.openshift.io]",
+	g.It("[OTP][OCP-70020] should support adding a custom TLS certificate for the cluster API [APIServer_Disruptive][Disruptive][Slow][Timeout:50m][apigroup:config.openshift.io]",
 		ote.Informing(), func(ctx g.SpecContext) {
 			isHyperShift, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -415,7 +418,7 @@ DNS.1 = %s`, fqdnName)
 
 	// Delete etcd encryption config and key secrets, then verify the cluster
 	// self-heals by recreating them and completing re-encryption.
-	g.It("[OTP][OCP-25811] should self-recover when etcd encryption configuration secrets are deleted [Disruptive][Slow][Timeout:50m][apigroup:config.openshift.io]",
+	g.It("[OTP][OCP-25811] should self-recover when etcd encryption configuration secrets are deleted [APIServer_Disruptive][Disruptive][Slow][Timeout:50m][apigroup:config.openshift.io]",
 		ote.Informing(), func(ctx g.SpecContext) {
 			g.By("1. ensure etcd encryption is enabled")
 			_, cleanup, err := exutil.EnsureEncryptionEnabled(ctx, oc)
@@ -559,4 +562,476 @@ DNS.1 = %s`, fqdnName)
 				"encryption key migration did not complete for %s", newKASEncSecretName)
 			o.Expect(completedKAS).To(o.BeTrue())
 		})
+
+	g.It("[OTP][OCP-25926] should propagate TLS cipher configuration from apiservers/cluster to control plane operators [APIServer_Disruptive][Slow][Disruptive]", ote.Informing(), func() {
+		var (
+			availableWaitTime = 1800
+			cipherToRecover   = `[{"op": "replace", "path": "/spec/tlsSecurityProfile", "value":}]`
+			cipherOps         = []string{"openshift-authentication", "openshiftapiservers.operator", "kubeapiservers.operator"}
+			cipherToMatch     = `["TLS_AES_128_GCM_SHA256","TLS_AES_256_GCM_SHA384","TLS_CHACHA20_POLY1305_SHA256","TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256","TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256","TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384","TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384","TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256","TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256"] VersionTLS12`
+		)
+
+		cipherItems := []struct {
+			cipherType    string
+			cipherToCheck string
+			patch         string
+		}{
+			{
+				cipherType:    "custom",
+				cipherToCheck: `["TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256","TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256","TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256","TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"] VersionTLS11`,
+				patch:         `[{"op": "add", "path": "/spec/tlsSecurityProfile", "value":{"custom":{"ciphers":["ECDHE-ECDSA-CHACHA20-POLY1305","ECDHE-RSA-CHACHA20-POLY1305","ECDHE-RSA-AES128-GCM-SHA256","ECDHE-ECDSA-AES128-GCM-SHA256"],"minTLSVersion":"VersionTLS11"},"type":"Custom"}}]`,
+			},
+			{
+				cipherType:    "Intermediate",
+				cipherToCheck: cipherToMatch,
+				patch:         `[{"op": "replace", "path": "/spec/tlsSecurityProfile", "value":{"intermediate":{},"type":"Intermediate"}}]`,
+			},
+			{
+				cipherType:    "Old",
+				cipherToCheck: `["TLS_AES_128_GCM_SHA256","TLS_AES_256_GCM_SHA384","TLS_CHACHA20_POLY1305_SHA256","TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256","TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256","TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384","TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384","TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256","TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256","TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256","TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256","TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA","TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA","TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA","TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA","TLS_RSA_WITH_AES_128_GCM_SHA256","TLS_RSA_WITH_AES_256_GCM_SHA384","TLS_RSA_WITH_AES_128_CBC_SHA256","TLS_RSA_WITH_AES_128_CBC_SHA","TLS_RSA_WITH_AES_256_CBC_SHA","TLS_RSA_WITH_3DES_EDE_CBC_SHA"] VersionTLS10`,
+				patch:         `[{"op": "replace", "path": "/spec/tlsSecurityProfile", "value":{"old":{},"type":"Old"}}]`,
+			},
+			{
+				cipherType:    "Modern",
+				cipherToCheck: `["TLS_AES_128_GCM_SHA256","TLS_AES_256_GCM_SHA384","TLS_CHACHA20_POLY1305_SHA256"] VersionTLS13`,
+				patch:         `[{"op": "replace", "path": "/spec/tlsSecurityProfile", "value":{"modern":{},"type":"Modern"}}]`,
+			},
+		}
+
+		g.By("Check if it's a proxy cluster")
+		httpProxy, httpsProxy, _ := getGlobalProxy(oc)
+		if strings.Contains(httpProxy, "http") || strings.Contains(httpsProxy, "https") {
+			g.Skip("Skip for proxy platform")
+		}
+
+		g.By("Verify initial cipher configuration for all control plane operators")
+		for _, op := range cipherOps {
+			err := apiserverauth.VerifyCiphers(oc, cipherToMatch, op)
+			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Initial cipher verification failed for %s", op))
+		}
+
+		defer func() {
+			g.By("Restoring apiserver/cluster's TLS security profile to default")
+			output, err := oc.AsAdmin().WithoutNamespace().Run("patch").Args("apiserver/cluster", "--type=json", "-p", cipherToRecover).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if strings.Contains(output, "patched (no change)") {
+				e2e.Logf("APIServer TLS security profile was not changed from default")
+			} else {
+				e2e.Logf("Verifying ciphers are restored to default")
+				for _, op := range cipherOps {
+					err := apiserverauth.VerifyCiphers(oc, cipherToMatch, op)
+					o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Failed to restore ciphers for %s", op))
+				}
+
+				g.By("Waiting for operators to rollout and recover")
+				waitForOperatorsAvailable(oc, availableWaitTime)
+			}
+		}()
+
+		for _, cipherItem := range cipherItems {
+			g.By(fmt.Sprintf("Testing TLS security profile: %s", cipherItem.cipherType))
+
+			g.By(fmt.Sprintf("Patching apiserver/cluster with %s profile", cipherItem.cipherType))
+			err := oc.AsAdmin().WithoutNamespace().Run("patch").Args("apiserver/cluster", "--type=json", "-p", cipherItem.patch).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("Verifying cipher configuration propagated to all operators for %s profile", cipherItem.cipherType))
+			for _, op := range cipherOps {
+				err := apiserverauth.VerifyCiphers(oc, cipherItem.cipherToCheck, op)
+				o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Cipher verification failed for %s with profile %s", op, cipherItem.cipherType))
+			}
+
+			g.By("Waiting for control plane operators to complete rollout")
+			waitForOperatorsAvailable(oc, availableWaitTime)
+
+			if cipherItem.cipherType == "Modern" {
+				g.By("Verifying Modern profile propagated to kubelet configuration on node")
+				verifyKubeletModernTLSConfig(oc)
+			}
+
+			e2e.Logf("Successfully validated %s TLS profile", cipherItem.cipherType)
+		}
+	})
+})
+
+// waitForOperatorsAvailable waits for kube-apiserver, openshift-apiserver, and authentication operators to become available
+func waitForOperatorsAvailable(oc *exutil.CLI, availableWaitTime int) {
+	operators := []struct {
+		name         string
+		waitTime     int
+		progressWait int
+	}{
+		{"kube-apiserver", availableWaitTime, 100},
+		{"openshift-apiserver", 300, 0},
+		{"authentication", 500, 0},
+	}
+
+	for _, op := range operators {
+		if op.progressWait > 0 {
+			e2e.Logf("Checking %s operator should be Progressing in %d seconds", op.name, op.progressWait)
+			expectedStatus := map[string]string{"Progressing": "True"}
+			err := waitCoBecomes(oc, op.name, op.progressWait, expectedStatus)
+			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("%s operator did not start progressing in %d seconds", op.name, op.progressWait))
+		}
+
+		e2e.Logf("Checking %s operator should be Available in %d seconds", op.name, op.waitTime)
+		expectedStatus := map[string]string{"Available": "True", "Progressing": "False", "Degraded": "False"}
+		err := waitCoBecomes(oc, op.name, op.waitTime, expectedStatus)
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("%s operator did not become available in %d seconds", op.name, op.waitTime))
+	}
+
+	e2e.Logf("All control plane operators are available")
+}
+
+// verifyKubeletModernTLSConfig verifies that Modern TLS profile settings are applied to kubelet
+func verifyKubeletModernTLSConfig(oc *exutil.CLI) {
+	g.By("Get a master node")
+	masterNode, err := compat_otp.GetFirstMasterNode(oc)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(masterNode).NotTo(o.Equal(""))
+
+	g.By("Get host IP from openshift-apiserver pod")
+	podsList := getPodsListByLabel(oc.AsAdmin(), "openshift-apiserver", "apiserver")
+	o.Expect(podsList).ShouldNot(o.BeEmpty())
+
+	hostIP, err := oc.Run("get").Args("pods", podsList[0], "-o=jsonpath={.status.hostIP}", "-n", "openshift-apiserver").Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(hostIP).NotTo(o.Equal(""))
+
+	var host string
+	if strings.Contains(hostIP, ":") {
+		host = "[::1]:10250"
+	} else {
+		host = "127.0.0.1:10250"
+	}
+
+	g.By("Checking kubelet TLS version on node using OpenSSL")
+	runOpenSSL := func(tlsVersion string) {
+		cmd := fmt.Sprintf("openssl s_client -connect %s -%s 2>/dev/null || true", host, tlsVersion)
+		result, debugErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=openshift-kube-apiserver"}, "bash", "-c", cmd)
+		o.Expect(debugErr).NotTo(o.HaveOccurred())
+
+		if strings.Contains(result, "Certificate chain") {
+			e2e.Logf("OpenSSL %s supported! Certificate chain available.", tlsVersion)
+		} else if strings.Contains(result, "no peer certificate available") {
+			e2e.Logf("OpenSSL %s connected, but no peer certificate available.", tlsVersion)
+		} else {
+			e2e.Logf("OpenSSL %s not supported!", tlsVersion)
+		}
+	}
+
+	runOpenSSL("tls1_3")
+	runOpenSSL("tls1_2")
+	runOpenSSL("tls1_1")
+
+	g.By("Verify kubelet config shows Modern TLS version (VersionTLS13)")
+	cmd := "grep tlsMinVersion /etc/kubernetes/kubelet.conf"
+	output, debugErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=openshift-kube-apiserver"}, "bash", "-c", cmd)
+	o.Expect(debugErr).NotTo(o.HaveOccurred())
+	o.Expect(output).Should(o.ContainSubstring("tlsMinVersion: VersionTLS13"), "Kubelet should be configured with TLS 1.3 for Modern profile")
+
+	e2e.Logf("Kubelet Modern TLS configuration verified successfully")
+}
+
+// Additional encryption and TLS tests
+var _ = g.Describe("[sig-api-machinery][Feature:APIServer] Encryption and TLS advanced scenarios", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("apiserver-encryption-tls")
+	ctx := context.Background()
+
+	g.It("[OTP][OCP-63273] should support etcd encryption type migration between aescbc and aesgcm [APIServer_Disruptive][Slow][Disruptive][apigroup:config.openshift.io]", ote.Informing(), func() {
+		g.By("1) Check if cluster has Etcd Encryption enabled")
+		encryptionType, err := oc.WithoutNamespace().Run("get").Args("apiserver/cluster", "-o=jsonpath={.spec.encryption.type}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		originalEncryptionType := encryptionType
+		if encryptionType != "aescbc" && encryptionType != "aesgcm" {
+			e2e.Logf("Etcd Encryption is currently disabled, enabling it with aescbc first")
+
+			g.By("1a) Enable encryption with aescbc")
+			patchArg := `{"spec":{"encryption": {"type":"aescbc"}}}`
+			_, err = oc.AsAdmin().WithoutNamespace().Run("patch").Args("apiserver/cluster", "--type=merge", "-p", patchArg).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("1b) Wait for encryption to be enabled")
+			err = wait.PollUntilContextTimeout(ctx, 10*time.Second, 10*time.Minute, false, func(cxt context.Context) (bool, error) {
+				currentType, err := oc.WithoutNamespace().Run("get").Args("apiserver/cluster", "-o=jsonpath={.spec.encryption.type}").Output()
+				if err != nil {
+					return false, nil
+				}
+				return currentType == "aescbc", nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred(), "encryption was not enabled within 10 minutes")
+
+			g.By("1c) Wait for kube-apiserver operator to become available after enabling encryption")
+			err = waitCoBecomes(oc, "kube-apiserver", 3000, map[string]string{"Available": "True", "Progressing": "False", "Degraded": "False"})
+			o.Expect(err).NotTo(o.HaveOccurred(), "kube-apiserver operator not available after enabling encryption")
+
+			encryptionType = "aescbc"
+			e2e.Logf("Etcd Encryption enabled successfully with type: aescbc")
+		} else {
+			e2e.Logf("Etcd Encryption is already enabled with type: %s", encryptionType)
+		}
+
+		defer func() {
+			if originalEncryptionType != "aescbc" && originalEncryptionType != "aesgcm" {
+				g.By("Cleanup) Disable encryption at end of test")
+				patchArg := `{"spec":{"encryption": {"type":""}}}`
+				_, _ = oc.AsAdmin().WithoutNamespace().Run("patch").Args("apiserver/cluster", "--type=merge", "-p", patchArg).Output()
+			}
+		}()
+
+		g.By("2) Check encryption-config and key secrets before migration")
+		encSecretOut, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("secret", "-n", "openshift-config-managed", "-l", "encryption.apiserver.operator.openshift.io/component", "-o", `jsonpath={.items[*].metadata.name}`).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		encSecretCount := strings.Count(encSecretOut, "encryption")
+		o.Expect(encSecretCount).To(o.BeNumerically(">", 0), "no encryption secrets found")
+		e2e.Logf("Found %d encryption-related secrets", encSecretCount)
+
+		g.By("3) Create secret and verify it's encrypted in etcd database before migration")
+		testSecretName := "secret-63273-" + compat_otp.GetRandomString()
+		defer oc.WithoutNamespace().Run("delete").Args("-n", "default", "secret", testSecretName, "--ignore-not-found").Execute()
+
+		err = oc.WithoutNamespace().Run("create").Args("-n", "default", "secret", "generic", testSecretName, "--from-literal", "pass=secret123").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		etcdPods := getPodsListByLabel(oc, "openshift-etcd", "etcd=true")
+		o.Expect(etcdPods).ShouldNot(o.BeEmpty(), "no etcd pods found")
+
+		execCmdOutput := execCommandOnPod(oc, etcdPods[0], "openshift-etcd", "etcdctl get /kubernetes.io/secrets/default/"+testSecretName)
+		o.Expect(execCmdOutput).ShouldNot(o.ContainSubstring("secret123"), "secret should be encrypted in etcd, but plaintext was found")
+		e2e.Logf("Verified secret is encrypted in etcd")
+
+		g.By("4) Determine target encryption type for migration")
+		migrateEncTo := "aesgcm"
+		if encryptionType == "aesgcm" {
+			migrateEncTo = "aescbc"
+		}
+		e2e.Logf("Will migrate encryption from %s to %s", encryptionType, migrateEncTo)
+
+		oasEncNumber, err := exutil.GetEncryptionKeyNumber(oc, `^encryption-key-openshift-apiserver-\d+$`)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		kasEncNumber, err := exutil.GetEncryptionKeyNumber(oc, `^encryption-key-openshift-kube-apiserver-\d+$`)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("Current encryption key numbers: OAS=%d, KAS=%d", oasEncNumber, kasEncNumber)
+
+		g.By("5) Trigger encryption type migration")
+		patchArg := fmt.Sprintf(`{"spec":{"encryption": {"type":"%s"}}}`, migrateEncTo)
+		encMigrateOut, err := oc.AsAdmin().WithoutNamespace().Run("patch").Args("apiserver/cluster", "--type=merge", "-p", patchArg).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(encMigrateOut).Should(o.ContainSubstring("patched"))
+		e2e.Logf("Started encryption migration to %s", migrateEncTo)
+
+		g.By("6) Wait for new encryption key secrets to appear")
+		newOASEncSecretName := exutil.BuildEncryptionKeySecretName(encryptionKeyOASPrefix, oasEncNumber+1)
+		newKASEncSecretName := exutil.BuildEncryptionKeySecretName(encryptionKeyKASPrefix, kasEncNumber+1)
+
+		err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, false, func(cxt context.Context) (bool, error) {
+			_, err := oc.WithoutNamespace().Run("get").Args("secrets", newOASEncSecretName, newKASEncSecretName, "-n", "openshift-config-managed").Output()
+			if err != nil {
+				e2e.Logf("Waiting for new encryption-key-* secrets, error: %s", err)
+				return false, nil
+			}
+			e2e.Logf("New encryption-key-* secrets found")
+			return true, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "new encryption key secrets %s, %s not found within 5 minutes", newOASEncSecretName, newKASEncSecretName)
+
+		g.By("7) Wait for encryption migration to complete")
+		completed, errOAS := exutil.WaitEncryptionKeyMigration(ctx, oc, newOASEncSecretName)
+		o.Expect(errOAS).NotTo(o.HaveOccurred(), "encryption migration failed for %s", newOASEncSecretName)
+		o.Expect(completed).Should(o.BeTrue())
+
+		completed, errKAS := exutil.WaitEncryptionKeyMigration(ctx, oc, newKASEncSecretName)
+		o.Expect(errKAS).NotTo(o.HaveOccurred(), "encryption migration failed for %s", newKASEncSecretName)
+		o.Expect(completed).Should(o.BeTrue())
+
+		e2e.Logf("Encryption migration completed successfully")
+
+		g.By("8) Verify kube-apiserver operator is available after migration")
+		err = waitCoBecomes(oc, "kube-apiserver", 1500, map[string]string{"Available": "True", "Progressing": "False", "Degraded": "False"})
+		o.Expect(err).NotTo(o.HaveOccurred(), "kube-apiserver operator not available after encryption migration")
+
+		g.By("9) Verify secret is still encrypted in etcd after migration")
+		etcdPods = getPodsListByLabel(oc, "openshift-etcd", "etcd=true")
+		execCmdOutput = execCommandOnPod(oc, etcdPods[0], "openshift-etcd", "etcdctl get /kubernetes.io/secrets/default/"+testSecretName)
+		o.Expect(execCmdOutput).ShouldNot(o.ContainSubstring("secret123"), "secret should remain encrypted after migration")
+
+		e2e.Logf("Encryption type migration from %s to %s completed successfully", encryptionType, migrateEncTo)
+	})
+
+	g.It("[OTP][OCP-65924] should handle non-existent secret for API namedCertificates gracefully [APIServer_Disruptive][Disruptive][apigroup:config.openshift.io]", ote.Informing(), func() {
+		var (
+			apiserver           = "apiserver/cluster"
+			kasOpExpectedStatus = map[string]string{"Available": "True", "Progressing": "False", "Degraded": "False"}
+			kasOpDegradedStatus = map[string]string{"Available": "True", "Progressing": "False", "Degraded": "True"}
+		)
+
+		g.By("1) Get API server FQDN")
+		apiServerFQDN, err := oc.AsAdmin().WithoutNamespace().Run("whoami").Args("--show-server").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		apiServerFQDN = strings.TrimPrefix(apiServerFQDN, "https://")
+		apiServerFQDN = strings.Split(apiServerFQDN, ":")[0]
+		e2e.Logf("API Server FQDN: %s", apiServerFQDN)
+
+		g.By("2) Get current kube-apiserver revision")
+		out, err := oc.AsAdmin().Run("get").Args("po", "-n", "openshift-kube-apiserver", "-l=apiserver", "-o", "jsonpath={.items[*].metadata.labels.revision}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		revisions := strings.Split(out, " ")
+		preRevisionSum := 0
+		for _, valueStr := range revisions {
+			valueInt, _ := strconv.Atoi(valueStr)
+			preRevisionSum += valueInt
+		}
+		e2e.Logf("Current kube-apiserver revisions sum: %d", preRevisionSum)
+
+		defer func() {
+			g.By("Cleanup: Remove the non-existent secret configuration")
+			patchToRecover := `[{ "op": "remove", "path": "/spec/servingCerts" }]`
+			err := oc.AsAdmin().WithoutNamespace().Run("patch").Args(apiserver, "-p", patchToRecover, "--type=json").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			e2e.Logf("Waiting for kube-apiserver operator to recover")
+			err = waitCoBecomes(oc, "kube-apiserver", 300, kasOpExpectedStatus)
+			o.Expect(err).NotTo(o.HaveOccurred(), "kube-apiserver operator did not recover")
+		}()
+
+		g.By("3) Apply non-existent secret for API namedCertificates")
+		patch := fmt.Sprintf(`{"spec":{"servingCerts": {"namedCertificates": [{"names": ["%s"], "servingCertificate": {"name": "client-ca-custom"}}]}}}`, apiServerFQDN)
+		err = oc.AsAdmin().WithoutNamespace().Run("patch").Args(apiserver, "-p", patch, "--type=merge").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("Patched apiserver with non-existent secret reference")
+
+		g.By("4) Wait and verify kube-apiserver cluster operator becomes degraded")
+		err = waitCoBecomes(oc, "kube-apiserver", 300, kasOpDegradedStatus)
+		o.Expect(err).NotTo(o.HaveOccurred(), "kube-apiserver operator should become degraded")
+
+		output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("co", "kube-apiserver").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(output).Should(o.ContainSubstring("ConfigObservationDegraded"), "operator should show ConfigObservationDegraded condition")
+		e2e.Logf("kube-apiserver operator correctly degraded with ConfigObservationDegraded")
+
+		g.By("5) Verify cluster does nothing and no kube-apiserver pod crash-looping")
+		out, err = oc.AsAdmin().Run("get").Args("po", "-n", "openshift-kube-apiserver", "-l=apiserver", "-o", "jsonpath={.items[*].metadata.labels.revision}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		revisions = strings.Split(out, " ")
+		postRevisionSum := 0
+		for _, valueStr := range revisions {
+			valueInt, _ := strconv.Atoi(valueStr)
+			postRevisionSum += valueInt
+		}
+		o.Expect(postRevisionSum).Should(o.Equal(preRevisionSum), "kube-apiserver pods should not roll out with invalid config")
+		e2e.Logf("Revisions unchanged - no rollout occurred as expected")
+
+		kasPodsOutput := getResourceToBeReady(oc, asAdmin, withoutNamespace, "pods", "-l apiserver", "--no-headers", "-n", "openshift-kube-apiserver")
+		o.Expect(kasPodsOutput).ShouldNot(o.ContainSubstring("CrashLoopBackOff"), "kube-apiserver pods should not crash-loop")
+		e2e.Logf("kube-apiserver pods are stable - no crash-looping")
+	})
+
+	g.It("[OTP][OCP-84783] should verify certificates for authentication and encryption of communications [apigroup:config.openshift.io]", ote.Informing(), func() {
+		g.By("1) Verify TLS secrets in openshift-kube-apiserver namespace")
+		ns := "openshift-kube-apiserver"
+		e2e.Logf("OpenShift TLS Secrets Verification")
+
+		secretsJSON, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("secret", "-n", ns, "-ojson").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		var secretList struct {
+			Items []struct {
+				Type     string            `json:"type"`
+				Data     map[string]string `json:"data"`
+				Metadata struct {
+					Name string `json:"name"`
+				} `json:"metadata"`
+			} `json:"items"`
+		}
+
+		err = json.Unmarshal([]byte(secretsJSON), &secretList)
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to parse secrets JSON")
+
+		secretCount := 0
+		for _, s := range secretList.Items {
+			if s.Type != "kubernetes.io/tls" {
+				continue
+			}
+			name := s.Metadata.Name
+			o.Expect(name).ShouldNot(o.BeEmpty(), "secret name should not be empty")
+
+			rawcrt, ok := s.Data["tls.crt"]
+			if !ok || rawcrt == "" {
+				e2e.Logf("%s/%s - No tls.crt found", ns, name)
+				continue
+			}
+
+			decoded, err := base64.StdEncoding.DecodeString(rawcrt)
+			if err != nil {
+				e2e.Logf("%s/%s - failed to base64-decode tls.crt: %v", ns, name, err)
+				continue
+			}
+
+			e2e.Logf("Checking %s/%s", ns, name)
+			apiserverauth.ParseAndCheckPEMs(decoded, fmt.Sprintf("%s/%s", ns, name))
+			secretCount++
+		}
+		e2e.Logf("Verified %d TLS secrets in %s namespace", secretCount, ns)
+
+		g.By("2) Verify CA bundle ConfigMaps in openshift-config-managed namespace")
+		e2e.Logf("OpenShift CA Bundles Verification")
+
+		ns = "openshift-config-managed"
+		configMaps := []struct {
+			name string
+			key  string
+		}{
+			{"kube-apiserver-server-ca", "ca-bundle.crt"},
+			{"kube-apiserver-client-ca", "ca-bundle.crt"},
+			{"kube-root-ca.crt", "ca.crt"},
+			{"trusted-ca-bundle", "ca-bundle.crt"},
+			{"service-ca", "ca-bundle.crt"},
+		}
+
+		cmCount := 0
+		for _, cm := range configMaps {
+			cmJSON, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("cm", cm.name, "-n", ns, "-ojson").Output()
+			if err != nil {
+				e2e.Logf("%s/%s (%s) - failed to get configmap: %v", ns, cm.name, cm.key, err)
+				continue
+			}
+
+			var cmObj struct {
+				Data map[string]string `json:"data"`
+			}
+			err = json.Unmarshal([]byte(cmJSON), &cmObj)
+			if err != nil {
+				e2e.Logf("%s/%s (%s) - failed to parse configmap JSON: %v", ns, cm.name, cm.key, err)
+				continue
+			}
+
+			val, ok := cmObj.Data[cm.key]
+			if !ok || val == "" {
+				found := false
+				for k, v := range cmObj.Data {
+					kl := strings.ToLower(k)
+					if (strings.Contains(kl, "ca") || strings.Contains(kl, "crt")) && v != "" {
+						e2e.Logf("%s/%s (using key %s)", ns, cm.name, k)
+						apiserverauth.ParseAndCheckPEMs([]byte(v), fmt.Sprintf("%s/%s(%s)", ns, cm.name, k))
+						found = true
+						cmCount++
+						break
+					}
+				}
+				if !found {
+					e2e.Logf("%s/%s (%s) - key not found in configmap", ns, cm.name, cm.key)
+				}
+				continue
+			}
+
+			e2e.Logf("Checking %s/%s (%s)", ns, cm.name, cm.key)
+			apiserverauth.ParseAndCheckPEMs([]byte(val), fmt.Sprintf("%s/%s(%s)", ns, cm.name, cm.key))
+			cmCount++
+		}
+		e2e.Logf("Verified %d CA bundle ConfigMaps in %s namespace", cmCount, ns)
+		e2e.Logf("Certificate verification complete")
+	})
 })

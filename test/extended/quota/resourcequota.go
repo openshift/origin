@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	ote "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
@@ -26,7 +28,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 	oc := exutil.NewCLI("object-count-rq")
 
 	g.Describe("Object count", func() {
-		g.It(fmt.Sprintf("should properly count the number of imagestreams resources [apigroup:image.openshift.io]"), func() {
+		g.It(fmt.Sprintf("should properly count the number of imagestreams resources [apigroup:image.openshift.io]"), ote.Informing(), func() {
 			clusterAdminKubeClient := oc.AdminKubeClient()
 			clusterAdminImageClient := oc.AdminImageClient().ImageV1()
 			testProject := oc.SetupProject()
@@ -88,7 +90,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should properly count the number of persistentvolumeclaims resources [Serial]", func() {
+		g.It("should properly count the number of persistentvolumeclaims resources [Serial]", ote.Informing(), func() {
 			testProject := oc.SetupProject()
 			testResourceQuotaName := "my-resource-quota-" + testProject
 			pvcName := "myclaim-" + testProject
@@ -167,7 +169,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("check the quota after import-image with --all option [Skipped:Disconnected]", func() {
+		g.It("check the quota after import-image with --all option [Skipped:Disconnected]", ote.Informing(), func() {
 			testProject := oc.SetupProject()
 			testResourceQuotaName := "my-imagestream-quota-" + testProject
 			clusterAdminKubeClient := oc.AdminKubeClient()
@@ -219,7 +221,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("when exceed openshift.io/image-tags will ban to create new image references in the project", func() {
+		// Tests image-tags quota enforcement - limits the number of TAGS/VERSIONS per ImageStream
+		// Note: This test focuses specifically on image-tags (number of tags per stream).
+		g.It("when exceed openshift.io/image-tags will ban to create new tag versions in the image stream", ote.Informing(), func() {
 			testProject := oc.SetupProject()
 			testResourceQuotaName := "my-image-tag-quota"
 			clusterAdminKubeClient := oc.AdminKubeClient()
@@ -231,14 +235,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 						{
 							Type: "openshift.io/ImageStream",
 							Max: corev1.ResourceList{
-								"openshift.io/image-tags": resource.MustParse("2"),
+								"openshift.io/image-tags": resource.MustParse("3"),
 							},
 						},
 					},
 				},
 			}
 
-			g.By("create the image-tags and checking the usage")
+			g.By("1) Create LimitRange with image-tags quota of 3 maximum tags per ImageStream")
 			_, err := clusterAdminKubeClient.CoreV1().LimitRanges(testProject).Create(context.Background(), lr, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -247,13 +251,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 					{
 						Type: "openshift.io/ImageStream",
 						Max: corev1.ResourceList{
-							"openshift.io/image-tags": resource.MustParse("2"),
+							"openshift.io/image-tags": resource.MustParse("3"),
 						},
 					},
 				}
-				// Compare actual and expected LimitRangeItems
 				if !equality.Semantic.DeepEqual(actualLimitRange.Spec.Limits, expectedLimitRange) {
-					return fmt.Errorf("unexpected current total usage: actual: %#v, expected: %#v", actualLimitRange.Spec.Limits, expectedLimitRange)
+					return fmt.Errorf("unexpected limit range: actual: %#v, expected: %#v", actualLimitRange.Spec.Limits, expectedLimitRange)
 				}
 				return nil
 			})
@@ -264,23 +267,32 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 				g.Skip("need three openshift ImageStreams with at least one resolved tag each for oc tag --source=istag; skipping image-tag quota enforcement check")
 			}
 
-			tags := []string{"v1", "v2", "v3"}
-			for i := range 2 {
-				g.By("trying to tag a container image with " + tags[i] + " from " + sourceISTags[i])
-				err = oc.Run("tag").Args(sourceISTags[i], "--source=istag", "mystream:"+tags[i], "-n", testProject).Execute()
+			// Test creating multiple TAGS on the SAME IMAGE SOURCE
+			tags := []string{"v1", "v2", "v3", "v4"}
+
+			g.By("2) Create tags within the limit (3 tags allowed)")
+			for i := 0; i < 3; i++ {
+				g.By(fmt.Sprintf("2.%d) Creating tag %s from %s", i+1, tags[i], sourceISTags[0]))
+				err = oc.Run("tag").Args(sourceISTags[0], "--source=istag", "mystream:"+tags[i], "-n", testProject).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = exutil.WaitForAnImageStreamTag(oc, testProject, "mystream", tags[i])
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 
-			g.By("waiting until mystream records both tags so limit enforcement sees tag count before v3")
-			err = waitForImageStreamStatusTagsPopulated(oc, testProject, "mystream", tags[:2])
+			g.By("3) Wait for all tags to be populated in the ImageStream status")
+			err = waitForImageStreamStatusTagsPopulated(oc, testProject, "mystream", tags[:3])
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("trying to tag a container image with v3 from " + sourceISTags[2])
-			err = oc.Run("tag").Args(sourceISTags[2], "--source=istag", "mystream:v3", "-n", testProject).Execute()
+			g.By("4) Attempt to create a 4th tag - should be rejected by image-tags quota")
+			err = oc.Run("tag").Args(sourceISTags[0], "--source=istag", "mystream:"+tags[3], "-n", testProject).Execute()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(err.Error()).To(o.MatchRegexp(`.*forbidden.*[Ee]xceed`))
+
+			g.By("5) Verify that only 3 tags exist in the ImageStream")
+			imageStreamOutput, err := oc.Run("get").Args("imagestream", "mystream", "-n", testProject, "-o", "jsonpath={.spec.tags[*].name}").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			tagCount := len(strings.Fields(imageStreamOutput))
+			o.Expect(tagCount).To(o.Equal(3), "Expected exactly 3 tags to be present in ImageStream")
 		})
 	})
 })

@@ -46,6 +46,7 @@
 // test/extended/testdata/aggregator/sample-apiserver-rc.yaml
 // test/extended/testdata/aggregator/sample-apiserver-sa.yaml
 // test/extended/testdata/aggregator/sample-apiserver-service.yaml
+// test/extended/testdata/apiserver/aosqe-pod-for-ping.json
 // test/extended/testdata/apiserver/application-template-stibuild.json
 // test/extended/testdata/apiserver/kube-burner-cpu-stress-pod.yml
 // test/extended/testdata/apiserver/kube-burner-cpu-stress.yml
@@ -55,6 +56,8 @@
 // test/extended/testdata/apiserver/ocp9853-limits.yaml
 // test/extended/testdata/apiserver/ocp9853-quota.yaml
 // test/extended/testdata/apiserver/operator-kube-apiserver-cr.yaml
+// test/extended/testdata/apiserverauth/CRDWebhookConfigurationTemplate.yaml
+// test/extended/testdata/apiserverauth/rapidast-job.yaml
 // test/extended/testdata/builds/application-template-custombuild.json
 // test/extended/testdata/builds/build-postcommit/docker.yaml
 // test/extended/testdata/builds/build-postcommit/imagestreams.yaml
@@ -469,6 +472,8 @@
 // test/extended/testdata/node/nested_container/skip_tests.sh
 // test/extended/testdata/node/node_e2e/pod-dev-fuse.yaml
 // test/extended/testdata/node_tuning/nto-stalld.yaml
+// test/extended/testdata/oap/certmanager/rapidast-config.yaml
+// test/extended/testdata/oap/certmanager/rapidast-privileged-sa.yaml
 // test/extended/testdata/oauthserver/cabundle-cm.yaml
 // test/extended/testdata/oauthserver/oauth-network.yaml
 // test/extended/testdata/oauthserver/oauth-pod.yaml
@@ -16366,6 +16371,44 @@ func testExtendedTestdataAggregatorSampleApiserverServiceYaml() (*asset, error) 
 	return a, nil
 }
 
+var _testExtendedTestdataApiserverAosqePodForPingJson = []byte(`{
+  "kind": "Pod",
+  "apiVersion":"v1",
+  "metadata": {
+        "name": "hello-pod",
+        "labels": {
+                "name": "hello-pod"
+        }
+  },
+  "spec": {
+      "containers": [{
+        "name": "hello-pod",
+        "image": "quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4",
+        "resources":{
+          "limits":{
+            "memory":"340Mi"
+          }
+        }
+      }]
+  }
+}
+`)
+
+func testExtendedTestdataApiserverAosqePodForPingJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataApiserverAosqePodForPingJson, nil
+}
+
+func testExtendedTestdataApiserverAosqePodForPingJson() (*asset, error) {
+	bytes, err := testExtendedTestdataApiserverAosqePodForPingJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/apiserver/aosqe-pod-for-ping.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataApiserverApplicationTemplateStibuildJson = []byte(`{
     "kind": "Template",
     "apiVersion": "template.openshift.io/v1",
@@ -17215,6 +17258,165 @@ func testExtendedTestdataApiserverOperatorKubeApiserverCrYaml() (*asset, error) 
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/apiserver/operator-kube-apiserver-cr.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataApiserverauthCrdwebhookconfigurationtemplateYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: crdwebhooktemplate
+objects:
+- apiVersion: apiextensions.k8s.io/v1
+  kind: CustomResourceDefinition
+  metadata:
+    name: "${NAME}"
+  spec:
+    group: "${WEBHOOKNAME}"
+    versions:
+    - name: v1beta1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            hostPort:
+              type: string
+    conversion:
+      strategy: Webhook
+      webhook:
+        namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: "${NAMESPACE}"
+        conversionReviewVersions: ["v1beta1"]
+        rules:
+        - apiGroups:   ["${APIGROUPS}"]
+          apiVersions: ["${APIVERSIONS}"]
+          operations:  ["${OPERATIONS}"]
+          resources:   ["${RESOURCES}"]
+        clientConfig:
+          service:
+            namespace: "${SERVICENAMESPACE}"
+            name: "${SERVICENAME}"
+    scope: Namespaced
+    names:
+      plural: "${PLURALNAME}"
+      singular: "${SINGULARNAME}"
+      kind: TestCrdWebhook
+      shortNames:
+      - tcw
+parameters:
+- name: NAME
+- name: PLURALNAME
+- name: SINGULARNAME
+- name: KIND
+- name: SHORTNAME
+- name: VERSION
+- name: WEBHOOKNAME
+- name: SERVICENAMESPACE
+- name: SERVICENAME
+- name: NAMESPACE
+- name: APIGROUPS
+- name: APIVERSIONS
+- name: OPERATIONS
+- name: RESOURCES
+`)
+
+func testExtendedTestdataApiserverauthCrdwebhookconfigurationtemplateYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataApiserverauthCrdwebhookconfigurationtemplateYaml, nil
+}
+
+func testExtendedTestdataApiserverauthCrdwebhookconfigurationtemplateYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataApiserverauthCrdwebhookconfigurationtemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/apiserverauth/CRDWebhookConfigurationTemplate.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataApiserverauthRapidastJobYaml = []byte(`kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: rapidast-job-template
+objects:
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: ${NAME}
+  spec:
+    backoffLimit: 0
+    completionMode: NonIndexed
+    completions: 1
+    parallelism: 1
+    selector:
+      matchLabels:
+        job-name: ${NAME}
+    suspend: false
+    template:
+      metadata:
+        labels:
+          job-name: ${NAME}
+        name: rapidast-job
+      spec:
+        containers:
+        - command: ["/bin/sh"]
+          args:
+          - "-c"
+          - |
+            export HOME=/tmp
+            rapidast.py --config /opt/rapidast/config/rapidastconfig.yaml
+            echo "--------------- show rapidash result -----------------"
+
+            echo "--------------- rapidash result end -----------------"
+          image: quay.io/redhatproductsecurity/rapidast:2.9.1
+          workingDir: "/tmp"
+          imagePullPolicy: Always
+          name: rapidast
+          resources: {}
+          securityContext:
+            readOnlyRootFilesystem: true
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /opt/rapidast/config
+            name: config-volume
+          - mountPath: /tmp
+            name: tmp
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        nodeSelector:
+          kubernetes.io/os: linux
+          kubernetes.io/arch: amd64
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: ${NAME}
+          name: config-volume
+        - name: tmp
+          emptyDir: {}
+parameters:
+- name: NAME
+  value: rapidast-job
+`)
+
+func testExtendedTestdataApiserverauthRapidastJobYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataApiserverauthRapidastJobYaml, nil
+}
+
+func testExtendedTestdataApiserverauthRapidastJobYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataApiserverauthRapidastJobYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/apiserverauth/rapidast-job.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -51608,6 +51810,109 @@ func testExtendedTestdataNode_tuningNtoStalldYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataOapCertmanagerRapidastConfigYaml = []byte(`# source: https://docs.engineering.redhat.com/display/PRODSEC/RapiDAST+QuickStart+Guide#RapiDASTQuickStartGuide-SampleConfiguration
+# full configuration options: https://github.com/RedHatProductSecurity/rapidast/blob/development/config/config-template-zap-long.yaml
+config:
+  # WARNING: ` + "`" + `configVersion` + "`" + ` indicates the schema version of the config file.
+  # This value tells RapiDAST what schema should be used to read this configuration.
+  # Therefore you should only change it if you update the configuration to a newer schema
+  # It is intended to keep backward compatibility (newer RapiDAST running an older config)
+  configVersion: 5
+
+# ` + "`" + `application` + "`" + ` contains data related to the application, not to the scans.
+application:
+  shortName: "openshift-api" # should not contain non-printable characters, such as spaces
+  url: "https://kubernetes.default.svc" # to be replaced with your cluster API server URL
+
+# ` + "`" + `general` + "`" + ` is a section that will be applied to all scanners.
+general:
+  authentication:
+    type: "http_header"
+    parameters:
+      name: "Authorization"
+      value: "Bearer AUTH_TOKEN"
+  container:
+    # currently supported: ` + "`" + `podman` + "`" + ` and ` + "`" + `none` + "`" + `. To run a scan using the RapiDAST container image(e.g. using Helm) on the cluster, this must be ` + "`" + `none` + "`" + `
+    type: "none"
+  passiveScan:
+    # optional list of passive rules to disable
+    disabledRules: "2,10015,10027,10096,10024"
+  activeScan:
+    # If no policy is chosen, a default ("API-scan-minimal") will be selected
+    policy: "Kubernetes-API-scan"
+
+# ` + "`" + `scanners' is a section that configures scanning options.
+scanners:
+  zap:
+    # define a scan through the ZAP scanner for Kubernetes core API v1
+    apiScan:
+      apis:
+        apiUrl: "https://kubernetes.default.svc/openapi/v3/api/v1"
+  zap_routes:
+    # define a scan through the ZAP scanner for OpenShift route API
+    apiScan:
+      apis:
+        apiUrl: "https://kubernetes.default.svc/openapi/v3/apis/route.openshift.io/v1"
+`)
+
+func testExtendedTestdataOapCertmanagerRapidastConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOapCertmanagerRapidastConfigYaml, nil
+}
+
+func testExtendedTestdataOapCertmanagerRapidastConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOapCertmanagerRapidastConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/oap/certmanager/rapidast-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOapCertmanagerRapidastPrivilegedSaYaml = []byte(`# DO NOT MODIFY DIRECTLY
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: rapidast-rbac-template
+objects:
+  - apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: rapidast-rolebinding-${NAMESPACE}
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: system:openshift:scc:privileged
+    subjects:
+      - kind: ServiceAccount
+        name: "${NAME}"
+        namespace: "${NAMESPACE}"
+parameters:
+  - name: NAME
+  - name: NAMESPACE
+`)
+
+func testExtendedTestdataOapCertmanagerRapidastPrivilegedSaYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOapCertmanagerRapidastPrivilegedSaYaml, nil
+}
+
+func testExtendedTestdataOapCertmanagerRapidastPrivilegedSaYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOapCertmanagerRapidastPrivilegedSaYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/oap/certmanager/rapidast-privileged-sa.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataOauthserverCabundleCmYaml = []byte(`apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -57269,6 +57574,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/aggregator/sample-apiserver-rc.yaml":                                             testExtendedTestdataAggregatorSampleApiserverRcYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-sa.yaml":                                             testExtendedTestdataAggregatorSampleApiserverSaYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-service.yaml":                                        testExtendedTestdataAggregatorSampleApiserverServiceYaml,
+	"test/extended/testdata/apiserver/aosqe-pod-for-ping.json":                                               testExtendedTestdataApiserverAosqePodForPingJson,
 	"test/extended/testdata/apiserver/application-template-stibuild.json":                                    testExtendedTestdataApiserverApplicationTemplateStibuildJson,
 	"test/extended/testdata/apiserver/kube-burner-cpu-stress-pod.yml":                                        testExtendedTestdataApiserverKubeBurnerCpuStressPodYml,
 	"test/extended/testdata/apiserver/kube-burner-cpu-stress.yml":                                            testExtendedTestdataApiserverKubeBurnerCpuStressYml,
@@ -57278,6 +57584,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/apiserver/ocp9853-limits.yaml":                                                   testExtendedTestdataApiserverOcp9853LimitsYaml,
 	"test/extended/testdata/apiserver/ocp9853-quota.yaml":                                                    testExtendedTestdataApiserverOcp9853QuotaYaml,
 	"test/extended/testdata/apiserver/operator-kube-apiserver-cr.yaml":                                       testExtendedTestdataApiserverOperatorKubeApiserverCrYaml,
+	"test/extended/testdata/apiserverauth/CRDWebhookConfigurationTemplate.yaml":                              testExtendedTestdataApiserverauthCrdwebhookconfigurationtemplateYaml,
+	"test/extended/testdata/apiserverauth/rapidast-job.yaml":                                                 testExtendedTestdataApiserverauthRapidastJobYaml,
 	"test/extended/testdata/builds/application-template-custombuild.json":                                    testExtendedTestdataBuildsApplicationTemplateCustombuildJson,
 	"test/extended/testdata/builds/build-postcommit/docker.yaml":                                             testExtendedTestdataBuildsBuildPostcommitDockerYaml,
 	"test/extended/testdata/builds/build-postcommit/imagestreams.yaml":                                       testExtendedTestdataBuildsBuildPostcommitImagestreamsYaml,
@@ -57692,6 +58000,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/node/nested_container/skip_tests.sh":                                             testExtendedTestdataNodeNested_containerSkip_testsSh,
 	"test/extended/testdata/node/node_e2e/pod-dev-fuse.yaml":                                                 testExtendedTestdataNodeNode_e2ePodDevFuseYaml,
 	"test/extended/testdata/node_tuning/nto-stalld.yaml":                                                     testExtendedTestdataNode_tuningNtoStalldYaml,
+	"test/extended/testdata/oap/certmanager/rapidast-config.yaml":                                            testExtendedTestdataOapCertmanagerRapidastConfigYaml,
+	"test/extended/testdata/oap/certmanager/rapidast-privileged-sa.yaml":                                     testExtendedTestdataOapCertmanagerRapidastPrivilegedSaYaml,
 	"test/extended/testdata/oauthserver/cabundle-cm.yaml":                                                    testExtendedTestdataOauthserverCabundleCmYaml,
 	"test/extended/testdata/oauthserver/oauth-network.yaml":                                                  testExtendedTestdataOauthserverOauthNetworkYaml,
 	"test/extended/testdata/oauthserver/oauth-pod.yaml":                                                      testExtendedTestdataOauthserverOauthPodYaml,
@@ -57865,6 +58175,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"sample-apiserver-service.yaml":       {testExtendedTestdataAggregatorSampleApiserverServiceYaml, map[string]*bintree{}},
 				}},
 				"apiserver": {nil, map[string]*bintree{
+					"aosqe-pod-for-ping.json":            {testExtendedTestdataApiserverAosqePodForPingJson, map[string]*bintree{}},
 					"application-template-stibuild.json": {testExtendedTestdataApiserverApplicationTemplateStibuildJson, map[string]*bintree{}},
 					"kube-burner-cpu-stress-pod.yml":     {testExtendedTestdataApiserverKubeBurnerCpuStressPodYml, map[string]*bintree{}},
 					"kube-burner-cpu-stress.yml":         {testExtendedTestdataApiserverKubeBurnerCpuStressYml, map[string]*bintree{}},
@@ -57874,6 +58185,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"ocp9853-limits.yaml":                {testExtendedTestdataApiserverOcp9853LimitsYaml, map[string]*bintree{}},
 					"ocp9853-quota.yaml":                 {testExtendedTestdataApiserverOcp9853QuotaYaml, map[string]*bintree{}},
 					"operator-kube-apiserver-cr.yaml":    {testExtendedTestdataApiserverOperatorKubeApiserverCrYaml, map[string]*bintree{}},
+				}},
+				"apiserverauth": {nil, map[string]*bintree{
+					"CRDWebhookConfigurationTemplate.yaml": {testExtendedTestdataApiserverauthCrdwebhookconfigurationtemplateYaml, map[string]*bintree{}},
+					"rapidast-job.yaml":                    {testExtendedTestdataApiserverauthRapidastJobYaml, map[string]*bintree{}},
 				}},
 				"builds": {nil, map[string]*bintree{
 					"application-template-custombuild.json": {testExtendedTestdataBuildsApplicationTemplateCustombuildJson, map[string]*bintree{}},
@@ -58508,6 +58823,12 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"node_tuning": {nil, map[string]*bintree{
 					"nto-stalld.yaml": {testExtendedTestdataNode_tuningNtoStalldYaml, map[string]*bintree{}},
+				}},
+				"oap": {nil, map[string]*bintree{
+					"certmanager": {nil, map[string]*bintree{
+						"rapidast-config.yaml":        {testExtendedTestdataOapCertmanagerRapidastConfigYaml, map[string]*bintree{}},
+						"rapidast-privileged-sa.yaml": {testExtendedTestdataOapCertmanagerRapidastPrivilegedSaYaml, map[string]*bintree{}},
+					}},
 				}},
 				"oauthserver": {nil, map[string]*bintree{
 					"cabundle-cm.yaml":   {testExtendedTestdataOauthserverCabundleCmYaml, map[string]*bintree{}},
