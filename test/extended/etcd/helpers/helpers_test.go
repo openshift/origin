@@ -2,13 +2,20 @@ package helpers
 
 import (
 	"context"
+	"errors"
+	stdnet "net"
+	"net/url"
+	"os"
+	"syscall"
 	"testing"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configfake "github.com/openshift/client-go/config/clientset/versioned/fake"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 )
 
@@ -100,6 +107,60 @@ func TestSettledEtcdRevision(t *testing.T) {
 			}
 			if len(revision) == 0 && len(reason) == 0 {
 				t.Errorf("expected a reason when etcd is not settled")
+			}
+		})
+	}
+}
+
+type timeoutError struct{}
+
+func (timeoutError) Error() string   { return "net/http: TLS handshake timeout" }
+func (timeoutError) Timeout() bool   { return true }
+func (timeoutError) Temporary() bool { return true }
+
+func TestTransientAPIError(t *testing.T) {
+	tests := []struct {
+		name      string
+		err       error
+		transient bool
+	}{
+		{
+			name:      "TLS handshake timeout from a GET",
+			err:       &url.Error{Op: "Get", URL: "https://api.example.com:6443/apis/machine.openshift.io/v1/namespaces/openshift-machine-api/controlplanemachinesets/cluster", Err: timeoutError{}},
+			transient: true,
+		},
+		{
+			name:      "connection refused",
+			err:       &url.Error{Op: "Get", URL: "https://api.example.com:6443", Err: &stdnet.OpError{Op: "dial", Net: "tcp", Err: &os.SyscallError{Syscall: "connect", Err: syscall.ECONNREFUSED}}},
+			transient: true,
+		},
+		{
+			name:      "service unavailable",
+			err:       apierrors.NewServiceUnavailable("unavailable"),
+			transient: true,
+		},
+		{
+			name:      "request timeout",
+			err:       apierrors.NewTimeoutError("request did not complete within the allotted timeout", 0),
+			transient: true,
+		},
+		{
+			name: "not found",
+			err:  apierrors.NewNotFound(schema.GroupResource{Group: "machine.openshift.io", Resource: "controlplanemachinesets"}, "cluster"),
+		},
+		{
+			name: "forbidden",
+			err:  apierrors.NewForbidden(schema.GroupResource{Resource: "pods"}, "etcd", errors.New("denied")),
+		},
+		{
+			name: "nil",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := transientAPIError(tc.err); got != tc.transient {
+				t.Errorf("expected transient=%v, got %v for %v", tc.transient, got, tc.err)
 			}
 		})
 	}

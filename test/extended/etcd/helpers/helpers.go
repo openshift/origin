@@ -968,6 +968,12 @@ func transientAPIError(err error) bool {
 		return false
 	case net.IsProbableEOF(err), net.IsConnectionReset(err), net.IsNoRoutesError(err), isClientConnectionLost(err):
 		return true
+	// Replacing control plane machines takes kube-apiservers and the API load balancer targets in and out of
+	// service, so requests can time out, be refused, or be rejected while the control plane recovers.
+	case net.IsTimeout(err), net.IsConnectionRefused(err), net.IsHTTP2ConnectionLost(err):
+		return true
+	case apierrors.IsServiceUnavailable(err), apierrors.IsTimeout(err), apierrors.IsServerTimeout(err), apierrors.IsTooManyRequests(err):
+		return true
 	default:
 		return false
 	}
