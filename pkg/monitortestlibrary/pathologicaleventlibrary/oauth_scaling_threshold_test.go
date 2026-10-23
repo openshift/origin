@@ -198,12 +198,13 @@ func TestAuthenticationComponentProxyScalingReplicaSet_FailedOrSkippedWindowExcl
 	from := cpT0
 	to := cpT0.Add(4 * time.Minute)
 	for _, status := range []string{"Failed", "Skipped", "DidNotFinish"} {
-		// A non-Passed eligible test registers the matcher but grants no allowance window.
+		// A non-Passed eligible test yields no eligible window, so the matcher is not even
+		// registered and grants no exception.
 		events := monitorapi.Intervals{cpTestInterval(cpEligibleFullNames[0], status, from, to)}
-		m := scalingMatcher(t, events)
+		reg := NewUniversalPathologicalEventMatchers(nil, events)
 		inWindow := oauthScaleEvent(70, from.Add(2*time.Minute))
-		assert.Falsef(t, m.Allows(inWindow, v1.HighlyAvailableTopologyMode),
-			"status %q must NOT grant the exception", status)
+		allowed, _ := reg.AllowedByAny(inWindow, v1.HighlyAvailableTopologyMode)
+		assert.Falsef(t, allowed, "status %q must NOT grant the exception", status)
 	}
 }
 
@@ -227,7 +228,8 @@ func TestAuthenticationComponentProxyScalingReplicaSet_AdjacentWindowGapNotAllow
 
 func TestAuthenticationComponentProxyScalingReplicaSet_DegenerateWindowExcluded(t *testing.T) {
 	// Fail-closed: a test that reports Passed but has a missing or non-positive span (zero
-	// timestamps, or To not strictly after From) registers the matcher but grants no window.
+	// timestamps, or To not strictly after From) yields no eligible window, so the matcher is
+	// not even registered and grants no exception.
 	zero := time.Time{}
 	cases := []struct {
 		name     string
@@ -240,11 +242,11 @@ func TestAuthenticationComponentProxyScalingReplicaSet_DegenerateWindowExcluded(
 	}
 	for _, c := range cases {
 		events := monitorapi.Intervals{cpTestInterval(cpEligibleFullNames[0], "Passed", c.from, c.to)}
-		m := scalingMatcher(t, events)
+		reg := NewUniversalPathologicalEventMatchers(nil, events)
 		// Probe near cpT0 where a real window would have been.
 		ev := oauthScaleEvent(70, cpT0.Add(2*time.Minute))
-		assert.Falsef(t, m.Allows(ev, v1.HighlyAvailableTopologyMode),
-			"degenerate window %q must grant no exception", c.name)
+		allowed, _ := reg.AllowedByAny(ev, v1.HighlyAvailableTopologyMode)
+		assert.Falsef(t, allowed, "degenerate window %q must grant no exception", c.name)
 	}
 }
 
