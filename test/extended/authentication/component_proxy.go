@@ -96,10 +96,17 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 	g.It("operator should validate OIDC IdP through component proxy with trustedCA", func() {
 		testOIDCIdPThroughComponentProxy(ctx, oc, kcSetup, httpsProxyURL, caCertPEM, proxyNamespace)
 	})
-	g.It("operator should fall back to cluster proxy defaults on spec.proxy removal", func() {
+	g.It("[Feature:AuthenticationComponentProxyExternalOIDC] oauth-server should use the cluster proxy defaults when no authentication proxy is configured", func() {
+		clusterProxy, err := oc.AdminConfigClient().ConfigV1().Proxies().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, clusterProxy.Status.HTTPProxy, clusterProxy.Status.HTTPSProxy, clusterProxy.Status.NoProxy, false)
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+	g.It("[Feature:AuthenticationComponentProxyExternalOIDC] operator should fall back to the cluster-wide proxy on spec.proxy removal", func() {
 		testFallbackOnProxyRemoval(ctx, oc, kcSetup, httpProxyURL, proxyNamespace)
 	})
-	g.It("oauth-server should perform full OIDC login flow through the proxy when auth proxy config is applied", func() {
+	g.It("[Feature:AuthenticationComponentProxyExternalOIDC] oauth-server should prefer the authentication component proxy over the cluster-wide proxy for OIDC traffic", func() {
 		testProxyConfigPerformOIDCLogin(ctx, oc, &cleanups, kcSetup, httpProxyURL, proxyNamespace)
 	})
 	g.It("oauth-server/operator should hot-reload mounted CA file on change when spec.proxy.trustedCA is set", func() {
