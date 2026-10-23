@@ -90,7 +90,7 @@ type InvariantInClusterDisruption struct {
 	namespaceName               string
 	openshiftTestsImagePullSpec string
 	payloadImagePullSpec        string
-	notSupportedReason          string
+	notSupportedReason          error
 	replicas                    int32
 	controlPlaneNodes           int32
 	hostedClusterType           HostedClusterType
@@ -467,6 +467,40 @@ func (i *InvariantInClusterDisruption) PrepareCollection(ctx context.Context, ad
 func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, _ monitorapi.RecorderWriter) error {
 	var err error
 	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "StartCollection")
+	i.adminRESTConfig = adminRESTConfig
+
+	i.kubeClient, err = kubernetes.NewForConfig(i.adminRESTConfig)
+	if err != nil {
+		log.WithError(err).Error("error constructing kube client in disruptionclusterapiserver monitortest")
+		return fmt.Errorf("error constructing kube client: %v", err)
+	}
+	isMicroShift, err := exutil.IsMicroShiftCluster(i.kubeClient)
+	if err != nil {
+		return fmt.Errorf("unable to determine whether cluster is MicroShift: %v", err)
+	}
+
+	if isMicroShift {
+		i.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "microshift clusters don't have load balancers"}
+		log.Infof("IsMicroShiftCluster: %v", i.notSupportedReason)
+		return nil
+	}
+
+	configClient, err := configclient.NewForConfig(i.adminRESTConfig)
+	if err != nil {
+		return fmt.Errorf("error constructing openshift config client: %v", err)
+	}
+	var infra *configv1.Infrastructure
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		var getErr error
+		infra, getErr = configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+		return getErr
+	}); err != nil {
+		return fmt.Errorf("error getting openshift infrastructure: %v", err)
+	}
+	if extensions.IsROSACluster(infra.Status.PlatformStatus) {
+		i.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "platform ROSA not supported"}
+		return nil
+	}
 
 	// Determine hosted cluster type
 	oc := exutil.NewCLI("apiserver-incluster-availability").AsAdmin()
@@ -487,7 +521,7 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 		if isAROHCPcluster, err = exutil.IsAroHCP(ctx, hcpNamespace, managementOC.AdminKubeClient()); err != nil {
 			logrus.WithError(err).Warning("Failed to check if ARO HCP, assuming it's not")
 		} else if isAROHCPcluster {
-			i.notSupportedReason = "platform Hypershift - ARO HCP not supported"
+			i.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "platform Hypershift - ARO HCP not supported"}
 			return nil
 		}
 
@@ -516,12 +550,18 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 
 		if len(i.payloadImagePullSpec) == 0 {
 			log.Info("unable to determine payloadImagePullSpec")
-			i.notSupportedReason = "no image pull spec specified."
+			i.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "no image pull spec specified"}
 			return nil
 		}
 	}
 
 	log.Infof("payload image pull spec is %s", i.payloadImagePullSpec)
+
+	// Replace namespaces left behind by an earlier supported test run.
+	if err := i.removeExistingMonitorNamespaces(ctx); err != nil {
+		log.Infof("removeExistingMonitorNamespaces returned error %v", err)
+		return err
+	}
 
 	// Extract the openshift-tests image from the release payload
 	oc = exutil.NewCLIForMonitorTest("default")
@@ -531,39 +571,7 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	}
 	log.Infof("openshift-tests image pull spec is %v", i.openshiftTestsImagePullSpec)
 
-	i.adminRESTConfig = adminRESTConfig
-	i.kubeClient, err = kubernetes.NewForConfig(i.adminRESTConfig)
-	if err != nil {
-		log.WithError(err).Error("error constructing kube client in disruptionclusterapiserver monitortest")
-		return fmt.Errorf("error constructing kube client: %v", err)
-	}
-
-	if ok, _ := exutil.IsMicroShiftCluster(i.kubeClient); ok {
-		i.notSupportedReason = "microshift clusters don't have load balancers"
-		log.Infof("IsMicroShiftCluster: %s", i.notSupportedReason)
-		return nil
-	}
-
-	// Replace namespace from earlier test
-	if err := i.removeExistingMonitorNamespaces(ctx); err != nil {
-		log.Infof("removeExistingMonitorNamespaces returned error %v", err)
-		return err
-	}
-
 	log.Infof("starting monitoring deployments")
-	configClient, err := configclient.NewForConfig(i.adminRESTConfig)
-	if err != nil {
-		return fmt.Errorf("error constructing openshift config client: %v", err)
-	}
-	var infra *configv1.Infrastructure
-	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
-		var getErr error
-		infra, getErr = configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
-		return getErr
-	}); err != nil {
-		return fmt.Errorf("error getting openshift infrastructure: %v", err)
-	}
-
 	var apiIntHost string
 	var apiIntPort string
 	// Hosted clusters use adminRESTConfig.Host, standalone clusters use APIServerInternalURL
@@ -664,8 +672,8 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 func (i *InvariantInClusterDisruption) CollectData(ctx context.Context, storageDir string, beginning time.Time, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
 	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "CollectData")
 
-	if len(i.notSupportedReason) > 0 {
-		return nil, nil, nil
+	if i.notSupportedReason != nil {
+		return nil, nil, i.notSupportedReason
 	}
 
 	log.Infof("creating flag configmap")
@@ -697,21 +705,21 @@ func (i *InvariantInClusterDisruption) CollectData(ctx context.Context, storageD
 }
 
 func (i *InvariantInClusterDisruption) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, _ monitorapi.ResourcesMap, beginning time.Time, end time.Time) (constructedIntervals monitorapi.Intervals, err error) {
-	return nil, nil
+	return nil, i.notSupportedReason
 }
 
 func (i *InvariantInClusterDisruption) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	return nil, nil
+	return nil, i.notSupportedReason
 }
 
 func (i *InvariantInClusterDisruption) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	return nil
+	return i.notSupportedReason
 }
 
 func (i *InvariantInClusterDisruption) Cleanup(ctx context.Context) error {
 	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "Cleanup")
-	if len(i.notSupportedReason) > 0 {
-		return nil
+	if i.notSupportedReason != nil {
+		return i.notSupportedReason
 	}
 
 	if i.kubeClient == nil {
