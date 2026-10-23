@@ -646,6 +646,8 @@ func addIdentityProvider(ctx context.Context, oc *exutil.CLI, idp configv1.Ident
 	})
 }
 
+// verifyOAuthServerDeploymentProxyConfig waits for proxy settings and the component CA mount
+// to match expectations without logging proxy credentials or hostnames.
 func verifyOAuthServerDeploymentProxyConfig(ctx context.Context, oc *exutil.CLI, expectedHTTPProxy, expectedHTTPSProxy, expectedNoProxy string, expectTrustedCAVolume bool) error {
 	kubeClient := oc.AdminKubeClient()
 
@@ -667,13 +669,13 @@ func verifyOAuthServerDeploymentProxyConfig(ctx context.Context, oc *exutil.CLI,
 		}
 
 		if envVars["HTTP_PROXY"] != expectedHTTPProxy || envVars["HTTPS_PROXY"] != expectedHTTPSProxy {
-			g.GinkgoWriter.Printf("proxy env mismatch: HTTP_PROXY=%q (want %q), HTTPS_PROXY=%q (want %q)\n",
-				envVars["HTTP_PROXY"], expectedHTTPProxy, envVars["HTTPS_PROXY"], expectedHTTPSProxy)
+			g.GinkgoWriter.Printf("proxy env mismatch: HTTP_PROXY matches=%t, HTTPS_PROXY matches=%t\n",
+				envVars["HTTP_PROXY"] == expectedHTTPProxy, envVars["HTTPS_PROXY"] == expectedHTTPSProxy)
 			return false, nil
 		}
 		if expectedNoProxy == "" {
 			if envVars["NO_PROXY"] != "" {
-				g.GinkgoWriter.Printf("proxy env mismatch: NO_PROXY=%q (want empty)\n", envVars["NO_PROXY"])
+				g.GinkgoWriter.Println("proxy env mismatch: NO_PROXY is set (want empty)")
 				return false, nil
 			}
 		} else {
@@ -682,7 +684,7 @@ func verifyOAuthServerDeploymentProxyConfig(ctx context.Context, oc *exutil.CLI,
 			actualNoProxy := sets.New(strings.Split(envVars["NO_PROXY"], ",")...)
 			expectedNoProxyEntries := sets.New(strings.Split(expectedNoProxy, ",")...)
 			if !actualNoProxy.IsSuperset(expectedNoProxyEntries) {
-				g.GinkgoWriter.Printf("proxy env mismatch: NO_PROXY=%q does not contain all of %q\n", envVars["NO_PROXY"], expectedNoProxy)
+				g.GinkgoWriter.Println("proxy env mismatch: NO_PROXY is missing expected entries")
 				return false, nil
 			}
 		}
