@@ -8,12 +8,14 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
+	etcdv1 "github.com/openshift/api/etcd/v1"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/apis"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/services"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -493,10 +495,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			if pcErr != nil {
 				return pcErr
 			}
-			if err := apis.ExpectNodeFencingUnhealthy(pc, targetNode.Name); err != nil {
+			if err := apis.ExpectNodeCondition(pc, targetNode.Name, etcdv1.NodeFencingHealthyConditionType, metav1.ConditionFalse); err != nil {
 				return err
 			}
-			return apis.ExpectNodeFencingAvailable(pc, targetNode.Name)
+			return apis.ExpectNodeCondition(pc, targetNode.Name, etcdv1.NodeFencingAvailableConditionType, metav1.ConditionTrue)
 		}, 2*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
 			"expected fencing to be at-risk (FencingHealthy=False) but still available (FencingAvailable=True) for target node")
 
@@ -549,7 +551,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			if pcErr != nil {
 				return pcErr
 			}
-			return apis.ExpectNodeFencingUnavailable(pc, targetNode.Name)
+			return apis.ExpectNodeCondition(pc, targetNode.Name, etcdv1.NodeFencingAvailableConditionType, metav1.ConditionFalse)
 		}, 2*time.Minute, 10*time.Second).ShouldNot(o.HaveOccurred(),
 			"expected FencingAvailable=False on PacemakerCluster CR for target node")
 
