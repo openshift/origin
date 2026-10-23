@@ -3,7 +3,6 @@ package pathologicaleventlibrary
 import (
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -27,18 +26,3 @@ var authenticationComponentProxyEligibleTestNames = sets.Set[string]{}.Insert(
 	`[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial] operator should fall back to original configuration on spec.proxy removal`,
 	`[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial] oauth-server should bypass proxy by directly connecting to idp to perform OIDC login flow when spec.proxy.noProxy contains idp`,
 )
-
-// authenticationComponentProxyTestsDetected returns true if authentication
-// component-proxy tests ran in this job. These tests intentionally trigger
-// oauth-openshift rollouts that exceed the default duplicate-event threshold.
-func authenticationComponentProxyTestsDetected(finalIntervals monitorapi.Intervals) bool {
-	for _, eventInterval := range finalIntervals {
-		if eventInterval.Source != monitorapi.SourceE2ETest {
-			continue
-		}
-		if authenticationComponentProxyEligibleTestNames.Has(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey]) {
-			return true
-		}
-	}
-	return false
-}

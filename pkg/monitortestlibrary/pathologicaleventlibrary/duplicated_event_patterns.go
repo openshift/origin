@@ -572,12 +572,11 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	// (set proxy → operator rolls out → restore → operator rolls out again), repeated for each
 	// test in the suite. This causes DeploymentUpdated, OperatorStatusChanged, and ScalingReplicaSet events in the
 	// authentication namespaces to exceed the default threshold of 20.
-	if authenticationComponentProxyTestsDetected(finalIntervals) {
-		eligibleWindows := eligibleWindows(
-			finalIntervals,
-			authenticationComponentProxyEligibleTestNames,
-			authenticationComponentProxyPostTestGrace,
-		)
+	if windows := eligibleWindows(
+		finalIntervals,
+		authenticationComponentProxyEligibleTestNames,
+		authenticationComponentProxyPostTestGrace,
+	); len(windows) > 0 {
 		registry.AddPathologicalEventMatcherOrDie(&OverlapOtherIntervalsPathologicalEventMatcher{
 			delegate: &SimplePathologicalEventMatcher{
 				name: "AuthenticationComponentProxyDeploymentUpdated",
@@ -588,7 +587,7 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 				messageReasonRegex:      regexp.MustCompile(`^DeploymentUpdated$`),
 				repeatThresholdOverride: 70,
 			},
-			allowIfWithinIntervals: eligibleWindows,
+			allowIfWithinIntervals: windows,
 			useLastTimestamp:       true,
 		})
 		registry.AddPathologicalEventMatcherOrDie(&OverlapOtherIntervalsPathologicalEventMatcher{
@@ -602,7 +601,7 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 				// Observed 21 times as the proxy tests complete rollouts, including cleanup.
 				repeatThresholdOverride: 30,
 			},
-			allowIfWithinIntervals: eligibleWindows,
+			allowIfWithinIntervals: windows,
 			useLastTimestamp:       true,
 		})
 		registry.AddPathologicalEventMatcherOrDie(&OverlapOtherIntervalsPathologicalEventMatcher{
@@ -615,7 +614,7 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 				messageReasonRegex:      regexp.MustCompile(`^ScalingReplicaSet$`),
 				repeatThresholdOverride: 70,
 			},
-			allowIfWithinIntervals: eligibleWindows,
+			allowIfWithinIntervals: windows,
 			useLastTimestamp:       true,
 		})
 	}
