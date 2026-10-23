@@ -1469,11 +1469,19 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				NotTo(o.HaveOccurred(), "should not encounter an error during squid deployment")
 
 			g.By("configuring OIDC Authentication")
-			_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, nil)
+			originalAuthState, updatedAuthState, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, nil)
 			o.Expect(err).
 				NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
 
-			waitForRollout(ctx, oc)
+			// configureOIDCAuthentication installs the suite's clean Keycloak provider (keep it — do NOT
+			// swap for ensureOIDCConfigured, which early-returns for any pre-existing OIDC provider and
+			// could leave a different provider in place). But BeforeAll reruns before each It (see the
+			// note at the top of this file); on reruns the Update is a spec no-op, so only wait for a
+			// kube-apiserver rollout when the spec actually changed. An unconditional wait would block
+			// the full waitForRollout timeout waiting for a revision that never rolls.
+			if !equality.Semantic.DeepEqual(originalAuthState.Spec, updatedAuthState.Spec) {
+				waitForRollout(ctx, oc)
+			}
 			waitForHealthyOIDCClients(ctx, oc)
 
 			g.By("verifing oauth-apiserver no proxy config before test start")
