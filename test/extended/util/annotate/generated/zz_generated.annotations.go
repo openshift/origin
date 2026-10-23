@@ -2405,9 +2405,9 @@ var Annotations = map[string]string{
 
 	"[sig-network] Services should find a service from listing all namespaces [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-network] Services should have session affinity timeout work for NodePort service [LinuxOnly] [Conformance]": " [Skipped:Network/OVNKuberenetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[sig-network] Services should have session affinity timeout work for NodePort service [LinuxOnly]": " [Skipped:Network/OVNKuberenetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-network] Services should have session affinity timeout work for service with type clusterIP [LinuxOnly] [Conformance]": " [Skipped:Network/OVNKuberenetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[sig-network] Services should have session affinity timeout work for service with type clusterIP [LinuxOnly]": " [Skipped:Network/OVNKuberenetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] Services should have session affinity work for NodePort service [LinuxOnly] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -2656,8 +2656,6 @@ var Annotations = map[string]string{
 	"[sig-node] Container Runtime blackbox test on terminated container should report termination message if TerminationMessagePath is set [NodeConformance]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-node] Container Runtime blackbox test on terminated container should report termination message if TerminationMessagePath is set as non-root user and at a non-default path [NodeConformance] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
-
-	"[sig-node] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret [NodeConformance]": " [Disabled:Broken] [Suite:k8s]",
 
 	"[sig-node] Container Runtime blackbox test when running a container with a new image should be able to pull image [NodeConformance]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
