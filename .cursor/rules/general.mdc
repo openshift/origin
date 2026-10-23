@@ -71,8 +71,8 @@ Origin also registers itself as an extension (`openshift:payload:origin`) so its
 ### Build and verify
 
 * **Build:** `make build` or `make openshift-tests` (produces `./openshift-tests`).
-* **Unit tests:** `go test ./pkg/...` (fast, no cluster required).
-* **Lint / verify:** `make verify` (runs `go vet`, jsonformat, generated-file checks, TLS ownership).
+* **Unit tests:** `go test ./pkg/...` (fast, no cluster required). The nested `test/shared` module is separate: use `make -C test/shared test-unit`.
+* **Lint / verify:** `make verify` (runs `go vet`, jsonformat, generated-file checks, TLS ownership, and the `test/shared` module's lint and dependency checks).
 * **Full check:** `make check` (verify + build + tests).
 
 Favor clarity and maintainability over cleverness. Comments should be minimal, helpful, and explain the "why" not the "what".

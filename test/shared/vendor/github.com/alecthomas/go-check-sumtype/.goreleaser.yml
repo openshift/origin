@@ -1,0 +1,34 @@
+version: 2
+project_name: go-check-sumtype
+release:
+  github:
+    owner: alecthomas
+    name: go-check-sumtype
+env:
+  - CGO_ENABLED=0
+builds:
+- goos:
+    - linux
+    - darwin
+    - windows
+  goarch:
+    - arm64
+    - amd64
+    - "386"
+  goarm:
+    - "6"
+  main: ./cmd/go-check-sumtype
+  binary: go-check-sumtype
+archives:
+  -
+    format_overrides:
+      - formats: [tar.gz]
+    name_template: >-
+      {{ .Binary }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}{{ if .Arm }}v{{.Arm }}{{ end }}
+    files:
+      - COPYING
+      - README*
+snapshot:
+  version_template:  SNAPSHOT-{{ .Commit }}
+checksum:
+  name_template: '{{ .ProjectName }}-{{ .Version }}-checksums.txt'
