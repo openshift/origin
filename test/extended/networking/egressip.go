@@ -702,3 +702,131 @@ func waitForCloudPrivateIPConfigsDeletion(oc *exutil.CLI, cloudNetworkClientset 
 		return true
 	}, time.Duration(timeout)*time.Second, 5*time.Second).Should(o.BeTrue())
 }
+
+var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
+	oc := exutil.NewCLIWithPodSecurityLevel(namespacePrefix, admissionapi.LevelPrivileged)
+
+	var (
+		clientset               kubernetes.Interface
+		tmpDirEgressIP          string
+		workerNodesOrderedNames []string
+	)
+
+	var (
+		egressNode1Name    string
+		egressNode2Name    string
+		egressIPObjectName = "egressip-mac-test"
+	)
+
+	g.BeforeEach(func() {
+		g.By("Verifying that this cluster uses a network plugin that is supported for this test")
+		if networkPluginName() != OVNKubernetesPluginName {
+			skipper.Skipf("This cluster does not use OVN Kubernetes")
+		}
+
+		g.By("Creating a temp directory")
+		var err error
+		tmpDirEgressIP, err = ioutil.TempDir("", "egressip-e2e")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Getting the kubernetes clientset")
+		clientset = oc.KubeFramework().ClientSet
+
+		g.By("Getting all worker nodes in alphabetical order")
+		workerNodesOrdered, err := getWorkerNodesOrdered(clientset)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		workerNodesOrderedNames = nil
+		for _, s := range workerNodesOrdered {
+			workerNodesOrderedNames = append(workerNodesOrderedNames, s.Name)
+		}
+		if len(workerNodesOrdered) < 3 {
+			skipper.Skipf("This test requires a minimum of 3 worker nodes. However, this environment has %d worker nodes.", len(workerNodesOrdered))
+		}
+
+		egressNode1Name = workerNodesOrderedNames[1]
+		egressNode2Name = workerNodesOrderedNames[2]
+	})
+
+	g.AfterEach(func() {
+		g.By("Cleaning up EgressIP object")
+		runOcWithRetry(oc.AsAdmin(), "delete", "egressip", egressIPObjectName, "--ignore-not-found=true", "-n", "default")
+
+		g.By("Cleaning up node labels")
+		runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode1Name, "k8s.ovn.org/egress-assignable-", "--overwrite=true", "--ignore-not-found=true")
+		runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode2Name, "k8s.ovn.org/egress-assignable-", "--overwrite=true", "--ignore-not-found=true")
+
+		g.By("Removing the temp directory")
+		err := os.RemoveAll(tmpDirEgressIP)
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to cleanup temporary directory")
+	})
+
+	g.It("should prevent duplicate MAC responses during EgressIP failover [Serial]", func() {
+		g.By("Checking platform type - this test requires L2 network adjacency")
+		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if infra.Status.PlatformStatus == nil {
+			skipper.Skipf("This test requires L2 network adjacency (baremetal); PlatformStatus is nil")
+		}
+		if infra.Status.PlatformStatus.Type != configv1.BareMetalPlatformType {
+			skipper.Skipf("This test requires L2 network adjacency (baremetal); current platform %s is not supported", infra.Status.PlatformStatus.Type)
+		}
+
+		probeNodeName := workerNodesOrderedNames[0]
+
+		g.By("Labeling egress nodes as egress-assignable")
+		_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode1Name, "k8s.ovn.org/egress-assignable=")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode2Name, "k8s.ovn.org/egress-assignable=")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Allocating an EgressIP from egress node 1")
+		nodeEgressIPMap, err := findNodeEgressIPsBaremetal(oc, clientset, []string{egressNode1Name})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(nodeEgressIPMap).To(o.HaveKey(egressNode1Name))
+		egressIPStr := nodeEgressIPMap[egressNode1Name][0]
+
+		g.By("Creating and applying the EgressIP object")
+		egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
+		egressIPSet := map[string]string{egressIPStr: egressNode1Name}
+		createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, oc.Namespace(), "", egressIPSet)
+		_, err = runOcWithRetry(oc.AsAdmin(), "create", "-f", egressIPYamlPath)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Verifying EgressIP is assigned to egress node 1")
+		o.Eventually(func() bool {
+			hasIP, assignedNode, err := egressIPStatusHasIP(oc, egressIPObjectName, egressIPStr)
+			return err == nil && hasIP && assignedNode == egressNode1Name
+		}, 60*time.Second, 5*time.Second).Should(o.BeTrue())
+
+		g.By("Getting physical interface names")
+		iface1, err := findBridgePhysicalInterface(oc, egressNode1Name, "br-ex")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		iface2, err := findBridgePhysicalInterface(oc, egressNode2Name, "br-ex")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		probeInterface, err := findBridgePhysicalInterface(oc, probeNodeName, "br-ex")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Getting MAC addresses of egress nodes")
+		mac1, err := getNodeInterfaceMAC(oc, egressNode1Name, iface1)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		mac2, err := getNodeInterfaceMAC(oc, egressNode2Name, iface2)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Deleting ovnkube-node pod on egress node 1 to trigger EgressIP migration")
+		podInfo, err := ovnkubePod(oc, egressNode1Name)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AsAdmin().KubeClient().CoreV1().Pods("openshift-ovn-kubernetes").Delete(context.Background(), podInfo.podName, metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Waiting for EgressIP migration to egress node 2")
+		o.Eventually(func() bool {
+			hasIP, assignedNode, err := egressIPStatusHasIP(oc, egressIPObjectName, egressIPStr)
+			return err == nil && hasIP && assignedNode == egressNode2Name
+		}, 120*time.Second, 5*time.Second).Should(o.BeTrue())
+
+		g.By("Checking for duplicate MAC responses")
+		isIPv6 := strings.Contains(egressIPStr, ":")
+		err = checkForDuplicateMACOnNode(oc, probeNodeName, probeInterface, egressIPStr, mac1, mac2, isIPv6, 20, 500*time.Millisecond)
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+})
