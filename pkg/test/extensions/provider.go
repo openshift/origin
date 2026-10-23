@@ -89,6 +89,17 @@ func (provider *ExternalBinaryProvider) Cleanup() {
 // extractBinary handles the common extraction logic with file locking and caching.
 // It extracts binaryPath from imageRef into targetDir, ungzips, makes executable, and validates architecture.
 func (provider *ExternalBinaryProvider) extractBinary(imageRef, binaryPath, targetDir, imageTag string) (extractedBinary string, extractDuration time.Duration, err error) {
+	referrer, err := findExtensionReferrer(imageRef, filepath.Base(binaryPath), provider.registryAuthFilePath)
+	if err != nil {
+		return "", 0, fmt.Errorf("failed looking up test extension referrer for %q: %w", imageRef, err)
+	}
+	if referrer != nil {
+		targetDir = filepath.Join(targetDir, "referrers", referrer.manifest.Digest.Encoded())
+		if err := createBinPath(targetDir); err != nil {
+			return "", 0, fmt.Errorf("failed creating referrer cache path %q: %w", targetDir, err)
+		}
+	}
+
 	// Define the final path for the binary (without .gz extension)
 	finalBinPath := filepath.Join(targetDir, strings.TrimSuffix(filepath.Base(binaryPath), ".gz"))
 
@@ -123,7 +134,12 @@ func (provider *ExternalBinaryProvider) extractBinary(imageRef, binaryPath, targ
 
 	// Start the extraction process
 	startTime := time.Now()
-	if err := runImageExtract(imageRef, binaryPath, targetDir, provider.registryAuthFilePath); err != nil {
+	if referrer != nil {
+		err = referrer.download(filepath.Join(targetDir, filepath.Base(binaryPath)))
+	} else {
+		err = runImageExtract(imageRef, binaryPath, targetDir, provider.registryAuthFilePath)
+	}
+	if err != nil {
 		return "", 0, fmt.Errorf("failed extracting %q from %q: %w", binaryPath, imageRef, err)
 	}
 	extractDuration = time.Since(startTime)
