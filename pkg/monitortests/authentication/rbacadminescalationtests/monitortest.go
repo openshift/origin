@@ -181,6 +181,13 @@ var trackedExceptions = []bindingException{
 		note:     "TODO",
 	},
 	{
+		name:     "object-controller-cluster-admin-rolebinding",
+		checkID:  clusterAdminCheckID,
+		roleRef:  "cluster-admin",
+		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-operator-controller", Name: "object-controller-controller-manager"}},
+		note:     "TODO",
+	},
+	{
 		name:     "olm-operator-binding-openshift-operator-lifecycle-manager",
 		checkID:  admissionWebhooksCheckID,
 		roleRef:  "system:controller:operator-lifecycle-manager",
@@ -237,6 +244,13 @@ var trackedExceptions = []bindingException{
 		note:     "TODO",
 	},
 	{
+		name:     "operator-controller-manager-rolebinding",
+		checkID:  impersonateCheckID,
+		roleRef:  "operator-controller-manager-role",
+		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-operator-controller", Name: "operator-controller-controller-manager"}},
+		note:     "TODO",
+	},
+	{
 		name:     "storage-version-migration-migrator",
 		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
@@ -255,6 +269,13 @@ var trackedExceptions = []bindingException{
 		checkID:  admissionWebhooksCheckID,
 		roleRef:  "system:controller:generic-garbage-collector",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "kube-system", Name: "generic-garbage-collector"}},
+		note:     "TODO",
+	},
+	{
+		name:     "system:controller:storage-version-migrator-controller",
+		checkID:  admissionWebhooksCheckID,
+		roleRef:  "system:controller:storage-version-migrator-controller",
+		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "kube-system", Name: "storage-version-migrator-controller"}},
 		note:     "TODO",
 	},
 	{
