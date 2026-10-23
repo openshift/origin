@@ -50,8 +50,17 @@ func (*containerFailuresTests) ConstructComputedIntervals(context.Context, monit
 func (w *containerFailuresTests) EvaluateTestsFromConstructedIntervals(_ context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	openshiftNamespaces, err := watchnamespaces.GetAllPlatformNamespaces()
 	if err != nil {
-		// Should not happen
-		return nil, fmt.Errorf("unable to get platform namespaces %w", err)
+		// watch-namespaces monitor may not have run (e.g. when using --monitor to select
+		// specific monitors, or in External topology). Fall back to extracting platform
+		// namespaces from the event intervals themselves.
+		seen := sets.New[string]()
+		for _, event := range finalIntervals {
+			ns := event.Locator.Keys[monitorapi.LocatorNamespaceKey]
+			if ns != "" && platformidentification.IsPlatformNamespace(ns) {
+				seen.Insert(ns)
+			}
+		}
+		openshiftNamespaces = sets.List(seen)
 	}
 	containerExitsByNamespace := map[string]map[string][]string{}
 	failuresByNamespace := map[string][]string{}
