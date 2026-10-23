@@ -13,6 +13,7 @@ import (
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -596,19 +597,58 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 
 	// AuthenticationComponentProxy tests intentionally trigger multiple oauth-openshift rollouts
 	// (set proxy → operator rolls out → restore → operator rolls out again), repeated for each
-	// test in the suite. This causes DeploymentUpdated and ScalingReplicaSet events in the
+	// test in the suite. This causes DeploymentUpdated, OperatorStatusChanged, and ScalingReplicaSet events in the
 	// authentication namespaces to exceed the default threshold of 20.
-	if authenticationComponentProxyTestsDetected(finalIntervals) {
-		registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
-			name: "AuthenticationComponentProxyDeploymentUpdated",
-			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-				monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication-operator$`),
-				monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^authentication-operator$`),
+	if windows := eligibleWindows(
+		finalIntervals,
+		authenticationComponentProxyEligibleTestNames,
+		authenticationComponentProxyPostTestGrace,
+	); len(windows) > 0 {
+		for _, delegate := range []*SimplePathologicalEventMatcher{
+			{
+				name: "AuthenticationComponentProxyDeploymentUpdated",
+				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication-operator$`),
+					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^authentication-operator$`),
+				},
+				messageReasonRegex: regexp.MustCompile(`^DeploymentUpdated$`),
+				// If all the authentication component proxy tests would be grouped together, the amount
+				// of events are ~60. This amount it's ~15%.
+				repeatThresholdOverride: 70,
 			},
-			messageReasonRegex:      regexp.MustCompile(`^DeploymentUpdated$`),
-			repeatThresholdOverride: 70,
-		})
-		registry.AddPathologicalEventMatcherOrDie(newAuthenticationComponentProxyScalingReplicaSetMatcher(finalIntervals))
+			{
+				name: "AuthenticationComponentProxyOperatorStatusChanged",
+				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication-operator$`),
+					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^authentication-operator$`),
+				},
+				messageReasonRegex: regexp.MustCompile(`^OperatorStatusChanged$`),
+				// Observed 21 times as the proxy tests complete rollouts, including cleanup.
+				repeatThresholdOverride: 30,
+			},
+			{
+				name: "AuthenticationComponentProxyScalingReplicaSet",
+				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication$`),
+					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^oauth-openshift$`),
+				},
+				messageReasonRegex: regexp.MustCompile(`^ScalingReplicaSet$`),
+				// Observed 58 times during the proxy tests, including cleanup.
+				// Rounded to 70, close to 15%
+				repeatThresholdOverride: 70,
+			},
+		} {
+			matcher := &OverlapOtherIntervalsPathologicalEventMatcher{
+				delegate:               delegate,
+				allowIfWithinIntervals: windows,
+				useLastTimestamp:       true,
+			}
+
+			// Other serial tests (e.g. the OAuthServer IdP ones) also roll oauth-openshift after
+			// the proxy tests; they must not be charged for the occurrences the proxy tests produced.
+			matcher.discountInWindowOccurrences(finalIntervals)
+			registry.AddPathologicalEventMatcherOrDie(matcher)
+		}
 	}
 
 	// OVN-Kuberentes EVPN e2e tests running in parallel incorrectly create
@@ -1065,6 +1105,139 @@ type OverlapOtherIntervalsPathologicalEventMatcher struct {
 	// useLastTimestamp attributes a repeated event to its most recent occurrence instead of
 	// requiring the full lifetime of the Kubernetes Event object to fit within the interval.
 	useLastTimestamp bool
+	// inWindowOccurrences, when non-nil, enables allowing a repeat observed OUTSIDE
+	// allowIfWithinIntervals if, after subtracting the occurrences that happened INSIDE them, its
+	// count is back within DuplicateEventThreshold. Kubernetes Event counts are cumulative over
+	// the lifetime of the Event object, so without this a later, unrelated rollout of the same
+	// deployment inherits every occurrence the allowed window produced and crosses the default
+	// threshold on its own few occurrences. Populate it with discountInWindowOccurrences.
+	inWindowOccurrences map[eventObservation]int
+}
+
+// eventObservation identifies one observed revision of a repeating Kubernetes Event: which
+// Event object (eventObjectKey), when its latest occurrence happened (From, second precision)
+// and the cumulative count it reported at that point.
+type eventObservation struct {
+	event string
+	from  int64
+	count int
+}
+
+func newEventObservation(i monitorapi.Interval) eventObservation {
+	return eventObservation{
+		event: eventObjectKey(i),
+		from:  i.From.Unix(),
+		count: GetTimesAnEventHappened(i.Message),
+	}
+}
+
+// eventObjectKey identifies the Kubernetes Event object an interval is an observation of. The
+// message cannot be part of it: the Event recorder aggregates similar events into a single
+// object ("(combined from similar events): ...") whose message, and therefore hmsg, changes on
+// every update while its count keeps accumulating, as happens for ScalingReplicaSet. The
+// object's firstTimestamp stays fixed for its whole lifetime and changes if it is recreated.
+func eventObjectKey(i monitorapi.Interval) string {
+	firstTimestamp, ok := i.Message.Annotations["firstTimestamp"]
+	if !ok {
+		// Without it the object cannot be told apart from other events with the same reason
+		// on the same resource, so fall back to the exact message.
+		return fmt.Sprintf("%s - reason/%s %s", i.Locator.OldLocator(), i.Message.Reason, i.Message.HumanMessage)
+	}
+	locator := i.Locator
+	locator.Keys = map[monitorapi.LocatorKey]string{}
+	for k, v := range i.Locator.Keys {
+		if k != monitorapi.LocatorHmsgKey {
+			locator.Keys[k] = v
+		}
+	}
+	return fmt.Sprintf("%s - reason/%s firstTimestamp/%s", locator.OldLocator(), i.Message.Reason, firstTimestamp)
+}
+
+// discountInWindowOccurrences replays every observation of the events this matcher's delegate
+// matches and records, for each one, how many of its cumulative occurrences fell inside
+// allowIfWithinIntervals. Allows later subtracts that amount from out-of-window repeats.
+//
+// An Event only records its latest occurrence, so the occurrences between two consecutive
+// observations are known to lie somewhere after the earlier one and at or before the later
+// one. The tally therefore errs toward rejecting:
+//   - an increment counts as in-window only if all of it is provably inside one interval:
+//     either it is a single occurrence (it happened at the observed timestamp) or both
+//     observations bounding it fall within the same interval;
+//   - a count lower than the previous one means the Event object was recreated (e.g. TTL
+//     expiry), so the tally restarts and the old object's occurrences are never discounted
+//     from the new one;
+//   - an observation missing from finalIntervals gets no discount at all.
+func (ade *OverlapOtherIntervalsPathologicalEventMatcher) discountInWindowOccurrences(finalIntervals monitorapi.Intervals) {
+	observationsByEvent := map[string]monitorapi.Intervals{}
+	for _, i := range finalIntervals {
+		if i.Source != monitorapi.SourceKubeEvent || !ade.delegate.Matches(i) {
+			continue
+		}
+		key := eventObjectKey(i)
+		observationsByEvent[key] = append(observationsByEvent[key], i)
+	}
+
+	ade.inWindowOccurrences = map[eventObservation]int{}
+	for _, observations := range observationsByEvent {
+		sort.SliceStable(observations, func(a, b int) bool {
+			if !observations[a].From.Equal(observations[b].From) {
+				return observations[a].From.Before(observations[b].From)
+			}
+			return GetTimesAnEventHappened(observations[a].Message) < GetTimesAnEventHappened(observations[b].Message)
+		})
+
+		var previous *monitorapi.Interval
+		previousCount, inWindow := 0, 0
+		for idx := range observations {
+			observation := observations[idx]
+			count := GetTimesAnEventHappened(observation.Message)
+			increment := count - previousCount
+			if count < previousCount {
+				previous, increment, inWindow = nil, count, 0
+			}
+			if increment == 1 && ade.withinAllowedIntervals(observation) ||
+				previous != nil && ade.withinSameAllowedInterval(*previous, observation) {
+				inWindow += increment
+			}
+			previous, previousCount = &observations[idx], count
+			ade.inWindowOccurrences[newEventObservation(observation)] = inWindow
+		}
+	}
+}
+
+// withinAllowedIntervals reports whether the event falls inside one of allowIfWithinIntervals.
+func (ade *OverlapOtherIntervalsPathologicalEventMatcher) withinAllowedIntervals(i monitorapi.Interval) bool {
+	return len(ade.allowedIntervalsContaining(i)) > 0
+}
+
+// withinSameAllowedInterval reports whether a single one of allowIfWithinIntervals contains
+// both events, so that everything that happened between them is inside it too.
+func (ade *OverlapOtherIntervalsPathologicalEventMatcher) withinSameAllowedInterval(a, b monitorapi.Interval) bool {
+	containsA := sets.New[int](ade.allowedIntervalsContaining(a)...)
+	return containsA.HasAny(ade.allowedIntervalsContaining(b)...)
+}
+
+// allowedIntervalsContaining returns the indexes of the allowIfWithinIntervals containing the event.
+func (ade *OverlapOtherIntervalsPathologicalEventMatcher) allowedIntervalsContaining(i monitorapi.Interval) []int {
+	// Pathological event intervals set From to LastTimestamp (the most recent occurrence),
+	// but the event may have first fired much earlier. Use firstTimestamp from the
+	// annotations when available so the overlap check covers the full span of the event.
+	eventFrom := i.From
+	if !ade.useLastTimestamp {
+		if ft, ok := i.Message.Annotations["firstTimestamp"]; ok {
+			if parsed, err := time.Parse(time.RFC3339, ft); err == nil {
+				eventFrom = parsed
+			}
+		}
+	}
+
+	var containing []int
+	for idx, nui := range ade.allowIfWithinIntervals {
+		if nui.From.Before(eventFrom) && nui.To.After(i.To) {
+			containing = append(containing, idx)
+		}
+	}
+	return containing
 }
 
 func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Name() string {
@@ -1082,24 +1255,19 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Allows(i monitorapi.In
 		return false
 	}
 
-	// Pathological event intervals set From to LastTimestamp (the most recent occurrence),
-	// but the event may have first fired much earlier. Use firstTimestamp from the
-	// annotations when available so the overlap check covers the full span of the event.
-	eventFrom := i.From
-	if !ade.useLastTimestamp {
-		if ft, ok := i.Message.Annotations["firstTimestamp"]; ok {
-			if parsed, err := time.Parse(time.RFC3339, ft); err == nil {
-				eventFrom = parsed
-			}
-		}
+	if ade.withinAllowedIntervals(i) {
+		logrus.Infof("%s was found to overlap with the allowed intervals of %s, ignoring pathological event", i, ade.Name())
+		return true
 	}
 
-	// Match the pathological event if it overlaps with any of the given set of intervals.
-	for _, nui := range ade.allowIfWithinIntervals {
-		if nui.From.Before(eventFrom) && nui.To.After(i.To) {
-			logrus.Infof("%s was found to overlap with %s, ignoring pathological event as they fall within range of specified intervals", i, nui)
-			return true
-		}
+	if ade.inWindowOccurrences == nil {
+		return false
+	}
+	inWindow := ade.inWindowOccurrences[newEventObservation(i)]
+	if inWindow > 0 && GetTimesAnEventHappened(i.Message)-inWindow <= DuplicateEventThreshold {
+		logrus.Infof("%s repeated %d times outside the allowed intervals of %s, ignoring pathological event",
+			i, GetTimesAnEventHappened(i.Message)-inWindow, ade.Name())
+		return true
 	}
 	return false
 }
@@ -1271,64 +1439,19 @@ func newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals monitorapi.Inter
 	}
 }
 
-// authenticationComponentProxyTestsDetected returns true if authentication
-// component-proxy tests ran in this job. These tests intentionally trigger
-// oauth-openshift rollouts that exceed the default duplicate-event threshold.
-func authenticationComponentProxyTestsDetected(finalIntervals monitorapi.Intervals) bool {
-	for _, eventInterval := range finalIntervals {
-		if eventInterval.Source != monitorapi.SourceE2ETest {
-			continue
-		}
-		if strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "[OCPFeatureGate:AuthenticationComponentProxy]") {
-			return true
-		}
-	}
-	return false
-}
-
-// authComponentProxyPostTestGrace is how long AFTER an eligible AuthenticationComponentProxy
-// test ends the scoped oauth-openshift scaling tolerance still applies. The oauth rollout that
-// a test drives can land slightly after the test interval closes; this bounded post-test
-// window covers that without any pre-test grace. It is a proximity allowance, not a claim the
-// tests necessarily cause the rollouts.
-const authComponentProxyPostTestGrace = 120 * time.Second
-
-// authComponentProxyEligibleTestNames are the exact, full e2e test names whose runs authorize
-// the scoped oauth-openshift ScalingReplicaSet tolerance. The hot-reload test (T3) is included
-// deliberately as an authorized eligible test even though it is not expected to roll the
-// deployment. Matching is by exact full-name equality (never substring) so unrelated tests
-// cannot widen the exception.
-var authComponentProxyEligibleTestNames = map[string]struct{}{
-	`[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial] operator should validate OIDC IdP through component proxy with trustedCA`:                                                       {},
-	`[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial] operator should validate OIDC IdP through component proxy`:                                                                      {},
-	`[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial] oauth-server/operator should hot-reload mounted CA file on change when spec.proxy.trustedCA is set`:                             {},
-	`[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial] oauth-server should perform full OIDC login flow through the proxy when auth proxy config is applied`:                           {},
-	`[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial] operator should fall back to original configuration on spec.proxy removal`:                                                      {},
-	`[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial] oauth-server should bypass proxy by directly connecting to idp to perform OIDC login flow when spec.proxy.noProxy contains idp`: {},
-}
-
-// newAuthenticationComponentProxyScalingReplicaSetMatcher builds the scoped oauth-openshift
-// ScalingReplicaSet allowance as a PROXIMITY allowance instead of a flat job-wide cap: the
-// finite tolerance (70) applies only to repeats whose latest occurrence falls DURING one of the
-// eligible, passing AuthenticationComponentProxy serial tests, or within
-// authComponentProxyPostTestGrace AFTER that test ends. There is no pre-test grace. Repeats
-// above 70 are still rejected, and repeats outside every eligible window fall through to the
-// registry default (20). Only completed, Passed tests with a real span are eligible;
-// failed/skipped/incomplete/missing tests grant nothing.
-//
-// It reuses OverlapOtherIntervalsPathologicalEventMatcher with useLastTimestamp=true so the
-// check is against the event's latest occurrence (i.From/i.To), not the full lifetime of the
-// aggregated Kubernetes Event (which can begin inside one test and extend across later tests
-// and gaps). Containment is strict, so the whole second-precision cover [t, t+1s) of the latest
-// occurrence must fit within the (post-grace-extended) window; an occurrence at or past the
-// grace boundary is not allowed.
-func newAuthenticationComponentProxyScalingReplicaSetMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+// eligibleWindows returns the time windows granted by passing e2e test intervals
+// whose exact names appear in eligibleTestNames. It ignores non-e2e intervals,
+// tests that did not pass, and intervals without a valid start and end time. For
+// each remaining interval, it preserves the start time and extends the end by
+// postTestGrace, so the returned window includes the test run and the grace period
+// after it. A zero grace period limits the window to the test run itself.
+func eligibleWindows(finalIntervals monitorapi.Intervals, eligibleTestNames sets.Set[string], postTestGrace time.Duration) monitorapi.Intervals {
 	var eligibleWindows monitorapi.Intervals
 	for _, eventInterval := range finalIntervals {
 		if eventInterval.Source != monitorapi.SourceE2ETest {
 			continue
 		}
-		if _, ok := authComponentProxyEligibleTestNames[eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey]]; !ok {
+		if _, ok := eligibleTestNames[eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey]]; !ok {
 			continue
 		}
 		if eventInterval.Message.Annotations[monitorapi.AnnotationStatus] != "Passed" {
@@ -1338,23 +1461,11 @@ func newAuthenticationComponentProxyScalingReplicaSetMatcher(finalIntervals moni
 			continue
 		}
 		window := eventInterval
-		window.To = eventInterval.To.Add(authComponentProxyPostTestGrace) // post-test grace only
+		window.To = eventInterval.To.Add(postTestGrace)
 		eligibleWindows = append(eligibleWindows, window)
 	}
 
-	return &OverlapOtherIntervalsPathologicalEventMatcher{
-		delegate: &SimplePathologicalEventMatcher{
-			name: "AuthenticationComponentProxyScalingReplicaSet",
-			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-				monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication$`),
-				monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^oauth-openshift$`),
-			},
-			messageReasonRegex:      regexp.MustCompile(`^ScalingReplicaSet$`),
-			repeatThresholdOverride: 70,
-		},
-		allowIfWithinIntervals: eligibleWindows,
-		useLastTimestamp:       true,
-	}
+	return eligibleWindows
 }
 
 // EncryptionTestsDetected returns true if OCP encryption tests are
