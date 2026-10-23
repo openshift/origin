@@ -1,6 +1,7 @@
 package cpumetriccollector
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -237,4 +238,125 @@ func createTimestamps(startTime string, count int, interval time.Duration) []tim
 		timestamps[i] = start.Add(time.Duration(i) * interval)
 	}
 	return timestamps
+}
+
+func runQueueMatrix(instance string, start time.Time, values ...float64) prometheustypes.Matrix {
+	samples := make([]prometheustypes.SamplePair, len(values))
+	for i, v := range values {
+		samples[i] = prometheustypes.SamplePair{
+			Timestamp: prometheustypes.TimeFromUnixNano(start.Add(time.Duration(i) * saturationQueryStep).UnixNano()),
+			Value:     prometheustypes.SampleValue(v),
+		}
+	}
+	return prometheustypes.Matrix{{
+		Metric: prometheustypes.Metric{"instance": prometheustypes.LabelValue(instance)},
+		Values: samples,
+	}}
+}
+
+func TestCreateSaturationIntervals(t *testing.T) {
+	logger := logrus.WithField("test", "saturation")
+	start := time.Date(2026, 10, 19, 13, 57, 0, 0, time.UTC)
+	nodeInfoMap := map[string]nodeInfo{"master-0": {name: "master-0", nodeRole: "master"}}
+
+	testCases := []struct {
+		name          string
+		values        []float64
+		expectedCount int
+		expectedStart time.Time
+		expectedEnd   time.Time
+		expectedPeak  string
+	}{
+		{
+			name:          "healthy node",
+			values:        []float64{0.2, 0.8, 1.5, 0.3},
+			expectedCount: 0,
+		},
+		{
+			name:          "single saturated period",
+			values:        []float64{1, 5.2, 6.5, 4.4, 2},
+			expectedCount: 1,
+			expectedStart: start.Add(30 * time.Second),
+			expectedEnd:   start.Add(120 * time.Second),
+			expectedPeak:  "6.50",
+		},
+		{
+			name:          "two separate periods",
+			values:        []float64{4.5, 5, 1, 1, 8.6, 7.3, 1},
+			expectedCount: 2,
+		},
+		{
+			name:          "single-sample blips are dropped",
+			values:        []float64{1, 11.4, 1, 5.3, 1, 4.1},
+			expectedCount: 0,
+		},
+		{
+			name:          "period extends to end of window",
+			values:        []float64{1, 4.1, 5},
+			expectedCount: 1,
+			expectedStart: start.Add(30 * time.Second),
+			expectedEnd:   start.Add(90 * time.Second),
+			expectedPeak:  "5.00",
+		},
+		{
+			name:          "exactly at threshold is not saturated",
+			values:        []float64{4, 4},
+			expectedCount: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			collector := &cpuMetricCollector{runQueueThreshold: 4}
+			intervals := collector.createSaturationIntervals(logger, runQueueMatrix("master-0", start, tc.values...), nodeInfoMap)
+
+			require.Len(t, intervals, tc.expectedCount)
+			for _, interval := range intervals {
+				assert.Equal(t, monitorapi.SourceCPUSaturation, interval.Source)
+				assert.Equal(t, monitorapi.IntervalReason("CPURunQueueSaturation"), interval.Message.Reason)
+				assert.Equal(t, "master-0", interval.Locator.Keys[monitorapi.LocatorNodeKey])
+				assert.Equal(t, "master", interval.Locator.Keys[monitorapi.LocatorNodeRoleKey])
+				assert.Equal(t, "4.0", interval.Message.Annotations["run_queue_threshold"])
+			}
+			if tc.expectedPeak != "" {
+				assert.WithinDuration(t, tc.expectedStart, intervals[0].From, 0)
+				assert.WithinDuration(t, tc.expectedEnd, intervals[0].To, 0)
+				assert.Equal(t, tc.expectedPeak, intervals[0].Message.Annotations["peak_run_queue_wait_per_core"])
+			}
+		})
+	}
+}
+
+func TestCreateSaturationIntervals_SplitsOnMissingSamples(t *testing.T) {
+	logger := logrus.WithField("test", "saturation")
+	start := time.Date(2026, 10, 19, 13, 57, 0, 0, time.UTC)
+	m := runQueueMatrix("master-0", start, 5, 6, 7, 8, 9)
+	// Drop the third sample, as Prometheus does for a step with no value.
+	m[0].Values = append(m[0].Values[:2], m[0].Values[3:]...)
+
+	collector := &cpuMetricCollector{runQueueThreshold: 4}
+	intervals := collector.createSaturationIntervals(logger, m, map[string]nodeInfo{})
+
+	require.Len(t, intervals, 2)
+	assert.WithinDuration(t, start.Add(60*time.Second), intervals[0].To, 0)
+	assert.WithinDuration(t, start.Add(90*time.Second), intervals[1].From, 0)
+	assert.WithinDuration(t, start.Add(150*time.Second), intervals[1].To, 0)
+	assert.Equal(t, "master-0", intervals[0].Locator.Keys[monitorapi.LocatorNodeKey], "unknown nodes fall back to the instance label")
+}
+
+func TestCPUMetricCollector_DefaultRunQueueThreshold(t *testing.T) {
+	collector := NewCPUMetricCollector().(*cpuMetricCollector)
+	assert.Equal(t, 4.0, collector.runQueueThreshold)
+}
+
+func TestEvaluateTestsReportsNoResults(t *testing.T) {
+	logger := logrus.WithField("test", "saturation")
+	start := time.Date(2026, 10, 19, 13, 57, 0, 0, time.UTC)
+	collector := &cpuMetricCollector{highCPUThreshold: 95, runQueueThreshold: 4}
+	saturated := collector.createSaturationIntervals(logger, runQueueMatrix("master-0", start, 6.5, 68), map[string]nodeInfo{})
+	require.NotEmpty(t, saturated)
+
+	junits, err := collector.EvaluateTestsFromConstructedIntervals(context.Background(), saturated)
+	require.NoError(t, err)
+	assert.Empty(t, junits, "CPU saturation is recorded as intervals only")
 }

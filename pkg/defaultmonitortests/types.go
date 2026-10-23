@@ -63,6 +63,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/intervalserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/knownimagechecker"
 	"github.com/openshift/origin/pkg/monitortests/testframework/legacytestframeworkmonitortests"
+	"github.com/openshift/origin/pkg/monitortests/testframework/memorythrashingcollector"
 	"github.com/openshift/origin/pkg/monitortests/testframework/metricsendpointdown"
 	"github.com/openshift/origin/pkg/monitortests/testframework/operatorloganalyzer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/pathologicaleventanalyzer"
@@ -169,6 +170,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-node-invariants", "Node / Kubelet", legacynodemonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node / Kubelet", nodestateanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("cpu-metric-collector", "Node / Kubelet", cpumetriccollector.NewCPUMetricCollector())
+	monitorTestRegistry.AddMonitorTestOrDie("memory-thrashing-collector", "Node / Kubelet", memorythrashingcollector.NewMemoryThrashingCollector())
 	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie(containerfailures.MonitorName, "Node / Kubelet", containerfailures.NewContainerFailuresTests())
@@ -253,6 +255,7 @@ func newDisruptiveMonitorTests(info monitortestframework.MonitorTestInitializati
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-node-invariants", "Node / Kubelet", legacynodemonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node / Kubelet", nodestateanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("cpu-metric-collector", "Node / Kubelet", cpumetriccollector.NewCPUMetricCollector())
+	monitorTestRegistry.AddMonitorTestOrDie("memory-thrashing-collector", "Node / Kubelet", memorythrashingcollector.NewMemoryThrashingCollector())
 	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
 
 	// Machines
