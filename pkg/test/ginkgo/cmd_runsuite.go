@@ -1052,10 +1052,14 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 		}
 	}
 
-	// Process final results
+	return o.processRetryResults(tests, failing, testAttempts)
+}
+
+// processRetryResults aggregates retry outcomes while preserving other executions.
+// Each attempts slice starts with the original failed execution shared by tests and failing.
+func (o *GinkgoRunSuiteOptions) processRetryResults(tests, failing []*testCase, testAttempts map[string][]*testCase) ([]*testCase, []*testCase, int) {
 	var finalFlaky []string
 	var finalSkipped []string
-	var stillFailing []*testCase
 
 	for testName, attempts := range testAttempts {
 		// Use the retry strategy to determine the outcome
@@ -1080,12 +1084,17 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 
 			// Replace original failed test with rollup test
 			for i, t := range tests {
-				if t.name == testName {
+				if t == attempts[0] {
 					tests[i] = rollupTest
 					break
 				}
 			}
-			stillFailing = append(stillFailing, rollupTest)
+			for index, failedTest := range failing {
+				if failedTest == attempts[0] {
+					failing[index] = rollupTest
+					break
+				}
+			}
 		}
 	}
 
@@ -1105,7 +1114,6 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 		sort.Strings(finalFlaky)
 		fmt.Fprintf(o.Out, "Flaky tests:\n\n%s\n\n", strings.Join(finalFlaky, "\n"))
 	}
-	failing = append(failing, stillFailing...)
 
 	// Write retry statistics to autodl file for any retry strategy (except none)
 	if o.RetryStrategy.Name() != "none" && len(o.JUnitDir) > 0 {
