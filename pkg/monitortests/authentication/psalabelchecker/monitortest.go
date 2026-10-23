@@ -170,11 +170,10 @@ func generateTestCase(namespace corev1.Namespace, isMicroShift bool, isHyperShif
 			FailureOutput: &junitapi.FailureOutput{Output: failure},
 		},
 		// TODO(ehearne-redhat): Remove this passing block once we are sure we have caught all exceptions.
-		// Commenting out temporarily to view monitoring behavior clearly.
-		// {
-		// 	Name:      testName,
-		// 	SystemOut: "Passing the case to make the overall test case flake while managed namespaces are being labelled",
-		// },
+		{
+			Name:      testName,
+			SystemOut: "Passing the case to make the overall test case flake while managed namespaces are being labelled",
+		},
 	}
 }
 
