@@ -245,9 +245,8 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 
 				g.It("then routes are not reachable", func() {
 					g.By("Checking the route status")
-					for _, route := range routes {
-						checkRouteStatus(oc, route.Name, corev1.ConditionFalse, "ExternalCertificateValidationFailed")
-					}
+					err = checkRouteStatuses(oc, routes, corev1.ConditionFalse, "ExternalCertificateValidationFailed")
+					o.Expect(err).NotTo(o.HaveOccurred(), "routes must be rejected after deleting the external certificate secret")
 				})
 
 				g.Context("and re-created again", func() {
@@ -278,9 +277,8 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 						o.Expect(err).NotTo(o.HaveOccurred())
 
 						g.By("Checking the route status")
-						for _, route := range routes {
-							checkRouteStatus(oc, route.Name, corev1.ConditionFalse, "ExternalCertificateValidationFailed")
-						}
+						err = checkRouteStatuses(oc, routes, corev1.ConditionFalse, "ExternalCertificateValidationFailed")
+						o.Expect(err).NotTo(o.HaveOccurred(), "routes must be rejected after recreating the external certificate secret without router RBAC permissions")
 					})
 				})
 			})
@@ -321,9 +319,8 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("Checking the route status")
-					for _, route := range routes {
-						checkRouteStatus(oc, route.Name, corev1.ConditionFalse, "ExternalCertificateValidationFailed")
-					}
+					err = checkRouteStatuses(oc, routes, corev1.ConditionFalse, "ExternalCertificateValidationFailed")
+					o.Expect(err).NotTo(o.HaveOccurred(), "routes must be rejected after updating the external certificate secret without router RBAC permissions")
 				})
 			})
 
@@ -717,32 +714,12 @@ func sendHttpRequestWithRetry(url string, client *http.Client) (*http.Response, 
 	return resp, string(body), nil
 }
 
-// checkRouteStatus polls the route status and verifies the ingress condition.
-func checkRouteStatus(oc *exutil.CLI, routeName string, ingressConditionStatus corev1.ConditionStatus, ingressConditionReason string) error {
-	e2e.Logf("checking route status for %q", routeName)
-
-	ns := oc.KubeFramework().Namespace.Name
-	return wait.PollUntilContextTimeout(context.Background(), time.Second, changeTimeoutSeconds*time.Second, false, func(ctx context.Context) (bool, error) {
-		route, err := oc.RouteClient().RouteV1().Routes(ns).Get(context.Background(), routeName, metav1.GetOptions{})
-		if err != nil {
-			e2e.Logf("Error getting route %q: %v", routeName, err)
-			return false, err
-		}
-		for _, ingress := range route.Status.Ingress {
-			if len(ingress.Conditions) == 0 {
-				e2e.Logf("ingress condition is empty, retrying...")
-				return false, nil
-			}
-			for _, condition := range ingress.Conditions {
-				if condition.Reason != ingressConditionReason && condition.Status != ingressConditionStatus {
-					e2e.Logf("unexpected ingres condition, expected: [%s,%v] but got: [%s,%v], retrying...", ingressConditionReason, ingressConditionStatus, condition.Reason, condition.Status)
-					return false, nil
-				} else {
-					e2e.Logf("got the expected ingres condition, reason: %s, status: %v", condition.Reason, condition.Status)
-				}
-			}
-		}
-		return true, nil
+// checkRouteStatuses checks all routes within one shared admission polling timeout.
+func checkRouteStatuses(oc *exutil.CLI, routes []*routev1.Route, status corev1.ConditionStatus, reason string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), changeTimeoutSeconds*time.Second)
+	defer cancel()
+	return waitForRouteStatuses(ctx, time.Second, oc.Namespace(), routes, status, reason, func(ctx context.Context) (*routev1.RouteList, error) {
+		return oc.RouteClient().RouteV1().Routes(oc.Namespace()).List(ctx, metav1.ListOptions{})
 	})
 }
 
