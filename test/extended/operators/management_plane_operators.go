@@ -8,6 +8,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/api/features"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +33,42 @@ var (
 
 			switch authn.Spec.Type {
 			case configv1.AuthenticationTypeOIDC:
+				// TODO: replace with features.FeatureGateExternalOIDCAsWebhook once openshift/api is vendored
+				const featureGateExternalOIDCAsWebhook configv1.FeatureGateName = "ExternalOIDCAsWebhook"
+
+				clusterVersion, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+				if err != nil {
+					return nil, err
+				}
+				desiredVersion := clusterVersion.Status.Desired.Version
+
+				fgs, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
+				if err != nil {
+					return nil, err
+				}
+
+				webhookArchitecture := false
+				for _, fg := range fgs.Status.FeatureGates {
+					if fg.Version != desiredVersion {
+						continue
+					}
+					for _, enabled := range fg.Enabled {
+						if enabled.Name == featureGateExternalOIDCAsWebhook ||
+							enabled.Name == features.FeatureGateExternalOIDCExternalClaimsSourcing {
+							webhookArchitecture = true
+							break
+						}
+					}
+				}
+
+				if webhookArchitecture {
+					return []string{
+						"APIServerDeploymentAvailable",
+						"APIServerDeploymentDegraded",
+						"APIServerDeploymentProgressing",
+						"APIServerWorkloadDegraded",
+					}, nil
+				}
 				return nil, nil
 
 			default:
