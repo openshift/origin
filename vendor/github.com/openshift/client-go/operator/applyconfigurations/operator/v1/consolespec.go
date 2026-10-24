@@ -34,7 +34,7 @@ type ConsoleSpecApplyConfiguration struct {
 	// ingress allows to configure the alternative ingress for the console.
 	// This field is intended for clusters without ingress capability,
 	// where access to routes is not possible.
-	Ingress *IngressApplyConfiguration `json:"ingress,omitempty"`
+	Ingress *ConsoleIngressApplyConfiguration `json:"ingress,omitempty"`
 }
 
 // ConsoleSpecApplyConfiguration constructs a declarative configuration of the ConsoleSpec type for use with
@@ -120,7 +120,7 @@ func (b *ConsoleSpecApplyConfiguration) WithPlugins(values ...string) *ConsoleSp
 // WithIngress sets the Ingress field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Ingress field is set to the value of the last call.
-func (b *ConsoleSpecApplyConfiguration) WithIngress(value *IngressApplyConfiguration) *ConsoleSpecApplyConfiguration {
+func (b *ConsoleSpecApplyConfiguration) WithIngress(value *ConsoleIngressApplyConfiguration) *ConsoleSpecApplyConfiguration {
 	b.Ingress = value
 	return b
 }

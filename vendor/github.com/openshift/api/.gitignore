@@ -19,3 +19,4 @@ tests/bin/
 models-schema
 /render
 /write-available-featuresets
+mise.toml

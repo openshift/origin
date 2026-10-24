@@ -60,7 +60,7 @@ type ConsoleSpec struct {
 	// This field is intended for clusters without ingress capability,
 	// where access to routes is not possible.
 	// +optional
-	Ingress Ingress `json:"ingress"`
+	Ingress ConsoleIngress `json:"ingress"`
 }
 
 // ConsoleConfigRoute holds information on external route access to console.
@@ -559,7 +559,7 @@ const (
 )
 
 // Ingress allows cluster admin to configure alternative ingress for the console.
-type Ingress struct {
+type ConsoleIngress struct {
 	// consoleURL is a URL to be used as the base console address.
 	// If not specified, the console route hostname will be used.
 	// This field is required for clusters without ingress capability,

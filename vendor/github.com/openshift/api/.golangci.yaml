@@ -112,6 +112,10 @@ linters:
         path: osin/v1/types.go
       - linters:
         - kubeapilinter
+        # authentication/v1alpha1 types are config file APIs, not CRDs — validation is handled by oauth-apiserver at config load time.
+        path: authentication/v1alpha1/types_authentication_configuration.go
+      - linters:
+        - kubeapilinter
         # Silence norefs lint for `Ref` field in ClusterAPI as it refers to an OCI image reference, not a kube object reference.
         path: operator/v1alpha1/types_clusterapi.go
         text: "noreferences: naming convention \"no-references\": field ClusterAPIInstallerComponentImage.Ref: field names should not contain reference-related words"
@@ -121,6 +125,23 @@ linters:
         # to enforce specific condition types are always present.
         path: etcd/v1/types_pacemakercluster.go
         text: "conditions: Conditions field in (PacemakerClusterStatus|PacemakerClusterNodeStatus|PacemakerClusterFencingAgentStatus|PacemakerClusterResourceStatus) is missing the following markers: optional"
+      - linters:
+        - kubeapilinter
+        # ConsoleSpec.Ingress is a legacy optional value struct. Requiring properties would
+        # change the validation of the stable API, so preserve the existing wire behavior.
+        path: '^operator/v1/types_console\.go$'
+        text: '^minlength: field ConsoleSpec\.Ingress type ConsoleIngress must have either a required field or a minimum properties, add kubebuilder:validation:MinProperties marker$'
+      - linters:
+        - kubeapilinter
+        # ConsoleSpec.Ingress is intentionally a value struct in the stable API; changing
+        # it to a pointer would break existing Go consumers.
+        path: '^operator/v1/types_console\.go$'
+        text: '^optionalfields: field ConsoleSpec\.Ingress has a valid zero value \(\{"consoleURL": "", "clientDownloadsURL": ""\}\) and should be a pointer\.$'
+      - linters:
+        - kubeapilinter
+        # Preserve the legacy JSON serialization of ConsoleSpec.Ingress.
+        path: '^operator/v1/types_console\.go$'
+        text: '^optionalfields: field ConsoleSpec\.Ingress should have the omitempty tag\.$'
       - linters:
         - kubeapilinter
         path: features|payload-command/

@@ -528,6 +528,10 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1alpha1.ClusterMonitoringSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ContainerResource"):
 		return &configv1alpha1.ContainerResourceApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ControllerManager"):
+		return &configv1alpha1.ControllerManagerApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ControllerManagerSpec"):
+		return &configv1alpha1.ControllerManagerSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("CRIOCredentialProviderConfig"):
 		return &configv1alpha1.CRIOCredentialProviderConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("CRIOCredentialProviderConfigSpec"):
