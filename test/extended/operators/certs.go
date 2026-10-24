@@ -417,7 +417,7 @@ func fetchOnDiskCertificates(ctx context.Context, kubeClient kubernetes.Interfac
 	}
 	defer kubeClient.RbacV1().ClusterRoleBindings().Delete(ctx, nodeReaderCRB, metav1.DeleteOptions{})
 
-	pauseImage := image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.63.0")
+	pauseImage := image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.66.1")
 	podNameOnNode, err := createPods(ctx, kubeClient, namespace, nodeList, testPullSpec, pauseImage)
 	if err != nil {
 		return nil, err

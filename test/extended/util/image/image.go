@@ -51,13 +51,13 @@ var (
 		// allowed upstream kube images - index and value must match upstream or
 		// tests will fail (vendor/k8s.io/kubernetes/test/utils/image/manifest.go)
 		"registry.k8s.io/e2e-test-images/agnhost:2.55":     1,
-		"registry.k8s.io/e2e-test-images/agnhost:2.63.0":   2,
-		"registry.k8s.io/e2e-test-images/busybox:1.37.0-1": 6,
-		"registry.k8s.io/e2e-test-images/nginx:1.15-4":     15,
+		"registry.k8s.io/e2e-test-images/agnhost:2.66.1":   2,
+		"registry.k8s.io/e2e-test-images/busybox:1.37.0-2": 6,
+		"registry.k8s.io/e2e-test-images/nginx:1.27.0-2":   15,
 
 		// used by DRA tests and not present in the image manifest
 		// tracked here: https://github.com/kubernetes/kubernetes/issues/137520
-		"registry.k8s.io/e2e-test-images/sample-device-plugin:1.7": -1,
+		"registry.k8s.io/e2e-test-images/sample-device-plugin:1.8.0": -1,
 
 		// used by KubeVirt test to start fedora VMs
 		"quay.io/kubevirt/fedora-with-test-tooling-container-disk:v1.8.2": -1,

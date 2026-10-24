@@ -5,7 +5,7 @@ package v1
 // ServiceCatalogAPIServerStatusApplyConfiguration represents a declarative configuration of the ServiceCatalogAPIServerStatus type for use
 // with apply.
 type ServiceCatalogAPIServerStatusApplyConfiguration struct {
-	OperatorStatusApplyConfiguration `json:",inline"`
+	OperatorStatusApplyConfiguration `json:""`
 }
 
 // ServiceCatalogAPIServerStatusApplyConfiguration constructs a declarative configuration of the ServiceCatalogAPIServerStatus type for use with

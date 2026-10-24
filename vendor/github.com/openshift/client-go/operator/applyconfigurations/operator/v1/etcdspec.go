@@ -10,7 +10,7 @@ import (
 // EtcdSpecApplyConfiguration represents a declarative configuration of the EtcdSpec type for use
 // with apply.
 type EtcdSpecApplyConfiguration struct {
-	StaticPodOperatorSpecApplyConfiguration `json:",inline"`
+	StaticPodOperatorSpecApplyConfiguration `json:""`
 	// HardwareSpeed allows user to change the etcd tuning profile which configures
 	// the latency parameters for heartbeat interval and leader election timeouts
 	// allowing the cluster to tolerate longer round-trip-times between etcd members.

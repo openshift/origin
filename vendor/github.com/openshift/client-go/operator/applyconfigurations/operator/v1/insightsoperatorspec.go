@@ -10,7 +10,7 @@ import (
 // InsightsOperatorSpecApplyConfiguration represents a declarative configuration of the InsightsOperatorSpec type for use
 // with apply.
 type InsightsOperatorSpecApplyConfiguration struct {
-	OperatorSpecApplyConfiguration `json:",inline"`
+	OperatorSpecApplyConfiguration `json:""`
 }
 
 // InsightsOperatorSpecApplyConfiguration constructs a declarative configuration of the InsightsOperatorSpec type for use with

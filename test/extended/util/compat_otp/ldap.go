@@ -1,7 +1,5 @@
 package compat_otp
 
-import exutil "github.com/openshift/origin/test/extended/util"
-
 import (
 	"context"
 	"fmt"
@@ -11,15 +9,20 @@ import (
 	"strings"
 	"time"
 
+	exutil "github.com/openshift/origin/test/extended/util"
+
 	app "k8s.io/api/apps/v1"
+
 	corev1 "k8s.io/api/core/v1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/openshift/library-go/pkg/crypto"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	testdata "github.com/openshift/origin/test/extended/util/compat_otp/testdata"
 )
 

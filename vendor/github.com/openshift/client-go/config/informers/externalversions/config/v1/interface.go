@@ -9,55 +9,55 @@ import (
 // Interface provides access to all the informers in this group version.
 type Interface interface {
 	// APIServers returns a APIServerInformer.
-	APIServers() APIServerInformer
+	APIServers() TypedAPIServerInformer
 	// Authentications returns a AuthenticationInformer.
-	Authentications() AuthenticationInformer
+	Authentications() TypedAuthenticationInformer
 	// Builds returns a BuildInformer.
-	Builds() BuildInformer
+	Builds() TypedBuildInformer
 	// CRIOCredentialProviderConfigs returns a CRIOCredentialProviderConfigInformer.
-	CRIOCredentialProviderConfigs() CRIOCredentialProviderConfigInformer
+	CRIOCredentialProviderConfigs() TypedCRIOCredentialProviderConfigInformer
 	// ClusterImagePolicies returns a ClusterImagePolicyInformer.
-	ClusterImagePolicies() ClusterImagePolicyInformer
+	ClusterImagePolicies() TypedClusterImagePolicyInformer
 	// ClusterOperators returns a ClusterOperatorInformer.
-	ClusterOperators() ClusterOperatorInformer
+	ClusterOperators() TypedClusterOperatorInformer
 	// ClusterVersions returns a ClusterVersionInformer.
-	ClusterVersions() ClusterVersionInformer
+	ClusterVersions() TypedClusterVersionInformer
 	// Consoles returns a ConsoleInformer.
-	Consoles() ConsoleInformer
+	Consoles() TypedConsoleInformer
 	// DNSes returns a DNSInformer.
-	DNSes() DNSInformer
+	DNSes() TypedDNSInformer
 	// FeatureGates returns a FeatureGateInformer.
-	FeatureGates() FeatureGateInformer
+	FeatureGates() TypedFeatureGateInformer
 	// Images returns a ImageInformer.
-	Images() ImageInformer
+	Images() TypedImageInformer
 	// ImageContentPolicies returns a ImageContentPolicyInformer.
-	ImageContentPolicies() ImageContentPolicyInformer
+	ImageContentPolicies() TypedImageContentPolicyInformer
 	// ImageDigestMirrorSets returns a ImageDigestMirrorSetInformer.
-	ImageDigestMirrorSets() ImageDigestMirrorSetInformer
+	ImageDigestMirrorSets() TypedImageDigestMirrorSetInformer
 	// ImagePolicies returns a ImagePolicyInformer.
-	ImagePolicies() ImagePolicyInformer
+	ImagePolicies() TypedImagePolicyInformer
 	// ImageTagMirrorSets returns a ImageTagMirrorSetInformer.
-	ImageTagMirrorSets() ImageTagMirrorSetInformer
+	ImageTagMirrorSets() TypedImageTagMirrorSetInformer
 	// Infrastructures returns a InfrastructureInformer.
-	Infrastructures() InfrastructureInformer
+	Infrastructures() TypedInfrastructureInformer
 	// Ingresses returns a IngressInformer.
-	Ingresses() IngressInformer
+	Ingresses() TypedIngressInformer
 	// InsightsDataGathers returns a InsightsDataGatherInformer.
-	InsightsDataGathers() InsightsDataGatherInformer
+	InsightsDataGathers() TypedInsightsDataGatherInformer
 	// Networks returns a NetworkInformer.
-	Networks() NetworkInformer
+	Networks() TypedNetworkInformer
 	// Nodes returns a NodeInformer.
-	Nodes() NodeInformer
+	Nodes() TypedNodeInformer
 	// OAuths returns a OAuthInformer.
-	OAuths() OAuthInformer
+	OAuths() TypedOAuthInformer
 	// OperatorHubs returns a OperatorHubInformer.
-	OperatorHubs() OperatorHubInformer
+	OperatorHubs() TypedOperatorHubInformer
 	// Projects returns a ProjectInformer.
-	Projects() ProjectInformer
+	Projects() TypedProjectInformer
 	// Proxies returns a ProxyInformer.
-	Proxies() ProxyInformer
+	Proxies() TypedProxyInformer
 	// Schedulers returns a SchedulerInformer.
-	Schedulers() SchedulerInformer
+	Schedulers() TypedSchedulerInformer
 }
 
 type version struct {
@@ -71,127 +71,127 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// APIServers returns a APIServerInformer.
-func (v *version) APIServers() APIServerInformer {
+// APIServers returns a TypedAPIServerInformer.
+func (v *version) APIServers() TypedAPIServerInformer {
 	return &aPIServerInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// Authentications returns a AuthenticationInformer.
-func (v *version) Authentications() AuthenticationInformer {
+// Authentications returns a TypedAuthenticationInformer.
+func (v *version) Authentications() TypedAuthenticationInformer {
 	return &authenticationInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// Builds returns a BuildInformer.
-func (v *version) Builds() BuildInformer {
+// Builds returns a TypedBuildInformer.
+func (v *version) Builds() TypedBuildInformer {
 	return &buildInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// CRIOCredentialProviderConfigs returns a CRIOCredentialProviderConfigInformer.
-func (v *version) CRIOCredentialProviderConfigs() CRIOCredentialProviderConfigInformer {
+// CRIOCredentialProviderConfigs returns a TypedCRIOCredentialProviderConfigInformer.
+func (v *version) CRIOCredentialProviderConfigs() TypedCRIOCredentialProviderConfigInformer {
 	return &cRIOCredentialProviderConfigInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// ClusterImagePolicies returns a ClusterImagePolicyInformer.
-func (v *version) ClusterImagePolicies() ClusterImagePolicyInformer {
+// ClusterImagePolicies returns a TypedClusterImagePolicyInformer.
+func (v *version) ClusterImagePolicies() TypedClusterImagePolicyInformer {
 	return &clusterImagePolicyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// ClusterOperators returns a ClusterOperatorInformer.
-func (v *version) ClusterOperators() ClusterOperatorInformer {
+// ClusterOperators returns a TypedClusterOperatorInformer.
+func (v *version) ClusterOperators() TypedClusterOperatorInformer {
 	return &clusterOperatorInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// ClusterVersions returns a ClusterVersionInformer.
-func (v *version) ClusterVersions() ClusterVersionInformer {
+// ClusterVersions returns a TypedClusterVersionInformer.
+func (v *version) ClusterVersions() TypedClusterVersionInformer {
 	return &clusterVersionInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// Consoles returns a ConsoleInformer.
-func (v *version) Consoles() ConsoleInformer {
+// Consoles returns a TypedConsoleInformer.
+func (v *version) Consoles() TypedConsoleInformer {
 	return &consoleInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// DNSes returns a DNSInformer.
-func (v *version) DNSes() DNSInformer {
+// DNSes returns a TypedDNSInformer.
+func (v *version) DNSes() TypedDNSInformer {
 	return &dNSInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// FeatureGates returns a FeatureGateInformer.
-func (v *version) FeatureGates() FeatureGateInformer {
+// FeatureGates returns a TypedFeatureGateInformer.
+func (v *version) FeatureGates() TypedFeatureGateInformer {
 	return &featureGateInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// Images returns a ImageInformer.
-func (v *version) Images() ImageInformer {
+// Images returns a TypedImageInformer.
+func (v *version) Images() TypedImageInformer {
 	return &imageInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// ImageContentPolicies returns a ImageContentPolicyInformer.
-func (v *version) ImageContentPolicies() ImageContentPolicyInformer {
+// ImageContentPolicies returns a TypedImageContentPolicyInformer.
+func (v *version) ImageContentPolicies() TypedImageContentPolicyInformer {
 	return &imageContentPolicyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// ImageDigestMirrorSets returns a ImageDigestMirrorSetInformer.
-func (v *version) ImageDigestMirrorSets() ImageDigestMirrorSetInformer {
+// ImageDigestMirrorSets returns a TypedImageDigestMirrorSetInformer.
+func (v *version) ImageDigestMirrorSets() TypedImageDigestMirrorSetInformer {
 	return &imageDigestMirrorSetInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// ImagePolicies returns a ImagePolicyInformer.
-func (v *version) ImagePolicies() ImagePolicyInformer {
+// ImagePolicies returns a TypedImagePolicyInformer.
+func (v *version) ImagePolicies() TypedImagePolicyInformer {
 	return &imagePolicyInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// ImageTagMirrorSets returns a ImageTagMirrorSetInformer.
-func (v *version) ImageTagMirrorSets() ImageTagMirrorSetInformer {
+// ImageTagMirrorSets returns a TypedImageTagMirrorSetInformer.
+func (v *version) ImageTagMirrorSets() TypedImageTagMirrorSetInformer {
 	return &imageTagMirrorSetInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// Infrastructures returns a InfrastructureInformer.
-func (v *version) Infrastructures() InfrastructureInformer {
+// Infrastructures returns a TypedInfrastructureInformer.
+func (v *version) Infrastructures() TypedInfrastructureInformer {
 	return &infrastructureInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// Ingresses returns a IngressInformer.
-func (v *version) Ingresses() IngressInformer {
+// Ingresses returns a TypedIngressInformer.
+func (v *version) Ingresses() TypedIngressInformer {
 	return &ingressInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// InsightsDataGathers returns a InsightsDataGatherInformer.
-func (v *version) InsightsDataGathers() InsightsDataGatherInformer {
+// InsightsDataGathers returns a TypedInsightsDataGatherInformer.
+func (v *version) InsightsDataGathers() TypedInsightsDataGatherInformer {
 	return &insightsDataGatherInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// Networks returns a NetworkInformer.
-func (v *version) Networks() NetworkInformer {
+// Networks returns a TypedNetworkInformer.
+func (v *version) Networks() TypedNetworkInformer {
 	return &networkInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// Nodes returns a NodeInformer.
-func (v *version) Nodes() NodeInformer {
+// Nodes returns a TypedNodeInformer.
+func (v *version) Nodes() TypedNodeInformer {
 	return &nodeInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// OAuths returns a OAuthInformer.
-func (v *version) OAuths() OAuthInformer {
+// OAuths returns a TypedOAuthInformer.
+func (v *version) OAuths() TypedOAuthInformer {
 	return &oAuthInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// OperatorHubs returns a OperatorHubInformer.
-func (v *version) OperatorHubs() OperatorHubInformer {
+// OperatorHubs returns a TypedOperatorHubInformer.
+func (v *version) OperatorHubs() TypedOperatorHubInformer {
 	return &operatorHubInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// Projects returns a ProjectInformer.
-func (v *version) Projects() ProjectInformer {
+// Projects returns a TypedProjectInformer.
+func (v *version) Projects() TypedProjectInformer {
 	return &projectInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// Proxies returns a ProxyInformer.
-func (v *version) Proxies() ProxyInformer {
+// Proxies returns a TypedProxyInformer.
+func (v *version) Proxies() TypedProxyInformer {
 	return &proxyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// Schedulers returns a SchedulerInformer.
-func (v *version) Schedulers() SchedulerInformer {
+// Schedulers returns a TypedSchedulerInformer.
+func (v *version) Schedulers() TypedSchedulerInformer {
 	return &schedulerInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

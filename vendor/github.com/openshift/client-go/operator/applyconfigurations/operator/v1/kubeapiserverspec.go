@@ -10,7 +10,7 @@ import (
 // KubeAPIServerSpecApplyConfiguration represents a declarative configuration of the KubeAPIServerSpec type for use
 // with apply.
 type KubeAPIServerSpecApplyConfiguration struct {
-	StaticPodOperatorSpecApplyConfiguration `json:",inline"`
+	StaticPodOperatorSpecApplyConfiguration `json:""`
 	// eventTTLMinutes specifies the amount of time that the events are stored before being deleted.
 	// The TTL is allowed between 5 minutes minimum up to a maximum of 180 minutes (3 hours).
 	//

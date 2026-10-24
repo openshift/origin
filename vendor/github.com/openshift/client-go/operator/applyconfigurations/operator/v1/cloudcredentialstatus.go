@@ -7,7 +7,7 @@ package v1
 //
 // CloudCredentialStatus defines the observed status of the cloud-credential-operator.
 type CloudCredentialStatusApplyConfiguration struct {
-	OperatorStatusApplyConfiguration `json:",inline"`
+	OperatorStatusApplyConfiguration `json:""`
 }
 
 // CloudCredentialStatusApplyConfiguration constructs a declarative configuration of the CloudCredentialStatus type for use with

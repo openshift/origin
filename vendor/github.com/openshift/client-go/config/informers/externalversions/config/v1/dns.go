@@ -18,11 +18,39 @@ import (
 )
 
 // DNSInformer provides access to a shared informer and lister for
-// DNSes.
+// DNSes. Prefer using the type-safe variant (see [TypedDNSInformer]).
 type DNSInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1.DNSLister
 }
+
+// TypedDNSInformer provides access to a shared informer and lister for
+// DNSes, including the type-safe TypedInformer variant.
+// It is a superset of DNSInformer.
+type TypedDNSInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() DNSIndexInformer
+	Lister() configv1.DNSLister
+}
+
+// DNSIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type DNSIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1.DNS]
+
+// DNSHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for DNS.
+type DNSHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1.DNS]
+
+// DNSDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for DNS.
+type DNSDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1.DNS]
+
+// DNSFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for DNS.
+type DNSFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1.DNS]
+
+// DNSIndexers is a specialization of [cache.TypedIndexers] for DNS.
+type DNSIndexers = cache.TypedIndexers[*apiconfigv1.DNS]
+
+// DeletedDNS is a specialization of [cache.DeletedObject] for DNS.
+type DeletedDNS = cache.DeletedObject[*apiconfigv1.DNS]
 
 type dNSInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type dNSInformer struct {
 // NewDNSInformer constructs a new informer for DNS type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedDNSInformer]).
 func NewDNSInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewDNSInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedDNSInformer constructs a new informer for DNS type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedDNSInformer(client versioned.Interface, resyncPeriod time.Duration, indexers DNSIndexers) DNSIndexInformer {
+	return NewTypedDNSInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredDNSInformer constructs a new informer for DNS type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredDNSInformer]).
 func NewFilteredDNSInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewDNSInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedDNSInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredDNSInformer constructs a new informer for DNS type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredDNSInformer(client versioned.Interface, resyncPeriod time.Duration, indexers DNSIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) DNSIndexInformer {
+	return NewTypedDNSInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewDNSInformerWithOptions constructs a new informer for DNS type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedDNSInformerWithOptions]).
 func NewDNSInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedDNSInformerWithOptions(client, options)
+}
+
+// NewTypedDNSInformerWithOptions constructs a new informer for DNS type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedDNSInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) DNSIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "dnss"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.DNS](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewDNSInformerWithOptions(client versioned.Interface, options internalinter
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *dNSInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewDNSInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedDNSInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *dNSInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1.DNS{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *dNSInformer) TypedInformer() DNSIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.DNS](f.factory.InformerFor(&apiconfigv1.DNS{}, f.defaultInformer))
 }
 
 func (f *dNSInformer) Lister() configv1.DNSLister {
 	return configv1.NewDNSLister(f.Informer().GetIndexer())
+}
+
+// ToTypedDNSInformer converts an untyped informer into a TypedDNSInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *DNS. If that is not the case, calling type-safe methods of the returned
+// TypedDNSInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedDNSInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedDNSInformer(informer DNSInformer) TypedDNSInformer {
+	if informer, ok := informer.(TypedDNSInformer); ok {
+		return informer
+	}
+	return &dNSTypedInformerAdapter{informer}
+}
+
+type dNSTypedInformerAdapter struct {
+	DNSInformer
+}
+
+func (a *dNSTypedInformerAdapter) TypedInformer() DNSIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.DNS](a.Informer())
+}
+
+// ToDNSIndexInformer converts an untyped informer into a DNSIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *DNS. If that is not the case, calling type-safe methods of the returned
+// DNSIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a DNSIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToDNSIndexInformer(informer cache.SharedIndexInformer) DNSIndexInformer {
+	if informer, ok := informer.(DNSIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.DNS](informer)
 }

@@ -12,7 +12,7 @@ import (
 //
 // StaticPodOperatorSpec is spec for controllers that manage static pods.
 type StaticPodOperatorSpecApplyConfiguration struct {
-	OperatorSpecApplyConfiguration `json:",inline"`
+	OperatorSpecApplyConfiguration `json:""`
 	// forceRedeploymentReason can be used to force the redeployment of the operand by providing a unique string.
 	// This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work
 	// this time instead of failing again on the same config.

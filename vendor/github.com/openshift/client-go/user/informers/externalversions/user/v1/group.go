@@ -18,11 +18,39 @@ import (
 )
 
 // GroupInformer provides access to a shared informer and lister for
-// Groups.
+// Groups. Prefer using the type-safe variant (see [TypedGroupInformer]).
 type GroupInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() userv1.GroupLister
 }
+
+// TypedGroupInformer provides access to a shared informer and lister for
+// Groups, including the type-safe TypedInformer variant.
+// It is a superset of GroupInformer.
+type TypedGroupInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() GroupIndexInformer
+	Lister() userv1.GroupLister
+}
+
+// GroupIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type GroupIndexInformer cache.TypedSharedIndexInformer[*apiuserv1.Group]
+
+// GroupHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for Group.
+type GroupHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiuserv1.Group]
+
+// GroupDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for Group.
+type GroupDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiuserv1.Group]
+
+// GroupFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for Group.
+type GroupFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiuserv1.Group]
+
+// GroupIndexers is a specialization of [cache.TypedIndexers] for Group.
+type GroupIndexers = cache.TypedIndexers[*apiuserv1.Group]
+
+// DeletedGroup is a specialization of [cache.DeletedObject] for Group.
+type DeletedGroup = cache.DeletedObject[*apiuserv1.Group]
 
 type groupInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type groupInformer struct {
 // NewGroupInformer constructs a new informer for Group type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedGroupInformer]).
 func NewGroupInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewGroupInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedGroupInformer constructs a new informer for Group type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedGroupInformer(client versioned.Interface, resyncPeriod time.Duration, indexers GroupIndexers) GroupIndexInformer {
+	return NewTypedGroupInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredGroupInformer constructs a new informer for Group type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredGroupInformer]).
 func NewFilteredGroupInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewGroupInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedGroupInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredGroupInformer constructs a new informer for Group type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredGroupInformer(client versioned.Interface, resyncPeriod time.Duration, indexers GroupIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) GroupIndexInformer {
+	return NewTypedGroupInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewGroupInformerWithOptions constructs a new informer for Group type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedGroupInformerWithOptions]).
 func NewGroupInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedGroupInformerWithOptions(client, options)
+}
+
+// NewTypedGroupInformerWithOptions constructs a new informer for Group type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedGroupInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) GroupIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "user.openshift.io", Version: "v1", Resource: "groups"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiuserv1.Group](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewGroupInformerWithOptions(client versioned.Interface, options internalint
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *groupInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewGroupInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedGroupInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *groupInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiuserv1.Group{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *groupInformer) TypedInformer() GroupIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiuserv1.Group](f.factory.InformerFor(&apiuserv1.Group{}, f.defaultInformer))
 }
 
 func (f *groupInformer) Lister() userv1.GroupLister {
 	return userv1.NewGroupLister(f.Informer().GetIndexer())
+}
+
+// ToTypedGroupInformer converts an untyped informer into a TypedGroupInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Group. If that is not the case, calling type-safe methods of the returned
+// TypedGroupInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedGroupInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedGroupInformer(informer GroupInformer) TypedGroupInformer {
+	if informer, ok := informer.(TypedGroupInformer); ok {
+		return informer
+	}
+	return &groupTypedInformerAdapter{informer}
+}
+
+type groupTypedInformerAdapter struct {
+	GroupInformer
+}
+
+func (a *groupTypedInformerAdapter) TypedInformer() GroupIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiuserv1.Group](a.Informer())
+}
+
+// ToGroupIndexInformer converts an untyped informer into a GroupIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Group. If that is not the case, calling type-safe methods of the returned
+// GroupIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a GroupIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToGroupIndexInformer(informer cache.SharedIndexInformer) GroupIndexInformer {
+	if informer, ok := informer.(GroupIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiuserv1.Group](informer)
 }
