@@ -1634,7 +1634,7 @@ github.com/openshift-kni/commatrix/pkg/matrix-diff
 github.com/openshift-kni/commatrix/pkg/mcp
 github.com/openshift-kni/commatrix/pkg/types
 github.com/openshift-kni/commatrix/pkg/utils
-# github.com/openshift/api v0.0.0-20261001152744-764bd4c566f9
+# github.com/openshift/api v0.0.0-20261013084449-5a61bfba6d60
 ## explicit; go 1.26.0
 github.com/openshift/api
 github.com/openshift/api/annotations
@@ -1644,6 +1644,8 @@ github.com/openshift/api/apiserver
 github.com/openshift/api/apiserver/v1
 github.com/openshift/api/apps
 github.com/openshift/api/apps/v1
+github.com/openshift/api/authentication
+github.com/openshift/api/authentication/v1alpha1
 github.com/openshift/api/authorization
 github.com/openshift/api/authorization/v1
 github.com/openshift/api/build
@@ -1747,7 +1749,7 @@ github.com/openshift/build-machinery-go/make/targets/golang
 github.com/openshift/build-machinery-go/make/targets/openshift
 github.com/openshift/build-machinery-go/make/targets/openshift/operator
 github.com/openshift/build-machinery-go/scripts
-# github.com/openshift/client-go v0.0.0-20261001003915-dcaad1dc7fe8
+# github.com/openshift/client-go v0.0.0-20261014115618-03a1e773ff3d
 ## explicit; go 1.26.0
 github.com/openshift/client-go/apiserver/applyconfigurations/apiserver/v1
 github.com/openshift/client-go/apiserver/applyconfigurations/internal

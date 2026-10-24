@@ -142,6 +142,7 @@ const (
 // KMSPreflightResult contains the outcome of a preflight validation.
 //
 // +openshift:compatibility-gen:level=1
+// +kubebuilder:validation:XValidation:rule="self.status != 'Succeeded' || has(self.remoteKeyID)",message="remoteKeyID is required when status is Succeeded"
 type KMSPreflightResult struct {
 	// status indicates the outcome of the preflight check.
 	// Succeeded means the KMS plugin responded to Status, Encrypt, and
@@ -163,9 +164,12 @@ type KMSPreflightResult struct {
 	// remoteKeyID is the remote key encryption key identifier from KMS v2
 	// StatusResponse.key_id. This is not a cryptographic key, but a unique
 	// representation of the remote key used to encrypt data.
-	// The value must be between 1 and 1024 characters.
+	// When omitted, no remote key identifier is available. This is expected
+	// when status is Failed, for example when the KMS provider could not be
+	// reached. When status is Succeeded, remoteKeyID is required.
+	// When set, the value must be between 1 and 1024 characters.
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
-	// +required
+	// +optional
 	RemoteKeyID string `json:"remoteKeyID,omitempty"`
 }
