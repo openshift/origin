@@ -352,6 +352,36 @@ func getRandomNode(oc *exutil.CLI, role string) corev1.Node {
 	return nodes[rnd.Intn(len(nodes))]
 }
 
+// `GetRandomSchedulableWorkerNode` gets a random ready schedulable worker node.
+// Unlike `GetRandomNode`, it excludes nodes with NoSchedule/NoExecute taints
+// (such as dedicated nodes) and nodes with control-plane/master roles, so tests
+// that move a node into a custom MachineConfigPool do not disrupt dedicated hosts.
+func GetRandomSchedulableWorkerNode(oc *exutil.CLI) corev1.Node {
+	nodes, err := exutil.GetReadySchedulableWorkerNodes(context.TODO(), oc.AsAdmin().KubeClient())
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	// Keep the cordoned and MCD-state guards from IsNodeReady on top of the
+	// taint and control-plane filtering
+	var readyNodes []corev1.Node
+	for _, node := range nodes {
+		if IsNodeReady(node) {
+			readyNodes = append(readyNodes, node)
+		}
+	}
+
+	// Skip when no eligible node exists: this is an environmental constraint
+	// (e.g. SNO, compact, or heavily tainted clusters), not a test failure.
+	if len(readyNodes) == 0 {
+		e2eskipper.Skipf("No ready schedulable worker nodes without NoSchedule/NoExecute taints found")
+	}
+
+	// Disable gosec here to avoid throwing
+	// G404: Use of weak random number generator (math/rand instead of crypto/rand)
+	// #nosec
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return readyNodes[rnd.Intn(len(readyNodes))]
+}
+
 // `GetNodesByRole` gets all nodes labeled with the desired role
 func GetNodesByRole(oc *exutil.CLI, role string) ([]corev1.Node, error) {
 	listOptions := metav1.ListOptions{
