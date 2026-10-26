@@ -176,3 +176,66 @@ func TestTwoNodeSuiteExcludesDedicatedTNFMetricsTests(t *testing.T) {
 		}
 	}
 }
+
+func TestEtcdScalingSuiteSelection(t *testing.T) {
+	var suite *ginkgo.TestSuite
+	for i := range staticSuites {
+		if staticSuites[i].Name == "openshift/etcd/scaling" {
+			suite = &staticSuites[i]
+			break
+		}
+	}
+	if suite == nil {
+		t.Fatal("openshift/etcd/scaling suite not found")
+	}
+
+	candidates := extensiontests.ExtensionTestSpecs{
+		{
+			Name:   "[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd/scaling][Serial] etcd is able to vertically scale up and down with a single node [Timeout:60m][apigroup:machine.openshift.io]",
+			Source: "openshift:payload:origin",
+		},
+		{
+			Name:   "[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd/scaling][Serial] etcd is able to vertically scale up and down when CPMS is disabled [apigroup:machine.openshift.io]",
+			Source: "openshift:payload:origin",
+		},
+		{
+			Name:   "[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd/scaling][Serial] etcd is able to delete all masters with OnDelete strategy and wait for CPMSO to replace them [Timeout:120m][apigroup:machine.openshift.io]",
+			Source: "openshift:payload:origin",
+		},
+		{
+			Name:   "[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and stop sending requests [Suite:openshift/conformance/parallel]",
+			Source: "openshift:payload:origin",
+		},
+		{
+			Name:   "[sig-etcd] etcd leader changes are not excessive [Late] [Suite:openshift/conformance/parallel]",
+			Source: "openshift:payload:origin",
+		},
+		{
+			Name:   "[sig-node] Managed cluster should verify that nodes have no unexpected reboots [Late] [Suite:openshift/conformance/parallel]",
+			Source: "openshift:payload:origin",
+		},
+	}
+
+	filtered, err := candidates.Filter(suite.Qualifiers)
+	if err != nil {
+		t.Fatalf("failed to filter: %v", err)
+	}
+
+	expectedNames := map[string]bool{
+		"[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd/scaling][Serial] etcd is able to vertically scale up and down with a single node [Timeout:60m][apigroup:machine.openshift.io]": true,
+		"[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd/scaling][Serial] etcd is able to vertically scale up and down when CPMS is disabled [apigroup:machine.openshift.io]":           true,
+		"[sig-node] Managed cluster should verify that nodes have no unexpected reboots [Late] [Suite:openshift/conformance/parallel]":                                                               true,
+	}
+
+	if len(filtered) != len(expectedNames) {
+		t.Errorf("expected %d tests, got %d", len(expectedNames), len(filtered))
+		for _, s := range filtered {
+			t.Logf("  matched: %s", s.Name)
+		}
+	}
+	for _, s := range filtered {
+		if !expectedNames[s.Name] {
+			t.Errorf("unexpected test matched: %s", s.Name)
+		}
+	}
+}

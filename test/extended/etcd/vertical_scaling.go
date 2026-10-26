@@ -4,6 +4,7 @@ import (
 	"context"
 
 	g "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	o "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
@@ -67,6 +68,16 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 
 	g.AfterEach(func() {
 		cleanupPlatformSpecificConfiguration()
+
+		// Membership changes keep triggering etcd revisions after the test's own checks pass. Wait for them to
+		// finish so the cluster is stable for subsequent tests and post-test health checks.
+		// Only wait after a passing spec: failed specs leave a broken cluster, and skipped specs did no scaling.
+		if !g.CurrentSpecReport().State.Is(types.SpecStatePassed) {
+			return
+		}
+		err := scalingtestinglibrary.WaitForEtcdToStabilize(ctx, g.GinkgoT(), oc.KubeClient().CoreV1().Pods("openshift-etcd"), oc.AdminConfigClient().ConfigV1().ClusterOperators())
+		err = errors.Wrap(err, "post-test: timed out waiting for etcd to stabilize on the same revision")
+		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
 	// The following test covers a basic vertical scaling scenario.

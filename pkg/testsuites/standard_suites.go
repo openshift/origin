@@ -341,12 +341,22 @@ var staticSuites = []ginkgo.TestSuite{
 		Qualifiers: []string{
 			// Exclude the etcd leader changes test — scaling operations cause expected leader elections
 			// that exceed the test's thresholds.
+			// Exclude the API LB late connections test — kube-apiservers on control plane machines being
+			// deleted see late connections during termination, which this test was not designed for.
+			// Exclude the OnDelete full control plane replacement test until https://redhat.atlassian.net/browse/OCPBUGS-111836
+			// is fixed — its drains deadlock and leave the cluster broken for every test that follows.
 			`(` + withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/etcd/scaling") || name.contains("[Feature:EtcdVerticalScaling]")`) +
-				`) && !name.contains("leader changes")`,
+				`) && !name.contains("leader changes")` +
+				` && !name.contains("API LBs follow /readyz of kube-apiserver and stop sending requests")` +
+				` && !name.contains("is able to delete all masters with OnDelete strategy")`,
 		},
 		// etcd's vertical scaling test can take a while for apiserver rollouts to stabilize on the same revision
 		TestTimeout:                60 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.SpotCheck,
+		// node-lifecycle fails when nodes go NotReady outside of an MCO update. Replacing control plane machines
+		// causes NotReady nodes for reasons unrelated to node health: deleted masters, and kubelets on other nodes
+		// missing lease renewals while etcd membership churns and the API is slow.
+		DisableMonitorTests: []string{"node-lifecycle"},
 	},
 	{
 		Name: "openshift/etcd/recovery",
