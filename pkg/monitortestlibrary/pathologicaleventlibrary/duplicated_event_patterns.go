@@ -594,6 +594,19 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		jira:               "https://issues.redhat.com/browse/OCPBUGS-81340",
 	})
 
+	// The daemonset-controller emits SuccessfulCreate for every pod it creates, so the
+	// (combined from similar events) count grows with every node added and every rollout for the
+	// lifetime of the cluster. Serial tests that scale MachineSets or roll out daemonsets push
+	// this well past the threshold, and none of it indicates a problem. A daemonset unable to
+	// keep its pods running surfaces through other events (BackOff, FailedCreate, etc).
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "DaemonSetSuccessfulCreate",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorDaemonSetKey: regexp.MustCompile(`.+`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^SuccessfulCreate$`),
+	})
+
 	// AuthenticationComponentProxy tests intentionally trigger multiple oauth-openshift rollouts
 	// (set proxy → operator rolls out → restore → operator rolls out again), repeated for each
 	// test in the suite. This causes DeploymentUpdated and ScalingReplicaSet events in the

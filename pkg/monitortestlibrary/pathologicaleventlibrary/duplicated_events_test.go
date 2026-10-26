@@ -224,6 +224,30 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			expectedAllowName: "PacemakerStatusCollectorCronJobEvents",
 		},
 		{
+			name: "daemonset successful create from node scale up",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-cluster-csi-drivers",
+					monitorapi.LocatorDaemonSetKey: "vmware-vsphere-csi-driver-node",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("(combined from similar events): Created pod: vmware-vsphere-csi-driver-node-dxbg7").
+				Reason("SuccessfulCreate").WithAnnotation(monitorapi.AnnotationCount, "35").Build(),
+			expectedAllowName: "DaemonSetSuccessfulCreate",
+		},
+		{
+			name: "replicaset successful create is not allowed by daemonset matcher",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey:      "openshift-monitoring",
+					monitorapi.LocatorKey("replicaset"): "prometheus-operator-5d8f7c9b4",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Created pod: prometheus-operator-5d8f7c9b4-abcde").
+				Reason("SuccessfulCreate").WithAnnotation(monitorapi.AnnotationCount, "35").Build(),
+			expectedAllowName: "",
+		},
+		{
 			name: "NetworkNotReady with lowercase no from ocicni",
 			locator: monitorapi.Locator{
 				Keys: map[monitorapi.LocatorKey]string{
