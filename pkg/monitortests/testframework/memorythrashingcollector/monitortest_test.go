@@ -1,0 +1,189 @@
+package memorythrashingcollector
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	prometheustypes "github.com/prometheus/common/model"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func matrix(instance string, start time.Time, values ...float64) prometheustypes.Matrix {
+	samples := make([]prometheustypes.SamplePair, len(values))
+	for i, v := range values {
+		samples[i] = prometheustypes.SamplePair{
+			Timestamp: prometheustypes.TimeFromUnixNano(start.Add(time.Duration(i) * 30 * time.Second).UnixNano()),
+			Value:     prometheustypes.SampleValue(v),
+		}
+	}
+	return prometheustypes.Matrix{{
+		Metric: prometheustypes.Metric{"instance": prometheustypes.LabelValue(instance)},
+		Values: samples,
+	}}
+}
+
+func newTestCollector() *memoryThrashingCollector {
+	return &memoryThrashingCollector{majorFaultsThreshold: 50, pageInThreshold: 50}
+}
+
+func TestCreateIntervalsFromMetrics(t *testing.T) {
+	start := time.Date(2026, 9, 22, 15, 0, 0, 0, time.UTC)
+	nodeInfoMap := map[string]nodeInfo{"master-0": {name: "master-0", nodeRole: "master"}}
+
+	testCases := []struct {
+		name           string
+		faults         []float64
+		pageIn         []float64
+		expectedCount  int
+		expectedStart  time.Time
+		expectedEnd    time.Time
+		expectedPeak   string
+		expectedPageIn string
+	}{
+		{
+			name:          "healthy node",
+			faults:        []float64{0.5, 3, 6.5, 1},
+			pageIn:        []float64{0, 1, 2, 0},
+			expectedCount: 0,
+		},
+		{
+			name:           "single thrashing period",
+			faults:         []float64{1, 120, 1058, 300, 2},
+			pageIn:         []float64{0, 119, 99, 121, 1},
+			expectedCount:  1,
+			expectedStart:  start.Add(30 * time.Second),
+			expectedEnd:    start.Add(120 * time.Second),
+			expectedPeak:   "1058.0",
+			expectedPageIn: "121.0",
+		},
+		{
+			name:          "many faults on small pages is not thrashing",
+			faults:        []float64{1, 1500, 2151, 900, 1},
+			pageIn:        []float64{0, 5, 8, 12, 0},
+			expectedCount: 0,
+		},
+		{
+			name:          "heavy page-in without faults is not thrashing",
+			faults:        []float64{1, 5, 2},
+			pageIn:        []float64{0, 200, 150},
+			expectedCount: 0,
+		},
+		{
+			name:          "two separate periods",
+			faults:        []float64{80, 1, 1, 200, 400, 1},
+			pageIn:        []float64{60, 0, 0, 120, 90, 0},
+			expectedCount: 2,
+		},
+		{
+			name:          "period ends when page-in drops",
+			faults:        []float64{300, 300, 300},
+			pageIn:        []float64{100, 10, 100},
+			expectedCount: 2,
+		},
+		{
+			name:           "period extends to end of window",
+			faults:         []float64{1, 60, 70},
+			pageIn:         []float64{0, 55, 80},
+			expectedCount:  1,
+			expectedStart:  start.Add(30 * time.Second),
+			expectedEnd:    start.Add(90 * time.Second),
+			expectedPeak:   "70.0",
+			expectedPageIn: "80.0",
+		},
+		{
+			name:          "exactly at thresholds is not thrashing",
+			faults:        []float64{50, 50},
+			pageIn:        []float64{50, 50},
+			expectedCount: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			collector := newTestCollector()
+			intervals := collector.createIntervalsFromMetrics(logrus.WithField("test", tc.name),
+				matrix("master-0", start, tc.faults...), matrix("master-0", start, tc.pageIn...), nodeInfoMap)
+
+			require.Len(t, intervals, tc.expectedCount)
+			require.Len(t, collector.intervals, tc.expectedCount, "intervals recorded for the autodl file")
+			for _, interval := range intervals {
+				assert.Equal(t, monitorapi.SourceMemoryMonitor, interval.Source)
+				assert.Equal(t, monitorapi.IntervalReason("MemoryThrashing"), interval.Message.Reason)
+				assert.Equal(t, "master-0", interval.Locator.Keys[monitorapi.LocatorNodeKey])
+				assert.Equal(t, "50", interval.Message.Annotations["major_faults_threshold"])
+				assert.Equal(t, "50", interval.Message.Annotations["page_in_threshold_mb_per_second"])
+			}
+			if tc.expectedPeak != "" {
+				assert.WithinDuration(t, tc.expectedStart, intervals[0].From, 0)
+				assert.WithinDuration(t, tc.expectedEnd, intervals[0].To, 0)
+				assert.Equal(t, tc.expectedPeak, intervals[0].Message.Annotations["peak_major_faults_per_second"])
+				assert.Equal(t, tc.expectedPageIn, intervals[0].Message.Annotations["peak_page_in_mb_per_second"])
+				assert.Equal(t, "master", collector.intervals[0].nodeRole)
+			}
+		})
+	}
+}
+
+func TestCreateIntervalsSplitsOnMissingSamples(t *testing.T) {
+	start := time.Date(2026, 9, 22, 15, 0, 0, 0, time.UTC)
+	faults := matrix("master-0", start, 100, 200, 300, 400)
+	// Drop the third sample, as Prometheus does for a step with no value.
+	faults[0].Values = append(faults[0].Values[:2], faults[0].Values[3])
+
+	collector := newTestCollector()
+	intervals := collector.createIntervalsFromMetrics(logrus.WithField("test", "gap"),
+		faults, matrix("master-0", start, 100, 100, 100, 100), map[string]nodeInfo{})
+
+	require.Len(t, intervals, 2)
+	assert.WithinDuration(t, start, intervals[0].From, 0)
+	assert.WithinDuration(t, start.Add(60*time.Second), intervals[0].To, 0)
+	assert.WithinDuration(t, start.Add(90*time.Second), intervals[1].From, 0)
+	assert.WithinDuration(t, start.Add(120*time.Second), intervals[1].To, 0)
+}
+
+func TestCreateIntervalsMissingPageInIsNotThrashing(t *testing.T) {
+	start := time.Date(2026, 9, 22, 15, 0, 0, 0, time.UTC)
+	collector := newTestCollector()
+	intervals := collector.createIntervalsFromMetrics(logrus.WithField("test", "no-page-in"),
+		matrix("master-0", start, 500, 500), prometheustypes.Matrix{}, map[string]nodeInfo{})
+
+	assert.Empty(t, intervals, "without page-in data the disk load is unknown, so no interval is recorded")
+}
+
+func TestCreateIntervalsUnknownNodeFallsBackToInstance(t *testing.T) {
+	start := time.Date(2026, 9, 22, 15, 0, 0, 0, time.UTC)
+	collector := newTestCollector()
+	intervals := collector.createIntervalsFromMetrics(logrus.WithField("test", "fallback"),
+		matrix("10.0.0.5:9100", start, 500), matrix("10.0.0.5:9100", start, 120), map[string]nodeInfo{})
+
+	require.Len(t, intervals, 1)
+	assert.Equal(t, 30*time.Second, intervals[0].To.Sub(intervals[0].From), "a single sample counts for one query step")
+	assert.Equal(t, "10.0.0.5:9100", intervals[0].Locator.Keys[monitorapi.LocatorNodeKey])
+}
+
+func TestEvaluateTestsFlakesOnThrashing(t *testing.T) {
+	start := time.Date(2026, 9, 22, 15, 0, 0, 0, time.UTC)
+	collector := newTestCollector()
+	thrashing := collector.createIntervalsFromMetrics(logrus.WithField("test", "flake"),
+		matrix("master-0", start, 300), matrix("master-0", start, 120), map[string]nodeInfo{})
+	other := monitorapi.NewInterval(monitorapi.SourceCPUMonitor, monitorapi.Warning).
+		Locator(monitorapi.NewLocator().NodeFromName("master-0")).Message(monitorapi.NewMessage().HumanMessage("other")).Build(start, start)
+
+	junits, err := collector.EvaluateTestsFromConstructedIntervals(context.Background(), append(monitorapi.Intervals{other}, thrashing...))
+	require.NoError(t, err)
+	require.Len(t, junits, 2, "a failure and a pass make a flake")
+	assert.Equal(t, memoryThrashingTestName, junits[0].Name)
+	require.NotNil(t, junits[0].FailureOutput)
+	assert.Contains(t, junits[0].FailureOutput.Output, "master-0")
+	assert.Equal(t, memoryThrashingTestName, junits[1].Name)
+	assert.Nil(t, junits[1].FailureOutput)
+
+	junits, err = collector.EvaluateTestsFromConstructedIntervals(context.Background(), monitorapi.Intervals{other})
+	require.NoError(t, err)
+	require.Len(t, junits, 1, "no thrashing intervals is a plain pass")
+	assert.Nil(t, junits[0].FailureOutput)
+}

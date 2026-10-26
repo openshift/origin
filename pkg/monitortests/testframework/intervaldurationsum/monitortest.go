@@ -61,6 +61,8 @@ func (w *intervalDurationSum) WriteContentToStorage(ctx context.Context, storage
 	sourcesToTrack := []monitorapi.IntervalSource{
 		monitorapi.SourceMetricsEndpointDown,
 		monitorapi.SourceCPUMonitor,
+		monitorapi.SourceMemoryMonitor,
+		monitorapi.SourceCPUSaturation,
 	}
 
 	// Calculate total duration for each source
