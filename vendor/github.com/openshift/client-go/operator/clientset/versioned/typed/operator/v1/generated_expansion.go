@@ -18,6 +18,8 @@ type DNSExpansion interface{}
 
 type EtcdExpansion interface{}
 
+type IngressExpansion interface{}
+
 type IngressControllerExpansion interface{}
 
 type InsightsOperatorExpansion interface{}

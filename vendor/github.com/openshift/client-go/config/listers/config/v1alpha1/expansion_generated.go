@@ -14,6 +14,10 @@ type CRIOCredentialProviderConfigListerExpansion interface{}
 // ClusterMonitoringLister.
 type ClusterMonitoringListerExpansion interface{}
 
+// ControllerManagerListerExpansion allows custom methods to be added to
+// ControllerManagerLister.
+type ControllerManagerListerExpansion interface{}
+
 // InsightsDataGatherListerExpansion allows custom methods to be added to
 // InsightsDataGatherLister.
 type InsightsDataGatherListerExpansion interface{}

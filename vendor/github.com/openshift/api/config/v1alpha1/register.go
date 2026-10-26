@@ -40,6 +40,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&CRIOCredentialProviderConfigList{},
 		&PKI{},
 		&PKIList{},
+		&ControllerManager{},
+		&ControllerManagerList{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil
