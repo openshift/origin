@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/url"
+	"path"
 	"reflect"
 	"strconv"
 	"strings"
@@ -12,6 +14,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
+	configclientv1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	libcrypto "github.com/openshift/library-go/pkg/crypto"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -23,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/util/retry"
@@ -38,6 +42,15 @@ const (
 	squidServiceName = "squid-proxy"
 
 	componentProxyCAConfigMapName = "v4-0-config-system-auth-proxy-ca"
+)
+
+var (
+	defaultNoProxy = sets.New(
+		".cluster.local",
+		".svc",
+		"127.0.0.1",
+		"localhost",
+	)
 )
 
 func componentProxyTestLabels() map[string]string {
@@ -137,9 +150,225 @@ func createTrustedCAConfigMap(ctx context.Context, oc *exutil.CLI, caCertPEM []b
 	}, nil
 }
 
-// deploySquidProxy deploys a Squid forward proxy listening on HTTP (3128) and
+type ProxyConfig struct {
+	HttpProxy, HttpsProxy *url.URL
+	NoProxy               sets.Set[string]
+	UpStreamCACertPEM     []byte
+}
+
+var NoProxyConfig = ProxyConfig{}
+
+func stripCredentials(proxy *url.URL) string {
+	if proxy == nil {
+		return ""
+	}
+	clean := *proxy
+	clean.User = nil
+	return clean.String()
+}
+
+func (pC ProxyConfig) String() string {
+	noProxy := strings.Join(pC.NoProxy.UnsortedList(), ",")
+
+	return fmt.Sprintf("ProxyConfig[HttpProxy=\"%s\" HttpsProxy=\"%s\" NoProxy=\"%s\"]",
+		stripCredentials(pC.HttpProxy),
+		stripCredentials(pC.HttpsProxy),
+		noProxy,
+	)
+}
+
+func ParseProxyField(field string) (*url.URL, error) {
+	if field == "" {
+		return nil, nil
+	}
+
+	url, err := url.Parse(field)
+	if err != nil {
+		return nil, fmt.Errorf("error field %s: %w", field, err)
+	}
+
+	return url, nil
+}
+
+func ClusterProxy(ctx context.Context, proxies configclientv1.ProxyInterface, configMaps coreclientv1.ConfigMapsGetter) (ProxyConfig, error) {
+	var toReturn ProxyConfig
+	proxy, err := proxies.Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return toReturn, fmt.Errorf("fetching cluster proxy configuration: %w", err)
+	}
+
+	toReturn.HttpProxy, err = ParseProxyField(proxy.Status.HTTPProxy)
+	if err != nil {
+		return toReturn, fmt.Errorf("error parsing http proxy field from cluster wide proxy configuration: %w", err)
+	}
+	toReturn.HttpsProxy, err = ParseProxyField(proxy.Status.HTTPSProxy)
+	if err != nil {
+		return toReturn, fmt.Errorf("error parsing https proxy field from cluster wide proxy configuration: %w", err)
+	}
+	toReturn.NoProxy = sets.New[string]()
+	for v := range strings.SplitSeq(proxy.Status.NoProxy, ",") {
+		trimmed := strings.TrimSpace(v)
+		if trimmed != "" {
+
+			toReturn.NoProxy.Insert(trimmed)
+		}
+	}
+
+	if proxy.Spec.TrustedCA.Name != "" {
+		cm, err := configMaps.ConfigMaps("openshift-config").
+			Get(ctx, proxy.Spec.TrustedCA.Name, metav1.GetOptions{})
+		if err != nil {
+			return toReturn, fmt.Errorf("fetching cluster proxy CA certificate config map: %w", err)
+		}
+
+		toReturn.UpStreamCACertPEM = []byte(cm.Data["ca-bundle.crt"])
+	}
+	return toReturn, nil
+}
+
+func (pC ProxyConfig) Valid() bool {
+	return pC.HttpProxy != nil || pC.HttpsProxy != nil
+}
+
+func (pC ProxyConfig) Equal(another ProxyConfig) bool {
+	return proxyURLsEqual(pC.HttpProxy, another.HttpProxy) &&
+		proxyURLsEqual(pC.HttpsProxy, another.HttpsProxy) &&
+		another.NoProxy.IsSuperset(pC.NoProxy)
+}
+
+func proxyURLsEqual(a, b *url.URL) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return a.String() == b.String()
+}
+
+type AuthProxyComponent struct {
+	ClusterProxy *ProxyConfig
+}
+
+type squidProxyUpstreamConfig struct {
+	squidConfig        string
+	upstreamCACertPEM  []byte
+	upstreamCACertPath string
+}
+
+const (
+	UpstreamCAFile       = "upstream-ca-bundle.crt"
+	UpstreamCACertFolder = "/etc/squid/upstream-ca/"
+	UpstreamCAConfigMap  = "upstream-ca-config"
+)
+
+var (
+	UpstreamCACertPath = path.Join(UpstreamCACertFolder, UpstreamCAFile)
+)
+
+func (ac AuthProxyComponent) upstreamProxyConfig() (squidProxyUpstreamConfig, error) {
+	g.GinkgoHelper()
+	var squidAdditionalConfig strings.Builder
+	var upstreamCACertPath string
+	if ac.ClusterProxy != nil {
+		if !ac.ClusterProxy.Valid() {
+			return squidProxyUpstreamConfig{}, fmt.Errorf("either HttpsProxy or HttpProxy in ClusterProxy must be non-empty")
+		}
+
+		httpsProxy, httpProxy := ac.ClusterProxy.HttpsProxy, ac.ClusterProxy.HttpProxy
+		squidAdditionalConfig.WriteString("acl upstream_connect method CONNECT\n")
+		peers := []struct {
+			url       *url.URL
+			name, acl string
+		}{
+			{
+				name: "upstream_http",
+				url:  httpProxy,
+				acl:  "!upstream_connect",
+			},
+			{
+				name: "upstream_https",
+				url:  httpsProxy,
+				acl:  "upstream_connect",
+			},
+		}
+
+		if proxyURLsEqual(httpProxy, httpsProxy) {
+			peers = peers[:1]
+			peers[0].acl = "all"
+		}
+
+		for _, peer := range peers {
+			if peer.url == nil {
+				fmt.Fprintf(&squidAdditionalConfig, "always_direct allow %s\n", peer.acl)
+				continue
+			}
+
+			if peer.url.Hostname() == "" ||
+				(peer.url.Scheme != "http" && peer.url.Scheme != "https") {
+				return squidProxyUpstreamConfig{}, fmt.Errorf("%s must be a valid HTTP or HTTPS proxy URL", peer.name)
+			}
+			port := peer.url.Port()
+			if port == "" {
+				port = "80"
+				if peer.url.Scheme == "https" {
+					port = "443"
+				}
+			}
+			peerOptions := "no-query name=" + peer.name
+			if peer.url.Scheme == "https" {
+				peerOptions += " tls"
+				if len(ac.ClusterProxy.UpStreamCACertPEM) > 0 {
+					upstreamCACertPath = UpstreamCACertPath
+					peerOptions += " tls-cafile=" + upstreamCACertPath
+				}
+			}
+			if peer.url.User != nil {
+				proxyUsername := peer.url.User.Username()
+				proxyPassword, _ := peer.url.User.Password()
+
+				// Squid accepts URL escapes in login credentials, but not spaces.
+				username := strings.ReplaceAll(url.QueryEscape(proxyUsername), "+", "%20")
+				proxyPassword = strings.ReplaceAll(url.QueryEscape(proxyPassword), "+", "%20")
+				peerOptions += " login=" + username + ":" + proxyPassword
+			}
+			fmt.Fprintf(&squidAdditionalConfig, "cache_peer %s parent %s 0 %s\n", peer.url.Hostname(), port, peerOptions)
+			fmt.Fprintf(&squidAdditionalConfig, "cache_peer_access %s allow %s\ncache_peer_access %s deny all\n", peer.name, peer.acl, peer.name)
+		}
+
+		// Internal destinations must remain reachable without the global proxy.
+		for i, entry := range ac.ClusterProxy.NoProxy.UnsortedList() {
+			entry = strings.TrimSpace(entry)
+			if entry == "" {
+				continue
+			}
+			if entry == "*" {
+				squidAdditionalConfig.WriteString("always_direct allow all\n")
+				continue
+			}
+			aclType := "dstdomain -n"
+			if _, _, cidrErr := net.ParseCIDR(entry); cidrErr == nil || net.ParseIP(entry) != nil {
+				aclType = "dst"
+			} else {
+				// A bare noProxy domain also excludes its subdomains.
+				entry = "." + strings.TrimPrefix(strings.TrimPrefix(entry, "*."), ".")
+			}
+			aclName := fmt.Sprintf("global_no_proxy_%d", i)
+			fmt.Fprintf(&squidAdditionalConfig, "acl %s %s %s\nalways_direct allow %s\n", aclName, aclType, entry, aclName)
+		}
+		squidAdditionalConfig.WriteString("never_direct allow all\n")
+	}
+
+	result := squidProxyUpstreamConfig{
+		squidConfig:        squidAdditionalConfig.String(),
+		upstreamCACertPath: upstreamCACertPath,
+	}
+	if ac.ClusterProxy != nil {
+		result.upstreamCACertPEM = ac.ClusterProxy.UpStreamCACertPEM
+	}
+	return result, nil
+}
+
+// DeployAuthProxyComponent deploys a Squid forward proxy listening on HTTP (3128) and
 // HTTPS (3129) with a self-signed CA and serving certificate.
-func deploySquidProxy(ctx context.Context, oc *exutil.CLI) (httpProxyURL, httpsProxyURL string, caCertPEM []byte, namespace string, cleanup removalFunc, err error) {
+func (ac AuthProxyComponent) DeployAuthProxyComponent(ctx context.Context, oc *exutil.CLI) (httpProxyURL, httpsProxyURL string, caCertPEM []byte, namespace string, cleanup removalFunc, err error) {
 	kubeClient := oc.AdminKubeClient()
 
 	nsLabels := componentProxyTestLabels()
@@ -198,6 +427,12 @@ cache_log stdio:/dev/stderr
 cache deny all
 buffered_logs off
 `, squidHTTPPort, squidHTTPSPort)
+
+	additionalUpstreamProxyConfig, err := ac.upstreamProxyConfig()
+	if err != nil {
+		return "", "", nil, "", cleanup, fmt.Errorf("configuration from cluster proxy issue: %w", err)
+	}
+	squidConfig += additionalUpstreamProxyConfig.squidConfig
 
 	_, err = kubeClient.CoreV1().ConfigMaps(namespace).Create(ctx, &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Name: "squid-config"},
@@ -275,6 +510,39 @@ buffered_logs off
 				},
 			},
 		},
+	}
+
+	pemData := additionalUpstreamProxyConfig.upstreamCACertPEM
+	if len(pemData) > 0 {
+		_, err = kubeClient.CoreV1().ConfigMaps(namespace).Create(ctx, &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: UpstreamCAConfigMap,
+			},
+			Data: map[string]string{
+				UpstreamCAFile: string(pemData),
+			},
+		}, metav1.CreateOptions{})
+		if err != nil {
+			return "", "", nil, "", cleanup, fmt.Errorf("creating upstream proxy for Squid config map: %w", err)
+		}
+
+		deploymentSpec := &deployment.Spec.Template.Spec
+		deploymentSpec.Containers[0].VolumeMounts = append(deploymentSpec.Containers[0].VolumeMounts, corev1.VolumeMount{
+			Name:      UpstreamCAConfigMap,
+			MountPath: UpstreamCACertPath,
+			SubPath:   UpstreamCAFile,
+			ReadOnly:  true,
+		})
+		deploymentSpec.Volumes = append(deploymentSpec.Volumes, corev1.Volume{
+			Name: UpstreamCAConfigMap,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: UpstreamCAConfigMap,
+					},
+				},
+			},
+		})
 	}
 
 	_, err = kubeClient.AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{})
@@ -646,7 +914,20 @@ func addIdentityProvider(ctx context.Context, oc *exutil.CLI, idp configv1.Ident
 	})
 }
 
-func verifyOAuthServerDeploymentProxyConfig(ctx context.Context, oc *exutil.CLI, expectedHTTPProxy, expectedHTTPSProxy, expectedNoProxy string, expectTrustedCAVolume bool) error {
+func proxyEnvMatchesURL(value string, expected *url.URL) bool {
+	if expected == nil {
+		return value == ""
+	}
+	return value == expected.String()
+}
+
+func verifyOAuthServerDeploymentProxyConfig(
+	ctx context.Context,
+	oc *exutil.CLI,
+	expectedHTTPProxy, expectedHTTPSProxy *url.URL,
+	expectedNoProxy sets.Set[string],
+	expectTrustedCAVolume bool,
+) error {
 	kubeClient := oc.AdminKubeClient()
 
 	return wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
@@ -666,12 +947,12 @@ func verifyOAuthServerDeploymentProxyConfig(ctx context.Context, oc *exutil.CLI,
 			}
 		}
 
-		if envVars["HTTP_PROXY"] != expectedHTTPProxy || envVars["HTTPS_PROXY"] != expectedHTTPSProxy {
+		if !proxyEnvMatchesURL(envVars["HTTP_PROXY"], expectedHTTPProxy) || !proxyEnvMatchesURL(envVars["HTTPS_PROXY"], expectedHTTPSProxy) {
 			g.GinkgoWriter.Printf("proxy env mismatch: HTTP_PROXY=%q (want %q), HTTPS_PROXY=%q (want %q)\n",
 				envVars["HTTP_PROXY"], expectedHTTPProxy, envVars["HTTPS_PROXY"], expectedHTTPSProxy)
 			return false, nil
 		}
-		if expectedNoProxy == "" {
+		if len(expectedNoProxy) == 0 {
 			if envVars["NO_PROXY"] != "" {
 				g.GinkgoWriter.Printf("proxy env mismatch: NO_PROXY=%q (want empty)\n", envVars["NO_PROXY"])
 				return false, nil
@@ -680,8 +961,7 @@ func verifyOAuthServerDeploymentProxyConfig(ctx context.Context, oc *exutil.CLI,
 			// Use IsSuperset rather than exact match because the operator appends
 			// the apiserver IP to NO_PROXY beyond the entries we configure.
 			actualNoProxy := sets.New(strings.Split(envVars["NO_PROXY"], ",")...)
-			expectedNoProxyEntries := sets.New(strings.Split(expectedNoProxy, ",")...)
-			if !actualNoProxy.IsSuperset(expectedNoProxyEntries) {
+			if !actualNoProxy.IsSuperset(expectedNoProxy) {
 				g.GinkgoWriter.Printf("proxy env mismatch: NO_PROXY=%q does not contain all of %q\n", envVars["NO_PROXY"], expectedNoProxy)
 				return false, nil
 			}
