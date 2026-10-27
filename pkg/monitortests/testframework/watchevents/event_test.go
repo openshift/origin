@@ -70,6 +70,40 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 				Build(),
 		},
 		{
+			name: "event with UID",
+			args: args{
+				ctx: context.TODO(),
+				m:   monitor.NewRecorder(),
+				kubeEvent: &corev1.Event{
+					ObjectMeta: metav1.ObjectMeta{UID: "event-uid"},
+					Count:      2,
+					Reason:     "SomethingHappened",
+					InvolvedObject: corev1.ObjectReference{
+						Kind:      "Pod",
+						Namespace: "openshift-authentication",
+						Name:      "testpod-927947",
+					},
+					Message:        "sample message",
+					FirstTimestamp: metav1.NewTime(first),
+					LastTimestamp:  metav1.NewTime(now),
+				},
+			},
+			expectedLocator: monitorapi.Locator{
+				Type: monitorapi.LocatorTypeKind,
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-authentication",
+					monitorapi.LocatorPodKey:       "testpod-927947",
+					monitorapi.LocatorHmsgKey:      "59162c6b05",
+				},
+			},
+			expectedMessage: monitorapi.NewMessage().Reason("SomethingHappened").
+				HumanMessage("sample message").WithAnnotation(monitorapi.AnnotationCount, "2").
+				WithAnnotation("firstTimestamp", first.Format(time.RFC3339)).
+				WithAnnotation("lastTimestamp", now.Format(time.RFC3339)).
+				WithAnnotation(monitorapi.AnnotationEventUID, "event-uid").
+				Build(),
+		},
+		{
 			name: "unknown pathological event",
 			args: args{
 				ctx: context.TODO(),

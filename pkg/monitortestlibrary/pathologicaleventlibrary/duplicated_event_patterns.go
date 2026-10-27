@@ -105,22 +105,29 @@ func (ade *SimplePathologicalEventMatcher) Matches(i monitorapi.Interval) bool {
 // Allows checks if the given locator/messagebuilder matches this allowed dupe event, and if the
 // interval should be allowed to repeat pathologically.
 func (ade *SimplePathologicalEventMatcher) Allows(i monitorapi.Interval, topology v1.TopologyMode) bool {
-
-	if ade.neverAllow {
-		return false
-	}
-
-	msg := i.Message
-	if !ade.Matches(i) {
+	if !ade.allowsIgnoringRepeatThreshold(i, topology) {
 		return false
 	}
 
 	if ade.repeatThresholdOverride != 0 {
-		count := GetTimesAnEventHappened(msg)
+		count := GetTimesAnEventHappened(i.Message)
 		if count > ade.repeatThresholdOverride {
 			logrus.WithField("allower", ade.Name).Debugf("event repeated over threshold override: %d", ade.repeatThresholdOverride)
 			return false
 		}
+	}
+	return true
+}
+
+// allowsIgnoringRepeatThreshold applies every restriction of Allows except repeatThresholdOverride,
+// for callers that bound the number of repeats themselves.
+func (ade *SimplePathologicalEventMatcher) allowsIgnoringRepeatThreshold(i monitorapi.Interval, topology v1.TopologyMode) bool {
+	if ade.neverAllow {
+		return false
+	}
+
+	if !ade.Matches(i) {
+		return false
 	}
 
 	if ade.topology != nil && *ade.topology != topology {
@@ -1069,6 +1076,12 @@ func newFailedSchedulingDuringNodeUpdatePathologicalEventMatcher(finalIntervals 
 // matcher, plus additional logic that will allow the event only if it is contained
 // within another set of intervals provided. (i.e. used to allow FailedScheduling pathological
 // events if they are contained within NodeUpdate intervals)
+//
+// A repeat is allowed in one of two ways:
+//   - inside allowIfWithinIntervals, if the delegate allows it, including its repeatThresholdOverride;
+//   - outside them, only once discountInWindowOccurrences has been called, if the delegate's other
+//     restrictions hold and the occurrences that did not happen inside the intervals are within
+//     DuplicateEventThreshold.
 type OverlapOtherIntervalsPathologicalEventMatcher struct {
 	// delegate is a normal event matcher.
 	delegate *SimplePathologicalEventMatcher
@@ -1104,26 +1117,21 @@ func newEventObservation(i monitorapi.Interval) eventObservation {
 	}
 }
 
-// eventObjectKey identifies the Kubernetes Event object an interval is an observation of. The
-// message cannot be part of it: the Event recorder aggregates similar events into a single
-// object ("(combined from similar events): ...") whose message, and therefore hmsg, changes on
-// every update while its count keeps accumulating, as happens for ScalingReplicaSet. The
-// object's firstTimestamp stays fixed for its whole lifetime and changes if it is recreated.
+// eventObjectKey identifies the Kubernetes Event object an interval is an observation of, so
+// that occurrences discounted from one object are never credited to another. The UID is the
+// only reliable identity: the recorder aggregates similar events into a single object
+// ("(combined from similar events): ...") whose message, and therefore hmsg, changes on every
+// update while its count keeps accumulating, as happens for ScalingReplicaSet, and independent
+// objects can share resource, reason and second-precision firstTimestamp.
+//
+// Intervals recorded without the UID fall back to the exact message plus firstTimestamp. That
+// never merges independent objects, at the cost of not discounting aggregated ones.
 func eventObjectKey(i monitorapi.Interval) string {
-	firstTimestamp, ok := i.Message.Annotations["firstTimestamp"]
-	if !ok {
-		// Without it the object cannot be told apart from other events with the same reason
-		// on the same resource, so fall back to the exact message.
-		return fmt.Sprintf("%s - reason/%s %s", i.Locator.OldLocator(), i.Message.Reason, i.Message.HumanMessage)
+	if uid, ok := i.Message.Annotations[monitorapi.AnnotationEventUID]; ok && uid != "" {
+		return "uid/" + uid
 	}
-	locator := i.Locator
-	locator.Keys = map[monitorapi.LocatorKey]string{}
-	for k, v := range i.Locator.Keys {
-		if k != monitorapi.LocatorHmsgKey {
-			locator.Keys[k] = v
-		}
-	}
-	return fmt.Sprintf("%s - reason/%s firstTimestamp/%s", locator.OldLocator(), i.Message.Reason, firstTimestamp)
+	return fmt.Sprintf("%s - reason/%s firstTimestamp/%s %s", i.Locator.OldLocator(), i.Message.Reason,
+		i.Message.Annotations["firstTimestamp"], i.Message.HumanMessage)
 }
 
 // discountInWindowOccurrences replays every observation of the events this matcher's delegate
@@ -1222,13 +1230,10 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Matches(i monitorapi.I
 }
 
 func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Allows(i monitorapi.Interval, topology v1.TopologyMode) bool {
-
-	// Check the delegate matcher first, if it matches, proceed to additional checks
-	if !ade.delegate.Allows(i, topology) {
-		return false
-	}
-
 	if ade.withinAllowedIntervals(i) {
+		if !ade.delegate.Allows(i, topology) {
+			return false
+		}
 		logrus.Infof("%s was found to overlap with the allowed intervals of %s, ignoring pathological event", i, ade.Name())
 		return true
 	}
@@ -1236,10 +1241,18 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Allows(i monitorapi.In
 	if ade.inWindowOccurrences == nil {
 		return false
 	}
+	// The delegate's repeatThresholdOverride bounds the occurrences inside the intervals and is
+	// enforced by the in-window observations themselves, so it must not be applied to the
+	// cumulative count here: that would reject a few out-of-window repeats just because the
+	// windows already used most of their allowance.
+	if !ade.delegate.allowsIgnoringRepeatThreshold(i, topology) {
+		return false
+	}
 	inWindow := ade.inWindowOccurrences[newEventObservation(i)]
-	if inWindow > 0 && GetTimesAnEventHappened(i.Message)-inWindow <= DuplicateEventThreshold {
+	outsideWindows := GetTimesAnEventHappened(i.Message) - inWindow
+	if inWindow > 0 && outsideWindows <= DuplicateEventThreshold {
 		logrus.Infof("%s repeated %d times outside the allowed intervals of %s, ignoring pathological event",
-			i, GetTimesAnEventHappened(i.Message)-inWindow, ade.Name())
+			i, outsideWindows, ade.Name())
 		return true
 	}
 	return false

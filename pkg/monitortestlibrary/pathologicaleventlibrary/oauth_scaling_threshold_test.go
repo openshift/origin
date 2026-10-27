@@ -15,8 +15,11 @@ import (
 // These tests pin the scoped, proximity-bounded tolerance for oauth-openshift ScalingReplicaSet
 // repeats during the AuthenticationComponentProxy serial tests. The finite cap (70) applies
 // only to repeats whose LATEST occurrence falls during one of the eligible passing tests or
-// within authenticationComponentProxyPostTestGrace AFTER that test ends (no pre-test grace). It is a bounded proximity allowance, not
-// a causal claim that the tests cause the rollouts, and not a claim the events are harmless.
+// within authenticationComponentProxyPostTestGrace AFTER that test ends (no pre-test grace).
+// Repeats outside those windows are allowed only if, once the occurrences of the same Event
+// object that happened inside the windows are subtracted, they are within the default
+// DuplicateEventThreshold. It is a bounded proximity allowance, not a causal claim that the
+// tests cause the rollouts, and not a claim the events are harmless.
 
 const cpPrefix = `[sig-auth][Suite:openshift/conformance/serial][Jira:"Authentication"][OCPFeatureGate:AuthenticationComponentProxy][Serial]`
 
@@ -382,27 +385,50 @@ type junitapiCaseResult struct {
 	output string
 }
 
-// deploymentUpdatedSeries returns one observation of the same authentication-operator
-// DeploymentUpdated Event object per count in [fromCount, toCount], spaced 5s apart starting at
-// start. created is the object's firstTimestamp: series sharing it are the same object.
-func deploymentUpdatedSeries(created time.Time, fromCount, toCount int, start time.Time) monitorapi.Intervals {
-	return eventSeries("openshift-authentication-operator", "authentication-operator", "DeploymentUpdated", created, fromCount, toCount, start, false)
+// testEventObject is a Kubernetes Event object whose observations the monitor records.
+type testEventObject struct {
+	namespace, deployment, reason string
+	// uid is the Event object's UID; empty mimics intervals recorded without it.
+	uid string
+	// created is the object's firstTimestamp.
+	created time.Time
+	// message overrides the default human message.
+	message string
+	// aggregated mirrors an object the recorder aggregates ("combined from similar events"):
+	// its message, and so its hmsg, changes on every update while the count keeps accumulating.
+	aggregated bool
 }
 
-// aggregatedScalingSeries mirrors the oauth-openshift ScalingReplicaSet Event object the recorder
-// aggregates ("combined from similar events"): its message, and so its hmsg, changes on every
-// update while the count keeps accumulating.
-func aggregatedScalingSeries(created time.Time, fromCount, toCount int, start time.Time) monitorapi.Intervals {
-	return eventSeries("openshift-authentication", "oauth-openshift", "ScalingReplicaSet", created, fromCount, toCount, start, true)
+func deploymentUpdatedObject(uid string, created time.Time) testEventObject {
+	return testEventObject{namespace: "openshift-authentication-operator", deployment: "authentication-operator",
+		reason: "DeploymentUpdated", uid: uid, created: created}
 }
 
-func eventSeries(namespace, deployment, reason string, created time.Time, fromCount, toCount int, start time.Time, varyMessage bool) monitorapi.Intervals {
+func operatorStatusChangedObject(uid string, created time.Time) testEventObject {
+	return testEventObject{namespace: "openshift-authentication-operator", deployment: "authentication-operator",
+		reason: "OperatorStatusChanged", uid: uid, created: created}
+}
+
+func aggregatedScalingObject(uid string, created time.Time) testEventObject {
+	return testEventObject{namespace: "openshift-authentication", deployment: "oauth-openshift",
+		reason: "ScalingReplicaSet", uid: uid, created: created, aggregated: true}
+}
+
+// series returns one observation of the object per count in [fromCount, toCount], spaced 5s
+// apart starting at start.
+func (o testEventObject) series(fromCount, toCount int, start time.Time) monitorapi.Intervals {
 	var series monitorapi.Intervals
 	for count := fromCount; count <= toCount; count++ {
 		at := start.Add(time.Duration(count-fromCount) * 5 * time.Second)
-		observation := oauthScaleEventNS(namespace, deployment, reason, count, at)
-		observation.Message.Annotations["firstTimestamp"] = created.Format(time.RFC3339)
-		if varyMessage {
+		observation := oauthScaleEventNS(o.namespace, o.deployment, o.reason, count, at)
+		observation.Message.Annotations["firstTimestamp"] = o.created.Format(time.RFC3339)
+		if o.uid != "" {
+			observation.Message.Annotations[monitorapi.AnnotationEventUID] = o.uid
+		}
+		if o.message != "" {
+			observation.Message.HumanMessage = o.message
+		}
+		if o.aggregated {
 			observation.Message.HumanMessage = fmt.Sprintf("(combined from similar events): Scaled up replica set oauth-openshift-%d from 0 to 3", count)
 			observation.Locator.Keys[monitorapi.LocatorHmsgKey] = fmt.Sprintf("%010d", count)
 		}
@@ -438,8 +464,22 @@ func TestAuthenticationComponentProxy_DiscountsInWindowOccurrences(t *testing.T)
 	}
 
 	created := from.Add(-time.Hour)
-	install := deploymentUpdatedSeries(created, 1, 4, created)
-	proxyTest := deploymentUpdatedSeries(created, 5, 16, from.Add(time.Minute))
+	du := deploymentUpdatedObject("du", created)
+	install := du.series(1, 4, created)
+	proxyTest := du.series(5, 16, from.Add(time.Minute))
+
+	// independent shares resource, reason and firstTimestamp with du but is another object.
+	independent := deploymentUpdatedObject("du-independent", created)
+	independent.message = "Updated Deployment.apps/oauth-openshift -n openshift-authentication because it changed (independent)"
+	independentWithoutUIDs := independent
+	independentWithoutUIDs.uid = ""
+	duWithoutUIDs := du
+	duWithoutUIDs.uid = ""
+
+	osc := operatorStatusChangedObject("osc", created)
+	scaling := aggregatedScalingObject("scaling", from)
+	scalingWithoutUIDs := scaling
+	scalingWithoutUIDs.uid = ""
 
 	for _, tc := range []struct {
 		name       string
@@ -451,29 +491,29 @@ func TestAuthenticationComponentProxy_DiscountsInWindowOccurrences(t *testing.T)
 		{
 			name:       "later rollout within threshold once proxy occurrences are discounted",
 			testStatus: "Passed",
-			events:     concat(install, proxyTest, deploymentUpdatedSeries(created, 17, 22, later)),
+			events:     concat(install, proxyTest, du.series(17, 22, later)),
 		},
 		{
 			name:       "duplicated observations are not double counted",
 			testStatus: "Passed",
-			events:     withDuplicates(concat(install, proxyTest, deploymentUpdatedSeries(created, 17, 22, later))),
+			events:     withDuplicates(concat(install, proxyTest, du.series(17, 22, later))),
 		},
 		{
 			name:       "later rollout still over threshold after the discount",
 			testStatus: "Passed",
-			events:     concat(install, proxyTest, deploymentUpdatedSeries(created, 17, 33, later)),
+			events:     concat(install, proxyTest, du.series(17, 33, later)),
 			wantFailed: true,
 		},
 		{
 			name:       "no discount without a passing proxy test",
 			testStatus: "Failed",
-			events:     concat(install, proxyTest, deploymentUpdatedSeries(created, 17, 22, later)),
+			events:     concat(install, proxyTest, du.series(17, 22, later)),
 			wantFailed: true,
 		},
 		{
 			name:       "recreated Event is not discounted by the occurrences of the old one",
 			testStatus: "Passed",
-			events:     concat(install, proxyTest, deploymentUpdatedSeries(later, 1, 21, later)),
+			events:     concat(install, proxyTest, deploymentUpdatedObject("du-recreated", later).series(1, 21, later)),
 			wantFailed: true,
 		},
 		{
@@ -481,8 +521,8 @@ func TestAuthenticationComponentProxy_DiscountsInWindowOccurrences(t *testing.T)
 			testStatus: "Passed",
 			// count jumps 4 -> 16 in one observation: those occurrences may predate the window.
 			events: concat(install,
-				deploymentUpdatedSeries(created, 16, 16, from.Add(time.Minute)),
-				deploymentUpdatedSeries(created, 17, 22, later)),
+				du.series(16, 16, from.Add(time.Minute)),
+				du.series(17, 22, later)),
 			wantFailed: true,
 		},
 		{
@@ -490,25 +530,87 @@ func TestAuthenticationComponentProxy_DiscountsInWindowOccurrences(t *testing.T)
 			testStatus: "Passed",
 			// count jumps 5 -> 16 between two observations that are both inside the window.
 			events: concat(install,
-				deploymentUpdatedSeries(created, 5, 5, from.Add(time.Minute)),
-				deploymentUpdatedSeries(created, 16, 16, from.Add(3*time.Minute)),
-				deploymentUpdatedSeries(created, 17, 22, later)),
+				du.series(5, 5, from.Add(time.Minute)),
+				du.series(16, 16, from.Add(3*time.Minute)),
+				du.series(17, 22, later)),
 		},
 		{
 			name:       "aggregated Event whose message changes on every update is discounted",
 			testStatus: "Passed",
 			namespace:  "openshift-authentication",
 			events: concat(
-				aggregatedScalingSeries(from, 2, 16, from.Add(time.Minute)),
-				aggregatedScalingSeries(from, 17, 30, later)),
+				scaling.series(2, 16, from.Add(time.Minute)),
+				scaling.series(17, 30, later)),
 		},
 		{
 			name:       "aggregated Event still over threshold after the discount",
 			testStatus: "Passed",
 			namespace:  "openshift-authentication",
 			events: concat(
-				aggregatedScalingSeries(from, 2, 16, from.Add(time.Minute)),
-				aggregatedScalingSeries(from, 17, 37, later)),
+				scaling.series(2, 16, from.Add(time.Minute)),
+				scaling.series(17, 37, later)),
+			wantFailed: true,
+		},
+		{
+			name:       "aggregated Event recorded without UID is conservatively not discounted",
+			testStatus: "Passed",
+			namespace:  "openshift-authentication",
+			events: concat(
+				scalingWithoutUIDs.series(2, 16, from.Add(time.Minute)),
+				scalingWithoutUIDs.series(17, 30, later)),
+			wantFailed: true,
+		},
+		{
+			name:       "independent Event sharing resource, reason and firstTimestamp inherits no discount",
+			testStatus: "Passed",
+			// du's in-window occurrences must not be credited to independent, whose 21 occurrences
+			// all happened outside the window.
+			events: concat(
+				independent.series(1, 20, created.Add(time.Second)),
+				du.series(1, 12, from.Add(time.Minute)),
+				independent.series(21, 21, later)),
+			wantFailed: true,
+		},
+		{
+			name:       "independent Event recorded without UIDs inherits no discount",
+			testStatus: "Passed",
+			events: concat(
+				independentWithoutUIDs.series(1, 20, created.Add(time.Second)),
+				duWithoutUIDs.series(1, 12, from.Add(time.Minute)),
+				independentWithoutUIDs.series(21, 21, later)),
+			wantFailed: true,
+		},
+		{
+			name:       "discount applies even when the cumulative count exceeds the in-window cap",
+			testStatus: "Passed",
+			// 21 in-window occurrences (cap 30) plus 10 outside: cumulative 31 > 30.
+			events: concat(
+				osc.series(1, 21, from.Add(time.Minute)),
+				osc.series(22, 31, later)),
+		},
+		{
+			name:       "aggregated Event discounted even when the cumulative count exceeds the in-window cap",
+			testStatus: "Passed",
+			namespace:  "openshift-authentication",
+			// 60 in-window occurrences (cap 70) plus 11 outside: cumulative 71 > 70.
+			events: concat(
+				scaling.series(1, 60, from.Add(time.Minute)),
+				scaling.series(61, 71, later)),
+		},
+		{
+			name:       "out-of-window occurrences over threshold rejected above the in-window cap",
+			testStatus: "Passed",
+			// 21 in-window occurrences plus 21 outside.
+			events: concat(
+				osc.series(1, 21, from.Add(time.Minute)),
+				osc.series(22, 42, later)),
+			wantFailed: true,
+		},
+		{
+			name:       "in-window cap still enforced",
+			testStatus: "Passed",
+			// 31 in-window occurrences exceed the OperatorStatusChanged cap of 30.
+			events:     osc.series(1, 31, from.Add(time.Minute)),
 			wantFailed: true,
 		},
 	} {
