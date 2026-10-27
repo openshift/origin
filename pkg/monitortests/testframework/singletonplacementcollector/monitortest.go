@@ -119,7 +119,7 @@ func (w *singletonPlacementCollector) collectStartUsage(ctx context.Context, kub
 	if err != nil {
 		return fmt.Errorf("failed to list singleton pods at start: %w", err)
 	}
-	if len(masters) < 2 {
+	if len(masters) == 0 {
 		return nil
 	}
 	// Best effort like the end of run usage: a metrics API outage leaves the start columns NULL.
@@ -173,8 +173,9 @@ func (w *singletonPlacementCollector) collectFromClient(ctx context.Context, kub
 	if err != nil {
 		return err
 	}
-	// HyperShift hosted clusters have no masters, and with one master there is no placement choice.
-	if len(masters) < 2 {
+	// HyperShift hosted clusters have no masters. Single node and two node topologies have little or
+	// no placement choice, but their per-pod memory usage is still worth recording.
+	if len(masters) == 0 {
 		logger.Infof("found %d master nodes, skipping singleton placement collection", len(masters))
 		return nil
 	}
@@ -229,7 +230,7 @@ func listSingletonPods(ctx context.Context, kubeClient kubernetes.Interface, now
 		masters = append(masters, name)
 	}
 	sort.Strings(masters)
-	if len(masters) < 2 {
+	if len(masters) == 0 {
 		return masters, nil, nil
 	}
 
