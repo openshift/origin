@@ -17,7 +17,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
-const netobservDeployedCondition = "NetworkObservabilityDeployed"
+const netobservInstalledCondition = "NetworkObservabilityInstalledByCNO"
 
 // This test requires a preinstalled NetObserv operator and manipulates the default catalog.
 var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Feature:NetObserv][Serial][Skipped:Disconnected]", g.Serial, func() {
@@ -80,7 +80,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Fe
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to delete %s", args[0])
 		}
 
-		g.By("deleting the FlowCollector CRD and clearing NetworkObservabilityDeployed")
+		g.By("deleting the FlowCollector CRD and clearing NetworkObservabilityInstalledByCNO")
 		err = oc.AsAdmin().WithoutNamespace().Run("delete").Args("crd", "flowcollectors.flows.netobserv.io", "--timeout=2m").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(netobservUpdateDeploymentCondition(ctx, oc, nil)).To(o.Succeed())
@@ -101,11 +101,11 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Fe
 			previousCounts[string(event.UID)] = event.Count
 		}
 
-		g.By("setting InstallAndEnable and checking InstallationInProgress without an installed operator")
+		g.By("setting InstallAndEnable and checking InstallingOperator without an installed operator")
 		o.Expect(netobservSetPolicy(ctx, oc, configv1.NetworkObservabilityInstallAndEnable)).To(o.Succeed())
 		o.Eventually(ctx, func() (string, error) {
 			return netobservDeploymentReason(ctx, oc)
-		}, 3*time.Minute, 5*time.Second).Should(o.Equal("InstallationInProgress"))
+		}, 3*time.Minute, 5*time.Second).Should(o.Equal("InstallingOperator"))
 		for _, args := range [][]string{
 			{"csv", "-n", netobservOperatorNamespace, "-o=name"},
 			{"crd", "flowcollectors.flows.netobserv.io", "--ignore-not-found", "-o=name"},
@@ -133,12 +133,12 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Fe
 			return false, nil
 		}, 5*time.Minute, 10*time.Second).Should(o.BeTrue())
 
-		g.By("moving the attempt timestamp past 20 minutes and checking DeploymentTimedOut")
+		g.By("moving the attempt timestamp past 20 minutes and checking OperatorInstallFailed")
 		expired := time.Now().Add(-21 * time.Minute)
 		o.Expect(netobservUpdateDeploymentCondition(ctx, oc, &expired)).To(o.Succeed())
 		o.Eventually(ctx, func() (string, error) {
 			return netobservDeploymentReason(ctx, oc)
-		}, 3*time.Minute, 5*time.Second).Should(o.Equal("DeploymentTimedOut"))
+		}, 3*time.Minute, 5*time.Second).Should(o.Equal("OperatorInstallFailed"))
 
 		g.By("checking that CNO-created NetObserv resources were deleted")
 		err = oc.AsAdmin().WithoutNamespace().Run("wait").Args(
@@ -150,15 +150,15 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Fe
 				resource, "-n", netobservOperatorNamespace, "-o=name",
 			).Outputs()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(strings.TrimSpace(output)).To(o.BeEmpty(), "%s must be absent after DeploymentTimedOut", resource)
+			o.Expect(strings.TrimSpace(output)).To(o.BeEmpty(), "%s must be absent after OperatorInstallFailed", resource)
 		}
 		output, _, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
 			"project", netobservOperatorNamespace, "--ignore-not-found", "-o=name",
 		).Outputs()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(strings.TrimSpace(output)).To(o.BeEmpty(), "project %s must be absent after DeploymentTimedOut", netobservOperatorNamespace)
+		o.Expect(strings.TrimSpace(output)).To(o.BeEmpty(), "project %s must be absent after OperatorInstallFailed", netobservOperatorNamespace)
 
-		g.By("checking that DeploymentTimedOut remains set with no new ResolutionFailed events for two minutes")
+		g.By("checking that OperatorInstallFailed remains set with no new ResolutionFailed events for two minutes")
 		events, err := oc.AdminKubeClient().CoreV1().Events("default").List(ctx, eventOptions)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		timedOutCounts := map[string]int32{}
@@ -170,8 +170,8 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Fe
 			if err != nil {
 				return err
 			}
-			if reason != "DeploymentTimedOut" {
-				return fmt.Errorf("expected DeploymentTimedOut, got %q", reason)
+			if reason != "OperatorInstallFailed" {
+				return fmt.Errorf("expected OperatorInstallFailed, got %q", reason)
 			}
 			events, err := oc.AdminKubeClient().CoreV1().Events("default").List(ctx, eventOptions)
 			if err != nil {
@@ -189,7 +189,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Fe
 			return nil
 		}, 2*time.Minute, 5*time.Second).Should(o.Succeed())
 
-		g.By("re-enabling default OperatorHub sources and clearing NetworkObservabilityDeployed")
+		g.By("re-enabling default OperatorHub sources and clearing NetworkObservabilityInstalledByCNO")
 		o.Expect(netobservSetDefaultSourcesDisabled(ctx, oc, false)).To(o.Succeed())
 		o.Expect(netobservUpdateDeploymentCondition(ctx, oc, nil)).To(o.Succeed())
 	}, g.SpecTimeout(30*time.Minute))
@@ -206,12 +206,12 @@ func netobservUpdateDeploymentCondition(ctx context.Context, oc *exutil.CLI, exp
 		found := false
 		conditions := make([]operatorv1.OperatorCondition, 0, len(network.Status.Conditions))
 		for _, condition := range network.Status.Conditions {
-			if condition.Type == netobservDeployedCondition {
+			if condition.Type == netobservInstalledCondition {
 				found = true
 				if expired == nil {
 					continue
 				}
-				if condition.Status != operatorv1.ConditionFalse || condition.Reason != "InstallationInProgress" {
+				if condition.Status != operatorv1.ConditionFalse || condition.Reason != "InstallingOperator" {
 					return fmt.Errorf("expected a blocked installation, got %+v", condition)
 				}
 				condition.LastTransitionTime = metav1.NewTime(*expired)
@@ -219,7 +219,7 @@ func netobservUpdateDeploymentCondition(ctx context.Context, oc *exutil.CLI, exp
 			conditions = append(conditions, condition)
 		}
 		if expired != nil && !found {
-			return fmt.Errorf("missing %s condition", netobservDeployedCondition)
+			return fmt.Errorf("missing %s condition", netobservInstalledCondition)
 		}
 		network.Status.Conditions = conditions
 		_, err = client.UpdateStatus(ctx, network, metav1.UpdateOptions{})
@@ -248,7 +248,7 @@ func netobservDeploymentReason(ctx context.Context, oc *exutil.CLI) (string, err
 		return "", err
 	}
 	for _, condition := range network.Status.Conditions {
-		if condition.Type == netobservDeployedCondition {
+		if condition.Type == netobservInstalledCondition {
 			return condition.Reason, nil
 		}
 	}
