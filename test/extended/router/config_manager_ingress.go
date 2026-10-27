@@ -165,19 +165,33 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 		err = shard.WaitForIngressControllerCondition(ctx, oc, dcmIngressTimeout, controller, ingressControllerReady...)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		// take the router pod, we need it to send requests to the router
-		svc, err := kubeClient.CoreV1().Services(nsRouter).Get(ctx, svcName, metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		listOpts := metav1.ListOptions{LabelSelector: labels.FormatLabels(svc.Spec.Selector)}
-		routerPodList, err := kubeClient.CoreV1().Pods(nsRouter).List(ctx, listOpts)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// remove the old router pod from the list in case it was not deleted yet
-		routerPods := slices.DeleteFunc(routerPodList.Items, func(pod corev1.Pod) bool {
-			return pod.DeletionTimestamp != nil
+		// take the router pod, we need it to send requests to the router.
+		//
+		// The verbosity patch above triggers its own Deployment rollout, independent of the
+		// IngressController's own status conditions waited on above. So the old and new
+		// ReplicaSets' pods can briefly coexist, both without a DeletionTimestamp, after the
+		// IngressController is reported Available. Poll until that rollout settles to 1 pod
+		// instead of taking a single snapshot.
+		var routerPods []corev1.Pod
+		err = wait.PollUntilContextTimeout(ctx, time.Second, dcmIngressTimeout, false, func(ctx context.Context) (done bool, err error) {
+			svc, err := kubeClient.CoreV1().Services(nsRouter).Get(ctx, svcName, metav1.GetOptions{})
+			if err != nil {
+				framework.Logf("error getting router service %q: %v", svcName, err)
+				return false, nil
+			}
+			listOpts := metav1.ListOptions{LabelSelector: labels.FormatLabels(svc.Spec.Selector)}
+			routerPodList, err := kubeClient.CoreV1().Pods(nsRouter).List(ctx, listOpts)
+			if err != nil {
+				framework.Logf("error listing router pods: %v", err)
+				return false, nil
+			}
+			// remove the old router pod from the list in case it was not deleted yet
+			routerPods = slices.DeleteFunc(routerPodList.Items, func(pod corev1.Pod) bool {
+				return pod.DeletionTimestamp != nil
+			})
+			return len(routerPods) == 1, nil
 		})
-		o.Expect(routerPods).To(o.HaveLen(1))
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Use the appropriate loopback address based on the pod's IP family.
 		// IPv6-only clusters won't have 127.0.0.1 available.
