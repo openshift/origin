@@ -24,7 +24,10 @@ type KMSPreflightResultApplyConfiguration struct {
 	// remoteKeyID is the remote key encryption key identifier from KMS v2
 	// StatusResponse.key_id. This is not a cryptographic key, but a unique
 	// representation of the remote key used to encrypt data.
-	// The value must be between 1 and 1024 characters.
+	// When omitted, no remote key identifier is available. This is expected
+	// when status is Failed, for example when the KMS provider could not be
+	// reached. When status is Succeeded, remoteKeyID is required.
+	// When set, the value must be between 1 and 1024 characters.
 	RemoteKeyID *string `json:"remoteKeyID,omitempty"`
 }
 

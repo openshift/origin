@@ -251,6 +251,11 @@ func (in ConsoleCustomization) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ConsoleIngress) OpenAPIModelName() string {
+	return "com.github.openshift.api.operator.v1.ConsoleIngress"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in ConsoleList) OpenAPIModelName() string {
 	return "com.github.openshift.api.operator.v1.ConsoleList"
 }
@@ -408,6 +413,11 @@ func (in GCPKMSKeyReference) OpenAPIModelName() string {
 // OpenAPIModelName returns the OpenAPI model name for this type.
 func (in GCPLoadBalancerParameters) OpenAPIModelName() string {
 	return "com.github.openshift.api.operator.v1.GCPLoadBalancerParameters"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in GatewayAPIIngressConfig) OpenAPIModelName() string {
+	return "com.github.openshift.api.operator.v1.GatewayAPIIngressConfig"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
@@ -583,6 +593,21 @@ func (in IngressControllerStatus) OpenAPIModelName() string {
 // OpenAPIModelName returns the OpenAPI model name for this type.
 func (in IngressControllerTuningOptions) OpenAPIModelName() string {
 	return "com.github.openshift.api.operator.v1.IngressControllerTuningOptions"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in IngressList) OpenAPIModelName() string {
+	return "com.github.openshift.api.operator.v1.IngressList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in IngressSpec) OpenAPIModelName() string {
+	return "com.github.openshift.api.operator.v1.IngressSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in IngressStatus) OpenAPIModelName() string {
+	return "com.github.openshift.api.operator.v1.IngressStatus"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.

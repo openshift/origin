@@ -106,6 +106,21 @@ func (in ContainerResource) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ControllerManager) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.ControllerManager"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ControllerManagerList) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.ControllerManagerList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ControllerManagerSpec) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.ControllerManagerSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in CustomPKIPolicy) OpenAPIModelName() string {
 	return "com.github.openshift.api.config.v1alpha1.CustomPKIPolicy"
 }

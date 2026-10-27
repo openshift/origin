@@ -11,7 +11,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	configv1 "github.com/openshift/api/config/v1"
-	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	promclient "github.com/openshift/origin/test/extended/prometheus/client"
@@ -82,9 +82,9 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 
 		mode := ingress.Spec.GatewayAPI.ManagementMode
 		if mode == "" {
-			mode = operatorv1alpha1.GatewayAPIManagementModeManaged
+			mode = operatorv1.GatewayAPIManagementModeManaged
 		}
-		o.Expect(mode).To(o.Equal(operatorv1alpha1.GatewayAPIManagementModeManaged),
+		o.Expect(mode).To(o.Equal(operatorv1.GatewayAPIManagementModeManaged),
 			"Expected Ingress CR to have Managed mode by default")
 
 		g.By("Verifying Gateway API CRDs are installed with bundle-version annotation")
@@ -170,18 +170,18 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		// Restore Managed mode in cleanup
 		g.DeferCleanup(func(ctx context.Context) {
 			e2e.Logf("Cleanup: Restoring Managed mode")
-			err := setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
+			err := setManagementMode(ctx, oc, operatorv1.GatewayAPIManagementModeManaged)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
+			err = waitForManagementModeTransition(ctx, oc, operatorv1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
 		g.By("Transitioning to Unmanaged mode")
-		err = setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeUnmanaged)
+		err = setManagementMode(ctx, oc, operatorv1.GatewayAPIManagementModeUnmanaged)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Waiting for transition to complete")
-		err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeUnmanaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
+		err = waitForManagementModeTransition(ctx, oc, operatorv1.GatewayAPIManagementModeUnmanaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Verifying Managed condition is False with reason Unmanaged")
@@ -234,26 +234,26 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		// Restore Managed mode in cleanup - register immediately to protect against early failures
 		g.DeferCleanup(func(ctx context.Context) {
 			e2e.Logf("Cleanup: Ensuring Managed mode for subsequent tests")
-			err := setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
+			err := setManagementMode(ctx, oc, operatorv1.GatewayAPIManagementModeManaged)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
+			err = waitForManagementModeTransition(ctx, oc, operatorv1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
 		// Transition to Unmanaged first
 		g.By("Transitioning to Unmanaged mode")
-		err := setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeUnmanaged)
+		err := setManagementMode(ctx, oc, operatorv1.GatewayAPIManagementModeUnmanaged)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeUnmanaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
+		err = waitForManagementModeTransition(ctx, oc, operatorv1.GatewayAPIManagementModeUnmanaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Transitioning back to Managed mode")
-		err = setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
+		err = setManagementMode(ctx, oc, operatorv1.GatewayAPIManagementModeManaged)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Waiting for transition to complete")
-		err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, 5*time.Minute))
+		err = waitForManagementModeTransition(ctx, oc, operatorv1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, 5*time.Minute))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Verifying VAP is recreated")
@@ -344,15 +344,15 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 	g.It("should block takeover when non-compliant CRDs exist - bundle-version mismatch", func(ctx context.Context) {
 		// Ensure we start in Managed mode, then go to Unmanaged
 		g.By("Ensuring Managed mode first")
-		err := setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
+		err := setManagementMode(ctx, oc, operatorv1.GatewayAPIManagementModeManaged)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
+		err = waitForManagementModeTransition(ctx, oc, operatorv1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Transitioning to Unmanaged mode")
-		err = setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeUnmanaged)
+		err = setManagementMode(ctx, oc, operatorv1.GatewayAPIManagementModeUnmanaged)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeUnmanaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
+		err = waitForManagementModeTransition(ctx, oc, operatorv1.GatewayAPIManagementModeUnmanaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Capture original bundle-version early for use in cleanup
@@ -375,7 +375,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 			e2e.Logf("Cleanup: Restoring Managed mode")
 
 			// Set Managed mode first so controller starts reconciliation
-			err := setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
+			err := setManagementMode(ctx, oc, operatorv1.GatewayAPIManagementModeManaged)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Then restore CRD compliance by deleting non-compliant version if present
@@ -400,7 +400,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 			}
 
 			// Wait for transition to succeed now that CRD compliance is restored
-			err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
+			err = waitForManagementModeTransition(ctx, oc, operatorv1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -419,7 +419,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		e2e.Logf("Modified CRD bundle-version from %s to v0.0.0-takeover-test", originalBundleVersion)
 
 		g.By("Attempting to switch to Managed mode")
-		err = setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
+		err = setManagementMode(ctx, oc, operatorv1.GatewayAPIManagementModeManaged)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Verifying takeover is blocked (Managed=False, reason=TakeoverBlocked)")
@@ -477,15 +477,15 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 	g.It("should block takeover when unknown Gateway API CRDs exist", func(ctx context.Context) {
 		// Ensure we start in Managed mode, then go to Unmanaged
 		g.By("Ensuring Managed mode first")
-		err := setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
+		err := setManagementMode(ctx, oc, operatorv1.GatewayAPIManagementModeManaged)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
+		err = waitForManagementModeTransition(ctx, oc, operatorv1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Transitioning to Unmanaged mode")
-		err = setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeUnmanaged)
+		err = setManagementMode(ctx, oc, operatorv1.GatewayAPIManagementModeUnmanaged)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeUnmanaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
+		err = waitForManagementModeTransition(ctx, oc, operatorv1.GatewayAPIManagementModeUnmanaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Cleanup: restore Managed mode. Registered immediately after the
@@ -494,9 +494,9 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		// tests if a later step in this test fails.
 		g.DeferCleanup(func(ctx context.Context) {
 			e2e.Logf("Cleanup: Restoring Managed mode")
-			err := setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
+			err := setManagementMode(ctx, oc, operatorv1.GatewayAPIManagementModeManaged)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
+			err = waitForManagementModeTransition(ctx, oc, operatorv1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -555,7 +555,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		})
 
 		g.By("Attempting to switch to Managed mode (should be blocked)")
-		err = setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
+		err = setManagementMode(ctx, oc, operatorv1.GatewayAPIManagementModeManaged)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Verifying takeover is blocked due to unknown CRD")
@@ -596,9 +596,9 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 			g.Skip("ingress operator metrics are not available in hosted cluster Prometheus on External/HyperShift topology")
 		}
 		g.By("Ensuring Managed mode")
-		err = setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
+		err = setManagementMode(ctx, oc, operatorv1.GatewayAPIManagementModeManaged)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
+		err = waitForManagementModeTransition(ctx, oc, operatorv1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Creating Prometheus client")
@@ -643,16 +643,16 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		// Transition to Unmanaged and verify metrics change
 		g.DeferCleanup(func(ctx context.Context) {
 			e2e.Logf("Cleanup: Restoring Managed mode")
-			err := setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
+			err := setManagementMode(ctx, oc, operatorv1.GatewayAPIManagementModeManaged)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
+			err = waitForManagementModeTransition(ctx, oc, operatorv1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
 		g.By("Transitioning to Unmanaged mode")
-		err = setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeUnmanaged)
+		err = setManagementMode(ctx, oc, operatorv1.GatewayAPIManagementModeUnmanaged)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeUnmanaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
+		err = waitForManagementModeTransition(ctx, oc, operatorv1.GatewayAPIManagementModeUnmanaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Verifying metrics show Unmanaged=1 and Managed=0 after transition")
@@ -692,13 +692,13 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 
 // Helper functions
 
-func getIngressCR(ctx context.Context, oc *exutil.CLI) (*operatorv1alpha1.Ingress, error) {
-	ingressClient := oc.AdminOperatorClient().OperatorV1alpha1().Ingresses()
+func getIngressCR(ctx context.Context, oc *exutil.CLI) (*operatorv1.Ingress, error) {
+	ingressClient := oc.AdminOperatorClient().OperatorV1().Ingresses()
 	return ingressClient.Get(ctx, ingressCRName, metav1.GetOptions{})
 }
 
-func setManagementMode(ctx context.Context, oc *exutil.CLI, mode operatorv1alpha1.GatewayAPIManagementMode) error {
-	ingressClient := oc.AdminOperatorClient().OperatorV1alpha1().Ingresses()
+func setManagementMode(ctx context.Context, oc *exutil.CLI, mode operatorv1.GatewayAPIManagementMode) error {
+	ingressClient := oc.AdminOperatorClient().OperatorV1().Ingresses()
 
 	return wait.PollUntilContextTimeout(ctx, 2*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
 		ingress, err := ingressClient.Get(ctx, ingressCRName, metav1.GetOptions{})
@@ -719,13 +719,13 @@ func setManagementMode(ctx context.Context, oc *exutil.CLI, mode operatorv1alpha
 	})
 }
 
-func waitForManagementModeTransition(ctx context.Context, oc *exutil.CLI, expectedMode operatorv1alpha1.GatewayAPIManagementMode, timeout time.Duration) error {
-	ingressClient := oc.AdminOperatorClient().OperatorV1alpha1().Ingresses()
+func waitForManagementModeTransition(ctx context.Context, oc *exutil.CLI, expectedMode operatorv1.GatewayAPIManagementMode, timeout time.Duration) error {
+	ingressClient := oc.AdminOperatorClient().OperatorV1().Ingresses()
 
 	var expectedConditionStatus metav1.ConditionStatus
 	var expectedReason string
 
-	if expectedMode == operatorv1alpha1.GatewayAPIManagementModeManaged {
+	if expectedMode == operatorv1.GatewayAPIManagementModeManaged {
 		expectedConditionStatus = metav1.ConditionTrue
 		expectedReason = "" // Any reason is acceptable for True
 	} else {
