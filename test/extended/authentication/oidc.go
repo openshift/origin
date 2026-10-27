@@ -1424,6 +1424,109 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 		})
 	})
 
+	g.Describe("[OCPFeatureGate:AuthenticationComponentProxyExternalOIDC][Skipped:MicroShift]", g.Ordered, func() {
+		var (
+			proxyForExternalOIDCCleanUps []removalFunc
+
+			httpProxyURL  string
+			httpsProxyURL string
+			caCertPEM     []byte
+
+			// Deploy Squid in its own dedicated namespace (not keycloakNamespace), so that
+			// deploySquidProxy's namespace create/delete never collides with or tears down the
+			// shared Keycloak namespace used by the other external-OIDC describe blocks.
+			proxyNamespace = toNamespace([]string{"proxy-for-external-oidc", rand.String(8)})
+
+			externalOIDCComponentProxyTests ExternalOIDCComponentProxyTests
+		)
+
+		g.BeforeAll(func() {
+			var err error
+			externalOIDCComponentProxyTests, err = NewExternalOIDCComponentProxyTests(oc)
+			o.Expect(err).
+				NotTo(o.HaveOccurred(), "should instantiate external oidc component proxy tests")
+
+			g.By("storing operator authentiation state for restoring it after test")
+			restoreOldOperatorAuthentication, err := saveAndRestoreOperatorAuthentication(ctx, oc)
+			o.Expect(err).
+				NotTo(o.HaveOccurred(), "should not encounter and error storing the operator authentication/cluster data")
+			proxyForExternalOIDCCleanUps = append(proxyForExternalOIDCCleanUps, restoreOldOperatorAuthentication)
+
+			g.By("clearing any pre-existing component proxy so the test starts from a clean state")
+			err = updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{})
+			o.Expect(err).
+				NotTo(o.HaveOccurred(), "should clear any pre-existing component proxy config")
+
+			err = waitForOperatorToPickUpChanges(ctx, oc, "authentication")
+			o.Expect(err).
+				NotTo(o.HaveOccurred(), "operator should reconcile after clearing component proxy")
+
+			g.By("deploying Squid forward proxy")
+			var proxyCleanup removalFunc
+			httpProxyURL, httpsProxyURL, caCertPEM, proxyCleanup, err = deploySquidProxy(ctx, proxyNamespace, oc)
+			proxyForExternalOIDCCleanUps = append(proxyForExternalOIDCCleanUps, proxyCleanup)
+			o.Expect(err).
+				NotTo(o.HaveOccurred(), "should not encounter an error during squid deployment")
+
+			g.By("configuring OIDC Authentication")
+			originalAuthState, updatedAuthState, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, nil)
+			o.Expect(err).
+				NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
+
+			// configureOIDCAuthentication installs the suite's clean Keycloak provider (keep it — do NOT
+			// swap for ensureOIDCConfigured, which early-returns for any pre-existing OIDC provider and
+			// could leave a different provider in place). But BeforeAll reruns before each It (see the
+			// note at the top of this file); on reruns the Update is a spec no-op, so only wait for a
+			// kube-apiserver rollout when the spec actually changed. An unconditional wait would block
+			// the full waitForRollout timeout waiting for a revision that never rolls.
+			if !equality.Semantic.DeepEqual(originalAuthState.Spec, updatedAuthState.Spec) {
+				waitForRollout(ctx, oc)
+			}
+			waitForHealthyOIDCClients(ctx, oc)
+
+			g.By("verifing oauth-apiserver no proxy config before test start")
+			err = externalOIDCComponentProxyTests.proxyVerifier.AssertNoConfig(ctx)
+			o.Expect(err).
+				NotTo(o.HaveOccurred(), "oauth-apiserver should have no proxy config before test start")
+		})
+
+		g.It("operator should propagate proxy configuration to the oauth-apiserver operand", func() {
+			externalOIDCComponentProxyTests.testExternalOIDCOperandProxyConfiguration(ctx, httpProxyURL, nil)
+		})
+		g.It("operator should propagate proxy configuration and trustedCA to the oauth-apiserver operand", func() {
+			externalOIDCComponentProxyTests.testExternalOIDCOperandProxyConfiguration(ctx, httpsProxyURL, caCertPEM)
+		})
+		g.It("operator should fall back to original configuration on spec.proxy removal", func() {
+			externalOIDCComponentProxyTests.testExternalOIDCFallbackOnProxyRemoval(ctx, httpProxyURL)
+		})
+		g.It("operator should go Degraded when spec.proxy.trustedCA references a missing ConfigMap", func() {
+			externalOIDCComponentProxyTests.testExternalOIDCOperatorDegradedOnMissingCA(ctx, httpsProxyURL)
+		})
+		g.It("operator should re-sync trustedCA ConfigMap content to the oauth-apiserver operand when the source changes", func() {
+			externalOIDCComponentProxyTests.testExternalOIDCOperatorResyncsTrustedCA(ctx, httpsProxyURL, caCertPEM)
+		})
+		g.It("oauth-apiserver should perform full OIDC login flow through the proxy when auth proxy config is applied", func() {
+			externalOIDCComponentProxyTests.testExternalOIDCClaimsSourcingThroughProxy(ctx, keycloakCli, keycloakNamespace, proxyNamespace, username, password, group, httpProxyURL, nil)
+		})
+		g.It("oauth-apiserver/operator should hot-reload mounted CA file on change when spec.proxy.trustedCA is set", func() {
+			externalOIDCComponentProxyTests.testExternalOIDCHotReloadCAFileChange(ctx, keycloakCli, keycloakNamespace, proxyNamespace, username, password, group, httpsProxyURL, caCertPEM)
+		})
+		g.It("oauth-apiserver should bypass proxy by directly connecting to idp to perform OIDC login flow when spec.proxy.noProxy contains idp", func() {
+			externalOIDCComponentProxyTests.testExternalOIDCBypassNoProxyHost(ctx, keycloakCli, keycloakNamespace, proxyNamespace, username, password, group, httpProxyURL, httpsProxyURL, caCertPEM)
+		})
+
+		g.AfterAll(func() {
+			err := removeResources(ctx, proxyForExternalOIDCCleanUps...)
+			o.Expect(err).
+				NotTo(o.HaveOccurred(), "should not encounter an error during proxy for external oidc clean up")
+
+			g.By("Waiting for operators to be stable after test")
+			err = operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
+			o.Expect(err).
+				NotTo(o.HaveOccurred())
+		})
+	})
+
 	g.AfterAll(func() {
 		err, modified := resetAuthentication(ctx, oc, originalAuth)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")

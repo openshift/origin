@@ -37,3 +37,4 @@ vendor/github.com/prometheus/procfs/fixtures/26231/exe
 
 # APM dependencies
 apm_modules/
+mise.toml
