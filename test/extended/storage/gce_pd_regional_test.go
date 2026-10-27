@@ -12,6 +12,55 @@ import (
 	clienttesting "k8s.io/client-go/testing"
 )
 
+func TestRegionalVolumeParams(t *testing.T) {
+	tests := []struct {
+		defaultType string
+		diskType    string
+		size        string
+		replication string
+		ok          bool
+	}{
+		{defaultType: "", diskType: "pd-standard", size: "200Gi", replication: "regional-pd", ok: true},
+		{defaultType: " PD-Standard ", diskType: "pd-standard", size: "200Gi", replication: "regional-pd", ok: true},
+		{defaultType: "pd-balanced", diskType: "pd-balanced", size: "10Gi", replication: "regional-pd", ok: true},
+		{defaultType: "pd-ssd", diskType: "pd-ssd", size: "10Gi", replication: "regional-pd", ok: true},
+		{defaultType: "hyperdisk-balanced", diskType: "hyperdisk-balanced-high-availability", size: "10Gi", ok: true},
+		{defaultType: "hyperdisk-throughput"},
+	}
+	for _, tc := range tests {
+		params, size, ok := regionalVolumeParams(tc.defaultType)
+		if ok != tc.ok || size != tc.size || params["type"] != tc.diskType || params["replication-type"] != tc.replication {
+			t.Errorf("regionalVolumeParams(%q) = %v, %q, %v; want type %q, size %q, replication %q, ok %v",
+				tc.defaultType, params, size, ok, tc.diskType, tc.size, tc.replication, tc.ok)
+		}
+	}
+}
+
+func TestMissingDiskTypeMessage(t *testing.T) {
+	const (
+		ns      = "ns"
+		pvcName = "pvc"
+		message = "The referenced diskType resource cannot be found."
+	)
+	pvc := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Name: pvcName, Namespace: ns},
+		Status:     v1.PersistentVolumeClaimStatus{Phase: v1.ClaimPending},
+	}
+	event := &v1.Event{
+		ObjectMeta:     metav1.ObjectMeta{Name: "ev", Namespace: ns},
+		InvolvedObject: v1.ObjectReference{Kind: "PersistentVolumeClaim", Name: pvcName},
+		Message:        message,
+	}
+	if got := missingDiskTypeMessage(context.Background(), fake.NewClientset(pvc, event), ns, pvcName); got != message {
+		t.Fatalf("missingDiskTypeMessage() = %q, want %q", got, message)
+	}
+
+	pvc.Spec.VolumeName = "pv"
+	if got := missingDiskTypeMessage(context.Background(), fake.NewClientset(pvc, event), ns, pvcName); got != "" {
+		t.Fatalf("missingDiskTypeMessage() = %q, want empty", got)
+	}
+}
+
 func TestFamilyLacksPDStandard(t *testing.T) {
 	tests := []struct {
 		instanceType string
