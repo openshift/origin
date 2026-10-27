@@ -1,0 +1,87 @@
+version: "3"
+
+tasks:
+    default: task --list-all
+
+    # Continues Development ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    watcher:
+        desc: watcher
+        sources:
+            - ./**/*.go
+        method: timestamp
+        cmds:
+            - task: lints
+            - task: test-summary
+            - task: build-race
+
+    # Generating assets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    generate:
+        desc: Generate Assets
+        sources:
+            - ./checkers_*.go
+            - ./cmd/internal/**/*.go
+        method: timestamp
+        cmds:
+            - task generate-mirror-table
+            - task generate-tests
+
+    generate-mirror-table:
+        desc: Generates Assets at testdata
+        cmd: go run ./cmd/internal/mirror-table/ > ./MIRROR_FUNCS.md
+
+    generate-tests:
+        desc: Generate Asset MIRROR_FUNCS.md
+        cmd: go run ./cmd/internal/tests/ ./testdata
+
+    # Run Tests ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    tests:
+        desc: Run Tests
+        cmd: |
+            go test -v -count=1 -race \
+                -failfast \
+                -parallel=2 \
+                -timeout=1m \
+                -covermode=atomic \
+                -coverpkg $(go list ./... | grep -v -E "cmd" | tr "\n" ",") \
+                -coverprofile=coverage.cov ./...
+
+        ignore_error: true
+
+    test-summary:
+        desc: Run Tests (Summary)
+        cmd: |
+            go test -v -count=1 -race \
+                -failfast \
+                -parallel=2 \
+                -timeout=1m \
+                -covermode=atomic \
+                -coverpkg $(go list ./... | grep -v -E "cmd" | tr "\n" ",") \
+                -coverprofile=coverage.cov --json ./... | tparse -all
+        ignore_error: true
+
+    testcase: go test -v -failfast -count=1 -run "TestAll/{{ .Case }}" ./...
+
+    # Build Artifacts ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    build:
+        desc: Build binary
+        cmd: go build -trimpath -ldflags="-w -s" -o bin/mirror ./cmd/mirror/
+
+    build-race:
+        desc: Build binary with race flag
+        cmd: go build -race -trimpath -ldflags="-w -s" -o bin/mirror ./cmd/mirror/
+
+    install:
+        desc: Install binary
+        cmd: go install -trimpath -v -ldflags="-w -s" ./cmd/mirror
+
+    # Linter ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    lints: golangci-lint run --no-config ./...
+
+    # Other
+    cover:
+        desc: Run Coverage
+        cmd: go tool cover -html=coverage.cov
+
+    test-release:
+        desc: Testing Release
+        cmd: goreleaser release --snapshot --clean

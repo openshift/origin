@@ -1,0 +1,410 @@
+version: "2"
+
+linters:
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - contextcheck
+    - copyloopvar
+    - dupword
+    - durationcheck
+    - errname
+    - errorlint
+    - gochecknoglobals
+    - gochecknoinits
+    - gocritic
+    - godot
+    - gomoddirectives
+    - gosec
+    - intrange
+    - mirror
+    - misspell
+    - nakedret
+    - nilerr
+    - nilnil
+    - noctx
+    - nolintlint
+    - perfsprint
+    - prealloc
+    - predeclared
+    - promlinter
+    - reassign
+    - revive
+    - rowserrcheck
+    - sloglint
+    - sqlclosecheck
+    - staticcheck
+    - tagliatelle
+    - testableexamples
+    - testifylint
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - wastedassign
+  disable:
+    - containedctx
+    - cyclop
+    - decorder
+    - depguard
+    - dogsled
+    - dupl
+    - err113
+    - errchkjson
+    - exhaustive
+    - exhaustruct
+    - forbidigo
+    - forcetypeassert
+    - funlen
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gocognit
+    - goconst
+    - gocyclo
+    - godox
+    - goheader
+    - gomodguard
+    - goprintffuncname
+    - grouper
+    - importas
+    - interfacebloat
+    - ireturn
+    - lll
+    - loggercheck
+    - maintidx
+    - makezero
+    - mnd
+    - musttag
+    - nestif
+    - nlreturn
+    - nonamedreturns
+    - nosprintfhostport
+    - paralleltest
+    - testpackage
+    - varnamelen
+    - whitespace
+    - wrapcheck
+    - wsl
+
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+      exclude-functions:
+        - io/ioutil.ReadFile
+        - io.Copy(*bytes.Buffer)
+        - io.Copy(os.Stdout)
+    gocritic:
+      disabled-checks:
+        - hugeParam
+        - rangeExprCopy
+        - rangeValCopy
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+    godot:
+      scope: all
+    govet:
+      disable:
+        - fieldalignment
+    nakedret:
+      max-func-lines: 1
+    revive:
+      max-open-files: 2048
+      confidence: 0.1
+      severity: error
+      enable-all-rules: true
+      rules:
+        - name: add-constant
+          arguments:
+            - allowFloats: 0.0,0.,1.0,1.,2.0,2.
+              allowInts: 0,1,2
+              allowStrs: '""'
+              maxLitCount: "3"
+          severity: warning
+          disabled: false
+        - name: argument-limit
+          arguments:
+            - 4
+          severity: warning
+          disabled: false
+        - name: atomic
+          severity: warning
+          disabled: false
+        - name: banned-characters
+          severity: warning
+          disabled: false
+        - name: bare-return
+          severity: warning
+          disabled: false
+        - name: blank-imports
+          severity: warning
+          disabled: false
+        - name: bool-literal-in-expr
+          severity: warning
+          disabled: false
+        - name: call-to-gc
+          severity: warning
+          disabled: false
+        - name: cognitive-complexity
+          arguments:
+            - 7
+          severity: warning
+          disabled: true
+        - name: comment-spacings
+          severity: warning
+          disabled: false
+        - name: confusing-naming
+          severity: warning
+          disabled: false
+        - name: confusing-results
+          severity: warning
+          disabled: false
+        - name: constant-logical-expr
+          severity: warning
+          disabled: false
+        - name: context-as-argument
+          severity: warning
+          disabled: false
+        - name: context-keys-type
+          severity: warning
+          disabled: false
+        - name: cyclomatic
+          arguments:
+            - 3
+          severity: warning
+          disabled: true
+        - name: datarace
+          severity: warning
+          disabled: false
+        - name: deep-exit
+          severity: warning
+          disabled: true
+        - name: defer
+          severity: warning
+          disabled: false
+        - name: dot-imports
+          severity: warning
+          disabled: false
+        - name: duplicated-imports
+          severity: warning
+          disabled: false
+        - name: early-return
+          severity: warning
+          disabled: false
+        - name: empty-block
+          severity: warning
+          disabled: false
+        - name: empty-lines
+          severity: warning
+          disabled: false
+        - name: enforce-map-style
+          severity: warning
+          disabled: false
+        - name: error-naming
+          severity: warning
+          disabled: false
+        - name: error-return
+          severity: warning
+          disabled: false
+        - name: function-length
+          arguments:
+            - 10
+            - 0
+          severity: warning
+          disabled: true
+        - name: error-strings
+          severity: warning
+          disabled: false
+        - name: errorf
+          severity: warning
+          disabled: false
+        - name: exported
+          severity: warning
+          disabled: false
+        - name: file-header
+          severity: warning
+          disabled: true
+        - name: flag-parameter
+          severity: warning
+          disabled: false
+        - name: function-result-limit
+          arguments:
+            - 2
+          severity: warning
+          disabled: false
+        - name: get-return
+          severity: warning
+          disabled: false
+        - name: identical-branches
+          severity: warning
+          disabled: false
+        - name: if-return
+          severity: warning
+          disabled: false
+        - name: increment-decrement
+          severity: warning
+          disabled: false
+        - name: indent-error-flow
+          severity: warning
+          disabled: false
+        - name: import-alias-naming
+          arguments:
+            - ^[a-z][a-z0-9]{0,}$
+          severity: warning
+          disabled: false
+        - name: imports-blocklist
+          severity: warning
+          disabled: false
+        - name: import-shadowing
+          severity: warning
+          disabled: false
+        - name: line-length-limit
+          arguments:
+            - 80
+          severity: warning
+          disabled: true
+        - name: max-public-structs
+          arguments:
+            - 3
+          severity: warning
+          disabled: false
+        - name: modifies-parameter
+          severity: warning
+          disabled: false
+        - name: modifies-value-receiver
+          severity: warning
+          disabled: false
+        - name: nested-structs
+          severity: warning
+          disabled: false
+        - name: optimize-operands-order
+          severity: warning
+          disabled: false
+        - name: package-comments
+          severity: warning
+          disabled: false
+        - name: range
+          severity: warning
+          disabled: false
+        - name: range-val-in-closure
+          severity: warning
+          disabled: false
+        - name: range-val-address
+          severity: warning
+          disabled: false
+        - name: receiver-naming
+          severity: warning
+          disabled: false
+        - name: redundant-import-alias
+          severity: warning
+          disabled: false
+        - name: redefines-builtin-id
+          severity: warning
+          disabled: false
+        - name: string-of-int
+          severity: warning
+          disabled: false
+        - name: string-format
+          arguments:
+            - - core.WriteError[1].Message
+              - /^([^A-Z]|$)/
+              - must not start with a capital letter
+            - - fmt.Errorf[0]
+              - /(^|[^\.!?])$/
+              - must not end in punctuation
+            - - panic
+              - /^[^\n]*$/
+              - must not contain line breaks
+          severity: warning
+          disabled: false
+        - name: struct-tag
+          arguments:
+            - json,inline
+            - bson,outline,gnu
+          severity: warning
+          disabled: false
+        - name: superfluous-else
+          severity: warning
+          disabled: false
+        - name: time-equal
+          severity: warning
+          disabled: false
+        - name: time-naming
+          severity: warning
+          disabled: false
+        - name: var-naming
+          severity: warning
+          disabled: false
+        - name: var-declaration
+          severity: warning
+          disabled: false
+        - name: unconditional-recursion
+          severity: warning
+          disabled: false
+        - name: unexported-naming
+          severity: warning
+          disabled: false
+        - name: unexported-return
+          severity: warning
+          disabled: false
+        - name: unhandled-error
+          severity: warning
+          disabled: false
+        - name: unnecessary-stmt
+          severity: warning
+          disabled: false
+        - name: unreachable-code
+          severity: warning
+          disabled: false
+        - name: unused-parameter
+          arguments:
+            - allowRegex: ^_
+          severity: warning
+          disabled: false
+        - name: unused-receiver
+          severity: warning
+          disabled: false
+        - name: useless-break
+          severity: warning
+          disabled: false
+        - name: waitgroup-by-value
+          severity: warning
+          disabled: false
+    tagliatelle:
+      case:
+        rules:
+          avro: snake
+          bson: camel
+          json: snake
+          mapstructure: kebab
+          xml: camel
+          yaml: snake
+  exclusions:
+    presets:
+      - comments
+      - common-false-positives
+      - std-error-handling
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - localmodule

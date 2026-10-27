@@ -1,0 +1,122 @@
+version: "2"
+run:
+  tests: true
+output:
+  show-stats: false
+  formats:
+    text:
+      print-issued-lines: false
+      colors: true
+linters:
+  default: all
+  disable:
+    - exhaustive
+    - prealloc
+    - dupl
+    - godoclint
+    - cyclop
+    - depguard
+    - dupword
+    - err113
+    - errname
+    - errorlint
+    - exhaustruct
+    - forbidigo
+    - forcetypeassert
+    - funlen
+    - gochecknoglobals
+    - gocognit
+    - gocritic
+    - gocyclo
+    - godot
+    - godox
+    - gomoddirectives
+    - ireturn
+    - lll
+    - maintidx
+    - mnd
+    - nakedret
+    - nestif
+    - nilnil
+    - nlreturn
+    - nolintlint
+    - nonamedreturns
+    - paralleltest
+    - perfsprint
+    - predeclared
+    - recvcheck
+    - revive
+    - testpackage
+    - varnamelen
+    - wastedassign
+    - whitespace
+    - wsl
+    - wsl_v5
+    - funcorder
+    - noinlineerr
+    - tagalign
+    - goconst
+    - gochecknoinits
+    - durationcheck
+    - embeddedstructfieldcheck
+    - wrapcheck
+    - gomodguard
+  settings:
+    dupl:
+      threshold: 100
+    exhaustive:
+      default-signifies-exhaustive: true
+    goconst:
+      min-len: 8
+      min-occurrences: 3
+    gocyclo:
+      min-complexity: 10
+    wrapcheck:
+      report-internal-errors: false
+      ignore-package-globs:
+        - github.com/alecthomas/errors
+  exclusions:
+    generated: lax
+    rules:
+      - path: (.+)\.go$
+        text: "^(G104|G204|G307|G304):"
+      - path: (.+)\.go$
+        text: Error return value of .(.*\.Help|.*\.MarkFlagRequired|(os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv). is not checked
+      - path: (.+)\.go$
+        text: exported method `(.*\.MarshalJSON|.*\.UnmarshalJSON|.*\.EntityURN|.*\.GoString|.*\.Pos)` should have comment or be unexported
+      - path: (.+)\.go$
+        text: uses unkeyed fields
+      - path: (.+)\.go$
+        text: declaration of "err" shadows declaration
+      - path: (.+)\.go$
+        text: bad syntax for struct tag key
+      - path: (.+)\.go$
+        text: bad syntax for struct tag pair
+      - path: (.+)\.go$
+        text: ^ST1012
+      - path: (.+)\.go$
+        text: log/slog.Logger.*must not be called
+      - path: (.+)_test\.go$
+        text: error returned from external package is unwrapped
+      - linters: [staticcheck]
+        text: QF1008
+      - text: "Error return value of `.*.Write` is not checked"
+        linters: [errcheck]
+        path: (.+)_test\.go$
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
