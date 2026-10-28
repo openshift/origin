@@ -97,23 +97,23 @@ func TestProxyConfigString(t *testing.T) {
 	}
 }
 
-func TestProxyEnvMatchesURL(t *testing.T) {
+func TestProxyURLsEqual(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		name     string
-		value    string
+		value    *url.URL
 		expected *url.URL
 		want     bool
 	}{
-		{name: "empty env and nil URL", want: true},
-		{name: "nonempty env and nil URL", value: "http://proxy:3128"},
-		{name: "empty env and configured URL", expected: MustParse("http://proxy:3128")},
-		{name: "matching URL", value: "http://proxy:3128", expected: MustParse("http://proxy:3128"), want: true},
-		{name: "different URL", value: "http://other:3128", expected: MustParse("http://proxy:3128")},
+		{name: "nil URLs", want: true},
+		{name: "configured URL and nil", value: MustParse("http://proxy:3128")},
+		{name: "nil and configured URL", expected: MustParse("http://proxy:3128")},
+		{name: "matching URL", value: MustParse("http://proxy:3128"), expected: MustParse("http://proxy:3128"), want: true},
+		{name: "different URL", value: MustParse("http://other:3128"), expected: MustParse("http://proxy:3128")},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := proxyEnvMatchesURL(tc.value, tc.expected); got != tc.want {
-				t.Errorf("proxyEnvMatchesURL(%q, %v) = %v, want %v", tc.value, tc.expected, got, tc.want)
+			if got := proxyURLsEqual(tc.value, tc.expected); got != tc.want {
+				t.Errorf("proxyURLsEqual(%v, %v) = %v, want %v", tc.value, tc.expected, got, tc.want)
 			}
 		})
 	}
@@ -156,7 +156,7 @@ func TestProxyConfigValid(t *testing.T) {
 		{
 			name: "CA without URLs",
 			config: ProxyConfig{
-				UpStreamCACertPEM: []byte("test CA"),
+				UpstreamCACertPEM: []byte("test CA"),
 			},
 		},
 	} {
@@ -169,12 +169,12 @@ func TestProxyConfigValid(t *testing.T) {
 	}
 }
 
-func TestProxyConfigEqual(t *testing.T) {
+func TestProxyConfigMatches(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name string
-		a, b ProxyConfig
-		want bool
+		name             string
+		a, b             ProxyConfig
+		want, asymmetric bool
 	}{
 		{
 			name: "empty",
@@ -263,32 +263,54 @@ func TestProxyConfigEqual(t *testing.T) {
 			b: ProxyConfig{
 				NoProxy: sets.New(".svc", "localhost"),
 			},
+			asymmetric: true,
+		},
+		{
+			name: "one noProxy has values the other is empty",
+			a: ProxyConfig{
+				NoProxy: sets.New("localhost"),
+			},
+			b: ProxyConfig{
+				NoProxy: sets.New[string](),
+			},
 		},
 		{
 			name: "different CA ignored",
 			a: ProxyConfig{
-				UpStreamCACertPEM: []byte("CA A"),
+				UpstreamCACertPEM: []byte("CA A"),
 			},
 			b: ProxyConfig{
-				UpStreamCACertPEM: []byte("CA B"),
+				UpstreamCACertPEM: []byte("CA B"),
 			},
 			want: true,
 		},
 		{
 			name: "missing CA ignored",
 			a: ProxyConfig{
-				UpStreamCACertPEM: []byte("CA A"),
+				UpstreamCACertPEM: []byte("CA A"),
 			},
 			want: true,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			if got := tc.a.Equal(tc.b); got != tc.want {
-				t.Errorf("a.Equal(b) = %v, want %v", got, tc.want)
-			}
-			if got := tc.b.Equal(tc.a); got != tc.want {
-				t.Errorf("b.Equal(a) = %v, want %v", got, tc.want)
+			AExpectedB := tc.a.MatchesExpected(tc.b)
+			BExpectedA := tc.b.MatchesExpected(tc.a)
+
+			if !tc.asymmetric {
+				if AExpectedB != tc.want {
+					t.Errorf("a.MatchesExpected(b) = %v, want %v", AExpectedB, tc.want)
+				}
+				if BExpectedA != tc.want {
+					t.Errorf("b.MatchesExpected(a) = %v, want %v", BExpectedA, tc.want)
+				}
+			} else {
+				if AExpectedB != tc.want {
+					t.Errorf("a.MatchesExpected(b) = %v, want %v", AExpectedB, tc.want)
+				}
+				if BExpectedA == tc.want {
+					t.Errorf("b.MatchesExpected(a) = %v, want %v", BExpectedA, !tc.want)
+				}
 			}
 		})
 	}
@@ -344,27 +366,27 @@ func TestUpstreamProxyConfig(t *testing.T) {
 			wantLines: []string{"cache_peer a parent 443 0 no-query name=upstream_http tls"},
 		},
 		{
-			name: "TLS for HTTPS destinations with empty CA", proxy: &ProxyConfig{HttpsProxy: MustParse("https://b:3129"), UpStreamCACertPEM: []byte{}}, wantPeers: 1,
+			name: "TLS for HTTPS destinations with empty CA", proxy: &ProxyConfig{HttpsProxy: MustParse("https://b:3129"), UpstreamCACertPEM: []byte{}}, wantPeers: 1,
 			wantLines: []string{"cache_peer b parent 3129 0 no-query name=upstream_https tls"},
 		},
 		{
-			name: "CA for TLS HTTP peer only", proxy: &ProxyConfig{HttpProxy: MustParse("https://a"), HttpsProxy: MustParse("http://b"), UpStreamCACertPEM: []byte("test CA")}, wantPeers: 2, wantCA: true,
+			name: "CA for TLS HTTP peer only", proxy: &ProxyConfig{HttpProxy: MustParse("https://a"), HttpsProxy: MustParse("http://b"), UpstreamCACertPEM: []byte("test CA")}, wantPeers: 2, wantCA: true,
 			wantLines: []string{"cache_peer a parent 443 0 no-query name=upstream_http tls tls-cafile=" + UpstreamCACertPath, "cache_peer b parent 80 0 no-query name=upstream_https"},
 		},
 		{
-			name: "CA for TLS HTTPS peer only", proxy: &ProxyConfig{HttpProxy: MustParse("http://a"), HttpsProxy: MustParse("https://b"), UpStreamCACertPEM: []byte("test CA")}, wantPeers: 2, wantCA: true,
+			name: "CA for TLS HTTPS peer only", proxy: &ProxyConfig{HttpProxy: MustParse("http://a"), HttpsProxy: MustParse("https://b"), UpstreamCACertPEM: []byte("test CA")}, wantPeers: 2, wantCA: true,
 			wantLines: []string{"cache_peer a parent 80 0 no-query name=upstream_http", "cache_peer b parent 443 0 no-query name=upstream_https tls tls-cafile=" + UpstreamCACertPath},
 		},
 		{
-			name: "CA for both TLS peers", proxy: &ProxyConfig{HttpProxy: MustParse("https://a"), HttpsProxy: MustParse("https://b"), UpStreamCACertPEM: []byte("test CA")}, wantPeers: 2, wantCA: true,
+			name: "CA for both TLS peers", proxy: &ProxyConfig{HttpProxy: MustParse("https://a"), HttpsProxy: MustParse("https://b"), UpstreamCACertPEM: []byte("test CA")}, wantPeers: 2, wantCA: true,
 			wantLines: []string{"cache_peer a parent 443 0 no-query name=upstream_http tls tls-cafile=" + UpstreamCACertPath, "cache_peer b parent 443 0 no-query name=upstream_https tls tls-cafile=" + UpstreamCACertPath},
 		},
 		{
-			name: "shared TLS peer preserves CA", proxy: &ProxyConfig{HttpProxy: MustParse("https://a"), HttpsProxy: MustParse("https://a"), UpStreamCACertPEM: []byte("test CA")}, wantPeers: 1, wantCA: true,
+			name: "shared TLS peer preserves CA", proxy: &ProxyConfig{HttpProxy: MustParse("https://a"), HttpsProxy: MustParse("https://a"), UpstreamCACertPEM: []byte("test CA")}, wantPeers: 1, wantCA: true,
 			wantLines: []string{"cache_peer a parent 443 0 no-query name=upstream_http tls tls-cafile=" + UpstreamCACertPath, "cache_peer_access upstream_http allow all"},
 		},
 		{
-			name: "CA unused for HTTP transport", proxy: &ProxyConfig{HttpsProxy: MustParse("http://b"), UpStreamCACertPEM: []byte("test CA")}, wantPeers: 1,
+			name: "CA unused for HTTP transport", proxy: &ProxyConfig{HttpsProxy: MustParse("http://b"), UpstreamCACertPEM: []byte("test CA")}, wantPeers: 1,
 			wantLines: []string{"cache_peer b parent 80 0 no-query name=upstream_https"},
 		},
 		{
@@ -417,7 +439,7 @@ func TestUpstreamProxyConfig(t *testing.T) {
 			if got.upstreamCACertPath != wantPath {
 				t.Errorf("CA path = %q, want %q", got.upstreamCACertPath, wantPath)
 			}
-			if !bytes.Equal(got.upstreamCACertPEM, tc.proxy.UpStreamCACertPEM) {
+			if !bytes.Equal(got.upstreamCACertPEM, tc.proxy.UpstreamCACertPEM) {
 				t.Error("upstream CA bytes were not preserved")
 			}
 		})
@@ -535,7 +557,7 @@ func TestReadClusterProxyConfig(t *testing.T) {
 		{
 			name: "read CA from openshift-config", trustedCA: "custom-proxy-ca",
 			caData: map[string]string{"ca-bundle.crt": "test CA"},
-			want:   ProxyConfig{UpStreamCACertPEM: []byte("test CA")},
+			want:   ProxyConfig{UpstreamCACertPEM: []byte("test CA")},
 		},
 		{name: "missing proxy", omitProxy: true, wantErr: "fetching cluster proxy configuration"},
 		{name: "proxy API failure", failResource: "proxies", wantErr: "fetching cluster proxy configuration"},
@@ -627,7 +649,7 @@ func TestReadOAuthServerProxyConfig(t *testing.T) {
 				}},
 			}},
 			caData: map[string]string{"ca-bundle.crt": "test CA"},
-			want:   ProxyConfig{HttpsProxy: MustParse("https://b:3129"), UpStreamCACertPEM: []byte("test CA")},
+			want:   ProxyConfig{HttpsProxy: MustParse("https://b:3129"), UpstreamCACertPEM: []byte("test CA")},
 		},
 		{
 			name: "ignore unrelated CA volume",
@@ -725,7 +747,7 @@ func assertReadProxyConfig(t *testing.T, got, want ProxyConfig) {
 	if !reflect.DeepEqual(got.HttpProxy, want.HttpProxy) || !reflect.DeepEqual(got.HttpsProxy, want.HttpsProxy) || !got.NoProxy.Equal(want.NoProxy) {
 		t.Errorf("proxy configuration = %+v, want %+v", got, want)
 	}
-	if !bytes.Equal(got.UpStreamCACertPEM, want.UpStreamCACertPEM) {
-		t.Errorf("CA PEM = %q, want %q", got.UpStreamCACertPEM, want.UpStreamCACertPEM)
+	if !bytes.Equal(got.UpstreamCACertPEM, want.UpstreamCACertPEM) {
+		t.Errorf("CA PEM = %q, want %q", got.UpstreamCACertPEM, want.UpstreamCACertPEM)
 	}
 }
