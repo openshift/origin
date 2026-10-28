@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -299,7 +300,7 @@ buffered_logs off
 		return "", "", nil, "", cleanup, fmt.Errorf("creating Squid service: %w", err)
 	}
 
-	g.GinkgoWriter.Printf("waiting for Squid proxy deployment in %s to be ready\n", namespace)
+	g.GinkgoWriter.Printf("waiting for Squid proxy deployment in %s to be ready\n", redactedE2ENamespace(namespace))
 	timeLimitedCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 	_, err = watchtools.UntilWithSync(timeLimitedCtx,
@@ -310,7 +311,7 @@ buffered_logs off
 		nil,
 		func(event watch.Event) (bool, error) {
 			if event.Type == watch.Error {
-				return false, fmt.Errorf("Squid deployment watch error: %v", event.Object)
+				return false, fmt.Errorf("Squid deployment watch error (object type %T)", event.Object)
 			}
 			if event.Type == watch.Bookmark {
 				return false, nil
@@ -328,8 +329,33 @@ buffered_logs off
 
 	httpProxyURL = "http://" + net.JoinHostPort(serviceHost, strconv.Itoa(int(squidHTTPPort)))
 	httpsProxyURL = "https://" + net.JoinHostPort(serviceHost, strconv.Itoa(int(squidHTTPSPort)))
-	g.GinkgoWriter.Printf("Squid proxy deployed: http=%s https=%s\n", httpProxyURL, httpsProxyURL)
+	g.GinkgoWriter.Printf("Squid proxy deployed: http=%s https=%s\n", redactedURL(httpProxyURL), redactedURL(httpsProxyURL))
 	return httpProxyURL, httpsProxyURL, caCertPEM, namespace, cleanup, nil
+}
+
+// redactedURL returns the URL with its host replaced by a fixed marker so
+// internal service URLs (e.g. *.svc.cluster.local) and issuer hosts do not
+// end up in CI logs. Scheme, port, and path are kept for readability.
+func redactedURL(rawURL string) string {
+	parsed, err := url.Parse(rawURL)
+	if err != nil || parsed.Host == "" {
+		return "<redacted>"
+	}
+	host := "<host-redacted>"
+	if parsed.Port() != "" {
+		host = net.JoinHostPort(host, parsed.Port())
+	}
+	return parsed.Scheme + "://" + host + parsed.Path
+}
+
+// redactedE2ENamespace masks the random suffix of generated e2e namespaces
+// (e.g. e2e-proxy-abcd1234) so internal namespace names do not end up in CI logs.
+func redactedE2ENamespace(namespace string) string {
+	const randomSuffixLen = 8
+	if i := strings.LastIndex(namespace, "-"); i > 0 && len(namespace)-i-1 == randomSuffixLen {
+		return namespace[:i+1] + "<redacted>"
+	}
+	return "<redacted>"
 }
 
 func getSquidProxyLogsSince(ctx context.Context, oc *exutil.CLI, namespace string, since time.Time) (string, error) {
@@ -339,10 +365,10 @@ func getSquidProxyLogsSince(ctx context.Context, oc *exutil.CLI, namespace strin
 		LabelSelector: fmt.Sprintf("app=%s", squidServiceName),
 	})
 	if err != nil {
-		return "", fmt.Errorf("listing squid pods in %s: %w", namespace, err)
+		return "", fmt.Errorf("listing squid pods in %s: %w", redactedE2ENamespace(namespace), err)
 	}
 	if len(pods.Items) == 0 {
-		return "", fmt.Errorf("no squid proxy pods found in namespace %s", namespace)
+		return "", fmt.Errorf("no squid proxy pods found in namespace %s", redactedE2ENamespace(namespace))
 	}
 
 	logOpts := &corev1.PodLogOptions{Container: "squid"}
@@ -363,7 +389,7 @@ func getSquidProxyLogsSince(ctx context.Context, oc *exutil.CLI, namespace strin
 // through the proxy. The log format is set by the proxytest logformat directive
 // in the squid config: "method url sourceIP status httpCode".
 func waitForProxyTrafficFrom(ctx context.Context, oc *exutil.CLI, proxyNamespace, sourceIP string, since time.Time, timeout time.Duration) error {
-	g.GinkgoWriter.Printf("waiting up to %s for proxy traffic from %s\n", timeout, sourceIP)
+	g.GinkgoWriter.Printf("waiting up to %s for proxy traffic from the source pod\n", timeout)
 	return wait.PollUntilContextTimeout(ctx, 10*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
 		logs, err := getSquidProxyLogsSince(ctx, oc, proxyNamespace, since)
 		if err != nil {
@@ -373,7 +399,7 @@ func waitForProxyTrafficFrom(ctx context.Context, oc *exutil.CLI, proxyNamespace
 		for line := range strings.SplitSeq(logs, "\n") {
 			parts := strings.Fields(line)
 			if len(parts) >= 4 && parts[0] == "CONNECT" && parts[2] == sourceIP && parts[3] == "TCP_TUNNEL" {
-				g.GinkgoWriter.Printf("confirmed proxy traffic from %s: %s\n", sourceIP, line)
+				g.GinkgoWriter.Println("confirmed proxy traffic through the Squid proxy (CONNECT TCP_TUNNEL)")
 				return true, nil
 			}
 		}
@@ -387,7 +413,7 @@ func waitForProxyTrafficFrom(ctx context.Context, oc *exutil.CLI, proxyNamespace
 // proxy. The log format is: "method url sourceIP status httpCode".
 func waitForProxyTrafficFromTo(ctx context.Context, oc *exutil.CLI, proxyNamespace string, sourceIPs []string, destHost string, since time.Time, timeout time.Duration) error {
 	g.GinkgoHelper()
-	g.GinkgoWriter.Printf("waiting up to %s for proxy traffic from %v to %s\n", timeout, sourceIPs, destHost)
+	g.GinkgoWriter.Printf("waiting up to %s for proxy traffic from %d source pods to the expected destination host\n", timeout, len(sourceIPs))
 	allowedIPs := sets.New(sourceIPs...)
 	return wait.PollUntilContextTimeout(ctx, 10*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
 		logs, err := getSquidProxyLogsSince(ctx, oc, proxyNamespace, since)
@@ -398,7 +424,7 @@ func waitForProxyTrafficFromTo(ctx context.Context, oc *exutil.CLI, proxyNamespa
 		for line := range strings.SplitSeq(logs, "\n") {
 			parts := strings.Fields(line)
 			if len(parts) >= 4 && parts[0] == "CONNECT" && strings.HasPrefix(parts[1], destHost) && allowedIPs.Has(parts[2]) && parts[3] == "TCP_TUNNEL" {
-				g.GinkgoWriter.Printf("confirmed proxy traffic from %s to %s: %s\n", parts[2], destHost, line)
+				g.GinkgoWriter.Println("confirmed proxy traffic to the expected destination through the Squid proxy (CONNECT TCP_TUNNEL)")
 				return true, nil
 			}
 		}
@@ -667,13 +693,14 @@ func verifyOAuthServerDeploymentProxyConfig(ctx context.Context, oc *exutil.CLI,
 		}
 
 		if envVars["HTTP_PROXY"] != expectedHTTPProxy || envVars["HTTPS_PROXY"] != expectedHTTPSProxy {
-			g.GinkgoWriter.Printf("proxy env mismatch: HTTP_PROXY=%q (want %q), HTTPS_PROXY=%q (want %q)\n",
-				envVars["HTTP_PROXY"], expectedHTTPProxy, envVars["HTTPS_PROXY"], expectedHTTPSProxy)
+			g.GinkgoWriter.Printf("proxy env mismatch: HTTP_PROXY set=%v match=%v, HTTPS_PROXY set=%v match=%v\n",
+				envVars["HTTP_PROXY"] != "", envVars["HTTP_PROXY"] == expectedHTTPProxy,
+				envVars["HTTPS_PROXY"] != "", envVars["HTTPS_PROXY"] == expectedHTTPSProxy)
 			return false, nil
 		}
 		if expectedNoProxy == "" {
 			if envVars["NO_PROXY"] != "" {
-				g.GinkgoWriter.Printf("proxy env mismatch: NO_PROXY=%q (want empty)\n", envVars["NO_PROXY"])
+				g.GinkgoWriter.Printf("proxy env mismatch: NO_PROXY has %d entries (want empty)\n", len(strings.Split(envVars["NO_PROXY"], ",")))
 				return false, nil
 			}
 		} else {
@@ -682,7 +709,8 @@ func verifyOAuthServerDeploymentProxyConfig(ctx context.Context, oc *exutil.CLI,
 			actualNoProxy := sets.New(strings.Split(envVars["NO_PROXY"], ",")...)
 			expectedNoProxyEntries := sets.New(strings.Split(expectedNoProxy, ",")...)
 			if !actualNoProxy.IsSuperset(expectedNoProxyEntries) {
-				g.GinkgoWriter.Printf("proxy env mismatch: NO_PROXY=%q does not contain all of %q\n", envVars["NO_PROXY"], expectedNoProxy)
+				g.GinkgoWriter.Printf("proxy env mismatch: NO_PROXY missing %d of %d expected entries\n",
+					expectedNoProxyEntries.Difference(actualNoProxy).Len(), expectedNoProxyEntries.Len())
 				return false, nil
 			}
 		}
@@ -743,17 +771,17 @@ func deleteNamespaceSync(ctx context.Context, oc *exutil.CLI, namespace string, 
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
-		return fmt.Errorf("deleting namespace %s: %w", namespace, err)
+		return fmt.Errorf("deleting namespace %s: %w", redactedE2ENamespace(namespace), err)
 	}
 
-	g.GinkgoWriter.Printf("waiting up to %s for namespace %s to be fully deleted\n", timeout, namespace)
+	g.GinkgoWriter.Printf("waiting up to %s for namespace %s to be fully deleted\n", timeout, redactedE2ENamespace(namespace))
 	return wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
 		_, err := kubeClient.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			return true, nil
 		}
 		if err != nil {
-			g.GinkgoWriter.Printf("error checking namespace %s: %v\n", namespace, err)
+			g.GinkgoWriter.Printf("error checking namespace %s: %v\n", redactedE2ENamespace(namespace), err)
 		}
 		return false, nil
 	})

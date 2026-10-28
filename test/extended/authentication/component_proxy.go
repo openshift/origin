@@ -71,9 +71,9 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 		err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, "", "", "", false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.GinkgoWriter.Printf("Squid proxy URL: http=%s https=%s\n", httpProxyURL, httpsProxyURL)
-		g.GinkgoWriter.Printf("Keycloak issuer URL: %s\n", kcSetup.issuerURL)
-		g.GinkgoWriter.Printf("Keycloak namespace: %s\n", kcSetup.namespace)
+		g.GinkgoWriter.Printf("Squid proxy URL: http=%s https=%s\n", redactedURL(httpProxyURL), redactedURL(httpsProxyURL))
+		g.GinkgoWriter.Printf("Keycloak issuer URL: %s\n", redactedURL(kcSetup.issuerURL))
+		g.GinkgoWriter.Printf("Keycloak namespace: %s\n", redactedE2ENamespace(kcSetup.namespace))
 	})
 
 	g.AfterEach(func() {

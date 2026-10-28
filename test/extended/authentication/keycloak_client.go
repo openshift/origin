@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"maps"
@@ -26,7 +27,7 @@ type keycloakClient struct {
 func keycloakClientFor(keycloakURL string) (*keycloakClient, error) {
 	baseURL, err := url.Parse(keycloakURL)
 	if err != nil {
-		return nil, fmt.Errorf("parsing url: %w", err)
+		return nil, fmt.Errorf("parsing Keycloak URL: invalid URL")
 	}
 
 	transport := &http.Transport{
@@ -63,14 +64,13 @@ func (kc *keycloakClient) CreateGroup(name string) error {
 
 	resp, err := kc.DoRequest(http.MethodPost, groupURL.String(), runtime.ContentTypeJSON, true, bytes.NewBuffer(groupBytes))
 	if err != nil {
-		return fmt.Errorf("sending POST request to %q to create group %s", groupURL.String(), name)
+		return fmt.Errorf("sending POST request to create group %q: %w", name, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusConflict {
 		// If the group already exists (409 Conflict), that's fine - we can reuse it
-		respBytes, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("failed creating group %q: %s - %s", name, resp.Status, respBytes)
+		return fmt.Errorf("failed creating group %q: %d", name, resp.StatusCode)
 	}
 
 	return nil
@@ -126,23 +126,21 @@ func (kc *keycloakClient) CreateUserWithEmail(username, email, password string, 
 
 	resp, err := kc.DoRequest(http.MethodPost, userURL.String(), runtime.ContentTypeJSON, true, bytes.NewBuffer(userBytes))
 	if err != nil {
-		return fmt.Errorf("sending POST request to %q to create user %q: %w", userURL.String(), username, err)
+		return fmt.Errorf("sending POST request to create user %q: %w", username, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		respBytes, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("failed creating user %q: %s - %s", username, resp.Status, respBytes)
+		return fmt.Errorf("failed creating user %q: %d", username, resp.StatusCode)
 	}
 
 	return nil
 }
 
 type authenticationResponse struct {
-	AccessToken      string `json:"access_token"`
-	IDToken          string `json:"id_token"`
-	Error            string `json:"error,omitempty"`
-	ErrorDescription string `json:"error_description,omitempty"`
+	AccessToken string `json:"access_token"`
+	IDToken     string `json:"id_token"`
+	Error       string `json:"error,omitempty"`
 }
 
 func (kc *keycloakClient) Authenticate(clientID, username, password string) error {
@@ -170,7 +168,7 @@ func (kc *keycloakClient) Authenticate(clientID, username, password string) erro
 	}
 
 	if respBody.Error != "" {
-		return fmt.Errorf("%s: %s", respBody.Error, respBody.ErrorDescription)
+		return fmt.Errorf("authentication failed: %d", resp.StatusCode)
 	}
 
 	kc.accessToken = respBody.AccessToken
@@ -179,14 +177,30 @@ func (kc *keycloakClient) Authenticate(clientID, username, password string) erro
 	return nil
 }
 
-func (kc *keycloakClient) DoRequest(method, url, contentType string, authenticated bool, body io.Reader) (*http.Response, error) {
+// transportError wraps a transport failure without exposing its message, which
+// can contain the queried hostname or dial address. Error() reports only the
+// method and the already-redacted URL; the cause stays reachable via Unwrap
+// for programmatic inspection.
+type transportError struct {
+	method string
+	url    string
+	cause  error
+}
+
+func (e *transportError) Error() string {
+	return fmt.Sprintf("%s %s: transport error", e.method, e.url)
+}
+
+func (e *transportError) Unwrap() error { return e.cause }
+
+func (kc *keycloakClient) DoRequest(method, rawURL, contentType string, authenticated bool, body io.Reader) (*http.Response, error) {
 	if len(kc.accessToken) == 0 && authenticated {
 		panic("must authenticate before calling keycloakClient.DoRequest")
 	}
 
-	req, err := http.NewRequest(method, url, body)
+	req, err := http.NewRequest(method, rawURL, body)
 	if err != nil {
-		return nil, fmt.Errorf("building request: %w", err)
+		return nil, &transportError{method: method, url: redactedURL(rawURL), cause: err}
 	}
 
 	if authenticated {
@@ -195,7 +209,18 @@ func (kc *keycloakClient) DoRequest(method, url, contentType string, authenticat
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("Accept", runtime.ContentTypeJSON)
 
-	return kc.client.Do(req)
+	resp, err := kc.client.Do(req)
+	if err != nil {
+		// Transport errors (*url.Error) embed the full request URL, and their
+		// cause message can contain the queried hostname or dial address;
+		// wrap so neither reaches CI logs.
+		var urlErr *url.Error
+		if errors.As(err, &urlErr) {
+			return nil, &transportError{method: method, url: redactedURL(urlErr.URL), cause: urlErr.Err}
+		}
+		return nil, &transportError{method: method, url: redactedURL(rawURL), cause: err}
+	}
+	return resp, nil
 }
 
 func (kc *keycloakClient) RegenerateClientSecret(id string) (string, error) {
@@ -213,7 +238,7 @@ func (kc *keycloakClient) RegenerateClientSecret(id string) (string, error) {
 		return "", err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("regenerating client %q secret failed: %s - %s", id, resp.Status, respBytes)
+		return "", fmt.Errorf("regenerating client %q secret failed: %d", id, resp.StatusCode)
 	}
 
 	secret := map[string]string{}
@@ -273,8 +298,7 @@ func (kc *keycloakClient) UpdateClientRaw(id string, changes map[string]any) err
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		respBytes, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("failed updating client %q: %s - %s", id, resp.Status, respBytes)
+		return fmt.Errorf("failed updating client %q: %d", id, resp.StatusCode)
 	}
 	return nil
 }
@@ -294,7 +318,7 @@ func (kc *keycloakClient) GetClientRaw(id string) (map[string]any, error) {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("getting client %q failed: %s - %s", id, resp.Status, respBytes)
+		return nil, fmt.Errorf("getting client %q failed: %d", id, resp.StatusCode)
 	}
 
 	result := map[string]any{}
@@ -394,8 +418,7 @@ func (kc *keycloakClient) ensureClient(clientID string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusConflict {
-		respBytes, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("failed creating client %q: %s - %s", clientID, resp.Status, respBytes)
+		return fmt.Errorf("failed creating client %q: %d", clientID, resp.StatusCode)
 	}
 
 	return nil
@@ -476,8 +499,7 @@ func (kc *keycloakClient) createClientGroupMapperWithConfig(clientId, name, clai
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusConflict {
-		respBytes, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("failed creating mapper %q: %s %s", name, resp.Status, respBytes)
+		return fmt.Errorf("failed creating mapper %q: %d", name, resp.StatusCode)
 	}
 
 	return nil
@@ -529,8 +551,7 @@ func (kc *keycloakClient) CreateClientAudienceMapper(clientId, name string) erro
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusConflict {
-		respBytes, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("failed creating mapper %q: %s %s", name, resp.Status, respBytes)
+		return fmt.Errorf("failed creating mapper %q: %d", name, resp.StatusCode)
 	}
 
 	return nil
@@ -555,7 +576,7 @@ func (kc *keycloakClient) ListClients() ([]client, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("listing clients failed: %s", resp.Status)
+		return nil, fmt.Errorf("listing clients failed: %d", resp.StatusCode)
 	}
 
 	clients := []client{}
