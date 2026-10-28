@@ -186,11 +186,23 @@ func TestCollectPlacement(t *testing.T) {
 			expectedPods:      []string{"a-abc123-xyz"},
 		},
 		{
-			name: "single master records nothing",
+			name: "single node is collected",
 			objs: objects(
 				[]runtime.Object{node("master-0", "master"), node("worker-0", "worker")},
 				singleton("openshift-a", "a", "master-0", 1, "50Mi"),
 			),
+			expectedPerMaster: map[string]int{"master-0": 1},
+			expectedPods:      []string{"a-abc123-xyz"},
+		},
+		{
+			name: "two node fencing is collected",
+			objs: objects(
+				[]runtime.Object{node("master-0", "master"), node("master-1", "master")},
+				singleton("openshift-a", "a", "master-0", 1, "50Mi"),
+				singleton("openshift-b", "b", "master-1", 1, "50Mi"),
+			),
+			expectedPerMaster: map[string]int{"master-0": 1, "master-1": 1},
+			expectedPods:      []string{"a-abc123-xyz", "b-abc123-xyz"},
 		},
 		{
 			name: "no masters records nothing",
