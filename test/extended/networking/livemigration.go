@@ -28,6 +28,7 @@ import (
 
 	nadapi "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned/typed/k8s.cni.cncf.io/v1"
+
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/networking/kubevirt"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -442,6 +443,7 @@ var _ = Describe("[sig-network][Feature:Layer2LiveMigration][Feature:baremetal][
 			Expect(err).NotTo(HaveOccurred(), "initialize the VM client")
 			params := kubevirt.CreationTemplateParams{
 				VMName: "migrating", VMNamespace: namespace, NetBindingName: "l2bridge",
+				Memory:                    "544Mi",
 				FedoraContainterDiskImage: image.LocationFor("quay.io/kubevirt/fedora-with-test-tooling-container-disk:v1.8.2"),
 				DHCPv4:                    hasIPv4, DHCPv6: hasIPv6, NodeNames: nodeNames,
 			}
