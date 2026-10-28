@@ -71,8 +71,8 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 		oauthServerProxyConfig, err = OAuthServerProxyConfig(ctx, appsV1, coreV1)
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to capture the OAuth server proxy configuration")
 
-		sameConfig := clusterProxyConfig.Equal(oauthServerProxyConfig)
-		o.Expect(sameConfig).To(o.BeTrue(), "cluster proxy configuration must be the same as oauth server")
+		configMatches := oauthServerProxyConfig.MatchesExpected(clusterProxyConfig)
+		o.Expect(configMatches).To(o.BeTrue(), "oauth server proxy configuration must match the cluster proxy configuration")
 
 		g.By("Deploying Squid forward proxy")
 		authProxyComponent := AuthProxyComponent{}
@@ -95,7 +95,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Waiting for OAuth server deployment to be stable before test")
-		err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, oauthServerProxyConfig.HttpProxy, oauthServerProxyConfig.HttpsProxy, oauthServerProxyConfig.NoProxy, len(oauthServerProxyConfig.UpStreamCACertPEM) != 0)
+		err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, oauthServerProxyConfig)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.GinkgoWriter.Printf("Squid proxy URL: http=%s https=%s\n", httpProxyURL, httpsProxyURL)
@@ -183,7 +183,11 @@ func testProxyConfigPerformOIDCLogin(ctx context.Context, oc *exutil.CLI, cleanu
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Verifying oauth-server has HTTPS_PROXY but not HTTP_PROXY")
-	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, nil, httpProxyUrlP, defaultNoProxy, false)
+	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, ProxyConfig{
+		HttpProxy:  nil,
+		HttpsProxy: httpProxyUrlP,
+		NoProxy:    defaultNoProxy,
+	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	logCutOff := time.Now()
@@ -436,7 +440,12 @@ func testBypassProxyNoProxyHost(ctx context.Context, oc *exutil.CLI, cleanups *[
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Verifying oauth-server has HTTP_PROXY, HTTPS_PROXY, and NO_PROXY with custom entry")
-	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, httpProxyUrlP, httpsProxyUrlP, defaultNoProxy.Clone().Insert(keycloakHost), true)
+	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, ProxyConfig{
+		HttpProxy:         httpProxyUrlP,
+		HttpsProxy:        httpsProxyUrlP,
+		NoProxy:           defaultNoProxy.Clone().Insert(keycloakHost),
+		UpstreamCACertPEM: caCertPEM,
+	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Deleting Squid proxy namespace to prove noProxy bypasses it")
@@ -514,7 +523,12 @@ func testOIDCIdPThroughComponentProxy(ctx context.Context, oc *exutil.CLI, kcSet
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Verifying OAuth server deployment has proxy env vars and trustedCA volume/mount")
-	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, nil, proxyUrlP, defaultNoProxy, withTrustedCA)
+	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, ProxyConfig{
+		HttpProxy:         nil,
+		HttpsProxy:        proxyUrlP,
+		NoProxy:           defaultNoProxy,
+		UpstreamCACertPEM: trustedCACertPEM,
+	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Looking up operator pod IP")
@@ -597,7 +611,7 @@ func testFallbackOnProxyRemoval(ctx context.Context, oc *exutil.CLI,
 
 	g.By("Verifying proxy env vars are no longer set on OAuth server deployment")
 
-	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, oauthServerProxyConfig.HttpProxy, oauthServerProxyConfig.HttpsProxy, oauthServerProxyConfig.NoProxy, len(oauthServerProxyConfig.UpStreamCACertPEM) != 0)
+	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, oauthServerProxyConfig)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Deleting Squid to prove the operator no longer routes through it")
@@ -765,74 +779,4 @@ func podFileContentMatches(oc *exutil.CLI, pod v1.Pod, container, caFilePath str
 		return false, nil
 	}
 	return true, nil
-}
-
-// OAuthServerProxyConfig captures the effective deployment proxy settings for startup checks.
-func OAuthServerProxyConfig(ctx context.Context, deployments appsclientv1.DeploymentsGetter, configMaps coreclientv1.ConfigMapsGetter) (ProxyConfig, error) {
-	var zero ProxyConfig
-
-	deployment, err := deployments.Deployments("openshift-authentication").
-		Get(ctx, "oauth-openshift", metav1.GetOptions{})
-	if err != nil {
-		return zero, err
-	}
-
-	// A cluster without a global proxy does not add these environment variables.
-	// Start with that baseline, then replace only the values present on the
-	// existing oauth-openshift deployment.
-	config := ProxyConfig{
-		HttpProxy:         nil,
-		HttpsProxy:        nil,
-		NoProxy:           sets.New[string](),
-		UpStreamCACertPEM: []byte{},
-	}
-
-	for _, mount := range deployment.Spec.Template.Spec.Volumes {
-		if mount.Name == componentProxyCAConfigMapName && mount.VolumeSource.ConfigMap != nil {
-			cm, err := configMaps.ConfigMaps("openshift-authentication").
-				Get(ctx, mount.VolumeSource.ConfigMap.LocalObjectReference.Name, metav1.GetOptions{})
-			if err != nil {
-				return zero, fmt.Errorf("error getting oauth-openshift proxy CA certificate: %w", err)
-			}
-
-			config.UpStreamCACertPEM = []byte(cm.Data["ca-bundle.crt"])
-		}
-	}
-
-	var oauthServerContainer *v1.Container
-	for _, container := range deployment.Spec.Template.Spec.Containers {
-		if container.Name == "oauth-openshift" {
-			oauthServerContainer = &container
-			break
-		}
-	}
-
-	if oauthServerContainer == nil {
-		return zero, fmt.Errorf("oauth-openshift container not found in oauth-openshift deployment")
-	}
-
-	for _, env := range oauthServerContainer.Env {
-		switch env.Name {
-		case "HTTP_PROXY":
-			httpProxy, err := ParseProxyField(env.Value)
-			if err != nil {
-				return zero, fmt.Errorf("error parsing http proxy field for oauth-openshift container: %w", err)
-			}
-			config.HttpProxy = httpProxy
-		case "HTTPS_PROXY":
-			httpsProxy, err := ParseProxyField(env.Value)
-			if err != nil {
-				return zero, fmt.Errorf("error parsing https proxy field for oauth-openshift container: %w", err)
-			}
-			config.HttpsProxy = httpsProxy
-		case "NO_PROXY":
-			for v := range strings.SplitSeq(env.Value, ",") {
-				trimmed := strings.TrimSpace(v)
-				if trimmed != "" {
-					config.NoProxy.Insert(trimmed)
-				}
-			}
-		}
-	}
-	return config, nil
 }

@@ -18,6 +18,7 @@ import (
 	libcrypto "github.com/openshift/library-go/pkg/crypto"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -26,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	appsclientv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	watchtools "k8s.io/client-go/tools/watch"
@@ -153,28 +155,16 @@ func createTrustedCAConfigMap(ctx context.Context, oc *exutil.CLI, caCertPEM []b
 type ProxyConfig struct {
 	HttpProxy, HttpsProxy *url.URL
 	NoProxy               sets.Set[string]
-	UpStreamCACertPEM     []byte
+	UpstreamCACertPEM     []byte
 }
 
-var NoProxyConfig = ProxyConfig{}
-
-func stripCredentials(proxy *url.URL) string {
-	if proxy == nil {
-		return ""
+func EmptyProxyConfig() ProxyConfig {
+	return ProxyConfig{
+		HttpProxy:         nil,
+		HttpsProxy:        nil,
+		NoProxy:           sets.New[string](),
+		UpstreamCACertPEM: []byte{},
 	}
-	clean := *proxy
-	clean.User = nil
-	return clean.String()
-}
-
-func (pC ProxyConfig) String() string {
-	noProxy := strings.Join(pC.NoProxy.UnsortedList(), ",")
-
-	return fmt.Sprintf("ProxyConfig[HttpProxy=\"%s\" HttpsProxy=\"%s\" NoProxy=\"%s\"]",
-		stripCredentials(pC.HttpProxy),
-		stripCredentials(pC.HttpsProxy),
-		noProxy,
-	)
 }
 
 func ParseProxyField(field string) (*url.URL, error) {
@@ -184,7 +174,7 @@ func ParseProxyField(field string) (*url.URL, error) {
 
 	url, err := url.Parse(field)
 	if err != nil {
-		return nil, fmt.Errorf("error field %s: %w", field, err)
+		return nil, fmt.Errorf("error parsing url from field: %w", err)
 	}
 
 	return url, nil
@@ -221,19 +211,103 @@ func ClusterProxy(ctx context.Context, proxies configclientv1.ProxyInterface, co
 			return toReturn, fmt.Errorf("fetching cluster proxy CA certificate config map: %w", err)
 		}
 
-		toReturn.UpStreamCACertPEM = []byte(cm.Data["ca-bundle.crt"])
+		toReturn.UpstreamCACertPEM = []byte(cm.Data["ca-bundle.crt"])
 	}
 	return toReturn, nil
+}
+
+// OAuthServerProxyConfig captures the effective deployment proxy settings.
+func OAuthServerProxyConfig(ctx context.Context, deployments appsclientv1.DeploymentsGetter, configMaps coreclientv1.ConfigMapsGetter) (ProxyConfig, error) {
+	var zero ProxyConfig
+
+	deployment, err := deployments.Deployments("openshift-authentication").
+		Get(ctx, "oauth-openshift", metav1.GetOptions{})
+	if err != nil {
+		return zero, err
+	}
+
+	// A cluster without a global proxy does not add these environment variables.
+	// Start with that baseline, then replace only the values present on the
+	// existing oauth-openshift deployment.
+	config := EmptyProxyConfig()
+	for _, mount := range deployment.Spec.Template.Spec.Volumes {
+		if mount.Name == componentProxyCAConfigMapName && mount.VolumeSource.ConfigMap != nil {
+			cm, err := configMaps.ConfigMaps("openshift-authentication").
+				Get(ctx, mount.VolumeSource.ConfigMap.LocalObjectReference.Name, metav1.GetOptions{})
+			if err != nil {
+				return zero, fmt.Errorf("error getting oauth-openshift proxy CA certificate: %w", err)
+			}
+
+			config.UpstreamCACertPEM = []byte(cm.Data["ca-bundle.crt"])
+		}
+	}
+
+	var oauthServerContainer *v1.Container
+	for _, container := range deployment.Spec.Template.Spec.Containers {
+		if container.Name == "oauth-openshift" {
+			oauthServerContainer = &container
+			break
+		}
+	}
+
+	if oauthServerContainer == nil {
+		return zero, fmt.Errorf("oauth-openshift container not found in oauth-openshift deployment")
+	}
+
+	for _, env := range oauthServerContainer.Env {
+		switch env.Name {
+		case "HTTP_PROXY":
+			httpProxy, err := ParseProxyField(env.Value)
+			if err != nil {
+				return zero, fmt.Errorf("error parsing http proxy field for oauth-openshift container: %w", err)
+			}
+			config.HttpProxy = httpProxy
+		case "HTTPS_PROXY":
+			httpsProxy, err := ParseProxyField(env.Value)
+			if err != nil {
+				return zero, fmt.Errorf("error parsing https proxy field for oauth-openshift container: %w", err)
+			}
+			config.HttpsProxy = httpsProxy
+		case "NO_PROXY":
+			for v := range strings.SplitSeq(env.Value, ",") {
+				trimmed := strings.TrimSpace(v)
+				if trimmed != "" {
+					config.NoProxy.Insert(trimmed)
+				}
+			}
+		}
+	}
+	return config, nil
+}
+
+func stripCredentials(proxy *url.URL) string {
+	if proxy == nil {
+		return ""
+	}
+	clean := *proxy
+	clean.User = nil
+	return clean.String()
+}
+
+func (pC ProxyConfig) String() string {
+	noProxy := strings.Join(pC.NoProxy.UnsortedList(), ",")
+
+	return fmt.Sprintf("ProxyConfig[HttpProxy=%q HttpsProxy=%q NoProxy=%q]",
+		stripCredentials(pC.HttpProxy),
+		stripCredentials(pC.HttpsProxy),
+		noProxy,
+	)
 }
 
 func (pC ProxyConfig) Valid() bool {
 	return pC.HttpProxy != nil || pC.HttpsProxy != nil
 }
 
-func (pC ProxyConfig) Equal(another ProxyConfig) bool {
-	return proxyURLsEqual(pC.HttpProxy, another.HttpProxy) &&
-		proxyURLsEqual(pC.HttpsProxy, another.HttpsProxy) &&
-		another.NoProxy.IsSuperset(pC.NoProxy)
+func (actual ProxyConfig) MatchesExpected(expected ProxyConfig) bool {
+	return proxyURLsEqual(expected.HttpProxy, actual.HttpProxy) &&
+		proxyURLsEqual(expected.HttpsProxy, actual.HttpsProxy) &&
+		actual.NoProxy.IsSuperset(expected.NoProxy) &&
+		(expected.NoProxy.Len() > 0 || actual.NoProxy.Len() == 0)
 }
 
 func proxyURLsEqual(a, b *url.URL) bool {
@@ -315,7 +389,7 @@ func (ac AuthProxyComponent) upstreamProxyConfig() (squidProxyUpstreamConfig, er
 			peerOptions := "no-query name=" + peer.name
 			if peer.url.Scheme == "https" {
 				peerOptions += " tls"
-				if len(ac.ClusterProxy.UpStreamCACertPEM) > 0 {
+				if len(ac.ClusterProxy.UpstreamCACertPEM) > 0 {
 					upstreamCACertPath = UpstreamCACertPath
 					peerOptions += " tls-cafile=" + upstreamCACertPath
 				}
@@ -361,7 +435,7 @@ func (ac AuthProxyComponent) upstreamProxyConfig() (squidProxyUpstreamConfig, er
 		upstreamCACertPath: upstreamCACertPath,
 	}
 	if ac.ClusterProxy != nil {
-		result.upstreamCACertPEM = ac.ClusterProxy.UpStreamCACertPEM
+		result.upstreamCACertPEM = ac.ClusterProxy.UpstreamCACertPEM
 	}
 	return result, nil
 }
@@ -914,21 +988,13 @@ func addIdentityProvider(ctx context.Context, oc *exutil.CLI, idp configv1.Ident
 	})
 }
 
-func proxyEnvMatchesURL(value string, expected *url.URL) bool {
-	if expected == nil {
-		return value == ""
-	}
-	return value == expected.String()
-}
-
 func verifyOAuthServerDeploymentProxyConfig(
 	ctx context.Context,
 	oc *exutil.CLI,
-	expectedHTTPProxy, expectedHTTPSProxy *url.URL,
-	expectedNoProxy sets.Set[string],
-	expectTrustedCAVolume bool,
+	expectedAuthProxyConfig ProxyConfig,
 ) error {
 	kubeClient := oc.AdminKubeClient()
+	hasUpstreamCACert := len(expectedAuthProxyConfig.UpstreamCACertPEM) > 0
 
 	return wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
 		deployment, err := kubeClient.AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
@@ -937,39 +1003,20 @@ func verifyOAuthServerDeploymentProxyConfig(
 			return false, nil
 		}
 
-		envVars := make(map[string]string)
-		for _, container := range deployment.Spec.Template.Spec.Containers {
-			for _, env := range container.Env {
-				switch env.Name {
-				case "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY":
-					envVars[env.Name] = env.Value
-				}
-			}
-		}
-
-		if !proxyEnvMatchesURL(envVars["HTTP_PROXY"], expectedHTTPProxy) || !proxyEnvMatchesURL(envVars["HTTPS_PROXY"], expectedHTTPSProxy) {
-			g.GinkgoWriter.Printf("proxy env mismatch: HTTP_PROXY=%q (want %q), HTTPS_PROXY=%q (want %q)\n",
-				envVars["HTTP_PROXY"], expectedHTTPProxy, envVars["HTTPS_PROXY"], expectedHTTPSProxy)
+		actualOauthServerProxyConfig, err := OAuthServerProxyConfig(ctx, kubeClient.AppsV1(), kubeClient.CoreV1())
+		if err != nil {
+			g.GinkgoWriter.Printf("failed to get actual oauth server proxy config: %v\n", err)
 			return false, nil
 		}
-		if len(expectedNoProxy) == 0 {
-			if envVars["NO_PROXY"] != "" {
-				g.GinkgoWriter.Printf("proxy env mismatch: NO_PROXY=%q (want empty)\n", envVars["NO_PROXY"])
-				return false, nil
-			}
-		} else {
-			// Use IsSuperset rather than exact match because the operator appends
-			// the apiserver IP to NO_PROXY beyond the entries we configure.
-			actualNoProxy := sets.New(strings.Split(envVars["NO_PROXY"], ",")...)
-			if !actualNoProxy.IsSuperset(expectedNoProxy) {
-				g.GinkgoWriter.Printf("proxy env mismatch: NO_PROXY=%q does not contain all of %q\n", envVars["NO_PROXY"], expectedNoProxy)
-				return false, nil
-			}
+
+		if !actualOauthServerProxyConfig.MatchesExpected(expectedAuthProxyConfig) {
+			g.GinkgoWriter.Printf("proxy env mismatch: found=%q (want %q)\n", actualOauthServerProxyConfig, expectedAuthProxyConfig)
+			return false, nil
 		}
 
 		foundVolume, foundMount := trustedCAVolumeState(deployment)
-		if expectTrustedCAVolume != (foundVolume && foundMount) {
-			g.GinkgoWriter.Printf("trustedCA volume=%v mount=%v (want present=%v)\n", foundVolume, foundMount, expectTrustedCAVolume)
+		if hasUpstreamCACert != (foundVolume && foundMount) {
+			g.GinkgoWriter.Printf("trustedCA volume=%v mount=%v (want present=%v)\n", foundVolume, foundMount, hasUpstreamCACert)
 			return false, nil
 		}
 		return true, nil
