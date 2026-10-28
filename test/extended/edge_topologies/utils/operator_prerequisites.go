@@ -33,6 +33,7 @@ var RecoveryEssentialOperators = []string{
 // fully healthy (unavailable or degraded).
 type UnhealthyOperator struct {
 	Name       string
+	Namespace  string
 	Available  bool
 	Degraded   bool
 	Conditions []v1.ClusterOperatorStatusCondition
@@ -111,6 +112,7 @@ func AuditNonEssentialOperators(ctx context.Context, oc *exutil.CLI) (*NonEssent
 		if !available || degraded {
 			status.Unhealthy = append(status.Unhealthy, UnhealthyOperator{
 				Name:       co.Name,
+				Namespace:  operatorNamespaceFromRelatedObjects(co),
 				Available:  available,
 				Degraded:   degraded,
 				Conditions: co.Status.Conditions,
@@ -157,7 +159,7 @@ func GatherOperatorEvidence(oc *exutil.CLI, unhealthy []UnhealthyOperator) strin
 	for _, op := range unhealthy {
 		fmt.Fprintf(&sb, "\n=== Evidence: operator %q ===\n", op.Name)
 
-		ns := operatorNamespace(op.Name)
+		ns := op.Namespace
 		if ns == "" {
 			sb.WriteString("  (namespace unknown — skipping pod/event collection)\n")
 			continue
@@ -271,22 +273,11 @@ func gatherStorageEvidence(oc *exutil.CLI, ctx context.Context, ns string, sb *s
 	}
 }
 
-func operatorNamespace(name string) string {
-	known := map[string]string{
-		"image-registry":               "openshift-image-registry",
-		"console":                      "openshift-console",
-		"monitoring":                   "openshift-monitoring",
-		"authentication":               "openshift-authentication",
-		"ingress":                      "openshift-ingress",
-		"marketplace":                  "openshift-marketplace",
-		"cloud-credential":             "openshift-cloud-credential-operator",
-		"operator-lifecycle-manager":   "openshift-operator-lifecycle-manager",
-		"dns":                          "openshift-dns",
-		"machine-config":               "openshift-machine-config-operator",
-		"openshift-controller-manager": "openshift-controller-manager",
-	}
-	if ns, ok := known[name]; ok {
-		return ns
+func operatorNamespaceFromRelatedObjects(co *v1.ClusterOperator) string {
+	for _, ref := range co.Status.RelatedObjects {
+		if ref.Resource == "namespaces" {
+			return ref.Name
+		}
 	}
 	return ""
 }
