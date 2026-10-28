@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"maps"
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -71,6 +73,56 @@ func (kc *keycloakClient) CreateGroup(name string) error {
 		// If the group already exists (409 Conflict), that's fine - we can reuse it
 		respBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("failed creating group %q: %s - %s", name, resp.Status, respBytes)
+	}
+
+	return nil
+}
+
+// bulkGroupCreationChunkSize is the number of groups created between admin
+// session refreshes. A single access token lifetime comfortably covers one
+// chunk even on slow clusters.
+const bulkGroupCreationChunkSize = 100
+
+// bulkGroupCreationWorkers bounds the concurrency used within a chunk.
+const bulkGroupCreationWorkers = 10
+
+// CreateGroups bulk-creates the given groups in chunks with bounded
+// concurrency. reauth is invoked before each chunk to refresh the admin
+// session because creating large group sets can outlive a single access
+// token. It tolerates groups that already exist, like CreateGroup does.
+func (kc *keycloakClient) CreateGroups(names []string, reauth func() error) error {
+	for start := 0; start < len(names); start += bulkGroupCreationChunkSize {
+		end := min(start+bulkGroupCreationChunkSize, len(names))
+		chunk := names[start:end]
+
+		if reauth != nil {
+			if err := reauth(); err != nil {
+				return fmt.Errorf("refreshing keycloak admin session: %w", err)
+			}
+		}
+
+		var mu sync.Mutex
+		var errs []error
+		var wg sync.WaitGroup
+		sem := make(chan struct{}, bulkGroupCreationWorkers)
+		for _, name := range chunk {
+			wg.Add(1)
+			sem <- struct{}{}
+			go func(name string) {
+				defer wg.Done()
+				defer func() { <-sem }()
+				if err := kc.CreateGroup(name); err != nil {
+					mu.Lock()
+					defer mu.Unlock()
+					errs = append(errs, err)
+				}
+			}(name)
+		}
+		wg.Wait()
+
+		if err := errors.Join(errs...); err != nil {
+			return fmt.Errorf("creating groups %q..%q in bulk: %w", chunk[0], chunk[len(chunk)-1], err)
+		}
 	}
 
 	return nil
@@ -396,6 +448,177 @@ func (kc *keycloakClient) ensureClient(clientID string) error {
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusConflict {
 		respBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("failed creating client %q: %s - %s", clientID, resp.Status, respBytes)
+	}
+
+	return nil
+}
+
+// EnsureConfidentialServiceAccountClient creates a confidential OpenID client
+// with a service account (if it does not already exist) and returns its client
+// secret. Such a client can obtain tokens via the OAuth2 client credentials
+// grant, which is how external claims sources authenticate when
+// authentication.type is ClientCredential (e.g. Microsoft's Entra ID Graph API,
+// where a separate app credential is needed to access the API).
+func (kc *keycloakClient) EnsureConfidentialServiceAccountClient(clientID string) (string, error) {
+	if _, err := kc.GetClientByClientID(clientID); err != nil {
+		clientsURL := *kc.adminURL
+		clientsURL.Path += "/clients"
+
+		payload := map[string]any{
+			"clientId":                     clientID,
+			"name":                         clientID,
+			"enabled":                      true,
+			"publicClient":                 false,
+			"serviceAccountsEnabled":       true,
+			"directAccessGrantsEnabled":    false,
+			"standardFlowEnabled":          false,
+			"implicitFlowEnabled":          false,
+			"authorizationServicesEnabled": false,
+		}
+
+		body, err := json.Marshal(payload)
+		if err != nil {
+			return "", fmt.Errorf("marshalling client configuration: %w", err)
+		}
+
+		resp, err := kc.DoRequest(http.MethodPost, clientsURL.String(), runtime.ContentTypeJSON, true, bytes.NewBuffer(body))
+		if err != nil {
+			return "", fmt.Errorf("creating client %q: %w", clientID, err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusConflict {
+			respBytes, _ := io.ReadAll(resp.Body)
+			return "", fmt.Errorf("failed creating client %q: %s - %s", clientID, resp.Status, respBytes)
+		}
+	}
+
+	client, err := kc.GetClientByClientID(clientID)
+	if err != nil {
+		return "", fmt.Errorf("getting client %q: %w", clientID, err)
+	}
+
+	raw, err := kc.GetClientRaw(client.ID)
+	if err != nil {
+		return "", fmt.Errorf("getting client %q: %w", clientID, err)
+	}
+
+	secret, _ := raw["secret"].(string)
+	if secret == "" {
+		return "", fmt.Errorf("client %q has no secret; expected a confidential client", clientID)
+	}
+
+	return secret, nil
+}
+
+// GetServiceAccountUserID returns the id of the service-account user that
+// backs the given client. The service account user exists once the client has
+// service accounts enabled.
+func (kc *keycloakClient) GetServiceAccountUserID(clientID string) (string, error) {
+	client, err := kc.GetClientByClientID(clientID)
+	if err != nil {
+		return "", fmt.Errorf("getting client %q: %w", clientID, err)
+	}
+
+	saURL := *kc.adminURL
+	saURL.Path += fmt.Sprintf("/clients/%s/service-account-user", client.ID)
+	resp, err := kc.DoRequest(http.MethodGet, saURL.String(), runtime.ContentTypeJSON, true, nil)
+	if err != nil {
+		return "", fmt.Errorf("getting service account user for client %q: %w", clientID, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBytes, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("getting service account user for client %q failed: %s - %s", clientID, resp.Status, respBytes)
+	}
+
+	saUser := struct {
+		ID string `json:"id"`
+	}{}
+	if err := json.NewDecoder(resp.Body).Decode(&saUser); err != nil {
+		return "", fmt.Errorf("unmarshalling service account user for client %q: %w", clientID, err)
+	}
+	if saUser.ID == "" {
+		return "", fmt.Errorf("service account user for client %q has no id", clientID)
+	}
+
+	return saUser.ID, nil
+}
+
+// GrantRealmManagementRoles grants the named realm-management roles to the
+// service-account user of clientID. This allows tokens obtained via the
+// client credentials grant to call the Admin REST API on behalf of that
+// client, e.g. to read user group memberships (read-only roles like
+// view-users).
+//
+// The roles are read from the realm's management client. That client is
+// named "realm-management" only in non-master realms; the master realm's
+// equivalent is "<realm>-realm" (e.g. "master-realm"), see Keycloak's
+// RealmManager#setupRealmAdminManagement and ApplianceBootstrap.
+func (kc *keycloakClient) GrantRealmManagementRoles(clientID string, roles ...string) error {
+	saUserID, err := kc.GetServiceAccountUserID(clientID)
+	if err != nil {
+		return err
+	}
+
+	realmManagement, err := kc.GetClientByClientID(fmt.Sprintf("%s-realm", kc.realm))
+	if err != nil {
+		return fmt.Errorf("getting realm management client: %w", err)
+	}
+
+	rolesURL := *kc.adminURL
+	rolesURL.Path += fmt.Sprintf("/clients/%s/roles", realmManagement.ID)
+	resp, err := kc.DoRequest(http.MethodGet, rolesURL.String(), runtime.ContentTypeJSON, true, nil)
+	if err != nil {
+		return fmt.Errorf("listing realm-management roles: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("listing realm-management roles failed: %s - %s", resp.Status, respBytes)
+	}
+
+	type realmRole struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}
+	allRoles := []realmRole{}
+	if err := json.NewDecoder(resp.Body).Decode(&allRoles); err != nil {
+		return fmt.Errorf("unmarshalling realm-management roles: %w", err)
+	}
+
+	roleIDs := map[string]string{}
+	for _, role := range allRoles {
+		roleIDs[role.Name] = role.ID
+	}
+
+	granted := []map[string]string{}
+	for _, name := range roles {
+		id, ok := roleIDs[name]
+		if !ok {
+			return fmt.Errorf("realm-management role %q not found", name)
+		}
+		granted = append(granted, map[string]string{"id": id, "name": name})
+	}
+
+	body, err := json.Marshal(granted)
+	if err != nil {
+		return fmt.Errorf("marshalling role mappings: %w", err)
+	}
+
+	mappingURL := *kc.adminURL
+	mappingURL.Path += fmt.Sprintf("/users/%s/role-mappings/clients/%s", saUserID, realmManagement.ID)
+	resp, err = kc.DoRequest(http.MethodPost, mappingURL.String(), runtime.ContentTypeJSON, true, bytes.NewBuffer(body))
+	if err != nil {
+		return fmt.Errorf("granting realm-management roles %v: %w", roles, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		respBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("granting realm-management roles %v failed: %s - %s", roles, resp.Status, respBytes)
 	}
 
 	return nil
