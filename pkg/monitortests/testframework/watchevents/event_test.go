@@ -38,7 +38,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 		expectedMessage monitorapi.Message
 	}{
 		{
-			name: "simple event",
+			name: "event without UID",
 			args: args{
 				ctx: context.TODO(),
 				m:   monitor.NewRecorder(),
@@ -49,6 +49,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 						Kind:      "Pod",
 						Namespace: "openshift-authentication",
 						Name:      "testpod-927947",
+						UID:       "pod-uid",
 					},
 					Message:        "sample message",
 					FirstTimestamp: metav1.NewTime(first),

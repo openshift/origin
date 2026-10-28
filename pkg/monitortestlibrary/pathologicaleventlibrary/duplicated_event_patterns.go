@@ -1209,7 +1209,7 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) discountInWindowOccurr
 				logrus.WithFields(logrus.Fields{
 					"observedEvent": observedEvent,
 					"observation":   observation,
-				}).Info("observerd event in observation skipped because missing unique identifier")
+				}).Info("observed event in observation skipped because missing unique identifier")
 			}
 		}
 	}
@@ -1292,7 +1292,7 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Allows(i monitorapi.In
 		logrus.WithFields(logrus.Fields{
 			"observedEvent": observation,
 			"observation":   i,
-		}).Info("observerd event in observation miss unique identifier")
+		}).Info("observed event in observation has an invalid unique identifier")
 		return false
 	}
 	inWindow := ade.inWindowOccurrences[observation]
