@@ -385,6 +385,107 @@ type junitapiCaseResult struct {
 	output string
 }
 
+// This is a synthetic counter replay using the identity ambiguity reported in review:
+// independent Event objects can share every field of the former fallback key. It does not
+// claim that the reviewed CI artifact actually borrowed credits.
+func TestAuthenticationComponentProxy_CollidingEventIdentities(t *testing.T) {
+	from := cpT0
+	to := from.Add(9 * time.Minute)
+	for _, tc := range []struct {
+		name           string
+		insideUID      string
+		outsideUID     string
+		emptyUID       bool
+		wantDiscounted bool
+	}{
+		{name: "same UID retains cumulative discount", insideUID: "event-a", outsideUID: "event-a", wantDiscounted: true},
+		{name: "distinct UIDs cannot share credits", insideUID: "event-a", outsideUID: "event-b"},
+		{name: "missing UIDs cannot share credits"},
+		{name: "empty UIDs cannot share credits", emptyUID: true},
+		{name: "missing UID cannot consume identified credits", insideUID: "event-a"},
+		{name: "missing UID cannot contribute identified credits", outsideUID: "event-b"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			created := from.Add(-time.Hour)
+			inside := deploymentUpdatedObject(tc.insideUID, created).series(1, 12, from.Add(time.Minute))
+			outside := deploymentUpdatedObject(tc.outsideUID, created).series(21, 21, to.Add(30*time.Minute))[0]
+			if tc.emptyUID {
+				for _, i := range inside {
+					i.Message.Annotations[monitorapi.AnnotationEventUID] = ""
+				}
+				outside.Message.Annotations[monitorapi.AnnotationEventUID] = ""
+			}
+
+			oldFallbackKey := func(i monitorapi.Interval) string {
+				return fmt.Sprintf("%s - reason/%s firstTimestamp/%s %s", i.Locator.OldLocator(),
+					i.Message.Reason, i.Message.Annotations["firstTimestamp"], i.Message.HumanMessage)
+			}
+			require.Equal(t, oldFallbackKey(inside[0]), oldFallbackKey(outside),
+				"the observations must collide under the former fallback identity")
+
+			events := append(monitorapi.Intervals{cpTestInterval(cpNoProxyName, "Passed", from, to)}, inside...)
+			events = append(events, outside)
+			registry := NewUniversalPathologicalEventMatchers(nil, events)
+			matcher, err := registry.GetMatcherByName("AuthenticationComponentProxyDeploymentUpdated")
+			require.NoError(t, err)
+			replay := matcher.(*OverlapOtherIntervalsPathologicalEventMatcher)
+			wantCredits := 0
+			if tc.wantDiscounted {
+				wantCredits = 12
+			}
+			assert.Equal(t, wantCredits, replay.inWindowOccurrences[newEventObservation(outside)],
+				"only observations of the same identified Event may supply the 12 credits")
+			for observation := range replay.inWindowOccurrences {
+				assert.True(t, observation.event.valid, "UID-less observations must not enter the credit map")
+			}
+			assert.Equal(t, tc.wantDiscounted, matcher.Allows(outside, v1.HighlyAvailableTopologyMode),
+				"21 outside occurrences must be rejected unless the same UID earned the 12 credits")
+
+			evaluator := duplicateEventsEvaluator{registry: registry}
+			junits := evaluator.testDuplicatedEvents("events should not repeat", false, events, nil, false)
+			found := false
+			for _, junit := range junits {
+				if junit.Name == getJUnitName("events should not repeat", "openshift-authentication-operator") {
+					found = true
+					assert.Equal(t, !tc.wantDiscounted, junit.FailureOutput != nil,
+						"the JUnit result must preserve the outside-window failure when identity is unavailable or different")
+				}
+			}
+			require.True(t, found, "expected the authentication-operator JUnit result")
+		})
+	}
+}
+
+func TestAuthenticationComponentProxy_UIDLessInWindowCap(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		emptyUID bool
+	}{
+		{name: "missing UID"},
+		{name: "empty UID", emptyUID: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			events, from, _ := onePassingWindow()
+			atCap := operatorStatusChangedObject("", from).series(30, 30, from.Add(time.Minute))[0]
+			overCap := operatorStatusChangedObject("", from).series(31, 31, from.Add(2*time.Minute))[0]
+			if tc.emptyUID {
+				atCap.Message.Annotations[monitorapi.AnnotationEventUID] = ""
+				overCap.Message.Annotations[monitorapi.AnnotationEventUID] = ""
+			}
+			events = append(events, atCap, overCap)
+			registry := NewUniversalPathologicalEventMatchers(nil, events)
+			matcher, err := registry.GetMatcherByName("AuthenticationComponentProxyOperatorStatusChanged")
+			require.NoError(t, err)
+			assert.Empty(t, matcher.(*OverlapOtherIntervalsPathologicalEventMatcher).inWindowOccurrences,
+				"UID-less observations must not contribute cumulative credits")
+			assert.True(t, matcher.Allows(atCap, v1.HighlyAvailableTopologyMode),
+				"the direct in-window allowance must still apply without a UID")
+			assert.False(t, matcher.Allows(overCap, v1.HighlyAvailableTopologyMode),
+				"the direct in-window allowance must still enforce its cap")
+		})
+	}
+}
+
 // testEventObject is a Kubernetes Event object whose observations the monitor records.
 type testEventObject struct {
 	namespace, deployment, reason string

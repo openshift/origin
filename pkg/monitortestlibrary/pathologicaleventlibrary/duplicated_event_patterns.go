@@ -1100,43 +1100,61 @@ type OverlapOtherIntervalsPathologicalEventMatcher struct {
 	inWindowOccurrences map[eventObservation]int
 }
 
+type eventIdentifier struct {
+	id    string
+	valid bool
+}
+
 // eventObservation identifies one observed revision of a repeating Kubernetes Event: which
 // Event object (eventObjectKey), when its latest occurrence happened (From, second precision)
 // and the cumulative count it reported at that point.
 type eventObservation struct {
-	event string
+	event eventIdentifier
 	from  int64
 	count int
 }
 
+// newEventObservation builds a discount lookup key from the Event UID, latest occurrence
+// time at second precision, and cumulative count. If the UID is missing or empty, event.valid
+// is false; callers must not use that observation to store or retrieve discount credits.
 func newEventObservation(i monitorapi.Interval) eventObservation {
+	id, valid := eventObjectKey(i)
+
 	return eventObservation{
-		event: eventObjectKey(i),
+		event: eventIdentifier{
+			id:    id,
+			valid: valid,
+		},
 		from:  i.From.Unix(),
 		count: GetTimesAnEventHappened(i.Message),
 	}
 }
 
-// eventObjectKey identifies the Kubernetes Event object an interval is an observation of, so
-// that occurrences discounted from one object are never credited to another. The UID is the
-// only reliable identity: the recorder aggregates similar events into a single object
-// ("(combined from similar events): ...") whose message, and therefore hmsg, changes on every
-// update while its count keeps accumulating, as happens for ScalingReplicaSet, and independent
-// objects can share resource, reason and second-precision firstTimestamp.
+// eventObjectKey returns a key identifying the Kubernetes Event object observed by i.
+// It returns ("", false) when the Event UID annotation is missing or empty. Callers must
+// exclude those observations from both collecting and consuming cumulative discount credits.
 //
-// Intervals recorded without the UID fall back to the exact message plus firstTimestamp. That
-// never merges independent objects, at the cost of not discounting aggregated ones.
-func eventObjectKey(i monitorapi.Interval) string {
-	if uid, ok := i.Message.Annotations[monitorapi.AnnotationEventUID]; ok && uid != "" {
-		return "uid/" + uid
+// The UID remains stable when aggregation changes the message and hmsg. Reconstructing an
+// identity from the locator, reason, firstTimestamp and message is unsafe: independent Event
+// objects can share all of those fields and would then incorrectly share discount credits.
+func eventObjectKey(i monitorapi.Interval) (string, bool) {
+	uid, ok := i.Message.Annotations[monitorapi.AnnotationEventUID]
+
+	if !ok || uid == "" {
+		return "", false
 	}
-	return fmt.Sprintf("%s - reason/%s firstTimestamp/%s %s", i.Locator.OldLocator(), i.Message.Reason,
-		i.Message.Annotations["firstTimestamp"], i.Message.HumanMessage)
+	return "uid/" + uid, true
 }
 
-// discountInWindowOccurrences replays every observation of the events this matcher's delegate
-// matches and records, for each one, how many of its cumulative occurrences fell inside
-// allowIfWithinIntervals. Allows later subtracts that amount from out-of-window repeats.
+// discountInWindowOccurrences groups matching Kubernetes Event observations by Event UID
+// and replays each object's cumulative counter. For each observation, it records how many
+// occurrences fell inside allowIfWithinIntervals. Allows can later subtract those credits
+// from that object's out-of-window repeats.
+//
+// Observations with a missing or empty UID are excluded: independent Event objects can share
+// the same locator, reason, firstTimestamp and message, so reconstructing their identity could
+// transfer credits between unrelated counters. This exclusion does not affect the direct
+// in-window allowance in Allows, which still enforces the delegate's repeat cap.
 //
 // An Event only records its latest occurrence, so the occurrences between two consecutive
 // observations are known to lie somewhere after the earlier one and at or before the later
@@ -1154,7 +1172,10 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) discountInWindowOccurr
 		if i.Source != monitorapi.SourceKubeEvent || !ade.delegate.Matches(i) {
 			continue
 		}
-		key := eventObjectKey(i)
+		key, valid := eventObjectKey(i)
+		if !valid {
+			continue
+		}
 		observationsByEvent[key] = append(observationsByEvent[key], i)
 	}
 
@@ -1181,7 +1202,15 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) discountInWindowOccurr
 				inWindow += increment
 			}
 			previous, previousCount = &observations[idx], count
-			ade.inWindowOccurrences[newEventObservation(observation)] = inWindow
+			observedEvent := newEventObservation(observation)
+			if observedEvent.event.valid {
+				ade.inWindowOccurrences[observedEvent] = inWindow
+			} else {
+				logrus.WithFields(logrus.Fields{
+					"observedEvent": observedEvent,
+					"observation":   observation,
+				}).Info("observerd event in observation skipped because missing unique identifier")
+			}
 		}
 	}
 }
@@ -1229,6 +1258,16 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Matches(i monitorapi.I
 	return ade.delegate.Matches(i)
 }
 
+// Allows reports whether this matcher permits the repeated event. Inside an allowed interval,
+// it applies the delegate's restrictions, including its repeat cap, even if the UID is missing.
+// Outside those intervals, it requires a valid Event UID and positive credits collected by
+// discountInWindowOccurrences for the same object and observation. The remaining count must
+// not exceed DuplicateEventThreshold, and the delegate's other restrictions must still hold.
+//
+// A missing or empty UID prevents cumulative discounting. For example, 12 allowed occurrences
+// from one Event must not reduce an independent Event's 21 outside occurrences to 9 merely
+// because both objects share a locator, reason, firstTimestamp and message. Such an outside
+// observation receives no allowance from this matcher when its identity is unavailable.
 func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Allows(i monitorapi.Interval, topology v1.TopologyMode) bool {
 	if ade.withinAllowedIntervals(i) {
 		if !ade.delegate.Allows(i, topology) {
@@ -1248,7 +1287,15 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Allows(i monitorapi.In
 	if !ade.delegate.allowsIgnoringRepeatThreshold(i, topology) {
 		return false
 	}
-	inWindow := ade.inWindowOccurrences[newEventObservation(i)]
+	observation := newEventObservation(i)
+	if !observation.event.valid {
+		logrus.WithFields(logrus.Fields{
+			"observedEvent": observation,
+			"observation":   i,
+		}).Info("observerd event in observation miss unique identifier")
+		return false
+	}
+	inWindow := ade.inWindowOccurrences[observation]
 	outsideWindows := GetTimesAnEventHappened(i.Message) - inWindow
 	if inWindow > 0 && outsideWindows <= DuplicateEventThreshold {
 		logrus.Infof("%s repeated %d times outside the allowed intervals of %s, ignoring pathological event",
