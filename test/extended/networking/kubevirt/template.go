@@ -32,7 +32,7 @@ spec:
           type: ""
         resources:
           requests:
-            memory: 2048M
+            memory: {{ .Memory }}
       networks:
       - name: underlay
         multus:
@@ -96,7 +96,7 @@ spec:
           type: ""
         resources:
           requests:
-            memory: 2048M
+            memory: {{ .Memory }}
       networks:
       - name: overlay
         pod: {}
@@ -141,7 +141,7 @@ spec:
       rng: {}
     resources:
       requests:
-        memory: 2048M
+        memory: {{ .Memory }}
   networks:
   - multus:
       networkName: {{ .VMNamespace }}/{{ .NetworkName }}
@@ -188,7 +188,7 @@ spec:
       rng: {}
     resources:
       requests:
-        memory: 2048M
+        memory: {{ .Memory }}
   networks:
   - pod: {}
     name: overlay
@@ -245,7 +245,7 @@ spec:
           type: ""
         resources:
           requests:
-            memory: 2048M
+            memory: {{ .Memory }}
       networks:
       - name: overlay
         pod: {}
@@ -279,6 +279,7 @@ spec:
 )
 
 type CreationTemplateParams struct {
+	Memory                    string
 	NodeNames                 []string
 	VMName                    string
 	VMNamespace               string
@@ -292,6 +293,9 @@ type CreationTemplateParams struct {
 }
 
 func renderVMTemplate(vmTemplateString string, params CreationTemplateParams) (string, error) {
+	if params.Memory == "" {
+		params.Memory = "2048M"
+	}
 	vmTemplate, err := template.New(params.VMNamespace + "/" + params.VMName).Parse(vmTemplateString)
 	if err != nil {
 		return "", err
