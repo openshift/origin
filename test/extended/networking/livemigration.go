@@ -435,6 +435,7 @@ var _ = Describe("[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:Netw
 			Expect(err).NotTo(HaveOccurred(), "initialize the VM client")
 			params := kubevirt.CreationTemplateParams{
 				VMName: "migrating", VMNamespace: namespace, NetBindingName: "l2bridge",
+				Memory:                    "544Mi",
 				FedoraContainterDiskImage: image.LocationFor("quay.io/kubevirt/fedora-with-test-tooling-container-disk:v1.8.2"),
 				DHCPv4:                    hasIPv4, DHCPv6: hasIPv6, NodeNames: nodeNames,
 			}
