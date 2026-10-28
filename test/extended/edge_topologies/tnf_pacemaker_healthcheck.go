@@ -1,6 +1,7 @@
 package edge_topologies
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"time"
@@ -186,7 +187,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Validating cluster health after maintenance mode recovery")
 		o.Eventually(func() error {
-			return utils.ValidateEssentialOperatorsAvailable(oc)
+			return utils.ValidateEssentialOperatorsAvailable(context.Background(), oc)
 		}, healthCheckRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "Essential operators should be available after maintenance mode recovery")
 
@@ -448,7 +449,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Validating cluster health after node restart")
 		o.Eventually(func() error {
-			return utils.ValidateEssentialOperatorsAvailable(oc)
+			return utils.ValidateEssentialOperatorsAvailable(context.Background(), oc)
 		}, healthCheckRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "Essential operators should be available after node restart")
 

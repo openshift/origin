@@ -169,7 +169,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Validating essential operators available")
 		o.Eventually(func() error {
-			return utils.ValidateEssentialOperatorsAvailable(oc)
+			return utils.ValidateEssentialOperatorsAvailable(context.Background(), oc)
 		}, kubeletRestoreTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), "Essential operators should be available")
 
 		g.By("Waiting for PacemakerHealthCheckDegraded to clear")
@@ -245,7 +245,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Validating essential operators available")
 		o.Eventually(func() error {
-			return utils.ValidateEssentialOperatorsAvailable(oc)
+			return utils.ValidateEssentialOperatorsAvailable(context.Background(), oc)
 		}, kubeletRestoreTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), "Essential operators should be available")
 
 		g.By("Waiting for PacemakerHealthCheckDegraded to clear")

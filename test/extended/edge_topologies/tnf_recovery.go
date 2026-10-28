@@ -219,6 +219,18 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.DeferCleanup(func() {
 			logFinalClusterStatus([]corev1.Node{peerNode, targetNode})
 		})
+
+		// Audit non-essential operators after each test. When recovery
+		// succeeded but a non-essential operator (e.g. image-registry)
+		// remains unhealthy, report it as a clear primary failure with
+		// evidence — rather than letting it cascade into later tests.
+		// Registered after logFinalClusterStatus so it runs first (LIFO).
+		g.DeferCleanup(func() {
+			if g.CurrentSpecReport().Failed() {
+				return
+			}
+			auditNonEssentialOperatorsAfterRecovery(oc)
+		})
 	})
 
 	g.AfterEach(func() {
@@ -1563,4 +1575,24 @@ func waitForClusterHealthyWithPeriodicCleanup(oc *exutil.CLI, totalTimeout time.
 		}
 		return nil
 	}
+}
+
+// auditNonEssentialOperatorsAfterRecovery checks all non-essential operators
+// and fails the test with a clear primary-failure message when any remain
+// unhealthy after a successful recovery.  Evidence is collected with bounded
+// timeouts so it cannot block remaining diagnostics or cleanup.
+func auditNonEssentialOperatorsAfterRecovery(oc *exutil.CLI) {
+	status, err := utils.AuditNonEssentialOperators(context.Background(), oc)
+	if err != nil {
+		framework.Logf("WARNING: failed to audit non-essential operators: %v", err)
+		return
+	}
+	if !status.HasFailures() {
+		return
+	}
+
+	evidence := utils.GatherOperatorEvidence(oc, status.Unhealthy)
+	framework.Failf("[PrerequisiteFailure] Recovery succeeded but non-essential "+
+		"operator(s) remain unhealthy. This is a primary prerequisite failure, "+
+		"not a recovery-test failure.\n\n%s\n%s", status.Summary(), evidence)
 }
