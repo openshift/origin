@@ -15,12 +15,19 @@ import (
 	"github.com/openshift/origin/test/extended/util/oauthserver"
 )
 
+// htpasswdBcryptHash is the bcrypt hash for the password "password",
+const htpasswdBcryptHash = "$2y$05$0Fk2s.0FbLy0FZ82JAqajOV/kbT/wqKX5/QFKgps6J69J2jY6r5ZG"
+
 func deployOAuthServer(oc *util.CLI) (oauthserver.NewRequestTokenOptionsFunc, func(), error) {
-	// secret containing htpasswd "file": `htpasswd -cbB htpasswd.tmp testuser password`
+	return deployOAuthServerWithHTPasswd(oc, "testuser", "htpasswd")
+}
+
+// deployOAuthServerWithHTPasswd deploys an OAuth server with one htpasswd provider per name.
+func deployOAuthServerWithHTPasswd(oc *util.CLI, username string, idpNames ...string) (oauthserver.NewRequestTokenOptionsFunc, func(), error) {
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: "htpasswd"},
 		Data: map[string][]byte{
-			"htpasswd": []byte("testuser:$2y$05$0Fk2s.0FbLy0FZ82JAqajOV/kbT/wqKX5/QFKgps6J69J2jY6r5ZG"),
+			"htpasswd": []byte(username + ":" + htpasswdBcryptHash),
 		},
 	}
 	// provider config
@@ -28,17 +35,22 @@ func deployOAuthServer(oc *util.CLI) (oauthserver.NewRequestTokenOptionsFunc, fu
 		File: oauthserver.GetPathFromConfigMapSecretName(secret.Name, "htpasswd"),
 	})
 	o.Expect(err).ToNot(o.HaveOccurred())
-	// identity provider
-	identityProvider := osinv1.IdentityProvider{
-		Name:            "htpasswd",
-		MappingMethod:   "claim",
-		Provider:        *providerConfig,
-		UseAsChallenger: true,
-		UseAsLogin:      true,
+
+	identityProviders := make([]osinv1.IdentityProvider, 0, len(idpNames))
+	for i, name := range idpNames {
+		identityProviders = append(identityProviders, osinv1.IdentityProvider{
+			Name:          name,
+			MappingMethod: "claim",
+			Provider:      *providerConfig,
+			// only the first provider logs users in, so we know where
+			// the identity comes from (see the comment above)
+			UseAsChallenger: i == 0,
+			UseAsLogin:      i == 0,
+		})
 	}
 
 	// deploy oauth server
-	return oauthserver.DeployOAuthServer(oc, []osinv1.IdentityProvider{identityProvider}, nil, []corev1.Secret{secret})
+	return oauthserver.DeployOAuthServer(oc, identityProviders, nil, []corev1.Secret{secret})
 }
 
 func getOAuthWellKnownData(oc *util.CLI) *oauthdiscovery.OauthAuthorizationServerMetadata {
