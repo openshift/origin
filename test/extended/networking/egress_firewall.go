@@ -276,7 +276,7 @@ func sendEgressFwTraffic(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI
 
 func checkConnectivityToExternalHost(f *e2e.Framework, oc *exutil.CLI, pod string) bool {
 	g.By("executing a successful access to external internet")
-	_, err := oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "http://www.google.com:80").Output()
+	_, err := oc.Run("exec").Args(pod, "--", "curl", "-4", "-q", "-s", "-I", "-m5", "http://www.google.com:80").Output()
 	if err != nil {
 		e2e.Logf("Unable to connect/talk to the internet: %v", err)
 		return false
