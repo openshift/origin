@@ -57,7 +57,15 @@ func (f *KubeRebaseTestsFilter) Filter(ctx context.Context, tests extensions.Ext
 		return tests, nil
 	}
 
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(f.restConfig)
+	httpClient, err := rest.HTTPClientFor(f.restConfig)
+	if err != nil {
+		return nil, err
+	}
+	httpClientCopy := *httpClient
+	httpClientCopy.CheckRedirect = func(*http.Request, []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	discoveryClient, err := discovery.NewDiscoveryClientForConfigAndClient(f.restConfig, &httpClientCopy)
 	if err != nil {
 		return nil, err
 	}

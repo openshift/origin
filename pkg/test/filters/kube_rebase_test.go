@@ -90,6 +90,22 @@ func TestKubeRebaseFilterRetryAfterStopsAtAttemptCeiling(t *testing.T) {
 	assert.Equal(t, int32(3), requests.Load())
 }
 
+func TestKubeRebaseFilterDoesNotFollowRedirects(t *testing.T) {
+	var requests atomic.Int32
+	filter := newKubeRebaseFilterForTransport(func(request *http.Request) (*http.Response, error) {
+		requests.Add(1)
+		response := serverVersionResponse(request, http.StatusTemporaryRedirect, "")
+		response.Header.Set("Location", "/version")
+		return response, nil
+	})
+
+	result, err := filter.Filter(context.Background(), kubeRebaseTestSpecs())
+
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, int32(1), requests.Load())
+}
+
 func TestKubeRebaseFilterDoesNotRetryNonTransientErrors(t *testing.T) {
 	tests := []struct {
 		name      string
