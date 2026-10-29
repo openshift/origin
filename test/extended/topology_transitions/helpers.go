@@ -6,11 +6,13 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	appsclient "k8s.io/client-go/kubernetes/typed/apps/v1"
 )
 
 const (
@@ -21,7 +23,12 @@ const (
 )
 
 func getInfrastructure(ctx context.Context, oc *exutil.CLI) (*configv1.Infrastructure, error) {
-	return oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, infraName, metav1.GetOptions{})
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, infraName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cluster Infrastructure")
+	}
+
+	return infra, nil
 }
 
 // Check the report and every check against the current Infrastructure generation.
@@ -59,7 +66,7 @@ func checkTransitionEvaluation(infra *configv1.Infrastructure, definition *trans
 		return fmt.Errorf("waiting for current TopologyTransitionAvailable=%s", wantAvailable)
 	}
 	if wantAvailable == metav1.ConditionFalse && available.Reason != "PreflightCheckFailed" {
-		return fmt.Errorf("expected availability reason PreflightCheckFailed, got %s", available.Reason)
+		return fmt.Errorf("expected availability reason PreflightCheckFailed")
 	}
 
 	for name, passes := range definition.ExpectedPreflightChecks {
@@ -72,7 +79,7 @@ func checkTransitionEvaluation(infra *configv1.Infrastructure, definition *trans
 			return fmt.Errorf("waiting for current %s=%s", name, want)
 		}
 		if want == metav1.ConditionFalse && condition.Reason != "PreflightCheckFailed" {
-			return fmt.Errorf("expected %s reason PreflightCheckFailed, got %s", name, condition.Reason)
+			return fmt.Errorf("expected %s reason PreflightCheckFailed", name)
 		}
 	}
 	for _, condition := range matching.Evaluations {
@@ -91,11 +98,15 @@ func checkTransitionEvaluation(infra *configv1.Infrastructure, definition *trans
 func checkNodeCounts(ctx context.Context, oc *exutil.CLI, target nodeCounts) error {
 	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to list nodes for role counts")
 	}
 
+	return checkNodeRolesAndCounts(nodes.Items, target)
+}
+
+func checkNodeRolesAndCounts(nodes []corev1.Node, target nodeCounts) error {
 	controlPlane, compute, arbiter, schedulable := 0, 0, 0, 0
-	for _, node := range nodes.Items {
+	for _, node := range nodes {
 		_, isArbiter := node.Labels["node-role.kubernetes.io/arbiter"]
 		_, isWorker := node.Labels["node-role.kubernetes.io/worker"]
 		switch {
@@ -109,7 +120,7 @@ func checkNodeCounts(ctx context.Context, oc *exutil.CLI, target nodeCounts) err
 		case isWorker:
 			compute++
 		default:
-			return fmt.Errorf("node %s has no control-plane, worker, or arbiter role", node.Name)
+			return fmt.Errorf("a node has no control-plane, worker, or arbiter role")
 		}
 	}
 	if controlPlane != target.ControlPlaneNodes || compute != target.ComputeNodes || arbiter != target.ArbiterNodes || schedulable != target.SchedulableControlPlaneNodes {
@@ -123,7 +134,7 @@ func checkNodeCounts(ctx context.Context, oc *exutil.CLI, target nodeCounts) err
 func checkEtcdHealthy(ctx context.Context, oc *exutil.CLI) error {
 	etcd, err := oc.AdminOperatorClient().OperatorV1().Etcds().Get(ctx, etcdName, metav1.GetOptions{})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get etcd health conditions")
 	}
 	if available := v1helpers.FindOperatorCondition(etcd.Status.Conditions, etcdMembersAvailableCondition); available == nil || available.Status != operatorv1.ConditionTrue {
 		return fmt.Errorf("etcd %s condition is not True: %s", etcdMembersAvailableCondition, conditionSummary(available))
@@ -147,11 +158,49 @@ func conditionSummary(condition *operatorv1.OperatorCondition) string {
 	if condition == nil {
 		return "missing"
 	}
-	return fmt.Sprintf("type=%s status=%s reason=%s", condition.Type, condition.Status, condition.Reason)
+	return fmt.Sprintf("status=%s", condition.Status)
 }
 
 func isControlPlaneNode(labels map[string]string) bool {
 	_, master := labels["node-role.kubernetes.io/master"]
 	_, controlPlane := labels["node-role.kubernetes.io/control-plane"]
 	return master || controlPlane
+}
+
+// These checks omit resource dumps and raw API errors from suite diagnostics.
+func checkBaselineWorkloadReady(ctx context.Context, deployments appsclient.DeploymentInterface) error {
+	deployment, err := deployments.Get(ctx, baselineWorkloadName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get baseline deployment")
+	}
+	if deployment.Spec.Replicas == nil || deployment.Status.AvailableReplicas != *deployment.Spec.Replicas {
+		return fmt.Errorf("baseline deployment has not reached its requested replica count")
+	}
+
+	return nil
+}
+
+func checkOperatorsSettled(ctx context.Context, client configclient.ConfigV1Interface) error {
+	operators, err := client.ClusterOperators().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to list cluster operators")
+	}
+
+	unsettled := 0
+	for _, operator := range operators.Items {
+		conditions := map[configv1.ClusterStatusConditionType]configv1.ConditionStatus{}
+		for _, condition := range operator.Status.Conditions {
+			conditions[condition.Type] = condition.Status
+		}
+		if conditions[configv1.OperatorAvailable] != configv1.ConditionTrue ||
+			conditions[configv1.OperatorDegraded] != configv1.ConditionFalse ||
+			conditions[configv1.OperatorProgressing] != configv1.ConditionFalse {
+			unsettled++
+		}
+	}
+	if unsettled != 0 {
+		return fmt.Errorf("%d cluster operators have not settled", unsettled)
+	}
+
+	return nil
 }

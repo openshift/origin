@@ -11,6 +11,7 @@ import (
 	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.uber.org/zap"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -105,6 +106,8 @@ func (e *EtcdClientFactoryImpl) newEtcdClientForTarget(target string) (*clientv3
 		Endpoints:   []string{"https://" + endpoint},
 		DialTimeout: 30 * time.Second,
 		TLS:         tlsConfig,
+		// Membership checks report counts without exposing connection details.
+		Logger: zap.NewNop(),
 	})
 	if err != nil {
 		return nil, nil, err
@@ -126,16 +129,16 @@ func parsePortForwardEndpoint(output string) (string, error) {
 		suffix = " -> 2379"
 	)
 	if !strings.HasPrefix(output, prefix) || !strings.HasSuffix(output, suffix) {
-		return "", fmt.Errorf("port forward output not in expected format: %s", output)
+		return "", fmt.Errorf("port forward output not in expected format")
 	}
 
 	address := strings.TrimSuffix(strings.TrimPrefix(output, prefix), suffix)
 	host, port, err := net.SplitHostPort(address)
 	if err != nil || host == "" {
-		return "", fmt.Errorf("port forward output not in expected format: %s", output)
+		return "", fmt.Errorf("port forward output not in expected format")
 	}
 	if _, err := strconv.Atoi(port); err != nil {
-		return "", fmt.Errorf("port forward output not in expected format: %s", output)
+		return "", fmt.Errorf("port forward output not in expected format")
 	}
 	return net.JoinHostPort(host, port), nil
 }

@@ -12,9 +12,9 @@ import (
 	etcdhelpers "github.com/openshift/origin/test/extended/etcd/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
-	coutil "github.com/openshift/origin/test/extended/util/operator"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -50,17 +50,17 @@ func registerTargetError(suite, timeout, extraTags string, err error) {
 
 func requireTransitionSource(ctx context.Context, oc *exutil.CLI, target transitionTarget) (*transitionDefinition, *configv1.Infrastructure) {
 	infra, err := getInfrastructure(ctx, oc)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster Infrastructure")
 
 	definition, err := selectTransitionDefinition(infra, target)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(err).NotTo(o.HaveOccurred(), "source and target must match one supported transition definition")
 
 	return definition, requireSource(ctx, oc, definition)
 }
 
 func requireSource(ctx context.Context, oc *exutil.CLI, definition *transitionDefinition) *configv1.Infrastructure {
 	infra, err := getInfrastructure(ctx, oc)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster Infrastructure")
 	o.Expect(definition.matchesSource(infra)).To(o.BeTrue(), "cluster must match the source for %s", definition.Name)
 
 	// Do not run against a pending request: preflight must not admit a transition.
@@ -77,7 +77,7 @@ func waitForEvaluation(ctx context.Context, oc *exutil.CLI, definition *transiti
 		}
 
 		return checkTransitionEvaluation(infra, definition, preflight)
-	}).WithContext(ctx).WithTimeout(preconditionWaitTimeout).WithPolling(15 * time.Second).Should(o.Succeed())
+	}).WithContext(ctx).WithTimeout(preconditionWaitTimeout).WithPolling(15*time.Second).Should(o.Succeed(), "transition evaluation did not reach the expected current preflight results")
 }
 
 func registerPreflightTest(target transitionTarget) {
@@ -88,15 +88,15 @@ func registerPreflightTest(target transitionTarget) {
 			definition, before := requireTransitionSource(ctx, oc, target)
 
 			g.By("checking the source node counts for " + definition.Name)
-			o.Expect(checkNodeCounts(ctx, oc, definition.SourceNodes)).To(o.Succeed())
+			o.Expect(checkNodeCounts(ctx, oc, definition.SourceNodes)).To(o.Succeed(), "source node counts do not match the transition definition")
 			factory := etcdhelpers.NewEtcdClientFactory(oc.AdminKubeClient())
-			o.Expect(etcdhelpers.EnsureVotingMembersCount(ctx, g.GinkgoT(), factory, oc.AdminKubeClient(), definition.SourceNodes.ControlPlaneNodes+definition.SourceNodes.ArbiterNodes)).To(o.Succeed())
+			o.Expect(etcdhelpers.EnsureVotingMembersCount(ctx, g.GinkgoT(), factory, oc.AdminKubeClient(), definition.SourceNodes.ControlPlaneNodes+definition.SourceNodes.ArbiterNodes)).To(o.Succeed(), "source etcd voting member count does not match the transition definition")
 
 			g.By("waiting for the expected preflight results for " + definition.Name)
 			waitForEvaluation(ctx, oc, definition, true)
 
 			after := requireSource(ctx, oc, definition)
-			o.Expect(after.Spec).To(o.Equal(before.Spec), "preflight must leave the topology request unchanged")
+			o.Expect(equality.Semantic.DeepEqual(after.Spec, before.Spec)).To(o.BeTrue(), "preflight must leave the topology request unchanged")
 		})
 	})
 }
@@ -112,21 +112,27 @@ func registerTransitionTest(target transitionTarget) {
 			waitForEvaluation(ctx, oc, definition, false)
 
 			g.By("creating and checking the baseline workload")
-			o.Expect(createBaselineWorkload(ctx, oc)).To(o.Succeed())
-			o.Expect(exutil.WaitForDeploymentReadyWithTimeout(oc, baselineWorkloadName, oc.Namespace(), -1, 5*time.Minute)).To(o.Succeed())
+			o.Expect(createBaselineWorkload(ctx, oc)).To(o.Succeed(), "failed to create the baseline workload")
+			o.Eventually(func() error {
+				return checkBaselineWorkloadReady(ctx, oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()))
+			}).WithContext(ctx).WithTimeout(5*time.Minute).WithPolling(2*time.Second).Should(o.Succeed(), "baseline deployment did not become ready before the transition")
 
 			before := requireSource(ctx, oc, definition)
 			g.By("requesting the topology transition through oc adm")
-			_, err := oc.Run("adm", "transition", "topology").Args(
+			// Output logs raw stdout and stderr on failure; keep them out of suite logs.
+			command, _, _, err := oc.Run("adm", "transition", "topology").Args(
 				"--control-plane="+string(target.Topology.ControlPlaneTopology),
 				"--infrastructure="+string(target.Topology.InfrastructureTopology),
 				"--confirm",
-			).EnvVar("OC_ENABLE_CMD_TRANSITION_TOPOLOGY", "true").Output()
-			o.Expect(err).NotTo(o.HaveOccurred(), "oc adm transition topology failed")
+			).EnvVar("OC_ENABLE_CMD_TRANSITION_TOPOLOGY", "true").Background()
+			if err == nil {
+				err = command.Wait()
+			}
+			o.Expect(err == nil).To(o.BeTrue(), "oc adm transition topology failed")
 
 			requested, err := getInfrastructure(ctx, oc)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(requested.Spec.ControlPlaneTopology).To(o.Equal(target.Topology.ControlPlaneTopology))
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster Infrastructure")
+			o.Expect(requested.Spec.ControlPlaneTopology).To(o.Equal(target.Topology.ControlPlaneTopology), "requested control-plane topology was not recorded")
 			o.Expect(requested.Generation).To(o.BeNumerically(">", before.Generation), "the CLI must submit a new request")
 			requestGeneration := requested.Generation
 
@@ -148,21 +154,25 @@ func registerTransitionTest(target transitionTarget) {
 				}
 
 				return nil
-			}).WithContext(ctx).WithTimeout(90 * time.Minute).WithPolling(15 * time.Second).Should(o.Succeed())
+			}).WithContext(ctx).WithTimeout(90*time.Minute).WithPolling(15*time.Second).Should(o.Succeed(), "topology transition did not complete with both target topologies for the current request")
 
 			g.By("waiting for operators and exact node counts to settle")
-			o.Expect(coutil.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 20)).To(o.Succeed())
+			o.Eventually(func() error {
+				return checkOperatorsSettled(ctx, oc.AdminConfigClient().ConfigV1())
+			}).WithContext(ctx).WithTimeout(20*time.Minute).WithPolling(10*time.Second).Should(o.Succeed(), "operators did not settle after the transition")
 			o.Eventually(func() error {
 				return checkNodeCounts(ctx, oc, target.nodeCounts)
-			}).WithContext(ctx).WithTimeout(10 * time.Minute).WithPolling(15 * time.Second).Should(o.Succeed())
+			}).WithContext(ctx).WithTimeout(10*time.Minute).WithPolling(15*time.Second).Should(o.Succeed(), "target node counts did not settle after the transition")
 
 			g.By("checking etcd voting members and health")
 			factory := etcdhelpers.NewEtcdClientFactory(oc.AdminKubeClient())
-			o.Expect(etcdhelpers.EnsureVotingMembersCount(ctx, g.GinkgoT(), factory, oc.AdminKubeClient(), target.ControlPlaneNodes+target.ArbiterNodes)).To(o.Succeed())
-			o.Expect(checkEtcdHealthy(ctx, oc)).To(o.Succeed())
+			o.Expect(etcdhelpers.EnsureVotingMembersCount(ctx, g.GinkgoT(), factory, oc.AdminKubeClient(), target.ControlPlaneNodes+target.ArbiterNodes)).To(o.Succeed(), "etcd voting member count did not reach the target after the transition")
+			o.Expect(checkEtcdHealthy(ctx, oc)).To(o.Succeed(), "etcd did not become healthy after the transition")
 
 			g.By("checking the baseline workload after the transition")
-			o.Expect(exutil.WaitForDeploymentReadyWithTimeout(oc, baselineWorkloadName, oc.Namespace(), -1, 2*time.Minute)).To(o.Succeed())
+			o.Eventually(func() error {
+				return checkBaselineWorkloadReady(ctx, oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()))
+			}).WithContext(ctx).WithTimeout(2*time.Minute).WithPolling(2*time.Second).Should(o.Succeed(), "baseline deployment did not become ready after the transition")
 		})
 	})
 }
@@ -209,5 +219,9 @@ func createBaselineWorkload(ctx context.Context, oc *exutil.CLI) error {
 		},
 	}
 	_, err := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Create(ctx, deployment, metav1.CreateOptions{})
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to create baseline workload")
+	}
+
+	return nil
 }

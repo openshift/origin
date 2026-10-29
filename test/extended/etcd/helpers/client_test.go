@@ -26,6 +26,11 @@ func TestParsePortForwardEndpoint(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "invalid address",
+			output:  "Forwarding from internal-host.example -> 2379",
+			wantErr: true,
+		},
+		{
 			name:    "invalid port",
 			output:  "Forwarding from [::1]:not-a-port -> 2379",
 			wantErr: true,
@@ -38,6 +43,10 @@ func TestParsePortForwardEndpoint(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("parsePortForwardEndpoint() error = %v, wantErr %t", err, tt.wantErr)
 			}
+			if err != nil && err.Error() != "port forward output not in expected format" {
+				t.Errorf("port-forward error includes raw output: %v", err)
+			}
+
 			if err == nil && got != tt.want {
 				t.Errorf("parsePortForwardEndpoint() = %q, want %q", got, tt.want)
 			}
