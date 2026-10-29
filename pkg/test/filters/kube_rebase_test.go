@@ -57,6 +57,25 @@ func TestKubeRebaseFilterRetriesTimeoutThenSucceeds(t *testing.T) {
 	assert.Equal(t, int32(2), requests.Load())
 }
 
+func TestKubeRebaseFilterRetriesUnexpectedEOFThenSucceeds(t *testing.T) {
+	var requests atomic.Int32
+	filter := newKubeRebaseFilterForTransport(func(request *http.Request) (*http.Response, error) {
+		if requests.Add(1) == 1 {
+			response := serverVersionResponse(request, http.StatusOK, "")
+			response.Body = &unexpectedEOFBody{payload: []byte(`{"major":"1"`)}
+			return response, nil
+		}
+		return serverVersionResponse(request, http.StatusOK, `{"major":"1","minor":"32"}`), nil
+	})
+	filter.retryPolicy.backoff.Duration = 0
+
+	result, err := filter.Filter(context.Background(), kubeRebaseTestSpecs())
+
+	require.NoError(t, err)
+	assert.Len(t, result, 2)
+	assert.Equal(t, int32(2), requests.Load())
+}
+
 func TestKubeRebaseFilterContinuousTimeoutStopsAtAttemptCeiling(t *testing.T) {
 	var requests atomic.Int32
 	filter := newKubeRebaseFilterForTransport(func(*http.Request) (*http.Response, error) {
@@ -202,6 +221,21 @@ type tlsHandshakeTimeoutError struct{}
 
 func (tlsHandshakeTimeoutError) Error() string { return "net/http: TLS handshake timeout" }
 func (tlsHandshakeTimeoutError) Timeout() bool { return true }
+
+type unexpectedEOFBody struct {
+	payload []byte
+	read    bool
+}
+
+func (b *unexpectedEOFBody) Read(buffer []byte) (int, error) {
+	if b.read {
+		return 0, io.EOF
+	}
+	b.read = true
+	return copy(buffer, b.payload), io.ErrUnexpectedEOF
+}
+
+func (*unexpectedEOFBody) Close() error { return nil }
 
 func newKubeRebaseFilterForTransport(transport roundTripFunc) *KubeRebaseTestsFilter {
 	return NewKubeRebaseTestsFilter(&rest.Config{

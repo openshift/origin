@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -149,6 +150,9 @@ func serverVersionOnce(ctx context.Context, discoveryClient *discovery.Discovery
 func isTransientServerVersionError(err error) bool {
 	if err == nil || errors.Is(err, context.Canceled) || isTLSError(err) {
 		return false
+	}
+	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+		return true
 	}
 
 	if apierrors.IsTimeout(err) || apierrors.IsServerTimeout(err) ||
