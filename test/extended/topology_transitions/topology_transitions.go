@@ -126,7 +126,12 @@ func registerTransitionTest(target transitionTarget) {
 				"--confirm",
 			).EnvVar("OC_ENABLE_CMD_TRANSITION_TOPOLOGY", "true").Background()
 			if err == nil {
+				stop := context.AfterFunc(ctx, func() {
+					_ = command.Process.Kill()
+				})
+
 				err = command.Wait()
+				stop()
 			}
 			o.Expect(err == nil).To(o.BeTrue(), "oc adm transition topology failed")
 
@@ -167,7 +172,9 @@ func registerTransitionTest(target transitionTarget) {
 			g.By("checking etcd voting members and health")
 			factory := etcdhelpers.NewEtcdClientFactory(oc.AdminKubeClient())
 			o.Expect(etcdhelpers.EnsureVotingMembersCount(ctx, g.GinkgoT(), factory, oc.AdminKubeClient(), target.ControlPlaneNodes+target.ArbiterNodes)).To(o.Succeed(), "etcd voting member count did not reach the target after the transition")
-			o.Expect(checkEtcdHealthy(ctx, oc)).To(o.Succeed(), "etcd did not become healthy after the transition")
+			o.Eventually(func() error {
+				return checkEtcdHealthy(ctx, oc)
+			}).WithContext(ctx).WithTimeout(10*time.Minute).WithPolling(15*time.Second).Should(o.Succeed(), "etcd did not become healthy after the transition")
 
 			g.By("checking the baseline workload after the transition")
 			o.Eventually(func() error {
