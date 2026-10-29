@@ -12,6 +12,7 @@ import (
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/http2"
 	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/test/extensions"
@@ -63,6 +64,25 @@ func TestKubeRebaseFilterRetriesUnexpectedEOFThenSucceeds(t *testing.T) {
 		if requests.Add(1) == 1 {
 			response := serverVersionResponse(request, http.StatusOK, "")
 			response.Body = &unexpectedEOFBody{payload: []byte(`{"major":"1"`)}
+			return response, nil
+		}
+		return serverVersionResponse(request, http.StatusOK, `{"major":"1","minor":"32"}`), nil
+	})
+	filter.retryPolicy.backoff.Duration = 0
+
+	result, err := filter.Filter(context.Background(), kubeRebaseTestSpecs())
+
+	require.NoError(t, err)
+	assert.Len(t, result, 2)
+	assert.Equal(t, int32(2), requests.Load())
+}
+
+func TestKubeRebaseFilterRetriesHTTP2StreamErrorThenSucceeds(t *testing.T) {
+	var requests atomic.Int32
+	filter := newKubeRebaseFilterForTransport(func(request *http.Request) (*http.Response, error) {
+		if requests.Add(1) == 1 {
+			response := serverVersionResponse(request, http.StatusOK, "")
+			response.Body = http2StreamErrorBody{}
 			return response, nil
 		}
 		return serverVersionResponse(request, http.StatusOK, `{"major":"1","minor":"32"}`), nil
@@ -236,6 +256,14 @@ func (b *unexpectedEOFBody) Read(buffer []byte) (int, error) {
 }
 
 func (*unexpectedEOFBody) Close() error { return nil }
+
+type http2StreamErrorBody struct{}
+
+func (http2StreamErrorBody) Read([]byte) (int, error) {
+	return 0, http2.StreamError{StreamID: 1, Code: http2.ErrCodeCancel}
+}
+
+func (http2StreamErrorBody) Close() error { return nil }
 
 func newKubeRebaseFilterForTransport(transport roundTripFunc) *KubeRebaseTestsFilter {
 	return NewKubeRebaseTestsFilter(&rest.Config{

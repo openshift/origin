@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/http2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -152,6 +153,10 @@ func isTransientServerVersionError(err error) bool {
 		return false
 	}
 	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+		return true
+	}
+	var streamError http2.StreamError
+	if errors.As(err, &streamError) {
 		return true
 	}
 
