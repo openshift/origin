@@ -41,6 +41,33 @@ func TestKubeRebaseFilterHealthyServerUsesOneRequest(t *testing.T) {
 	assert.Equal(t, int32(1), requests.Load())
 }
 
+func TestKubeRebaseFilterPreservesUserAgent(t *testing.T) {
+	tests := []struct {
+		name       string
+		configured string
+		expected   string
+	}{
+		{name: "default", expected: rest.DefaultKubernetesUserAgent()},
+		{name: "explicit", configured: "kube-rebase-test", expected: "kube-rebase-test"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var actual string
+			filter := newKubeRebaseFilterForTransport(func(request *http.Request) (*http.Response, error) {
+				actual = request.Header.Get("User-Agent")
+				return serverVersionResponse(request, http.StatusOK, `{"major":"1","minor":"32"}`), nil
+			})
+			filter.restConfig.UserAgent = test.configured
+
+			_, err := filter.Filter(context.Background(), kubeRebaseTestSpecs())
+
+			require.NoError(t, err)
+			assert.Equal(t, test.expected, actual)
+		})
+	}
+}
+
 func TestKubeRebaseFilterRetriesTimeoutThenSucceeds(t *testing.T) {
 	var requests atomic.Int32
 	filter := newKubeRebaseFilterForTransport(func(request *http.Request) (*http.Response, error) {
