@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -102,7 +104,7 @@ func (f *KubeRebaseTestsFilter) serverVersionWithRetry(ctx context.Context, disc
 	var serverVersion *version.Info
 	var lastErr error
 	waitErr := wait.ExponentialBackoffWithContext(retryCtx, f.retryPolicy.backoff, func(attemptCtx context.Context) (bool, error) {
-		serverVersion, lastErr = discoveryClient.ServerVersionWithContext(attemptCtx)
+		serverVersion, lastErr = serverVersionOnce(attemptCtx, discoveryClient)
 		if lastErr == nil {
 			return true, nil
 		}
@@ -121,6 +123,19 @@ func (f *KubeRebaseTestsFilter) serverVersionWithRetry(ctx context.Context, disc
 		return nil, lastErr
 	}
 	return nil, waitErr
+}
+
+func serverVersionOnce(ctx context.Context, discoveryClient *discovery.DiscoveryClient) (*version.Info, error) {
+	body, err := discoveryClient.RESTClient().Get().AbsPath("/version").MaxRetries(0).Do(ctx).Raw()
+	if err != nil {
+		return nil, err
+	}
+
+	serverVersion := &version.Info{}
+	if err := json.Unmarshal(body, serverVersion); err != nil {
+		return nil, fmt.Errorf("unable to parse the server version: %v", err)
+	}
+	return serverVersion, nil
 }
 
 func isTransientServerVersionError(err error) bool {

@@ -73,6 +73,23 @@ func TestKubeRebaseFilterContinuousTimeoutStopsAtAttemptCeiling(t *testing.T) {
 	assert.Equal(t, int32(3), requests.Load())
 }
 
+func TestKubeRebaseFilterRetryAfterStopsAtAttemptCeiling(t *testing.T) {
+	var requests atomic.Int32
+	filter := newKubeRebaseFilterForTransport(func(request *http.Request) (*http.Response, error) {
+		requests.Add(1)
+		response := serverVersionResponse(request, http.StatusServiceUnavailable, `{"kind":"Status","apiVersion":"v1","status":"Failure","reason":"ServiceUnavailable","code":503}`)
+		response.Header.Set("Retry-After", "0")
+		return response, nil
+	})
+	filter.retryPolicy.backoff.Duration = 0
+
+	result, err := filter.Filter(context.Background(), kubeRebaseTestSpecs())
+
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, int32(3), requests.Load())
+}
+
 func TestKubeRebaseFilterDoesNotRetryNonTransientErrors(t *testing.T) {
 	tests := []struct {
 		name      string
