@@ -13,6 +13,7 @@ type transitionDefinition struct {
 	Source                  configv1.InfrastructureStatus
 	Target                  configv1.TopologyState
 	SourceNodes             nodeCounts
+	TargetNodes             nodeCounts
 	ExpectedPreflightChecks map[string]bool
 }
 
@@ -31,6 +32,10 @@ var transitionDefinitions = []transitionDefinition{
 		SourceNodes: nodeCounts{
 			ControlPlaneNodes:            1,
 			SchedulableControlPlaneNodes: 1,
+		},
+		TargetNodes: nodeCounts{
+			ControlPlaneNodes:            3,
+			SchedulableControlPlaneNodes: 3,
 		},
 		ExpectedPreflightChecks: map[string]bool{
 			"ControlPlaneNodeCountSatisfied":    false,
@@ -66,9 +71,9 @@ func (definition transitionDefinition) matchesSource(infra *configv1.Infrastruct
 	return true
 }
 
-func supportsTarget(target configv1.TopologyState) bool {
+func supportsTarget(target transitionTarget) bool {
 	for _, definition := range transitionDefinitions {
-		if definition.Target == target {
+		if definition.Target == target.Topology && definition.TargetNodes == target.nodeCounts {
 			return true
 		}
 	}

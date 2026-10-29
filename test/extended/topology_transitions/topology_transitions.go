@@ -27,8 +27,8 @@ const (
 
 func init() {
 	target, err := transitionTargetFromEnvironment(os.Getenv)
-	if err == nil && !supportsTarget(target.Topology) {
-		err = fmt.Errorf("no supported target matches control-plane=%s infrastructure=%s", target.Topology.ControlPlaneTopology, target.Topology.InfrastructureTopology)
+	if err == nil && !supportsTarget(target) {
+		err = fmt.Errorf("no supported target matches control-plane=%s infrastructure=%s node counts=%+v", target.Topology.ControlPlaneTopology, target.Topology.InfrastructureTopology, target.nodeCounts)
 	}
 	if err != nil {
 		registerTargetError("openshift/topology-transitions/preflight", "30m", "", err)

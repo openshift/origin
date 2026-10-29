@@ -94,6 +94,7 @@ Add an entry to `transitionDefinitions` in `transition_definitions.go`:
 - `Source`: control-plane and infrastructure topology, plus an optional platform type.
 - `Target`: both target topology values.
 - `SourceNodes`: exact node counts expected during the preflight suite.
+- `TargetNodes`: exact node counts supported for the target topology.
 - `ExpectedPreflightChecks`: each named check's expected preflight result (`true` or `false`).
 
 The suites pick one definition from the live source state and the configured
@@ -102,4 +103,5 @@ suite uses that definition's node counts and check results. Its expected etcd
 voting count is the source control-plane count plus the arbiter count.
 Availability must be false if any expected check fails, and true otherwise.
 Checks absent from the map must pass. The main suite requires all checks to pass
-before it makes the request. Target node counts still come from the lane variables above.
+before it makes the request. Target node counts come from the lane variables above
+and must match a supported definition before either suite can run.
