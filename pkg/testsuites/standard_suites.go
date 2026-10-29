@@ -440,6 +440,28 @@ var staticSuites = []ginkgo.TestSuite{
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
+		Name: "openshift/workload-scheduling",
+		Description: templates.LongDesc(`
+		This test suite validates the workload-aware scheduling feature gates:
+		the Workload and PodGroup APIs, gang scheduling, workload-aware
+		preemption, and DRA resource claims shared across a PodGroup.
+
+		These gates are Tech Preview, so the suite is empty on a cluster running
+		the default feature set.
+		`),
+		Qualifiers: []string{
+			withStandardEarlyOrLateTests(
+				`name.contains("[Suite:openshift/workload-scheduling]") ||
+				 name.contains("[FeatureGate:GenericWorkload]") ||
+				 name.contains("[FeatureGate:DRAWorkloadResourceClaims]") ||
+				 name.contains("[FeatureGate:TopologyAwareWorkloadScheduling]")`),
+		},
+		// The topology tests label nodes and add extended resources to them, so they
+		// cannot share a cluster with each other.
+		Parallelism: 1,
+		TestTimeout: 45 * time.Minute,
+	},
+	{
 		Name: "openshift/auth/external-oidc",
 		Description: templates.LongDesc(`
 		This test suite runs tests to validate cluster behavior when cluster authentication is configured to use an external OIDC provider.
