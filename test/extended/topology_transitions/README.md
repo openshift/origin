@@ -98,8 +98,8 @@ Add an entry to `transitionDefinitions` in `transition_definitions.go`:
 - `ExpectedPreflightChecks`: each named check's expected preflight result (`true` or `false`).
 
 The suites pick one definition from the live source state and the configured
-target topology. Missing or duplicate matches fail the test. The preflight
-suite uses that definition's node counts and check results. Its expected etcd
+target topology and node counts. Missing or duplicate matches fail the test.
+The preflight suite uses that definition's node counts and check results. Its expected etcd
 voting count is the source control-plane count plus the arbiter count.
 Availability must be false if any expected check fails, and true otherwise.
 Checks absent from the map must pass. The main suite requires all checks to pass

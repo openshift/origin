@@ -6,8 +6,16 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 )
 
-func TestSupportsTarget(t *testing.T) {
+func TestTransitionTargetMatching(t *testing.T) {
 	t.Parallel()
+
+	infra := &configv1.Infrastructure{
+		Status: configv1.InfrastructureStatus{
+			ControlPlaneTopology:   configv1.SingleReplicaTopologyMode,
+			InfrastructureTopology: configv1.SingleReplicaTopologyMode,
+			PlatformStatus:         &configv1.PlatformStatus{Type: configv1.NonePlatformType},
+		},
+	}
 
 	for _, tc := range []struct {
 		name     string
@@ -67,6 +75,15 @@ func TestSupportsTarget(t *testing.T) {
 
 			if got := supportsTarget(target); got != tc.want {
 				t.Errorf("supportsTarget(%+v) = %t, want %t", target, got, tc.want)
+			}
+
+			definition, err := selectTransitionDefinition(infra, target)
+			if tc.want {
+				if err != nil || definition == nil {
+					t.Fatalf("selectTransitionDefinition(%+v) = %v, %v; want a matching definition", target, definition, err)
+				}
+			} else if err == nil || definition != nil {
+				t.Errorf("selectTransitionDefinition(%+v) = %v, %v; want no definition and an error", target, definition, err)
 			}
 		})
 	}

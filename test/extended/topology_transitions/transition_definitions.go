@@ -81,11 +81,11 @@ func supportsTarget(target transitionTarget) bool {
 	return false
 }
 
-func selectTransitionDefinition(infra *configv1.Infrastructure, target configv1.TopologyState) (*transitionDefinition, error) {
+func selectTransitionDefinition(infra *configv1.Infrastructure, target transitionTarget) (*transitionDefinition, error) {
 	var selected *transitionDefinition
 	for i := range transitionDefinitions {
 		definition := &transitionDefinitions[i]
-		if definition.Target != target || !definition.matchesSource(infra) {
+		if definition.Target != target.Topology || definition.TargetNodes != target.nodeCounts || !definition.matchesSource(infra) {
 			continue
 		}
 		if selected != nil {

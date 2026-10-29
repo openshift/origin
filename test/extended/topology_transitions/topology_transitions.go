@@ -52,7 +52,7 @@ func requireTransitionSource(ctx context.Context, oc *exutil.CLI, target transit
 	infra, err := getInfrastructure(ctx, oc)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	definition, err := selectTransitionDefinition(infra, target.Topology)
+	definition, err := selectTransitionDefinition(infra, target)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	return definition, requireSource(ctx, oc, definition)
