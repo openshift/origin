@@ -1,0 +1,28 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - nosprintfhostport
+    - depguard
+  settings:
+    depguard:
+      rules:
+        # test/shared is imported by external suites (e.g. origin), so it
+        # must stay framework-agnostic and dependency-restricted.
+        shared-imports:
+          list-mode: strict
+          allow:
+            - $gostd
+            - k8s.io/api
+            - k8s.io/apimachinery
+            - k8s.io/client-go
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+formatters:
+  exclusions:
+    generated: lax

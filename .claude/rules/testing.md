@@ -3,7 +3,7 @@ paths:
   - "**/*_test.go"
 ---
 
-* Use `go vet ./...` and `go test ./pkg/...` to validate changes before committing.
+* Use `go vet ./...` and `go test ./pkg/...` to validate changes before committing. For changes under `test/shared` (a separate Go module), use `go vet ./...`, `go test ./...`, and `make -C test/shared lint` inside that directory.
 * E2e tests in `test/extended/<area>/` are **platform-level tests for OpenShift** — they run against a live cluster to validate the product, not just this repo. They use the **Ginkgo** framework and are compiled into the `openshift-tests` binary that CI runs against every payload.
 * `test/extended/include.go` blank-imports every e2e test package — new packages **must** be added there or they won't be compiled into the binary.
 * Unit tests in `pkg/` use standard Go `testing` with **table-driven** patterns.

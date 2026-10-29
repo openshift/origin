@@ -50,7 +50,27 @@ verify-origin:
 	hack/verify-generated.sh
 	hack/verify-tls-ownership.sh
 .PHONY: verify-origin verify
-verify: verify-origin verify-apm
+verify: verify-origin verify-apm verify-shared
+
+# Verify the test/shared module, which is a separate Go module and therefore
+# not covered by the root module's checks: run its linter (self-pinned via
+# the go.mod tool directive) and verify its dependency hygiene. This runs as
+# part of `make verify` (the CI verify job) because the dedicated lint job
+# only lints the root module.
+verify-shared:
+	$(MAKE) -C test/shared lint verify-deps
+.PHONY: verify-shared
+
+# Refresh go.mod, go.sum and vendor/
+# Calls the same in test/shared recursively
+update-gomod: shared-update-gomod
+	go mod tidy
+	go mod vendor
+.PHONY: update-gomod
+
+shared-update-gomod:
+	$(MAKE) -C test/shared update-gomod
+.PHONY: shared-update-gomod
 
 # Update all generated artifacts.
 #
@@ -101,6 +121,14 @@ SUITE ?= conformance
 test: test-tools
 	test/extended/$(SUITE).sh
 .PHONY: test
+
+# test-unit is imported from openshift/build-machinery-go.
+# We're just adding an additional dependency to it.
+test-unit: shared-test-unit
+
+shared-test-unit:
+	$(MAKE) -C test/shared test-unit
+.PHONY: shared-test-unit
 
 # This will call a macro called "add-bindata" which will generate bindata specific targets based on the parameters:
 # $0 - macro name

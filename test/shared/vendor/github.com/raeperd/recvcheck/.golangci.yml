@@ -1,0 +1,14 @@
+version: "2"
+
+formatters:
+  enable:
+    - gofumpt
+    - gci
+
+linters:
+  enable:
+    - recvcheck
+  exclusions:
+    presets:
+      - common-false-positives
+      - std-error-handling
