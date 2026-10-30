@@ -241,6 +241,16 @@ func (in Console) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ConsoleAuthProxyConfig) OpenAPIModelName() string {
+	return "com.github.openshift.api.operator.v1.ConsoleAuthProxyConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ConsoleAuthProxyTrustedCAConfigMapReference) OpenAPIModelName() string {
+	return "com.github.openshift.api.operator.v1.ConsoleAuthProxyTrustedCAConfigMapReference"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in ConsoleConfigRoute) OpenAPIModelName() string {
 	return "com.github.openshift.api.operator.v1.ConsoleConfigRoute"
 }
