@@ -294,6 +294,7 @@ const (
 	AnnotationImage              AnnotationKey = "image"
 	AnnotationInteresting        AnnotationKey = "interesting"
 	AnnotationCount              AnnotationKey = "count"
+	AnnotationEventUID           AnnotationKey = "uid" // UID of the Kubernetes Event object a KubeEvent interval observes
 	AnnotationNode               AnnotationKey = "node"
 	AnnotationEtcdLocalMember    AnnotationKey = "local-member-id"
 	AnnotationEtcdTerm           AnnotationKey = "term"
