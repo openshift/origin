@@ -17,8 +17,8 @@ Runs serially (Parallelism: 1).
 ### Suite: openshift/nodes/isolated
 
 Single-node isolated tests that require exclusive access to a dedicated worker node.
-A 3-node worker pool is provisioned at suite start; tests run in parallel via the
-NodeResource scheduler (Parallelism: 3).
+A 5-node worker pool is provisioned at suite start; tests run in parallel via the
+NodeResource scheduler (Parallelism: 5, overridable via `OPENSHIFT_TESTS_NODERESOURCE_POOL_SIZE`).
 
 - **kubeletconfig_features.go** - Tests applying KubeletConfig to custom machine config pools, requires node reboots
 - **kubeletconfig_tls.go** - Kubelet TLS configuration upgrade from 1.2 to 1.3 on a custom pool
@@ -120,7 +120,7 @@ The `openshift/disruptive-longrunning` suite runs cluster-wide disruptive tests 
 
 ### Running Node Isolated Tests
 
-The `openshift/nodes/isolated` suite provisions a dedicated 3-node worker pool and runs
+The `openshift/nodes/isolated` suite provisions a dedicated 5-node worker pool and runs
 single-node tests in parallel via the NodeResource scheduler.
 
 ```bash

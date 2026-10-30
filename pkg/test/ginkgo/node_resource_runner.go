@@ -577,6 +577,7 @@ func executeNodeResourceTests(
 		return
 	}
 
+	// Scheduler worker count matches the provisioned pool size (see DefaultNodeResourcePoolSize).
 	parallelism := len(pool.nodeNames)
 	logrus.Infof("NodeResource bucket: %d test(s) on %d pool node(s), parallelism=%d",
 		len(tests), parallelism, parallelism)
