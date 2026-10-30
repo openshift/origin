@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1422,6 +1425,353 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				expectKubeAPIServerRevisionUnchanged(ctx, oc, baselineRevision, "after phase4 auth success")
 			})
 		})
+
+		// CNTRLPLANE-3473: functional coverage for sourcing arbitrarily large
+		// numbers of groups. IDPs cap both what tokens carry (an identity token
+		// holds at most ~200 groups) and what a single response returns (Entra
+		// ID's Graph API caps at 999 groups per response). The default count
+		// crosses both thresholds so the claim set must be assembled from an
+		// external response far larger than what any token carries. Override
+		// EXTERNAL_CLAIMS_GROUP_COUNT for on-demand runs with larger sets.
+		g.Describe("with a large number of sourced groups", func() {
+			g.It("should source an arbitrarily large number of groups from an external claims source", func() {
+				testID := rand.String(8)
+				o.Expect(keycloakCli.ConfigureClientForExternalClaims(externalClaimsKeycloakClientID)).To(o.Succeed(),
+					"should configure a Keycloak client for external claims testing")
+
+				groupCount := envPositiveInt("EXTERNAL_CLAIMS_GROUP_COUNT", 1200)
+				groupPrefix := fmt.Sprintf("lg-%s", testID)
+				expectedGroups := indexedGroupNames(groupPrefix, groupCount)
+
+				user := fmt.Sprintf("large-groups-user-%s", testID)
+				userPassword := fmt.Sprintf("password-large-groups-%s", testID)
+
+				reauthAdmin := func() error {
+					return keycloakCli.Authenticate("admin-cli", keycloakAdminUsername, keycloakAdminPassword)
+				}
+				o.Expect(keycloakCli.CreateGroups(expectedGroups, reauthAdmin)).To(o.Succeed(),
+					fmt.Sprintf("should create %d groups for large-group sourcing", groupCount))
+				o.Expect(keycloakCli.CreateUser(user, userPassword, expectedGroups...)).To(o.Succeed(),
+					"should create user with a large number of groups")
+
+				hostname := keycloakHostname(ctx, oc, keycloakNamespace)
+				ensureOIDCConfigured(ctx, oc, keycloakNamespace, oidcClientSecret)
+				baselineRevision := kubeAPIServerLatestRevision(ctx, oc)
+
+				hotReloadExternalClaimsAndWait(ctx, oc, baselineRevision, groupPrefix, "", func(provider *configv1.OIDCProvider) {
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{
+						keycloakUserInfoClaimsSource(hostname, configv1.SourcedClaimMapping{
+							Name:       "groups_large",
+							Expression: "response.body.groups.join(',')",
+						}),
+					}
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: fmt.Sprintf("claims.?groups_large.orValue('').split(',').filter(g, g.startsWith('%s'))", groupPrefix),
+						},
+					}
+				})
+
+				o.Eventually(func(gomega o.Gomega) {
+					groups, err := selfSubjectGroups(ctx, oc, keycloakCli, externalClaimsKeycloakClientID, user, userPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "large group count: should authenticate with externally sourced groups")
+					gomega.Expect(groupsMatchingPrefix(groups, groupPrefix)).To(o.ConsistOf(expectedGroups),
+						fmt.Sprintf("should source all %d groups from the external claims source", groupCount))
+				}).WithTimeout(15 * time.Minute).WithPolling(15 * time.Second).Should(o.Succeed())
+			})
+
+			// CNTRLPLANE-3476: performance coverage for an external claims source
+			// returning increasing numbers of groups. Counts default to a
+			// CI-friendly ladder; set EXTERNAL_CLAIMS_GROUP_COUNTS (comma-separated,
+			// e.g. 200,500,1000,2000,5000,10000) for on-demand runs and collect the
+			// SelfSubjectReview round-trip timings printed by this test.
+			g.It("should source increasing numbers of groups from an external claims source", func() {
+				testID := rand.String(8)
+				o.Expect(keycloakCli.ConfigureClientForExternalClaims(externalClaimsKeycloakClientID)).To(o.Succeed(),
+					"should configure a Keycloak client for external claims testing")
+
+				counts := envPositiveInts("EXTERNAL_CLAIMS_GROUP_COUNTS", []int{200, 500, 1000, 2000})
+				sort.Ints(counts)
+				deduplicated := counts[:0]
+				for i, count := range counts {
+					if i == 0 || count != counts[i-1] {
+						deduplicated = append(deduplicated, count)
+					}
+				}
+				counts = deduplicated
+
+				groupPrefix := fmt.Sprintf("pg-%s", testID)
+				pool := indexedGroupNames(groupPrefix, counts[len(counts)-1])
+
+				type ladderUser struct {
+					count          int
+					name, password string
+				}
+				users := make([]ladderUser, 0, len(counts))
+				for _, count := range counts {
+					users = append(users, ladderUser{
+						count:    count,
+						name:     fmt.Sprintf("perf-user-%05d-%s", count, testID),
+						password: fmt.Sprintf("password-perf-%05d-%s", count, testID),
+					})
+				}
+
+				reauthAdmin := func() error {
+					return keycloakCli.Authenticate("admin-cli", keycloakAdminUsername, keycloakAdminPassword)
+				}
+				o.Expect(keycloakCli.CreateGroups(pool, reauthAdmin)).To(o.Succeed(),
+					fmt.Sprintf("should create %d groups for the group-count ladder", len(pool)))
+				for _, ladder := range users {
+					o.Expect(keycloakCli.CreateUser(ladder.name, ladder.password, pool[:ladder.count]...)).To(o.Succeed(),
+						fmt.Sprintf("should create user with %d groups", ladder.count))
+				}
+
+				hostname := keycloakHostname(ctx, oc, keycloakNamespace)
+				ensureOIDCConfigured(ctx, oc, keycloakNamespace, oidcClientSecret)
+				baselineRevision := kubeAPIServerLatestRevision(ctx, oc)
+
+				// A single source serves every ladder user because /userinfo
+				// returns exactly the groups of the authenticating user.
+				hotReloadExternalClaimsAndWait(ctx, oc, baselineRevision, groupPrefix, "", func(provider *configv1.OIDCProvider) {
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{
+						keycloakUserInfoClaimsSource(hostname, configv1.SourcedClaimMapping{
+							Name:       "groups_perf",
+							Expression: "response.body.groups.join(',')",
+						}),
+					}
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: fmt.Sprintf("claims.?groups_perf.orValue('').split(',').filter(g, g.startsWith('%s'))", groupPrefix),
+						},
+					}
+				})
+
+				for _, ladder := range users {
+					expectedGroups := pool[:ladder.count]
+					// elapsed holds the round-trip of the last (successful) attempt.
+					var elapsed time.Duration
+					o.Eventually(func(gomega o.Gomega) {
+						start := time.Now()
+						groups, err := selfSubjectGroups(ctx, oc, keycloakCli, externalClaimsKeycloakClientID, ladder.name, ladder.password)
+						elapsed = time.Since(start)
+						gomega.Expect(err).NotTo(o.HaveOccurred(),
+							fmt.Sprintf("group-count ladder (%d groups): should authenticate", ladder.count))
+						gomega.Expect(groupsMatchingPrefix(groups, groupPrefix)).To(o.ConsistOf(expectedGroups),
+							fmt.Sprintf("group-count ladder (%d groups): should source all groups", ladder.count))
+					}).WithTimeout(15 * time.Minute).WithPolling(15 * time.Second).Should(o.Succeed())
+
+					g.GinkgoWriter.Printf("CNTRLPLANE-3476: external claims source returned %d groups; SelfSubjectReview round-trip: %s\n", ladder.count, elapsed)
+				}
+			})
+		})
+
+		// CNTRLPLANE-3477: performance coverage for complex CEL expressions on
+		// source responses. Every stage of the external claims pipeline that takes
+		// CEL (predicate, pathExpression, mapping, groups claim mapping, user
+		// validation rule) is exercised with a chained expression, and the
+		// SelfSubjectReview round-trip is logged so runs double as data points for
+		// the impact of complex CEL on the auth flow.
+		g.Describe("with complex CEL expressions on source responses", func() {
+			g.It("should authenticate when mappings, predicates, and claim expressions are complex", func() {
+				testID := rand.String(8)
+				o.Expect(keycloakCli.ConfigureClientForExternalClaims(externalClaimsKeycloakClientID)).To(o.Succeed(),
+					"should configure a Keycloak client for external claims testing")
+
+				const groupCount = 20
+				groupPrefix := fmt.Sprintf("celg-%s", testID)
+				expectedGroups := indexedGroupNames(groupPrefix, groupCount)
+
+				user := fmt.Sprintf("cel-user-%s", testID)
+				userPassword := fmt.Sprintf("password-cel-%s", testID)
+
+				o.Expect(keycloakCli.CreateGroups(expectedGroups, nil)).To(o.Succeed(),
+					"should create groups for complex CEL expression testing")
+				o.Expect(keycloakCli.CreateUser(user, userPassword, expectedGroups...)).To(o.Succeed(),
+					"should create user for complex CEL expression testing")
+
+				hostname := keycloakHostname(ctx, oc, keycloakNamespace)
+				ensureOIDCConfigured(ctx, oc, keycloakNamespace, oidcClientSecret)
+				baselineRevision := kubeAPIServerLatestRevision(ctx, oc)
+
+				lastGroup := expectedGroups[groupCount-1]
+				hotReloadExternalClaimsAndWait(ctx, oc, baselineRevision, groupPrefix, "", func(provider *configv1.OIDCProvider) {
+					source := keycloakUserInfoClaimsSource(hostname,
+						configv1.SourcedClaimMapping{
+							Name: "groups_cel_upper",
+							Expression: fmt.Sprintf(
+								"response.body.groups.filter(g, g.startsWith('%s')).map(g, g.upperAscii()).filter(g, size(g) > 8).map(g, g.lowerAscii()).join(',')",
+								groupPrefix),
+						},
+						configv1.SourcedClaimMapping{
+							Name: "groups_cel_nested",
+							Expression: fmt.Sprintf(
+								"response.body.groups.filter(g, g.startsWith('%s')).map(g, g.matches('^%s-[0-9]+$') ? g : g + '-fallback').join(',')",
+								groupPrefix, groupPrefix),
+						},
+					)
+					// Ternary path expression chaining list concatenation.
+					source.URL.PathExpression = "has(claims.sub) && size(claims.sub) > 0 ? (['realms', 'master'] + ['protocol', 'openid-connect', 'userinfo']) : ['does-not-exist']"
+					source.Predicates = []configv1.ExternalSourcePredicate{
+						{
+							Expression: "has(claims.preferred_username) && claims.preferred_username.startsWith('cel-user-') && size(claims.sub) > 0",
+						},
+					}
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{source}
+
+					// Intersect both mappings: keep the round-tripped names that
+					// also survive the nested ternary mapping.
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: "claims.?groups_cel_upper.orValue('').split(',').filter(g, size(g) > 0 && claims.?groups_cel_nested.orValue('').split(',').exists(n, n == g)).map(g, g.lowerAscii())",
+						},
+					}
+					provider.UserValidationRules = []configv1.TokenUserValidationRule{
+						{
+							Expression: fmt.Sprintf("user.groups.filter(g, g.startsWith('%s')).size() == %d && user.groups.exists(g, g == '%s') && user.username.contains('@')",
+								groupPrefix, groupCount, lastGroup),
+							Message: "user must authenticate with the full complex-CEL sourced group set",
+						},
+					}
+				})
+
+				var elapsed time.Duration
+				o.Eventually(func(gomega o.Gomega) {
+					start := time.Now()
+					groups, err := selfSubjectGroups(ctx, oc, keycloakCli, externalClaimsKeycloakClientID, user, userPassword)
+					elapsed = time.Since(start)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "complex CEL: should authenticate")
+					gomega.Expect(groupsMatchingPrefix(groups, groupPrefix)).To(o.ConsistOf(expectedGroups),
+						"complex CEL: should source the full group set through chained expressions")
+				}).WithTimeout(10 * time.Minute).WithPolling(15 * time.Second).Should(o.Succeed())
+
+				g.GinkgoWriter.Printf("CNTRLPLANE-3477: complex CEL expressions across %d sourced groups; SelfSubjectReview round-trip: %s\n", groupCount, elapsed)
+			})
+		})
+
+		// CNTRLPLANE-3479: functional coverage for sourcing groups from Entra
+		// ID's Graph API. A real Entra tenant is not reachable from CI, so this
+		// test reproduces the Graph integration pattern against Keycloak:
+		//   - the source authenticates with the OAuth2 client credentials grant
+		//     (authentication.type=ClientCredential), which is how a separate app
+		//     credential is used to access Graph;
+		//   - the source path is derived per subject (Graph:
+		//     /v1.0/users/{sub}/transitiveMemberOf; here:
+		//     /admin/realms/master/users/{sub}/groups);
+		//   - the response is an array of objects (Graph: {"value":[{"id":...}]};
+		//     here: [{"name":...}]) unwrapped by a CEL mapping expression.
+		g.Describe("with a Graph-like external claims source using client credentials", func() {
+			g.It("should source groups using client credentials against a Graph-like endpoint", func() {
+				testID := rand.String(8)
+				o.Expect(keycloakCli.ConfigureClientForExternalClaims(externalClaimsKeycloakClientID)).To(o.Succeed(),
+					"should configure a Keycloak client for external claims testing")
+
+				groupPrefix := fmt.Sprintf("entra-%s", testID)
+				expectedGroups := indexedGroupNames(groupPrefix, 3)
+
+				user := fmt.Sprintf("entra-user-%s", testID)
+				userPassword := fmt.Sprintf("password-entra-%s", testID)
+
+				o.Expect(keycloakCli.CreateGroups(expectedGroups, nil)).To(o.Succeed(),
+					"should create groups for Graph-like sourcing")
+				o.Expect(keycloakCli.CreateUser(user, userPassword, expectedGroups...)).To(o.Succeed(),
+					"should create user with groups for Graph-like sourcing")
+
+				// Confidential client with a service account: the apiserver
+				// obtains the source token via the client credentials grant with
+				// this client, mirroring the app credentials used with Graph.
+				const graphSimClientID = "external-claims-client-credentials"
+				// The service account needs read-only roles to look up user
+				// group memberships through the Admin REST API. Both operations
+				// are idempotent, and each attempt re-authenticates because the
+				// master realm's access tokens only live for 60 seconds (see
+				// Keycloak's ApplianceBootstrap#createMasterRealm), so a token
+				// obtained earlier can expire mid-retry.
+				var clientSecret string
+				o.Eventually(func(gomega o.Gomega) {
+					gomega.Expect(keycloakCli.Authenticate("admin-cli", keycloakAdminUsername, keycloakAdminPassword)).To(o.Succeed(),
+						"should authenticate as the keycloak admin")
+					var err error
+					clientSecret, err = keycloakCli.EnsureConfidentialServiceAccountClient(graphSimClientID)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should ensure a confidential client for the client credentials grant")
+					gomega.Expect(keycloakCli.GrantRealmManagementRoles(graphSimClientID, "view-users", "query-users")).To(o.Succeed(),
+						"should grant the service account read-only user lookup roles")
+				}).WithTimeout(2 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+
+				secretName := fmt.Sprintf("external-claims-cc-%s", testID)
+				secret := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      secretName,
+						Namespace: "openshift-config",
+					},
+					Data: map[string][]byte{
+						// The key the apiserver looks up for ClientCredential sources.
+						"client-secret": []byte(clientSecret),
+					},
+				}
+				_, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-config").Create(ctx, secret, metav1.CreateOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred(), "should create the client credentials secret in openshift-config")
+				defer func() {
+					_ = oc.AdminKubeClient().CoreV1().Secrets("openshift-config").Delete(ctx, secretName, metav1.DeleteOptions{})
+				}()
+
+				hostname := keycloakHostname(ctx, oc, keycloakNamespace)
+				tokenEndpoint := fmt.Sprintf("https://%s/realms/master/protocol/openid-connect/token", hostname)
+
+				ensureOIDCConfigured(ctx, oc, keycloakNamespace, oidcClientSecret)
+				baselineRevision := kubeAPIServerLatestRevision(ctx, oc)
+
+				hotReloadExternalClaimsAndWait(ctx, oc, baselineRevision, graphSimClientID, "", func(provider *configv1.OIDCProvider) {
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{
+						{
+							Authentication: configv1.ExternalSourceAuthentication{
+								Type: configv1.ExternalSourceAuthenticationTypeClientCredential,
+								ClientCredential: configv1.ClientCredentialConfig{
+									ClientID:      graphSimClientID,
+									ClientSecret:  configv1.ClientSecretSecretReference{Name: secretName},
+									TokenEndpoint: tokenEndpoint,
+									TLS: configv1.ExternalSourceTLS{
+										CertificateAuthority: configv1.ExternalSourceCertificateAuthorityConfigMapReference{
+											Name: keycloakCAConfigMapName(),
+										},
+									},
+								},
+							},
+							URL: configv1.SourceURL{
+								Hostname: hostname,
+								// Graph-like per-subject resource path.
+								PathExpression: "['admin', 'realms', 'master', 'users'] + [claims.sub] + ['groups']",
+							},
+							TLS: configv1.ExternalSourceTLS{
+								CertificateAuthority: configv1.ExternalSourceCertificateAuthorityConfigMapReference{
+									Name: keycloakCAConfigMapName(),
+								},
+							},
+							Mappings: []configv1.SourcedClaimMapping{
+								{
+									Name: "groups_cc",
+									// Both the Keycloak Admin API ([{"name":...}]) and
+									// Graph ({"value":[{"id":...}]}) return arrays of
+									// objects that are unwrapped the same way.
+									Expression: fmt.Sprintf("response.body.map(g, g.name).filter(n, n.startsWith('%s')).join(',')", groupPrefix),
+								},
+							},
+						},
+					}
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: "claims.?groups_cc.orValue('').split(',').filter(g, size(g) > 0)",
+						},
+					}
+				})
+
+				o.Eventually(func(gomega o.Gomega) {
+					groups, err := selfSubjectGroups(ctx, oc, keycloakCli, externalClaimsKeycloakClientID, user, userPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "client credentials: should authenticate with Graph-like sourced groups")
+					gomega.Expect(groupsMatchingPrefix(groups, groupPrefix)).To(o.ConsistOf(expectedGroups),
+						"client credentials: should source all groups from the Graph-like endpoint")
+				}).WithTimeout(10 * time.Minute).WithPolling(15 * time.Second).Should(o.Succeed())
+			})
+		})
 	})
 
 	g.AfterAll(func() {
@@ -1656,6 +2006,63 @@ func selfSubjectGroups(ctx context.Context, client *exutil.CLI, keycloakCli *key
 		return nil, err
 	}
 	return ssr.Status.UserInfo.Groups, nil
+}
+
+// envPositiveInt returns the positive integer configured via name, falling
+// back to def when unset or invalid.
+func envPositiveInt(name string, def int) int {
+	if v := strings.TrimSpace(os.Getenv(name)); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
+	}
+	return def
+}
+
+// envPositiveInts returns the comma-separated positive integers configured via
+// name, falling back to def when unset or invalid.
+func envPositiveInts(name string, def []int) []int {
+	v := strings.TrimSpace(os.Getenv(name))
+	if v == "" {
+		return def
+	}
+
+	parts := strings.Split(v, ",")
+	out := make([]int, 0, len(parts))
+	for _, part := range parts {
+		n, err := strconv.Atoi(strings.TrimSpace(part))
+		if err != nil || n <= 0 {
+			return def
+		}
+		out = append(out, n)
+	}
+	if len(out) == 0 {
+		return def
+	}
+	return out
+}
+
+// indexedGroupNames returns count unique group names sharing prefix, e.g.
+// indexedGroupNames("lg-abc12345", 2) -> ["lg-abc12345-00001", "lg-abc12345-00002"].
+func indexedGroupNames(prefix string, count int) []string {
+	names := make([]string, count)
+	for i := range names {
+		names[i] = fmt.Sprintf("%s-%05d", prefix, i+1)
+	}
+	return names
+}
+
+// groupsMatchingPrefix returns the subset of groups sharing prefix. Keycloak
+// group mappers only emit the groups of the authenticating user, so for the
+// users created by these tests the result is exactly their group set.
+func groupsMatchingPrefix(groups []string, prefix string) []string {
+	matched := []string{}
+	for _, grp := range groups {
+		if strings.HasPrefix(grp, prefix) {
+			matched = append(matched, grp)
+		}
+	}
+	return matched
 }
 
 func keycloakCAConfigMapName() string {
