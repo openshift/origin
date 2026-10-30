@@ -24,6 +24,13 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Fe
 	oc := exutil.NewCLIWithoutNamespace("netobserv-timeout-e2e")
 
 	g.BeforeEach(func(ctx context.Context) {
+		// Read Infrastructure directly: exutil.IsHypershift reports false on read errors.
+		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if infra.Status.ControlPlaneTopology == configv1.ExternalTopologyMode {
+			g.Skip("on HyperShift the Network config is owned by the HostedCluster and direct updates are rejected by the config ValidatingAdmissionPolicy")
+		}
+
 		// CNO starts the timeout at the later of cluster availability and the attempt.
 		cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
