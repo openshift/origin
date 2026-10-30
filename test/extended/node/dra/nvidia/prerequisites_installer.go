@@ -27,6 +27,8 @@ const (
 	draDriverRelease         = "nvidia-dra-driver"
 	draDriverChart           = "nvidia/nvidia-dra-driver-gpu"
 	draDriverDefaultVersion  = "25.12.0"
+	draDriverController      = "nvidia-dra-driver-gpu-controller"
+	draDriverKubeletPlugin   = "nvidia-dra-driver-gpu-kubelet-plugin"
 	draDriverControllerSA    = "nvidia-dra-driver-gpu-service-account-controller"
 	draDriverKubeletPluginSA = "nvidia-dra-driver-gpu-service-account-kubeletplugin"
 	draDriverComputeDomainSA = "compute-domain-daemon-service-account"
@@ -206,14 +208,9 @@ func (pi *PrerequisitesInstaller) InstallDRADriver(ctx context.Context) error {
 func (pi *PrerequisitesInstaller) WaitForGPUOperator(ctx context.Context, timeout time.Duration) error {
 	framework.Logf("Waiting for GPU Operator to be ready (timeout: %v)", timeout)
 
-	// Wait for driver daemonset (using prefix matching to support different installation methods)
+	// Wait for the driver; DRA tests do not require the device plugin daemonset.
 	if err := pi.waitForDaemonSetByPrefix(ctx, gpuOperatorNamespace, "nvidia-driver-daemonset", timeout); err != nil {
 		return fmt.Errorf("driver daemonset not ready: %w", err)
-	}
-
-	// Wait for device plugin daemonset (using prefix matching to support different installation methods)
-	if err := pi.waitForDaemonSetByPrefix(ctx, gpuOperatorNamespace, "nvidia-device-plugin-daemonset", timeout); err != nil {
-		return fmt.Errorf("device plugin daemonset not ready: %w", err)
 	}
 
 	// Validate CDI is available (required for DRA)
@@ -235,12 +232,12 @@ func (pi *PrerequisitesInstaller) WaitForDRADriver(ctx context.Context, timeout 
 	framework.Logf("Waiting for DRA Driver to be ready (timeout: %v)", timeout)
 
 	// Wait for controller deployment
-	if err := pi.waitForDeployment(ctx, draDriverNamespace, draDriverRelease+"-controller", timeout); err != nil {
+	if err := pi.waitForDeployment(ctx, draDriverNamespace, draDriverController, timeout); err != nil {
 		return fmt.Errorf("controller deployment not ready: %w", err)
 	}
 
 	// Wait for kubelet plugin daemonset
-	if err := pi.waitForDaemonSet(ctx, draDriverNamespace, draDriverRelease+"-kubelet-plugin", timeout); err != nil {
+	if err := pi.waitForDaemonSet(ctx, draDriverNamespace, draDriverKubeletPlugin, timeout); err != nil {
 		return fmt.Errorf("kubelet plugin daemonset not ready: %w", err)
 	}
 
