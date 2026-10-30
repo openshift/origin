@@ -32,7 +32,7 @@ spec:
           type: ""
         resources:
           requests:
-            memory: 2048M
+            memory: {{ .Memory }}
       networks:
       - name: underlay
         multus:
@@ -66,6 +66,19 @@ spec:
   running: true
   template:
     spec:
+      {{- if .NodeNames }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            {{- range .NodeNames }}
+            - matchFields:
+              - key: metadata.name
+                operator: In
+                values:
+                - {{ printf "%q" . }}
+            {{- end }}
+      {{- end }}
       domain:
         devices:
           disks:
@@ -83,7 +96,7 @@ spec:
           type: ""
         resources:
           requests:
-            memory: 2048M
+            memory: {{ .Memory }}
       networks:
       - name: overlay
         pod: {}
@@ -128,7 +141,7 @@ spec:
       rng: {}
     resources:
       requests:
-        memory: 2048M
+        memory: {{ .Memory }}
   networks:
   - multus:
       networkName: {{ .VMNamespace }}/{{ .NetworkName }}
@@ -175,7 +188,7 @@ spec:
       rng: {}
     resources:
       requests:
-        memory: 2048M
+        memory: {{ .Memory }}
   networks:
   - pod: {}
     name: overlay
@@ -232,7 +245,7 @@ spec:
           type: ""
         resources:
           requests:
-            memory: 2048M
+            memory: {{ .Memory }}
       networks:
       - name: overlay
         pod: {}
@@ -266,6 +279,8 @@ spec:
 )
 
 type CreationTemplateParams struct {
+	Memory                    string
+	NodeNames                 []string
 	VMName                    string
 	VMNamespace               string
 	FedoraContainterDiskImage string
@@ -278,6 +293,9 @@ type CreationTemplateParams struct {
 }
 
 func renderVMTemplate(vmTemplateString string, params CreationTemplateParams) (string, error) {
+	if params.Memory == "" {
+		params.Memory = "2048M"
+	}
 	vmTemplate, err := template.New(params.VMNamespace + "/" + params.VMName).Parse(vmTemplateString)
 	if err != nil {
 		return "", err
