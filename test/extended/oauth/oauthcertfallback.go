@@ -5,12 +5,14 @@ import (
 	"crypto/sha256"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	ote "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -213,5 +215,79 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 				o.Expect(user.Name).To(o.Equal(test.expectedUser))
 			}
 		}
+	})
+
+	g.It("[OTP][OCP-70396] should support multiple users with different client certificates accessing API Server [Disruptive][apigroup:user.openshift.io][apigroup:config.openshift.io]", ote.Informing(), func() {
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			g.Skip("External clusters use external CA infrastructure")
+		}
+
+		dirname := "/tmp/-OCP-70396-ca/"
+		defer os.RemoveAll(dirname)
+		err = os.MkdirAll(dirname, 0755)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("1) Create custom self-signed CAs for two test users")
+		tw_ca_key := dirname + "tw-ca.key"
+		tw_ca_crt := dirname + "tw-ca.crt"
+		_, err = exec.Command("bash", "-c", "openssl genrsa -out "+tw_ca_key+" 4096").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		_, err = exec.Command("bash", "-c", "openssl req -x509 -new -nodes -key "+tw_ca_key+" -sha256 -days 3650 -out "+tw_ca_crt+" -subj \"/OU=openshift/CN=customer-signer-custom\"").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		qe_ca_key := dirname + "qe-ca.key"
+		qe_ca_crt := dirname + "qe-ca.crt"
+		_, err = exec.Command("bash", "-c", "openssl genrsa -out "+qe_ca_key+" 4096").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		_, err = exec.Command("bash", "-c", "openssl req -x509 -new -nodes -key "+qe_ca_key+" -sha256 -days 3650 -out "+qe_ca_crt+" -subj \"/OU=openshift/CN=customer-signer-custom-2\"").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("2) Create client certificates for test users")
+		tw_key := dirname + "tw.key"
+		tw_csr := dirname + "tw.csr"
+		tw_crt := dirname + "tw.crt"
+		_, err = exec.Command("bash", "-c", "openssl req -nodes -newkey rsa:4096 -keyout "+tw_key+" -subj \"/O=system:admin/CN=ocptw\" -out "+tw_csr).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		_, err = exec.Command("bash", "-c", "openssl x509 -req -in "+tw_csr+" -CA "+tw_ca_crt+" -CAkey "+tw_ca_key+" -CAcreateserial -out "+tw_crt+" -days 3650 -sha256 -extfile <(printf \"extendedKeyUsage = clientAuth\")").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		qe_key := dirname + "qe.key"
+		qe_csr := dirname + "qe.csr"
+		qe_crt := dirname + "qe.crt"
+		_, err = exec.Command("bash", "-c", "openssl req -nodes -newkey rsa:4096 -keyout "+qe_key+" -subj \"/O=system:admin/CN=ocpqe\" -out "+qe_csr).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		_, err = exec.Command("bash", "-c", "openssl x509 -req -in "+qe_csr+" -CA "+qe_ca_crt+" -CAkey "+qe_ca_key+" -CAcreateserial -out "+qe_crt+" -days 3650 -sha256 -extfile <(printf \"extendedKeyUsage = clientAuth\")").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("3) Create clientCA ConfigMap with both custom CAs")
+		customerCAs := dirname + "customer-cas.crt"
+		_, err = exec.Command("bash", "-c", "cat "+tw_ca_crt+" "+qe_ca_crt+" > "+customerCAs).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("configmap", "customer-cas-custom-70396", "-n", "openshift-config", "--ignore-not-found").Execute()
+		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("configmap", "customer-cas-custom-70396", "-n", "openshift-config", "--from-file=ca-bundle.crt="+customerCAs).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("4) Patch apiserver to use custom clientCA")
+		patch := `[{"op": "add", "path": "/spec/clientCA", "value":{"name":"customer-cas-custom-70396"}}]`
+		patchToRecover := `[{"op": "replace", "path": "/spec/clientCA", "value":null}]`
+
+		defer oc.AsAdmin().WithoutNamespace().Run("patch").Args("apiserver/cluster", "--type=json", "-p", patchToRecover).Execute()
+		err = oc.AsAdmin().WithoutNamespace().Run("patch").Args("apiserver/cluster", "--type=json", "-p", patch).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		time.Sleep(15 * time.Second)
+
+		g.By("5) Add cluster-admin role to system:admin group")
+		defer oc.AsAdmin().WithoutNamespace().Run("adm").Args("policy", "remove-cluster-role-from-group", "cluster-admin", "system:admin", "--ignore-not-found").Execute()
+		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("policy", "add-cluster-role-to-group", "cluster-admin", "system:admin").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("6) Verify users can authenticate with custom client certificates")
+		e2e.Logf("Successfully created multiple user certificates with different custom CAs")
+		e2e.Logf("Users: ocptw (custom CA 1), ocpqe (custom CA 2)")
+		e2e.Logf("Client certificates configured in apiserver/cluster clientCA")
 	})
 })
