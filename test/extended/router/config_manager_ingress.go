@@ -87,18 +87,15 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 			} else {
 				outputEndpointSlice(epsList.Items...)
 			}
-			if execPod.Name != "" {
-				// only dump logs if execPod was already assigned
-				exutil.DumpPodLogsStartingWithInNamespace(execPod.Name, execPod.Namespace, oc)
-			}
 		}
 		if controller.Name != "" {
-			err := oc.AdminOperatorClient().OperatorV1().IngressControllers(controller.Namespace).Delete(ctx, controller.Name, *metav1.NewDeleteOptions(1))
+			err := cleanupDCMIngressController(ctx, kubeClient, oc.AdminOperatorClient().OperatorV1(), controller, g.CurrentSpecReport().Failed())
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 	})
 
 	g.BeforeEach(func() {
+		controller = types.NamespacedName{}
 		// ingress controller need to be created in operator's namespace, ...
 		nsOperator := "openshift-ingress-operator"
 		controllerName := names.SimpleNameGenerator.GenerateName("e2e-dcm-")
