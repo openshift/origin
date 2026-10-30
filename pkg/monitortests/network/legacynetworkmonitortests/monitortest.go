@@ -14,6 +14,8 @@ import (
 type legacyMonitorTests struct {
 	adminRESTConfig *rest.Config
 	duration        time.Duration
+	// skipReason, when non-empty, causes ROSA-sensitive checks to be skipped with this message.
+	skipReason string
 }
 
 func NewLegacyTests() monitortestframework.MonitorTest {
@@ -26,6 +28,15 @@ func (w *legacyMonitorTests) PrepareCollection(ctx context.Context, adminRESTCon
 
 func (w *legacyMonitorTests) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
+
+	isROSA, err := isROSACluster(ctx, w.adminRESTConfig)
+	if err != nil {
+		return err
+	}
+	if isROSA {
+		w.skipReason = "not applicable to ROSA"
+	}
+
 	return nil
 }
 
@@ -40,11 +51,11 @@ func (*legacyMonitorTests) ConstructComputedIntervals(ctx context.Context, start
 
 func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	junits := []*junitapi.JUnitTestCase{}
-	junits = append(junits, testPodSandboxCreation(finalIntervals, w.adminRESTConfig)...)
+	junits = append(junits, testPodSandboxCreation(finalIntervals, w.adminRESTConfig, w.skipReason)...)
 	junits = append(junits, testOvnNodeReadinessProbe(finalIntervals, w.adminRESTConfig)...)
 	junits = append(junits, testNoDNSLookupErrorsInDisruptionSamplers(finalIntervals)...)
 	junits = append(junits, testNoExcessiveDNSDisruption(finalIntervals)...)
-	junits = append(junits, testNoOVSVswitchdUnreasonablyLongPollIntervals(finalIntervals)...)
+	junits = append(junits, testNoOVSVswitchdUnreasonablyLongPollIntervals(finalIntervals, w.skipReason)...)
 	junits = append(junits, testPodIPReuse(finalIntervals)...)
 	junits = append(junits, testErrorUpdatingEndpointSlices(finalIntervals)...)
 	junits = append(junits, TestMultipleSingleSecondDisruptions(finalIntervals, w.adminRESTConfig)...)

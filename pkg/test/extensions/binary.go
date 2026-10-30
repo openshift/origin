@@ -1096,6 +1096,11 @@ func (binaries TestBinaries) ListTests(ctx context.Context, parallelism int, env
 		return nil, fmt.Errorf("encountered errors while listing tests: %s", strings.Join(errs, ";"))
 	}
 
+	allTests, err := filterDiscoveredSpecsByROSA(allTests, envFlags)
+	if err != nil {
+		return nil, fmt.Errorf("failed applying ROSA exclusions to discovered tests: %w", err)
+	}
+
 	return allTests, nil
 }
 
