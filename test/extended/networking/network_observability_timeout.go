@@ -24,6 +24,11 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Fe
 	oc := exutil.NewCLIWithoutNamespace("netobserv-timeout-e2e")
 
 	g.BeforeEach(func(ctx context.Context) {
+		// Skip on HyperShift hosted clusters: networks.config.openshift.io is protected
+		// by ValidatingAdmissionPolicy and cannot be modified directly; changes must go
+		// through the HostedCluster object instead.
+		exutil.SkipIfExternalControlplaneTopology(oc, "Network Observability timeout test modifies networks.config directly, which is blocked by HyperShift ValidatingAdmissionPolicy")
+
 		// CNO starts the timeout at the later of cluster availability and the attempt.
 		cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
