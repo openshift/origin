@@ -23,7 +23,12 @@ var _ = Describe("[sig-network] services", func() {
 	var retryInterval = 1 * time.Minute
 
 	InIPv4ClusterContext(oc, func() {
-		It("ensures external ip policy is configured correctly on the cluster [apigroup:config.openshift.io] [Serial]", func() {
+		// Override the default ~10m timeout to 30m: this test changes the cluster external IP policy in
+		// network.config.openshift.io, triggering a kube-apiserver rollout that the test polls for by
+		// retrying service creation every minute until it lands, which can exceed the default timeout on
+		// wider platform variants (e.g. OPCT external cloud platform tests with in-cluster rollouts).
+		// See https://github.com/openshift/origin/pull/31636
+		It("ensures external ip policy is configured correctly on the cluster [apigroup:config.openshift.io] [Serial] [Timeout:30m]", func() {
 			// Check if the test can write to cluster/network.config.openshift.io
 			hasAccess, err := hasNetworkConfigWriteAccess(oc)
 			Expect(err).NotTo(HaveOccurred())
