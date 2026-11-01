@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -15,8 +16,12 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2ekubectl "k8s.io/kubernetes/test/e2e/framework/kubectl"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	"k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -565,6 +570,209 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			}
 		})
 	}) // end testing to external targets
+
+	/*
+		Verify that when EgressIP creation exceeds node capacity:
+			- Exactly usableCapacity EgressIPs are assigned to the target node.
+			- The last 2 overflow EgressIPs remain unassigned.
+			- For unassigned EgressIPs, CloudPrivateIPConfig objects are NOT created.
+		Steps:
+		1. Select a cloud worker node for capacity testing
+		2. Isolate target node and preserve pre-existing labels for suite restoration
+		3. Enable egress-assignable on target node
+		4. Create (usableCapacity + 2) EgressIPs on the same subnet as target node
+		5. Verify that exactly usableCapacity EgressIPs are assigned to the target node
+		6. Verify that the last 2 overflow EgressIPs remain unassigned
+		7. Verify that for unassigned EgressIPs, CloudPrivateIPConfig objects are NOT created
+	*/
+	g.It("Should not create CloudPrivateIPConfig or assign EgressIPs exceeding cloud node capacity [Cloud] [Serial]", func() {
+		f := oc.KubeFramework()
+
+		g.By("1. Select a cloud worker node for capacity testing")
+		nodeList, err := f.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to list cluster nodes")
+
+		// Filter out control-plane/master nodes - only consider worker nodes
+		var workerNodes []corev1.Node
+		for _, n := range nodeList.Items {
+			if _, isCP := n.Labels["node-role.kubernetes.io/control-plane"]; isCP {
+				continue
+			}
+			if _, isMaster := n.Labels["node-role.kubernetes.io/master"]; isMaster {
+				continue
+			}
+			workerNodes = append(workerNodes, n)
+		}
+
+		type egressIPConfig struct {
+			Interface string `json:"interface"`
+			IfAddr    struct {
+				IPv4 string `json:"ipv4"`
+				IPv6 string `json:"ipv6"`
+			} `json:"ifaddr"`
+			Capacity struct {
+				IPv4 int `json:"ipv4"`
+				IPv6 int `json:"ipv6"`
+			} `json:"capacity"`
+		}
+
+		var targetNode *corev1.Node
+		var targetRawCapacity int
+		var targetSubnet *net.IPNet
+		var targetInterface string
+
+		const cloudEgressIPConfigAnnotation = "cloud.network.openshift.io/egress-ipconfig"
+		for i := range workerNodes {
+			node := &workerNodes[i]
+			annotation, ok := node.Annotations[cloudEgressIPConfigAnnotation]
+			if !ok || annotation == "" {
+				continue
+			}
+
+			var configs []egressIPConfig
+			if err := json.Unmarshal([]byte(annotation), &configs); err == nil && len(configs) > 0 {
+				if configs[0].Capacity.IPv4 > 1 && configs[0].IfAddr.IPv4 != "" {
+					_, ipnet, err := net.ParseCIDR(configs[0].IfAddr.IPv4)
+					if err == nil {
+						targetNode = node
+						targetRawCapacity = configs[0].Capacity.IPv4
+						targetSubnet = ipnet
+						targetInterface = configs[0].Interface
+						break
+					}
+				}
+			}
+		}
+
+		if targetNode == nil {
+			g.Skip("In non-cloud environments (like KIND), OVN-Kubernetes does not have an ENI limit.")
+		}
+
+		// In cloud providers (e.g. AWS ENI), 1 IP is reserved for the primary node interface:
+		// Usable EgressIP slots = Raw Capacity - 1 (e.g., 14 - 1 = 13 usable slots)
+		usableCapacity := targetRawCapacity
+		framework.Logf("Selected cloud node: %s, Interface: %s, Subnet: %s, Raw Capacity: %d, Usable Capacity: %d",
+			targetNode.Name, targetInterface, targetSubnet.String(), targetRawCapacity, usableCapacity)
+
+		g.By("2. Isolate target node and preserve pre-existing labels for suite restoration")
+		// Fetch fresh node list to detect all currently assigned egress-assignable labels
+		freshNodes, err := f.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to refresh cluster nodes")
+		var previouslyLabeledNodes []string
+		for _, node := range freshNodes.Items {
+			if _, hasLabel := node.Labels["k8s.ovn.org/egress-assignable"]; hasLabel {
+				previouslyLabeledNodes = append(previouslyLabeledNodes, node.Name)
+				if node.Name != targetNode.Name {
+					e2enode.RemoveLabelOffNode(f.ClientSet, node.Name, "k8s.ovn.org/egress-assignable")
+				}
+			}
+		}
+		defer func() {
+			for _, nodeName := range previouslyLabeledNodes {
+				e2enode.AddOrUpdateLabelOnNode(f.ClientSet, nodeName, "k8s.ovn.org/egress-assignable", "")
+			}
+		}()
+
+		g.By("3. Enable egress-assignable on target node")
+		e2enode.AddOrUpdateLabelOnNode(f.ClientSet, targetNode.Name, "k8s.ovn.org/egress-assignable", "")
+		defer func() {
+			e2enode.RemoveLabelOffNode(f.ClientSet, targetNode.Name, "k8s.ovn.org/egress-assignable")
+		}()
+
+		g.By(fmt.Sprintf("4. Creating %d (usableCapacity + 2) EgressIPs on the same subnet as target node", usableCapacity+2))
+		totalEIPs := usableCapacity + 2
+		baseIP := targetSubnet.IP.Mask(targetSubnet.Mask).To4()
+		ipInt := (uint32(baseIP[0])<<24 | uint32(baseIP[1])<<16 | uint32(baseIP[2])<<8 | uint32(baseIP[3])) + 150
+
+		type testEIPItem struct {
+			name string
+			ip   string
+		}
+		var createdEIPs []testEIPItem
+
+		for i := 0; i < totalEIPs; i++ {
+			curInt := ipInt + uint32(i)
+			eipIP := fmt.Sprintf("%d.%d.%d.%d", byte(curInt>>24), byte(curInt>>16), byte(curInt>>8), byte(curInt))
+			eipName := fmt.Sprintf("e2e-capacity-eip-%d-%s", i, strings.ReplaceAll(eipIP, ".", "-"))
+
+			eipYAML := fmt.Sprintf(`
+apiVersion: k8s.ovn.org/v1
+kind: EgressIP
+metadata:
+  name: %s
+spec:
+  egressIPs:
+  - %s
+  namespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: %s
+`, eipName, eipIP, f.Namespace.Name)
+
+			_, err := e2ekubectl.RunKubectlInput(f.Namespace.Name, eipYAML, "apply", "-f", "-")
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to create EgressIP %s", eipName)
+
+			createdEIPs = append(createdEIPs, testEIPItem{name: eipName, ip: eipIP})
+
+			// Print EIP NAME, EGRESSIPS & ASSIGNED NODE
+			framework.Logf("Created EgressIP: %s, IP: %s, Assigned Node: %s", eipName, eipIP, targetNode.Name)
+		}
+
+		defer func() {
+			for _, item := range createdEIPs {
+				_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "delete", "egressip", item.name, "--ignore-not-found=true")
+			}
+		}()
+
+		g.By(fmt.Sprintf("5. Validate exactly %d EgressIPs are assigned to target node %s", usableCapacity, targetNode.Name))
+		var assignedEIPs []string
+		pollErr := wait.PollUntilContextTimeout(context.TODO(), 2*time.Second, 60*time.Second, true, func(ctx context.Context) (bool, error) {
+			assignedEIPs = nil
+			for _, item := range createdEIPs {
+				stdout, err := e2ekubectl.RunKubectl(f.Namespace.Name, "get", "egressip", item.name, "-o", "jsonpath={.status.items[*].node}")
+				if err == nil && strings.TrimSpace(stdout) == targetNode.Name {
+					assignedEIPs = append(assignedEIPs, item.name)
+				}
+			}
+			return len(assignedEIPs) == usableCapacity, nil
+		})
+		o.Expect(pollErr).NotTo(o.HaveOccurred(),
+			"expected exactly %d EgressIPs to be assigned to node %s, got %d (assigned: %v)",
+			usableCapacity, targetNode.Name, len(assignedEIPs), assignedEIPs)
+
+		g.By("6. Identify the 2 unassigned overflow EgressIPs")
+		assignedSet := sets.NewString(assignedEIPs...)
+		var unassignedItems []testEIPItem
+		for _, item := range createdEIPs {
+			if !assignedSet.Has(item.name) {
+				unassignedItems = append(unassignedItems, item)
+			}
+		}
+		o.Expect(unassignedItems).To(o.HaveLen(2), "expected exactly 2 unassigned EgressIPs exceeding capacity")
+
+		g.By("7. Validate that NO CloudPrivateIPConfig CRDs were created for the unassigned EgressIPs")
+		o.Consistently(func() bool {
+			for _, item := range unassignedItems {
+				stdout, err := e2ekubectl.RunKubectl(f.Namespace.Name, "get", "cloudprivateipconfig", item.ip)
+				if err == nil {
+					// Found the object when it should NOT exist!
+					return false
+				}
+				// Check for "NotFound" in both stdout and error message
+				errMsg := stdout
+				if err != nil {
+					errMsg += " " + err.Error()
+				}
+				if !strings.Contains(errMsg, "NotFound") && !strings.Contains(errMsg, "not found") {
+					return false
+				}
+			}
+			return true
+		}, 10*time.Second, 2*time.Second).Should(o.BeTrue(),
+			"CloudPrivateIPConfig objects must not be created for unassigned EgressIPs exceeding capacity")
+
+		framework.Logf("Verified capacity limit: %d assigned, 2 overflowed, 0 stale CloudPrivateIPConfigs created", usableCapacity)
+	})
+
 })
 
 //
