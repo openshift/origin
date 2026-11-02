@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"os"
 	"path/filepath"
@@ -18,6 +19,7 @@ import (
 	"github.com/openshift-kni/commatrix/pkg/types"
 	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clientOptions "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/openshift-kni/commatrix/pkg/client"
@@ -33,6 +35,15 @@ const (
 	testNS                  = "openshift-commatrix-test"
 	serviceNodePortMin      = 30000
 	serviceNodePortMax      = 32767
+
+	// commatrixRetryInterval and commatrixRetryTimeout control the polling
+	// loop that retries the endpointslice matrix generation when ports are
+	// found in ss but missing from the initial matrix. This handles the race
+	// where a component (e.g. an operator's DaemonSet) is still deploying
+	// and its EndpointSlice hasn't been created yet when the first snapshot
+	// is taken.
+	commatrixRetryInterval = 5 * time.Second
+	commatrixRetryTimeout  = 1 * time.Minute
 )
 
 var (
@@ -138,6 +149,66 @@ var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io]
 		}
 
 		missingEPSMat := diff.GetUniqueSecondary()
+
+		// If ports are found in ss but missing from the endpointslice matrix,
+		// retry with polling. This handles two race conditions with serial tests:
+		//
+		// 1. Install race: a component's EndpointSlice is still being created
+		//    when the initial snapshot was taken (e.g. an operator DaemonSet
+		//    still rolling out). On retry the EndpointSlice appears → resolved.
+		//
+		// 2. Teardown race: a previous serial test (e.g. NetObserv e2e) installed
+		//    and then uninstalled a component. The Service/EndpointSlice are
+		//    already deleted but pods are still terminating and listening.
+		//    On retry the ss re-scan shows the port is gone → resolved.
+		if len(missingEPSMat.Matrix) > 0 {
+			logrus.Infof("found %d ports in ss without endpointslice match, retrying", len(missingEPSMat.Matrix))
+
+			retryErr := wait.PollUntilContextTimeout(context.TODO(), commatrixRetryInterval, commatrixRetryTimeout, true,
+				func(ctx context.Context) (bool, error) {
+					// Regenerate both the endpointslice matrix and the ss matrix
+					// to handle both install races (new EndpointSlice) and teardown
+					// races (port no longer listening).
+					retryMatrix, err := commMatrixCreator.CreateEndpointMatrix()
+					if err != nil {
+						return false, err
+					}
+
+					retrySS, _, _, err := listeningCheck.GenerateSS(testNS)
+					if err != nil {
+						return false, err
+					}
+
+					retrySSFiltered, err := filterSSMatrix(retrySS)
+					if err != nil {
+						return false, err
+					}
+
+					diff = matrixdiff.Generate(retryMatrix, retrySSFiltered)
+					missingEPSMat = diff.GetUniqueSecondary()
+
+					if len(missingEPSMat.Matrix) == 0 {
+						logrus.Info("all ss ports now have matching endpointslices after retry")
+						return true, nil
+					}
+
+					logrus.Infof("still %d ports missing endpointslice, retrying...", len(missingEPSMat.Matrix))
+					return false, nil
+				})
+
+			if retryErr != nil {
+				// Write updated artifacts before failing for debugging
+				if diffStr, err := diff.String(); err == nil {
+					_ = utilsHelpers.WriteFile(filepath.Join(artifactsDir, "matrix-diff-ss"), []byte(diffStr))
+				}
+
+				retryMatrix, err := commMatrixCreator.CreateEndpointMatrix()
+				if err == nil {
+					_ = retryMatrix.WriteMatrixToFileByType(utilsHelpers, "communication-matrix", types.FormatCSV, deployment, artifactsDir)
+				}
+			}
+		}
+
 		if len(missingEPSMat.Matrix) > 0 {
 			err := fmt.Errorf("the following ports are used but don't have an endpointslice: \n %s", missingEPSMat)
 			Expect(err).ToNot(HaveOccurred())
