@@ -16,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -205,6 +206,73 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 		dc, err = oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()).Patch(context.Background(), dc.Name, types.StrategicMergePatchType, []byte(`{"spec": {"template": {"spec": {"containers": [{"name": "resolve", "image": "busybox:latest"}]}}}}`), metav1.PatchOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(dc.Spec.Template.Spec.Containers[0].Image).To(o.Equal(internalImageReference))
+	})
+
+	g.It("should update image volume references when local names are on [FeatureGate:ImageVolume][apigroup:image.openshift.io]", func() {
+		err := oc.Run("tag").Args(k8simage.GetE2EImage(k8simage.BusyBox), "busybox:latest").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.Run("set", "image-lookup").Args("busybox").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		var internalImageReference string
+		var lastErr error
+		err = wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
+			tag, err := oc.ImageClient().ImageV1().ImageTags(oc.Namespace()).Get(ctx, "busybox:latest", metav1.GetOptions{})
+			if err != nil || tag.Image == nil {
+				lastErr = err
+				return false, nil
+			}
+			internalImageReference = tag.Image.DockerImageReference
+			return true, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unable to wait for image to be imported: %v", lastErr))
+
+		imageVolumeSpec := kapiv1.PodSpec{
+			TerminationGracePeriodSeconds: &one,
+			Containers: []kapiv1.Container{
+				{
+					Name:         "resolve",
+					Image:        "busybox:latest",
+					Command:      []string{"sleep", "3600"},
+					VolumeMounts: []kapiv1.VolumeMount{{Name: "image", MountPath: "/mnt/image", ReadOnly: true}},
+				},
+			},
+			Volumes: []kapiv1.Volume{
+				{Name: "image", VolumeSource: kapiv1.VolumeSource{Image: &kapiv1.ImageVolumeSource{Reference: "busybox:latest"}}},
+			},
+		}
+
+		g.By("auto replacing local image volume references on Pods")
+		// SCC admission is not under test; admin avoids assuming the restricted SCC allows image volumes.
+		pod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Create(ctx, &kapiv1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "resolve-image-volume"},
+			Spec:       imageVolumeSpec,
+		}, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if pod.Spec.Containers[0].Image != internalImageReference {
+			g.Skip("default image resolution is not configured, can't verify pod resolution")
+		}
+		o.Expect(pod.Spec.Volumes[0].Image.Reference).To(o.Equal(internalImageReference))
+		o.Expect(e2epod.WaitForPodNameRunningInNamespace(ctx, oc.AdminKubeClient(), pod.Name, oc.Namespace())).To(o.Succeed())
+
+		g.By("auto replacing local image volume references on Deployments")
+		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()).Create(ctx, &kappsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "resolve-image-volume"},
+			Spec: kappsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"resolve-image-volume": "true"},
+				},
+				Template: kapiv1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{"resolve-image-volume": "true"},
+					},
+					Spec: imageVolumeSpec,
+				},
+			},
+		}, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(deployment.Spec.Template.Spec.Volumes[0].Image.Reference).To(o.Equal(internalImageReference))
 	})
 
 	g.It("should update OpenShift object image fields when local names are on [apigroup:image.openshift.io][apigroup:apps.openshift.io]", func() {
