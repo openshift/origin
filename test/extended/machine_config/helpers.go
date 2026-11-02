@@ -369,16 +369,31 @@ func getRandomNode(oc *exutil.CLI, role string) corev1.Node {
 // (such as dedicated nodes) and nodes with control-plane/master roles, so tests
 // that move a node into a custom MachineConfigPool do not disrupt dedicated hosts.
 func GetRandomSchedulableWorkerNode(oc *exutil.CLI) corev1.Node {
-	nodes, err := exutil.GetReadySchedulableWorkerNodes(context.TODO(), oc.AsAdmin().KubeClient())
+	// List worker nodes directly instead of using
+	// exutil.GetReadySchedulableWorkerNodes: the underlying
+	// e2enode.GetReadySchedulableNodes returns an error when the cluster has
+	// no ready schedulable nodes at all, which would fail the test instead of
+	// skipping it on clusters where every worker node is tainted. Listing
+	// errors still fail the test; eligibility is handled below.
+	nodes, err := GetNodesByRole(oc, "worker")
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	// Keep the cordoned and MCD-state guards from IsNodeReady on top of the
-	// taint and control-plane filtering
 	var readyNodes []corev1.Node
 	for _, node := range nodes {
-		if IsNodeReady(node) {
-			readyNodes = append(readyNodes, node)
+		// Exclude nodes that also hold the control-plane or master role: they
+		// belong to the master pool and cannot join a custom MCP.
+		if _, ok := node.Labels["node-role.kubernetes.io/control-plane"]; ok {
+			continue
 		}
+		if _, ok := node.Labels["node-role.kubernetes.io/master"]; ok {
+			continue
+		}
+		// Exclude tainted nodes (dedicated hosts such as the OPCT execution
+		// node) and keep the cordoned and MCD-state guards from IsNodeReady.
+		if hasBlockingTaint(node) || !IsNodeReady(node) {
+			continue
+		}
+		readyNodes = append(readyNodes, node)
 	}
 
 	// Skip when no eligible node exists: this is an environmental constraint
@@ -392,6 +407,18 @@ func GetRandomSchedulableWorkerNode(oc *exutil.CLI) corev1.Node {
 	// #nosec
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	return readyNodes[rnd.Intn(len(readyNodes))]
+}
+
+// `hasBlockingTaint` reports whether a node carries a NoSchedule or NoExecute
+// taint, which marks it as a dedicated host for specific workloads
+func hasBlockingTaint(node corev1.Node) bool {
+	for _, taint := range node.Spec.Taints {
+		if taint.Effect == corev1.TaintEffectNoSchedule || taint.Effect == corev1.TaintEffectNoExecute {
+			return true
+		}
+	}
+
+	return false
 }
 
 // `GetNodesByRole` gets all nodes labeled with the desired role
