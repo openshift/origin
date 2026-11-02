@@ -22,6 +22,7 @@ import (
 const (
 	preconditionWaitTimeout = 20 * time.Minute
 	baselineWorkloadName    = "topology-transitions-baseline"
+	nodeWorkloadName        = "topology-transitions-nodes"
 	suiteTags               = "[sig-etcd][sig-node][OCPFeatureGate:MutableTopology][Serial]"
 )
 
@@ -117,6 +118,9 @@ func registerTransitionTest(target transitionTarget) {
 				return checkBaselineWorkloadReady(ctx, oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()))
 			}).WithContext(ctx).WithTimeout(5*time.Minute).WithPolling(2*time.Second).Should(o.Succeed(), "baseline deployment did not become ready before the transition")
 
+			g.By("checking the exact target node counts before the transition")
+			o.Expect(checkNodeCounts(ctx, oc, target.nodeCounts)).To(o.Succeed(), "target node counts do not match before the transition")
+
 			before := requireSource(ctx, oc, definition)
 			g.By("requesting the topology transition through oc adm")
 			// Output logs raw stdout and stderr on failure; keep them out of suite logs.
@@ -180,8 +184,52 @@ func registerTransitionTest(target transitionTarget) {
 			o.Eventually(func() error {
 				return checkBaselineWorkloadReady(ctx, oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()))
 			}).WithContext(ctx).WithTimeout(2*time.Minute).WithPolling(2*time.Second).Should(o.Succeed(), "baseline deployment did not become ready after the transition")
+
+			g.By("checking that a new workload runs on every target node")
+			o.Expect(createNodeWorkload(ctx, oc)).To(o.Succeed(), "failed to create the node workload")
+			expectedNodes := target.ControlPlaneNodes + target.ComputeNodes + target.ArbiterNodes
+			o.Eventually(func() error {
+				return checkNodeWorkloadReady(ctx, oc.AdminKubeClient().AppsV1().DaemonSets(oc.Namespace()), expectedNodes)
+			}).WithContext(ctx).WithTimeout(5*time.Minute).WithPolling(2*time.Second).Should(o.Succeed(), "node workload did not become ready on every target node after the transition")
 		})
 	})
+}
+
+func createNodeWorkload(ctx context.Context, oc *exutil.CLI) error {
+	daemonSet := &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      nodeWorkloadName,
+			Namespace: oc.Namespace(),
+		},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": nodeWorkloadName},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"app": nodeWorkloadName},
+				},
+				Spec: corev1.PodSpec{
+					// Include nodes reserved for control-plane or arbiter workloads.
+					Tolerations: []corev1.Toleration{{
+						Operator: corev1.TolerationOpExists,
+						Effect:   corev1.TaintEffectNoSchedule,
+					}},
+					Containers: []corev1.Container{{
+						Name:    "workload",
+						Image:   image.ShellImage(),
+						Command: []string{"sleep", "infinity"},
+					}},
+				},
+			},
+		},
+	}
+	_, err := oc.KubeClient().AppsV1().DaemonSets(oc.Namespace()).Create(ctx, daemonSet, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create node workload")
+	}
+
+	return nil
 }
 
 // The workload checks scheduling before and after the transition.

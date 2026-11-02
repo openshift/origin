@@ -63,7 +63,7 @@ The schedulable count cannot exceed the control-plane count.
    ```
 
    It waits for passing preflight checks, creates and checks a baseline
-   workload, then runs:
+   workload, checks exact target node counts, then runs:
 
    ```bash
    OC_ENABLE_CMD_TRANSITION_TOPOLOGY=true oc adm transition topology \
@@ -74,7 +74,8 @@ The schedulable count cannot exceed the control-plane count.
 
    It requires `TopologyTransitionCompleted=True` for the current request,
    both target topologies, settled operators, exact node counts, healthy etcd
-   with the expected voting members, and a ready baseline workload. It runs
+   with the expected voting members, and a ready baseline workload. It then
+   creates a DaemonSet and requires a ready pod on every target node. It runs
    serially with disruptive monitoring and a 150-minute limit. The transition
    is one-way.
 

@@ -180,6 +180,26 @@ func checkBaselineWorkloadReady(ctx context.Context, deployments appsclient.Depl
 	return nil
 }
 
+func checkNodeWorkloadReady(ctx context.Context, daemonSets appsclient.DaemonSetInterface, expectedNodes int) error {
+	daemonSet, err := daemonSets.Get(ctx, nodeWorkloadName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get node workload daemonset")
+	}
+
+	status := daemonSet.Status
+	if status.ObservedGeneration != daemonSet.Generation ||
+		int(status.DesiredNumberScheduled) != expectedNodes ||
+		int(status.CurrentNumberScheduled) != expectedNodes ||
+		int(status.UpdatedNumberScheduled) != expectedNodes ||
+		int(status.NumberReady) != expectedNodes ||
+		int(status.NumberAvailable) != expectedNodes ||
+		status.NumberMisscheduled != 0 {
+		return fmt.Errorf("node workload daemonset has not reached %d ready pods on the target nodes", expectedNodes)
+	}
+
+	return nil
+}
+
 func checkOperatorsSettled(ctx context.Context, client configclient.ConfigV1Interface) error {
 	operators, err := client.ClusterOperators().List(ctx, metav1.ListOptions{})
 	if err != nil {
