@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
+	clienttesting "k8s.io/client-go/testing"
 )
 
 func TestPodsToRebalance(t *testing.T) {
@@ -45,6 +45,14 @@ func TestPodsToRebalance(t *testing.T) {
 				pod("f", "master-1", 50), pod("g", "master-1", 50), pod("h", "master-1", 50), pod("i", "master-1", 50),
 			},
 			expected: []string{"a", "b", "f"},
+		},
+		{
+			name: "uneven count, only the most loaded master keeps the extra pod",
+			pods: []singletonPod{
+				pod("a", "master-0", 50), pod("b", "master-0", 50),
+				pod("c", "master-1", 50), pod("d", "master-1", 50),
+			},
+			expected: []string{"c"},
 		},
 	}
 	for _, tt := range tests {
@@ -83,12 +91,27 @@ func readySingleton(namespace, name, nodeName string) []runtime.Object {
 	return objs
 }
 
-func remainingPods(t *testing.T, client *fake.Clientset) []string {
-	pods, err := client.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
-	require.NoError(t, err)
+// replaceDeletedPods stands in for the ReplicaSet controller: every deleted pod gets a Ready
+// replacement in the same ReplicaSet.
+func replaceDeletedPods(t *testing.T, client *fake.Clientset) {
+	client.PrependReactor("delete", "pods", func(action clienttesting.Action) (bool, runtime.Object, error) {
+		del := action.(clienttesting.DeleteAction)
+		obj, err := client.Tracker().Get(corev1.SchemeGroupVersion.WithResource("pods"), del.GetNamespace(), del.GetName())
+		require.NoError(t, err)
+		replacement := obj.(*corev1.Pod).DeepCopy()
+		replacement.Name += "-new"
+		replacement.Status.Conditions = []corev1.PodCondition{{Type: corev1.PodReady, Status: corev1.ConditionTrue}}
+		require.NoError(t, client.Tracker().Add(replacement))
+		return false, nil, nil
+	})
+}
+
+func deletedPods(client *fake.Clientset) []string {
 	var names []string
-	for _, p := range pods.Items {
-		names = append(names, p.Namespace)
+	for _, action := range client.Actions() {
+		if del, ok := action.(clienttesting.DeleteAction); ok && action.GetResource().Resource == "pods" {
+			names = append(names, del.GetNamespace())
+		}
 	}
 	sort.Strings(names)
 	return names
@@ -106,21 +129,31 @@ func TestRebalanceSingletons(t *testing.T) {
 
 	t.Run("deletes the excess from the overloaded master", func(t *testing.T) {
 		client := fake.NewSimpleClientset(overloaded(readyMasters())...)
+		replaceDeletedPods(t, client)
 		require.NoError(t, rebalanceSingletons(context.Background(), client, 1, time.Millisecond, time.Second))
-		// target is ceil(4/3) = 2, so one of master-0's three equal pods is deleted (first by name)
-		assert.Equal(t, []string{"openshift-b", "openshift-c", "openshift-d"}, remainingPods(t, client))
+		// 4 pods over 3 masters: master-0 keeps 2, so one of its three equal pods is deleted (first by name)
+		assert.Equal(t, []string{"openshift-a"}, deletedPods(client))
 	})
 
 	t.Run("skips when a master is not ready", func(t *testing.T) {
 		client := fake.NewSimpleClientset(overloaded(readyMasters("master-2"))...)
+		replaceDeletedPods(t, client)
 		require.NoError(t, rebalanceSingletons(context.Background(), client, 1, time.Millisecond, time.Second))
-		assert.Equal(t, []string{"openshift-a", "openshift-b", "openshift-c", "openshift-d"}, remainingPods(t, client))
+		assert.Empty(t, deletedPods(client))
 	})
 
-	t.Run("errors when the replacement never becomes ready", func(t *testing.T) {
+	t.Run("errors when no replacement pod comes up", func(t *testing.T) {
+		client := fake.NewSimpleClientset(overloaded(readyMasters())...)
+		err := rebalanceSingletons(context.Background(), client, 1, time.Millisecond, 50*time.Millisecond)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "no ready replacement for openshift-a/a-abc123-xyz")
+	})
+
+	t.Run("errors when the deployment never reports ready", func(t *testing.T) {
 		objs := overloaded(readyMasters())
 		objs[len(threeMasters())].(*appsv1.Deployment).Status.ReadyReplicas = 0
 		client := fake.NewSimpleClientset(objs...)
+		replaceDeletedPods(t, client)
 		err := rebalanceSingletons(context.Background(), client, 1, time.Millisecond, 50*time.Millisecond)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "deployment openshift-a/a not ready")

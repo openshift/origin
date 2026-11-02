@@ -528,16 +528,20 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		// monitors start, then let the stability wait below cover the operators settling.
 		if os.Getenv("OPENSHIFT_TESTS_SKIP_SINGLETON_REBALANCE") == "" {
 			logrus.Infof("Rebalancing singleton pods across masters")
+			rebalanceStart := time.Now()
 			if err := singletonplacementcollector.RebalanceSingletons(ctx, restConfig); err != nil {
 				logrus.Errorf("Error rebalancing singleton pods: %v", err)
 			}
+			logrus.Infof("Singleton rebalance took %s", time.Since(rebalanceStart).Round(time.Second))
 		}
 		logrus.Infof("Waiting for all cluster operators to become stable")
+		stableStart := time.Now()
 		var err error
 		stableClusterTestResults, err = clusterinfo.WaitForStableCluster(ctx, restConfig)
 		if err != nil {
 			logrus.Errorf("Error waiting for stable cluster: %v", err)
 		}
+		logrus.Infof("Waiting for stable cluster took %s", time.Since(stableStart).Round(time.Second))
 	} else {
 		logrus.Infof("Skipping stable cluster check due to OPENSHIFT_TESTS_SKIP_STABLE_CLUSTER environment variable")
 	}
