@@ -535,6 +535,115 @@ func TestSingleNodeUpgradePathologicalEventAllowances(t *testing.T) {
 	}
 }
 
+func TestSingleNodeUpgradeBoundedAllowancesTakePrecedenceOverOverlapMatchers(t *testing.T) {
+	const (
+		consoleReadinessProbeError   = "Readiness probe error: Get \"https://10.128.0.18:8443/readyz\": dial tcp 10.128.0.18:8443: connect: connection refused\nbody: \n"
+		machineAPIStartupProbeError  = "Startup probe error: Get \"http://10.128.0.56:9441/readyz\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)\nbody: \n"
+		machineAPIStartupProbeFailed = "Startup probe failed: Get \"http://10.128.0.56:9441/readyz\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+	)
+
+	eventTime := time.Unix(1728589300, 0)
+	targetDown := monitorapi.Interval{
+		Condition: monitorapi.Condition{
+			Locator: monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+				monitorapi.LocatorAlertKey:     "TargetDown",
+				monitorapi.LocatorNamespaceKey: "openshift-apiserver",
+			}},
+		},
+		Source: monitorapi.SourceAlert,
+		From:   eventTime.Add(-time.Minute),
+		To:     eventTime.Add(time.Minute),
+	}
+	kubeAPIProgressing := monitorapi.Interval{
+		Condition: monitorapi.Condition{
+			Locator: monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+				monitorapi.LocatorClusterOperatorKey: "kube-apiserver",
+			}},
+			Message: monitorapi.Message{
+				Reason: monitorapi.NodeInstallerReason,
+				Annotations: map[monitorapi.AnnotationKey]string{
+					monitorapi.AnnotationCondition: "Progressing",
+				},
+			},
+		},
+		Source: monitorapi.SourceOperatorState,
+		From:   eventTime.Add(-time.Minute),
+		To:     eventTime.Add(time.Minute),
+	}
+
+	buildEvent := func(namespace, pod, reason, message string, count int) monitorapi.Interval {
+		event := BuildTestDupeKubeEvent(namespace, pod, reason, message, count)
+		event.From = eventTime
+		event.To = eventTime
+		return event
+	}
+
+	tests := []struct {
+		name              string
+		interval          monitorapi.Interval
+		expectedAllowName string
+	}{
+		{
+			name:     "rejects console probe above bound during TargetDown",
+			interval: buildEvent("openshift-console-operator", "console-operator-75598d57fd-dq888", "ProbeError", consoleReadinessProbeError, singleNodeUpgradeProbeRepeatThreshold+1),
+		},
+		{
+			name:     "rejects machine API probe error above bound while kube API progresses",
+			interval: buildEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "ProbeError", machineAPIStartupProbeError, singleNodeUpgradeProbeRepeatThreshold+1),
+		},
+		{
+			name:     "rejects machine API probe failure above bound while kube API progresses",
+			interval: buildEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "Unhealthy", machineAPIStartupProbeFailed, singleNodeUpgradeProbeRepeatThreshold+1),
+		},
+		{
+			name:              "allows bounded console probe during TargetDown",
+			interval:          buildEvent("openshift-console-operator", "console-operator-75598d57fd-dq888", "ProbeError", consoleReadinessProbeError, singleNodeUpgradeProbeRepeatThreshold),
+			expectedAllowName: "SingleNodeConsoleOperatorReadinessProbeError",
+		},
+		{
+			name:              "allows bounded machine API probe error while kube API progresses",
+			interval:          buildEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "ProbeError", machineAPIStartupProbeError, singleNodeUpgradeProbeRepeatThreshold),
+			expectedAllowName: "SingleNodeMachineAPIStartupProbeError",
+		},
+		{
+			name:              "allows bounded machine API probe failure while kube API progresses",
+			interval:          buildEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "Unhealthy", machineAPIStartupProbeFailed, singleNodeUpgradeProbeRepeatThreshold),
+			expectedAllowName: "SingleNodeMachineAPIStartupProbeFailed",
+		},
+		{
+			name:              "preserves other connection refused allowances during TargetDown",
+			interval:          buildEvent("openshift-other", "other-operator", "ProbeError", "Readiness probe error: Get \"https://10.128.0.19:9443/readyz\": dial tcp 10.128.0.19:9443: connect: connection refused", singleNodeUpgradeProbeRepeatThreshold+1),
+			expectedAllowName: "ConnectionErrorDuringSingleNodeAPIServerTargetDown",
+		},
+		{
+			name:              "preserves other timeout allowances while kube API progresses",
+			interval:          buildEvent("openshift-other", "other-operator", "Unhealthy", machineAPIStartupProbeFailed, singleNodeUpgradeProbeRepeatThreshold+1),
+			expectedAllowName: "KubeAPIServerProgressingDuringSingleNodeUpgrade",
+		},
+		{
+			name: "keeps no CNI pod sandbox event rejected during overlap windows",
+			interval: buildEvent("openshift-insights", "periodic-gathering-7rrt5-bx7ts", "FailedCreatePodSandBox",
+				"Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox: no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
+				DuplicateEventThreshold+1),
+		},
+	}
+
+	registry := NewUpgradePathologicalEventMatchers(nil, monitorapi.Intervals{targetDown, kubeAPIProgressing})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			allowed, matcher := registry.AllowedByAny(test.interval, v1.SingleReplicaTopologyMode)
+			if test.expectedAllowName == "" {
+				require.False(t, allowed)
+				require.Nil(t, matcher)
+				return
+			}
+			require.True(t, allowed)
+			require.NotNil(t, matcher)
+			assert.Equal(t, test.expectedAllowName, matcher.Name())
+		})
+	}
+}
+
 func TestPathologicalEventsWithNamespaces(t *testing.T) {
 	from := time.Unix(872827200, 0).In(time.UTC)
 	to := time.Unix(872827200, 0).In(time.UTC)

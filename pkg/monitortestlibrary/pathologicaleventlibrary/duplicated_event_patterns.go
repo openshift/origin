@@ -141,7 +141,8 @@ func (ade *SimplePathologicalEventMatcher) allowsIgnoringRepeatThreshold(i monit
 }
 
 type AllowedPathologicalEventRegistry struct {
-	matchers map[string]EventMatcher
+	matchers              map[string]EventMatcher
+	authoritativeMatchers []EventMatcher
 }
 
 func (r *AllowedPathologicalEventRegistry) AddPathologicalEventMatcher(eventMatcher EventMatcher) error {
@@ -160,6 +161,14 @@ func (r *AllowedPathologicalEventRegistry) AddPathologicalEventMatcherOrDie(even
 	if err != nil {
 		panic(err)
 	}
+}
+
+// addAuthoritativePathologicalEventMatcherOrDie registers a matcher whose decision is final
+// for every interval it matches. This keeps a more specific bounded allowance from falling
+// through to a broader matcher when the specific allowance rejects the interval.
+func (r *AllowedPathologicalEventRegistry) addAuthoritativePathologicalEventMatcherOrDie(eventMatcher EventMatcher) {
+	r.AddPathologicalEventMatcherOrDie(eventMatcher)
+	r.authoritativeMatchers = append(r.authoritativeMatchers, eventMatcher)
 }
 
 // MatchesAny checks if the given event locator and message match any registered matcher.
@@ -186,6 +195,16 @@ func (r *AllowedPathologicalEventRegistry) AllowedByAny(
 	topology v1.TopologyMode) (bool, EventMatcher) {
 	l := i.Locator
 	msg := i.Message
+	for _, m := range r.authoritativeMatchers {
+		if !m.Matches(i) {
+			continue
+		}
+		if m.Allows(i, topology) {
+			logrus.WithField("message", msg).WithField("locator", l).Infof("duplicated event allowed by %s", m.Name())
+			return true, m
+		}
+		return false, nil
+	}
 	for k, m := range r.matchers {
 		allowed := m.Allows(i, topology)
 		if allowed {
@@ -709,7 +728,7 @@ func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals
 	// SNO upgrades restart the only node, so these probes can accumulate while their
 	// operands recover. Keep the allowances scoped to the exact observed components,
 	// probe types, and failure modes, with a small bound over the observed maximum of 28.
-	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+	registry.addAuthoritativePathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
 		name: "SingleNodeConsoleOperatorReadinessProbeError",
 		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-console-operator$`),
@@ -721,7 +740,7 @@ func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals
 		topology:                &singleReplicaTopology,
 	})
 
-	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+	registry.addAuthoritativePathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
 		name: "SingleNodeMachineAPIStartupProbeError",
 		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-machine-api$`),
@@ -733,7 +752,7 @@ func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals
 		topology:                &singleReplicaTopology,
 	})
 
-	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+	registry.addAuthoritativePathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
 		name: "SingleNodeMachineAPIStartupProbeFailed",
 		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-machine-api$`),
