@@ -389,13 +389,20 @@ type IngressControllerSpec struct {
 	// haproxyVersion specifies the HAProxy version to use for this
 	// IngressController.
 	//
-	// OpenShift 5.1 continues with HAProxy 3.2 (same minor version introduced
-	// in OpenShift 5.0) and does not introduce a new HAProxy version.
+	// OpenShift 5.1 uses HAProxy 3.2 as its default version and supports
+	// HAProxy 3.4 as an explicit, non-default opt-in.
 	//
 	// Valid values for OpenShift 5.1:
 	// - Unset (default): Uses HAProxy 3.2 (the default for OpenShift 5.1)
 	// - "3.2": Uses the latest HAProxy 3.2.z available for this OpenShift
 	// release and pins the minor version.
+	// - "3.4": Uses the latest HAProxy 3.4.z available for this OpenShift
+	// release. This is an explicit opt-in; HAProxy 3.4 is not the default.
+	//
+	// Planned lifecycle for later OpenShift releases:
+	// - OpenShift 5.2 plans to make HAProxy 3.4 the default when this field is
+	// unset, while continuing to support "3.2" as an explicit selection.
+	// - OpenShift 5.3 plans to retire support for selecting HAProxy 3.2.
 	//
 	// Note: HAProxy 2.8 support has been dropped in OpenShift 5.1. Upgrading
 	// from OpenShift 5.0 with haproxyVersion set to "2.8" is blocked.
@@ -2329,7 +2336,13 @@ type IngressControllerStatus struct {
 	// been resolved by the operator or the feature is not enabled for this cluster.
 	//
 	// Examples for OpenShift 5.1:
-	// - "3.2": Using HAProxy 3.2
+	// - "3.2": Using the default HAProxy 3.2
+	// - "3.4": Using the explicitly selected, non-default HAProxy 3.4
+	//
+	// Planned lifecycle for later OpenShift releases:
+	// - OpenShift 5.2 plans to make HAProxy 3.4 the default while keeping
+	// HAProxy 3.2 selectable.
+	// - OpenShift 5.3 plans to retire HAProxy 3.2.
 	//
 	// +optional
 	// +openshift:enable:FeatureGate=IngressControllerMultipleHAProxyVersions
@@ -2407,10 +2420,13 @@ const (
 // format. The allowed values are constrained by enum validation and vary by
 // OpenShift release.
 //
-// +kubebuilder:validation:Enum="3.2"
+// +kubebuilder:validation:Enum="3.2";"3.4"
 type HAProxyVersion string
 
 const (
 	// HAProxyVersion32 represents HAProxy 3.2, introduced in OpenShift 5.0.
 	HAProxyVersion32 HAProxyVersion = "3.2"
+
+	// HAProxyVersion34 represents HAProxy 3.4, available as a non-default option in OpenShift 5.1.
+	HAProxyVersion34 HAProxyVersion = "3.4"
 )

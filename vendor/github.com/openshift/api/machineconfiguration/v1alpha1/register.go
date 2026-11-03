@@ -28,6 +28,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&OSImageStreamList{},
 		&InternalReleaseImage{},
 		&InternalReleaseImageList{},
+		&BGPVIPConfig{},
+		&BGPVIPConfigList{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil

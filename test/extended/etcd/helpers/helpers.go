@@ -656,48 +656,52 @@ func EnsureVotingMembersCount(ctx context.Context, t TestingT, etcdClientFactory
 	t.Logf("Waiting up to %s for the cluster to reach the expected member count of %v", waitPollTimeout.String(), expectedMembersCount)
 
 	return wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
-		etcdClient, closeFn, err := etcdClientFactory.NewEtcdClient()
-		if err != nil {
-			t.Logf("failed to get etcd client, will retry, err: %v", err)
-			return false, nil
-		}
-		defer closeFn()
-
-		ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
-		defer cancel()
-		memberList, err := etcdClient.MemberList(ctx)
-		if err != nil {
-			t.Logf("failed to get the member list, will retry, err: %v", err)
-			return false, nil
-		}
-
-		var votingMemberNames []string
-		for _, member := range memberList.Members {
-			if !member.IsLearner {
-				votingMemberNames = append(votingMemberNames, member.Name)
-			}
-		}
-		if len(votingMemberNames) != expectedMembersCount {
-			t.Logf("unexpected number of voting etcd members, expected exactly %d, got: %v, current members are: %v", expectedMembersCount, len(votingMemberNames), votingMemberNames)
-			return false, nil
-		}
-		t.Logf("cluster has reached the expected number of %v voting members, the members are: %v", expectedMembersCount, votingMemberNames)
-
-		t.Logf("ensuring that the openshift-etcd/etcd-endpoints cm has the expected number of %v voting members", expectedMembersCount)
-		etcdEndpointsConfigMap, err := kubeClient.CoreV1().ConfigMaps("openshift-etcd").Get(ctx, "etcd-endpoints", metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-		currentVotingMemberIPListSet := sets.NewString()
-		for _, votingMemberIP := range etcdEndpointsConfigMap.Data {
-			currentVotingMemberIPListSet.Insert(votingMemberIP)
-		}
-		if currentVotingMemberIPListSet.Len() != expectedMembersCount {
-			t.Logf("unexpected number of voting members in the openshift-etcd/etcd-endpoints cm, expected exactly %d, got: %v, current members are: %v", expectedMembersCount, currentVotingMemberIPListSet.Len(), currentVotingMemberIPListSet.List())
-			return false, nil
-		}
-		return true, nil
+		return checkVotingMembersCount(ctx, t, etcdClientFactory, kubeClient, expectedMembersCount)
 	})
+}
+
+func checkVotingMembersCount(ctx context.Context, t TestingT, etcdClientFactory EtcdClientCreator, kubeClient kubernetes.Interface, expectedMembersCount int) (bool, error) {
+	etcdClient, closeFn, err := etcdClientFactory.NewEtcdClient()
+	if err != nil {
+		t.Logf("failed to get etcd client, will retry")
+		return false, nil
+	}
+	defer closeFn()
+
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	memberList, err := etcdClient.MemberList(ctx)
+	if err != nil {
+		t.Logf("failed to get the member list, will retry")
+		return false, nil
+	}
+
+	votingMembers := 0
+	for _, member := range memberList.Members {
+		if !member.IsLearner {
+			votingMembers++
+		}
+	}
+	if votingMembers != expectedMembersCount {
+		t.Logf("unexpected voting etcd member count: expected %d, got %d", expectedMembersCount, votingMembers)
+		return false, nil
+	}
+	t.Logf("cluster has reached the expected count of %d voting members", expectedMembersCount)
+
+	t.Logf("ensuring that the openshift-etcd/etcd-endpoints cm has the expected number of %v voting members", expectedMembersCount)
+	etcdEndpointsConfigMap, err := kubeClient.CoreV1().ConfigMaps("openshift-etcd").Get(ctx, "etcd-endpoints", metav1.GetOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to get etcd endpoint configuration")
+	}
+	currentVotingMemberIPListSet := sets.NewString()
+	for _, votingMemberIP := range etcdEndpointsConfigMap.Data {
+		currentVotingMemberIPListSet.Insert(votingMemberIP)
+	}
+	if currentVotingMemberIPListSet.Len() != expectedMembersCount {
+		t.Logf("unexpected etcd endpoint count: expected %d, got %d", expectedMembersCount, currentVotingMemberIPListSet.Len())
+		return false, nil
+	}
+	return true, nil
 }
 
 // WaitOnExpectedVotingMembersCount waits for 2 minutes and ensures the etcd membership remains at the expected member count. Returns an error if there is a change

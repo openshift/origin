@@ -1632,7 +1632,7 @@ github.com/openshift-kni/commatrix/pkg/matrix-diff
 github.com/openshift-kni/commatrix/pkg/mcp
 github.com/openshift-kni/commatrix/pkg/types
 github.com/openshift-kni/commatrix/pkg/utils
-# github.com/openshift/api v0.0.0-20261013084449-5a61bfba6d60
+# github.com/openshift/api v0.0.0-20261016190134-6a1201c52677
 ## explicit; go 1.26.0
 github.com/openshift/api
 github.com/openshift/api/annotations

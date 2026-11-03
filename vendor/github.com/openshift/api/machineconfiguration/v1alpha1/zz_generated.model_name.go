@@ -6,6 +6,41 @@
 package v1alpha1
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in BGPVIPConfig) OpenAPIModelName() string {
+	return "com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in BGPVIPConfigList) OpenAPIModelName() string {
+	return "com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPConfigList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in BGPVIPConfigSpec) OpenAPIModelName() string {
+	return "com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPConfigSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in BGPVIPConfigStatus) OpenAPIModelName() string {
+	return "com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPConfigStatus"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in BGPVIPHostPeers) OpenAPIModelName() string {
+	return "com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPHostPeers"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in BGPVIPPasswordSecret) OpenAPIModelName() string {
+	return "com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPPasswordSecret"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in BGPVIPPeer) OpenAPIModelName() string {
+	return "com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPPeer"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in InternalReleaseImage) OpenAPIModelName() string {
 	return "com.github.openshift.api.machineconfiguration.v1alpha1.InternalReleaseImage"
 }
