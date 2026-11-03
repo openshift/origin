@@ -39,9 +39,10 @@ the suite uses the NVIDIA DRA driver to allocate GPUs through ResourceClaims.
 For installation instructions, see the [NVIDIA GPU Operator on OpenShift Installation Guide](https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/install-gpu-ocp.html).
 
 **Note**: The test framework installs the NVIDIA DRA driver if it is not already running. It uses
-chart version `25.12.0` by default and leaves the driver installed after the suite. Installation
-requires Helm access to NVIDIA's chart repository. The suite is marked `[Skipped:Disconnected]`
-because the workload image and, when needed, the driver chart come from NVIDIA's registries.
+the OCI chart `registry.k8s.io/dra-driver-nvidia/charts/dra-driver-nvidia-gpu` version `0.5.1` by
+default and leaves the driver installed after the suite. Installation requires Helm access to that
+registry. The suite is marked `[Skipped:Disconnected]` because the workload image and, when needed,
+the driver chart come from external registries.
 
 ## Quick Start
 
@@ -73,12 +74,21 @@ cluster monitors; `run openshift/nvidia-dra` runs the suite with monitors.
 
 **What the tests do automatically:**
 - Verify the GPU Operator is installed and the required GPU labels are present
-- If no running DRA driver pod is detected, install the driver (version 25.12.0 by default), label
+- If no running DRA driver pod is detected, install the driver (version 0.5.1 by default), label
   GPU nodes, grant the driver service accounts privileged SCC, and wait for controller, plugin,
   and GPU ResourceSlice readiness
 
-To use a different chart version, set `NVIDIA_DRA_DRIVER_VERSION` to that chart's version before
-running the suite.
+To use a different chart version, set `NVIDIA_DRA_DRIVER_VERSION` before running the suite; to pull
+the chart from somewhere else entirely, set `NVIDIA_DRA_DRIVER_CHART` to that chart reference.
+
+The driver moved from NVIDIA's NGC Helm repository to
+[`kubernetes-sigs/dra-driver-nvidia-gpu`](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu),
+switching from CalVer to SemVer and publishing OCI charts. The newest chart on NGC, `25.12.0`,
+vendors go-nvlib v0.9.0, which cannot resolve GPU architectures newer than early 2026 — the kubelet
+plugin's `gpus` container crash-loops with `error interpreting device architecture as string` and no
+`gpu.nvidia.com` ResourceSlices are published, so every spec fails in prerequisites. The install
+passes `nameOverride=nvidia-dra-driver-gpu` so the OCI chart keeps the resource names the suite
+looks for; preserve it if you install the driver yourself.
 
 ## Test Scenarios
 
@@ -107,14 +117,9 @@ the next spec starts. Multi-GPU specs skip when the required number of GPUs is u
 
 The tests automatically install the DRA driver if needed. This section is for manually installing or debugging the DRA driver outside of the test framework.
 
-### Step 1: Add NVIDIA Helm Repository
+The chart is an OCI artifact, so no `helm repo add` is needed.
 
-```bash
-helm repo add nvidia https://helm.ngc.nvidia.com/nvidia --force-update
-helm repo update
-```
-
-### Step 2: Label GPU Nodes
+### Step 1: Label GPU Nodes
 
 ```bash
 # Label all GPU nodes for DRA kubelet plugin scheduling
@@ -129,7 +134,7 @@ oc get nodes -l nvidia.com/dra-kubelet-plugin=true
 The DRA chart uses this label as the kubelet-plugin node selector, so the plugin runs only on GPU
 nodes.
 
-### Step 3: Install DRA Driver
+### Step 2: Install DRA Driver
 
 ```bash
 # Create namespace
@@ -146,12 +151,14 @@ oc adm policy add-scc-to-user privileged \
   -z compute-domain-daemon-service-account \
   -n nvidia-dra-driver
 
-# Install via Helm (pinned to version used by tests)
-# Version can be overridden via NVIDIA_DRA_DRIVER_VERSION environment variable
-NVIDIA_DRA_DRIVER_VERSION=${NVIDIA_DRA_DRIVER_VERSION:-25.12.0}
-helm install nvidia-dra-driver nvidia/nvidia-dra-driver-gpu \
+# Install via Helm (pinned to the chart and version used by tests)
+# Both can be overridden via NVIDIA_DRA_DRIVER_CHART / NVIDIA_DRA_DRIVER_VERSION
+NVIDIA_DRA_DRIVER_CHART=${NVIDIA_DRA_DRIVER_CHART:-oci://registry.k8s.io/dra-driver-nvidia/charts/dra-driver-nvidia-gpu}
+NVIDIA_DRA_DRIVER_VERSION=${NVIDIA_DRA_DRIVER_VERSION:-0.5.1}
+helm install nvidia-dra-driver ${NVIDIA_DRA_DRIVER_CHART} \
   --namespace nvidia-dra-driver \
   --version ${NVIDIA_DRA_DRIVER_VERSION} \
+  --set nameOverride=nvidia-dra-driver-gpu \
   --set nvidiaDriverRoot=/run/nvidia/driver \
   --set gpuResourcesEnabledOverride=true \
   --set image.pullPolicy=IfNotPresent \
@@ -165,7 +172,7 @@ helm install nvidia-dra-driver nvidia/nvidia-dra-driver-gpu \
   --wait --timeout 5m
 ```
 
-### Step 4: Verify Installation
+### Step 3: Verify Installation
 
 ```bash
 # Check DRA controller and kubelet plugin readiness
@@ -243,10 +250,15 @@ oc describe scc privileged | grep nvidia-dra-driver-gpu
 oc delete pod -n nvidia-dra-driver -l app.kubernetes.io/name=nvidia-dra-driver-gpu
 ```
 
+If the kubelet plugin's `gpus` container crash-loops with `error interpreting device architecture
+as string: <n>` while the `compute-domains` container stays healthy, the driver's vendored go-nvlib
+predates the GPU architecture on the node. Install a newer chart version via
+`NVIDIA_DRA_DRIVER_VERSION`.
+
 ## References
 
 - **NVIDIA GPU Operator**: https://github.com/NVIDIA/gpu-operator
-- **NVIDIA DRA Driver**: https://github.com/NVIDIA/k8s-dra-driver-gpu
+- **NVIDIA DRA Driver**: https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu (formerly https://github.com/NVIDIA/k8s-dra-driver-gpu)
 - **Kubernetes DRA Documentation**: https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/
 - **OpenShift Extended Tests**: https://github.com/openshift/origin/tree/master/test/extended
 

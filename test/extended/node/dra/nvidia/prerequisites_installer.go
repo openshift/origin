@@ -23,10 +23,18 @@ const (
 	gpuOperatorNamespace = "nvidia-gpu-operator"
 
 	// DRA Driver constants
-	draDriverNamespace       = "nvidia-dra-driver"
-	draDriverRelease         = "nvidia-dra-driver"
-	draDriverChart           = "nvidia/nvidia-dra-driver-gpu"
-	draDriverDefaultVersion  = "25.12.0"
+	draDriverNamespace = "nvidia-dra-driver"
+	draDriverRelease   = "nvidia-dra-driver"
+	// The driver moved to kubernetes-sigs/dra-driver-nvidia-gpu and switched from
+	// CalVer to SemVer; charts are published as OCI artifacts. The legacy NGC repo
+	// (helm.ngc.nvidia.com) stops at 25.12.0, which vendors go-nvlib v0.9.0 and
+	// cannot enumerate GPU architectures newer than early 2026 (the kubelet plugin's
+	// gpus container crash-loops and no gpu.nvidia.com ResourceSlices are published).
+	draDriverChart          = "oci://registry.k8s.io/dra-driver-nvidia/charts/dra-driver-nvidia-gpu"
+	draDriverDefaultVersion = "0.5.1"
+	// The OCI chart defaults its resource names to dra-driver-nvidia-gpu; keep the
+	// legacy names so the readiness checks and cleanup below still find the driver.
+	draDriverNameOverride    = "nvidia-dra-driver-gpu"
 	draDriverController      = "nvidia-dra-driver-gpu-controller"
 	draDriverKubeletPlugin   = "nvidia-dra-driver-gpu-kubelet-plugin"
 	draDriverControllerSA    = "nvidia-dra-driver-gpu-service-account-controller"
@@ -76,12 +84,7 @@ func (pi *PrerequisitesInstaller) InstallAll(ctx context.Context) error {
 			return fmt.Errorf("helm not available: %w", err)
 		}
 
-		// Step 5: Add NVIDIA Helm repository
-		if err := pi.addHelmRepoForDRADriver(ctx); err != nil {
-			return fmt.Errorf("failed to add Helm repository: %w", err)
-		}
-
-		// Step 6: Install DRA Driver (latest version)
+		// Step 5: Install DRA Driver (pinned version, pulled directly from the OCI registry)
 		if err := pi.InstallDRADriver(ctx); err != nil {
 			framework.Logf("DRA Driver installation failed, rolling back cluster mutations...")
 			pi.RollbackDRAMutations(ctx)
@@ -89,7 +92,7 @@ func (pi *PrerequisitesInstaller) InstallAll(ctx context.Context) error {
 		}
 	}
 
-	// Step 7: Wait for DRA Driver to be ready
+	// Step 6: Wait for DRA Driver to be ready
 	framework.Logf("Waiting for DRA Driver to be ready...")
 	if err := pi.WaitForDRADriver(ctx, 5*time.Minute); err != nil {
 		framework.Logf("DRA Driver failed to become ready, rolling back cluster mutations...")
@@ -109,37 +112,6 @@ func (pi *PrerequisitesInstaller) ensureHelm(ctx context.Context) error {
 		return fmt.Errorf("helm command not found or failed: %w\nOutput: %s", err, string(output))
 	}
 	framework.Logf("Helm version: %s", strings.TrimSpace(string(output)))
-	return nil
-}
-
-// addHelmRepoForDRADriver adds NVIDIA Helm repository for DRA driver installation
-func (pi *PrerequisitesInstaller) addHelmRepoForDRADriver(ctx context.Context) error {
-	framework.Logf("Adding NVIDIA Helm repository for DRA driver")
-
-	// Add repo with force update to ensure we have the latest index
-	cmd := exec.CommandContext(ctx, "helm", "repo", "add", "nvidia", "https://helm.ngc.nvidia.com/nvidia", "--force-update")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("failed to add helm repo: %w\nOutput: %s", err, string(output))
-	}
-
-	// Update repo with retry logic (NVIDIA repo can be flaky)
-	var lastOutput []byte
-	var lastErr error
-	err = wait.PollUntilContextTimeout(ctx, 10*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
-		cmd := exec.CommandContext(ctx, "helm", "repo", "update", "nvidia")
-		lastOutput, lastErr = cmd.CombinedOutput()
-		if lastErr != nil {
-			framework.Logf("Helm repo update failed: %v\nOutput: %s\nRetrying...", lastErr, string(lastOutput))
-			return false, nil
-		}
-		return true, nil
-	})
-	if err != nil {
-		return fmt.Errorf("failed to update helm repo after retries: %w\nLast error: %v\nLast output: %s", err, lastErr, string(lastOutput))
-	}
-
-	framework.Logf("NVIDIA Helm repository added and updated")
 	return nil
 }
 
@@ -168,18 +140,25 @@ func (pi *PrerequisitesInstaller) InstallDRADriver(ctx context.Context) error {
 		return nil
 	}
 
-	// Build Helm install command with version pinning for hermetic tests
-	// Version can be overridden via NVIDIA_DRA_DRIVER_VERSION environment variable
+	// Build Helm install command with version pinning for hermetic tests.
+	// Version can be overridden via NVIDIA_DRA_DRIVER_VERSION, and the chart
+	// reference itself via NVIDIA_DRA_DRIVER_CHART, so a newer driver can be used
+	// on hardware the pinned chart cannot enumerate.
 	version := os.Getenv("NVIDIA_DRA_DRIVER_VERSION")
 	if version == "" {
 		version = draDriverDefaultVersion
 	}
-	framework.Logf("Installing DRA Driver version: %s", version)
+	chart := os.Getenv("NVIDIA_DRA_DRIVER_CHART")
+	if chart == "" {
+		chart = draDriverChart
+	}
+	framework.Logf("Installing DRA Driver chart %s version: %s", chart, version)
 
 	args := []string{
-		"install", draDriverRelease, draDriverChart,
+		"install", draDriverRelease, chart,
 		"--namespace", draDriverNamespace,
 		"--version", version,
+		"--set", fmt.Sprintf("nameOverride=%s", draDriverNameOverride),
 		"--set", "nvidiaDriverRoot=/run/nvidia/driver",
 		"--set", "gpuResourcesEnabledOverride=true",
 		"--set", "image.pullPolicy=IfNotPresent",
