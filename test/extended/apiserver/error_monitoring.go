@@ -77,11 +77,9 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] API Server Error M
 		exceptions := strings.Join(exceptionsList, "|")
 		cmd := fmt.Sprintf(`export KUBECONFIG=/etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-ext.kubeconfig
 grep -hriE "(%s%s%s)+" /var/log/pods/openshift-kube-apiserver-operator* | grep -iEv "%s" > /tmp/OCP-39601-kaso-errors.log
-sed -E "s/%s/../g" /tmp/OCP-39601-kaso-errors.log | sort | uniq -c | sort -h | tee /tmp/OCP-39601-kaso-uniq-errors.log | head -10
+sed -E "s/%s/../g" /tmp/OCP-39601-kaso-errors.log > /tmp/OCP-39601-kaso-filtered.log
 echo '%s'
-while read line; do
-    grep "$line" /tmp/OCP-39601-kaso-errors.log | head -1
-done < <(grep -oP "\w+?\.go\:[0-9]+" /tmp/OCP-39601-kaso-uniq-errors.log | uniq | head -10)
+cat /tmp/OCP-39601-kaso-filtered.log
 echo '%s'`, frontwords, keywords, afterwords, exceptions, format, startTag, endTag)
 		masterNode, err := oc.WithoutNamespace().Run("get").Args("po", "-n", clusterOperator, "-o", `jsonpath={.items[0].spec.nodeName}`).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -183,7 +181,11 @@ echo '%s'`, exceptions, startTag, exceptions, endTag)
 			`message.*check fatal=true`,
 		}
 		exceptions = strings.Join(exceptionsList, "|")
-		cmd = fmt.Sprintf(`grep -ihE '(%s)' /var/log/kube-apiserver/audit*.log | grep -iEv '%s' > /tmp/OCP-39601-audit-errors.log
+		cmd = fmt.Sprintf(`if ! compgen -G "/var/log/kube-apiserver/audit*.log" > /dev/null; then
+    echo "No audit log files found" >&2
+    exit 1
+fi
+grep -ihE '(%s)' /var/log/kube-apiserver/audit*.log | grep -iEv '%s' > /tmp/OCP-39601-audit-errors.log || true
 echo '%s'
 while read line; do
     grep "$line" /tmp/OCP-39601-audit-errors.log | head -1 | jq .

@@ -23,6 +23,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/library-go/pkg/crypto"
+	"github.com/openshift/origin/test/extended/apiserverauth"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -217,7 +218,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 		}
 	})
 
-	g.It("[OTP][OCP-70396] should support multiple users with different client certificates accessing API Server [Disruptive][apigroup:user.openshift.io][apigroup:config.openshift.io]", ote.Informing(), func() {
+	g.It("[OTP][OCP-70396] should support multiple users with different client certificates accessing API Server [APIServer_Disruptive][Serial][Disruptive][apigroup:user.openshift.io][apigroup:config.openshift.io]", ote.Informing(), func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {
@@ -274,11 +275,24 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 		patch := `[{"op": "add", "path": "/spec/clientCA", "value":{"name":"customer-cas-custom-70396"}}]`
 		patchToRecover := `[{"op": "replace", "path": "/spec/clientCA", "value":null}]`
 
-		defer oc.AsAdmin().WithoutNamespace().Run("patch").Args("apiserver/cluster", "--type=json", "-p", patchToRecover).Execute()
+		defer func() {
+			err := oc.AsAdmin().WithoutNamespace().Run("patch").Args("apiserver/cluster", "--type=json", "-p", patchToRecover).Execute()
+			if err != nil {
+				e2e.Logf("Warning: failed to restore apiserver clientCA: %v", err)
+				return
+			}
+			e2e.Logf("Waiting for kube-apiserver to rollout after restoring clientCA")
+			err = apiserverauth.WaitCoBecomes(oc, "kube-apiserver", 1500, map[string]string{"Available": "True", "Progressing": "False", "Degraded": "False"})
+			if err != nil {
+				e2e.Logf("Warning: kube-apiserver rollout after cleanup did not complete: %v", err)
+			}
+		}()
 		err = oc.AsAdmin().WithoutNamespace().Run("patch").Args("apiserver/cluster", "--type=json", "-p", patch).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		time.Sleep(15 * time.Second)
+		g.By("4.1) Wait for kube-apiserver rollout to complete")
+		err = apiserverauth.WaitCoBecomes(oc, "kube-apiserver", 1500, map[string]string{"Available": "True", "Progressing": "False", "Degraded": "False"})
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("5) Add cluster-admin role to system:admin group")
 		defer oc.AsAdmin().WithoutNamespace().Run("adm").Args("policy", "remove-cluster-role-from-group", "cluster-admin", "system:admin", "--ignore-not-found").Execute()

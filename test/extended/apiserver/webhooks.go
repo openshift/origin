@@ -329,6 +329,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 				template: apiserverAuthFixture("CRDWebhookConfigurationTemplate.yaml"),
 			}
 
+			ownedWebhookNames := []string{validatingWebHook.webhookname, mutatingWebHook.webhookname, crdWebHook.name}
+
 			defer func() {
 				_ = oc.Run("delete").Args("ValidatingWebhookConfiguration", badValidatingWebhookName, "--ignore-not-found").Execute()
 				_ = oc.Run("delete").Args("MutatingWebhookConfiguration", badMutatingWebhookName, "--ignore-not-found").Execute()
@@ -356,8 +358,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			o.Expect(isAvailable).To(o.BeTrue())
 
 			g.By("2 - Verify kube-apiserver reports webhook configuration errors and remains stable")
-			compareAPIServerWebhookConditions(oc, webhookServiceFailureReasons, status, webHookErrorConditionTypes)
-			compareAPIServerWebhookConditions(oc, "AdmissionWebhookMatchesVirtualResource", status, []string{"VirtualResourceAdmissionError"})
+			compareAPIServerWebhookConditions(oc, webhookServiceFailureReasons, status, webHookErrorConditionTypes, ownedWebhookNames...)
+			compareAPIServerWebhookConditions(oc, "AdmissionWebhookMatchesVirtualResource", status, []string{"VirtualResourceAdmissionError"}, ownedWebhookNames...)
 
 			currentKAStatus := getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
 			if !(reflect.DeepEqual(currentKAStatus, kasStatusBefore) || reflect.DeepEqual(currentKAStatus, kubeApiserverCoStatus)) {
@@ -370,7 +372,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			_ = oc.Run("delete").Args("crd", badCrdWebhookName, "--ignore-not-found").Execute()
 
 			allWebhookErrors := append(webHookErrorConditionTypes, "VirtualResourceAdmissionError")
-			compareAPIServerWebhookConditions(oc, "", "False", allWebhookErrors)
+			compareAPIServerWebhookConditions(oc, "", "False", allWebhookErrors, ownedWebhookNames...)
 
 			currentKAStatus = getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
 			if !(reflect.DeepEqual(currentKAStatus, kasStatusBefore) || reflect.DeepEqual(currentKAStatus, kubeApiserverCoStatus)) {
@@ -421,6 +423,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 				template: apiserverAuthFixture("CRDWebhookConfigurationCustomTemplate.yaml"),
 			}
 
+			ownedWebhookNames := []string{validatingWebHook.webhookname, mutatingWebHook.webhookname, crdWebHook.name}
+
 			defer func() {
 				_ = oc.AsAdmin().WithoutNamespace().Run("delete").Args("ValidatingWebhookConfiguration", validatingWebhookNameNotFound, "--ignore-not-found").Execute()
 				_ = oc.AsAdmin().WithoutNamespace().Run("delete").Args("MutatingWebhookConfiguration", mutatingWebhookNameNotFound, "--ignore-not-found").Execute()
@@ -440,7 +444,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			mutatingWebHook.createAdmissionWebhookFromTemplate(oc)
 			crdWebHook.createAdmissionWebhookFromTemplate(oc)
 
-			compareAPIServerWebhookConditions(oc, webhookServiceFailureReasons, "True", webhookConditionErrors)
+			compareAPIServerWebhookConditions(oc, webhookServiceFailureReasons, "True", webhookConditionErrors, ownedWebhookNames...)
 			kasOperatorCheckForStep(oc, preConfigKasStatus, "6", "bad admission webhooks configured")
 
 			clusterIP, err := oc.AsAdmin().Run("get").Args("service", "kubernetes", "-o=jsonpath={.spec.clusterIP}", "-n", "default").Output()
@@ -454,7 +458,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			preConfigKasStatus = getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
 			webhookService.createServiceFromTemplate(oc)
 			kasOperatorCheckForStep(oc, preConfigKasStatus, "8", "creating services for admission webhooks")
-			compareAPIServerWebhookConditions(oc, webhookServiceFailureReasons, "True", webhookConditionErrors)
+			compareAPIServerWebhookConditions(oc, webhookServiceFailureReasons, "True", webhookConditionErrors, ownedWebhookNames...)
 
 			validatingWebHookUnknown := admissionWebhook{
 				name: validatingWebhookNameNotReachable, webhookname: "test.validating2.com",
@@ -475,13 +479,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 				singularname: "testcrdwebhoks", pluralname: "testcrdwebhoks", kind: "TestCrdwebhok", shortname: "tcwk", version: "v1beta1",
 				template: apiserverAuthFixture("CRDWebhookConfigurationCustomTemplate.yaml"),
 			}
+			ownedWebhookNames = append(ownedWebhookNames, validatingWebHookUnknown.webhookname, mutatingWebHookUnknown.webhookname, crdWebHookUnknown.name)
 
 			preConfigKasStatus = getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
 			validatingWebHookUnknown.createAdmissionWebhookFromTemplate(oc)
 			mutatingWebHookUnknown.createAdmissionWebhookFromTemplate(oc)
 			crdWebHookUnknown.createAdmissionWebhookFromTemplate(oc)
 			kasOperatorCheckForStep(oc, preConfigKasStatus, "10", "creating webhook configurations with unknown service references")
-			compareAPIServerWebhookConditions(oc, webhookServiceFailureReasons, "True", webhookConditionErrors)
+			compareAPIServerWebhookConditions(oc, webhookServiceFailureReasons, "True", webhookConditionErrors, ownedWebhookNames...)
 
 			preConfigKasStatus = getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
 			for _, args := range [][]string{
@@ -496,7 +501,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			}
 			_ = oc.AsAdmin().Run("delete").Args("service", serviceName, "-n", oc.Namespace(), "--ignore-not-found").Execute()
 			kasOperatorCheckForStep(oc, preConfigKasStatus, "12", "deleting bad webhooks")
-			compareAPIServerWebhookConditions(oc, "", "False", webhookConditionErrors)
+			compareAPIServerWebhookConditions(oc, "", "False", webhookConditionErrors, ownedWebhookNames...)
 		})
 
 	g.It("[OTP][OCP-50188] Prepare upgrade cluster under APF stress [APIServer_Disruptive][Slow][Disruptive][apigroup:config.openshift.io][Timeout:40m]",
@@ -825,8 +830,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			}
 		})
 
-	// OCP-50362 Pre-upgrade: Create bad webhooks and leave them for post-upgrade validation
-	g.It("[OTP][OCP-50362][PreChkUpgrade] should create bad admission webhooks before upgrade [Serial][apigroup:config.openshift.io][apigroup:admissionregistration.k8s.io][apigroup:apiextensions.k8s.io]",
+	// OCP-50362 Pre-upgrade: create bad webhooks and leave them for post-upgrade
+	// validation. Run via the openshift/upgrade-validation/pre suite.
+	g.It("[OTP][OCP-50362][PreChkUpgrade] should create bad admission webhooks before upgrade [Serial][apigroup:config.openshift.io][apigroup:admissionregistration.k8s.io][apigroup:apiextensions.k8s.io][Suite:openshift/upgrade-validation]",
 		ote.Informing(), func() {
 			var (
 				namespace                    = "ocp-50362-upgrade"
@@ -862,6 +868,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 				template: apiserverAuthFixture("CRDWebhookConfigurationTemplate.yaml"),
 			}
 
+			ownedWebhookNames := []string{validatingWebHook.webhookname, mutatingWebHook.webhookname, crdWebHook.name}
+
 			kasStatusBefore := getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
 			if !reflect.DeepEqual(kasStatusBefore, kubeApiserverCoStatus) && !reflect.DeepEqual(kasStatusBefore, kasRolloutStatus) {
 				g.Skip("kube-apiserver operator is not in a stable status")
@@ -890,8 +898,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			o.Expect(isAvailable).To(o.BeTrue())
 
 			g.By("5 - Check for information error message on kube-apiserver cluster w.r.t bad resource reference for admission webhooks")
-			compareAPIServerWebhookConditions(oc, webhookServiceFailureReasons, status, webHookErrorConditionTypes)
-			compareAPIServerWebhookConditions(oc, "AdmissionWebhookMatchesVirtualResource", status, []string{"VirtualResourceAdmissionError"})
+			compareAPIServerWebhookConditions(oc, webhookServiceFailureReasons, status, webHookErrorConditionTypes, ownedWebhookNames...)
+			compareAPIServerWebhookConditions(oc, "AdmissionWebhookMatchesVirtualResource", status, []string{"VirtualResourceAdmissionError"}, ownedWebhookNames...)
 
 			g.By("6 - Check for kube-apiserver operator status after bad validating webhook added")
 			currentKAStatus := getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
@@ -902,8 +910,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			e2e.Logf("Pre-upgrade test passed. Bad webhooks created and will persist through upgrade.")
 		})
 
-	// OCP-50362 Post-upgrade: Verify bad webhooks survived upgrade
-	g.It("[OTP][OCP-50362][PstChkUpgrade] should verify bad admission webhooks persisted through upgrade [Serial][apigroup:config.openshift.io][apigroup:admissionregistration.k8s.io][apigroup:apiextensions.k8s.io]",
+	// OCP-50362 Post-upgrade: verify bad webhooks survived the upgrade. Run via
+	// the openshift/upgrade-validation/post suite.
+	g.It("[OTP][OCP-50362][PstChkUpgrade] should verify bad admission webhooks persisted through upgrade [Serial][apigroup:config.openshift.io][apigroup:admissionregistration.k8s.io][apigroup:apiextensions.k8s.io][Suite:openshift/upgrade-validation]",
 		ote.Informing(), func() {
 			var (
 				namespace                  = "ocp-50362-upgrade"
@@ -915,6 +924,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 				webHookErrorConditionTypes = []string{"ValidatingAdmissionWebhookConfigurationError", "MutatingAdmissionWebhookConfigurationError", "CRDConversionWebhookConfigurationError", "VirtualResourceAdmissionError"}
 				status                     = "True"
 			)
+
+			// webhook and CRD names created by the pre-upgrade counterpart of this test
+			ownedWebhookNames := []string{"test.validating.upgrade.com", "test.mutating.upgrade.com", badCrdWebhookName}
 
 			defer func() {
 				_ = oc.Run("delete").Args("ValidatingWebhookConfiguration", badValidatingWebhookName, "--ignore-not-found").Execute()
@@ -946,7 +958,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 
 			g.By("2 - Check for information message after upgrade on kube-apiserver cluster when bad admission webhooks are present")
 			webhookServiceFailureReasons := []string{"WebhookServiceNotFound", "WebhookServiceNotReady", "WebhookServiceConnectionError", "AdmissionWebhookMatchesVirtualResource"}
-			compareAPIServerWebhookConditions(oc, webhookServiceFailureReasons, status, webHookErrorConditionTypes)
+			compareAPIServerWebhookConditions(oc, webhookServiceFailureReasons, status, webHookErrorConditionTypes, ownedWebhookNames...)
 
 			g.By("3 - Check for kube-apiserver operator status after upgrade when cluster has bad webhooks present")
 			currentKAStatus := getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
@@ -960,7 +972,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			_ = oc.Run("delete").Args("crd", badCrdWebhookName, "--ignore-not-found").Execute()
 
 			g.By("5 - Check for informational error message presence after deletion of bad webhooks in upgraded cluster")
-			compareAPIServerWebhookConditions(oc, "", "False", webHookErrorConditionTypes)
+			compareAPIServerWebhookConditions(oc, "", "False", webHookErrorConditionTypes, ownedWebhookNames...)
 
 			g.By("6 - Check for kube-apiserver operator status after deletion of bad webhooks in upgraded cluster")
 			currentKAStatus = getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
@@ -971,8 +983,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			e2e.Logf("Post-upgrade test passed. Bad webhooks persisted through upgrade and cleaned up successfully.")
 		})
 
-	// OCP-54745 Pre-upgrade: Create ClusterResourceQuota and leave resources for post-upgrade validation
-	g.It("[OTP][OCP-54745][PreChkUpgrade] should create ClusterResourceQuota before upgrade [apigroup:quota.openshift.io][apigroup:monitoring.coreos.com]",
+	// OCP-54745 Pre-upgrade: create a ClusterResourceQuota for post-upgrade
+	// validation. Run via the openshift/upgrade-validation/pre suite.
+	g.It("[OTP][OCP-54745][PreChkUpgrade] should create ClusterResourceQuota before upgrade [apigroup:quota.openshift.io][apigroup:monitoring.coreos.com][Suite:openshift/upgrade-validation]",
 		ote.Informing(), func() {
 			const caseID = "ocp-54745"
 			namespace := caseID + "-quota-upgrade-test"
@@ -1022,8 +1035,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			e2e.Logf("Pre-upgrade test passed. ClusterResourceQuota created with resources and will persist through upgrade.")
 		})
 
-	// OCP-54745 Post-upgrade: Verify ClusterResourceQuota and resources survived, create more to validate limits
-	g.It("[OTP][OCP-54745][PstChkUpgrade] should verify ClusterResourceQuota persisted through upgrade [apigroup:quota.openshift.io][apigroup:monitoring.coreos.com]",
+	// OCP-54745 Post-upgrade: verify the ClusterResourceQuota survived the upgrade.
+	// Run via the openshift/upgrade-validation/post suite.
+	g.It("[OTP][OCP-54745][PstChkUpgrade] should verify ClusterResourceQuota persisted through upgrade [apigroup:quota.openshift.io][apigroup:monitoring.coreos.com][Suite:openshift/upgrade-validation]",
 		ote.Informing(), func() {
 			const caseID = "ocp-54745"
 			namespace := caseID + "-quota-upgrade-test"
@@ -1122,6 +1136,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			template:         mutatingWebhook,
 		}
 
+		ownedWebhookNames := []string{validatingWebHook.webhookname, mutatingWebHook.webhookname}
+
 		compat_otp.By("1) Create a ValidatingWebhookConfiguration with virtual resource reference.")
 		defer func() {
 			oc.AsAdmin().WithoutNamespace().Run("delete").Args("ValidatingWebhookConfiguration", validatingWebhookName, "--ignore-not-found").Execute()
@@ -1137,7 +1153,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 		e2e.Logf("Test step-2 has passed : Kube-apiserver operator are in normal after virtual resource reference for a validating webhook added.")
 
 		compat_otp.By("3) Check for information message on kube-apiserver cluster w.r.t virtual resource reference for a validating webhook")
-		compareAPIServerWebhookConditions(oc, reason, "True", []string{`VirtualResourceAdmissionError`})
+		compareAPIServerWebhookConditions(oc, reason, "True", []string{`VirtualResourceAdmissionError`}, ownedWebhookNames...)
 		validatingDelErr := oc.AsAdmin().WithoutNamespace().Run("delete").Args("ValidatingWebhookConfiguration", validatingWebhookName).Execute()
 		o.Expect(validatingDelErr).NotTo(o.HaveOccurred())
 		e2e.Logf("Test step-3 has passed : Kube-apiserver reports expected informational errors after virtual resource reference for a validating webhook added.")
@@ -1157,14 +1173,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 		e2e.Logf("Test step-5 has passed : Kube-apiserver operators are in normal after virtual resource reference for a mutating webhook added.")
 
 		compat_otp.By("6) Check for information message on kube-apiserver cluster w.r.t virtual resource reference for mutating webhook")
-		compareAPIServerWebhookConditions(oc, reason, "True", []string{`VirtualResourceAdmissionError`})
+		compareAPIServerWebhookConditions(oc, reason, "True", []string{`VirtualResourceAdmissionError`}, ownedWebhookNames...)
 		preConfigKasStatus = getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
 		mutatingDelErr := oc.AsAdmin().WithoutNamespace().Run("delete").Args("MutatingWebhookConfiguration", mutatingWebhookName).Execute()
 		o.Expect(mutatingDelErr).NotTo(o.HaveOccurred())
 		e2e.Logf("Test step-6 has passed : Kube-apiserver reports expected informational errors after deleting webhooks.")
 
 		compat_otp.By("7) Check for webhook admission error free kube-apiserver cluster after deleting webhooks.")
-		compareAPIServerWebhookConditions(oc, "", "False", []string{`VirtualResourceAdmissionError`})
+		compareAPIServerWebhookConditions(oc, "", "False", []string{`VirtualResourceAdmissionError`}, ownedWebhookNames...)
 		kasOperatorCheckForStep(oc, preConfigKasStatus, "7", "deleting webhooks")
 		e2e.Logf("Test step-7 has passed : No webhook admission error seen after purging webhooks.")
 		e2e.Logf("All test case steps are passed.!")

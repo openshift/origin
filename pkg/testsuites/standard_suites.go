@@ -571,6 +571,30 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout:                90 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
+	{
+		Name: "openshift/upgrade-validation/pre",
+		Description: templates.LongDesc(`
+		Run the pre-upgrade half of the state-persisting validation tests. These tests
+		create resources that the post-upgrade counterparts verify and clean up, so
+		they intentionally leave state behind.
+		`),
+		Qualifiers: []string{
+			`name.contains("[Suite:openshift/upgrade-validation") && name.contains("[PreChkUpgrade]")`,
+		},
+		Parallelism: 1,
+	},
+	{
+		Name: "openshift/upgrade-validation/post",
+		Description: templates.LongDesc(`
+		Run the post-upgrade half of the state-persisting validation tests. These tests
+		verify that resources created by openshift/upgrade-validation/pre survived the
+		upgrade and clean them up.
+		`),
+		Qualifiers: []string{
+			`name.contains("[Suite:openshift/upgrade-validation") && name.contains("[PstChkUpgrade]")`,
+		},
+		Parallelism: 1,
+	},
 }
 
 // mergeParentQualifiers appends each suite's qualifiers to its declared parent

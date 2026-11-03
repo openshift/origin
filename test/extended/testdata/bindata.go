@@ -17309,7 +17309,9 @@ objects:
 parameters:
 - name: NAME
 - name: PLURALNAME
+  value: testcrdwebhooks
 - name: SINGULARNAME
+  value: testcrdwebhook
 - name: KIND
 - name: SHORTNAME
 - name: VERSION
