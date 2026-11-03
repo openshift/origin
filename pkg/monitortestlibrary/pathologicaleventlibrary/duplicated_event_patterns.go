@@ -158,9 +158,9 @@ func claimsPathologicalEventFamily(i monitorapi.Interval, namespaceRegex, podReg
 		messageMatches = messageMatches || messageRegex.MatchString(i.Message.HumanMessage)
 	}
 
-	// Two family signals claim any one-field variant without capturing unrelated events
-	// that happen to share a broad failure message.
-	return (messageMatches && (namespaceMatches || podMatches)) || (namespaceMatches && podMatches)
+	// Probe-family content plus either locator claims one-field variants without
+	// capturing unrelated events from the same pod.
+	return messageMatches && (namespaceMatches || podMatches)
 }
 
 func (r *AllowedPathologicalEventRegistry) AddPathologicalEventMatcher(eventMatcher EventMatcher) error {
@@ -764,11 +764,12 @@ func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals
 		repeatThresholdOverride: singleNodeUpgradeProbeRepeatThreshold,
 		topology:                &singleReplicaTopology,
 	}
+	consoleReadinessConnectionRefusedFamily := regexp.MustCompile(`^Readiness probe error: .*connect: connection refused`)
 	registry.addAuthoritativePathologicalEventFamilyOrDie(func(i monitorapi.Interval) bool {
 		return claimsPathologicalEventFamily(i,
 			consoleReadinessProbeError.locatorKeyRegexes[monitorapi.LocatorNamespaceKey],
 			consoleReadinessProbeError.locatorKeyRegexes[monitorapi.LocatorPodKey],
-			consoleReadinessProbeError.messageHumanRegex)
+			consoleReadinessConnectionRefusedFamily)
 	}, consoleReadinessProbeError)
 
 	machineAPIStartupProbeError := &SimplePathologicalEventMatcher{
@@ -794,12 +795,12 @@ func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals
 		repeatThresholdOverride: singleNodeUpgradeProbeRepeatThreshold,
 		topology:                &singleReplicaTopology,
 	}
+	machineAPIStartupTimeoutFamily := regexp.MustCompile(`^Startup probe (error|failed): .*context deadline exceeded \(Client\.Timeout exceeded while awaiting headers\)`)
 	registry.addAuthoritativePathologicalEventFamilyOrDie(func(i monitorapi.Interval) bool {
 		return claimsPathologicalEventFamily(i,
 			machineAPIStartupProbeError.locatorKeyRegexes[monitorapi.LocatorNamespaceKey],
 			machineAPIStartupProbeError.locatorKeyRegexes[monitorapi.LocatorPodKey],
-			machineAPIStartupProbeError.messageHumanRegex,
-			machineAPIStartupProbeFailed.messageHumanRegex)
+			machineAPIStartupTimeoutFamily)
 	}, machineAPIStartupProbeError, machineAPIStartupProbeFailed)
 
 	// OLM reports the successful packageserver install repeatedly during SNO upgrades.

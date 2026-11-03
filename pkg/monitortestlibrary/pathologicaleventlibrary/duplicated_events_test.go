@@ -410,6 +410,18 @@ func TestSingleNodeUpgradePathologicalEventAllowances(t *testing.T) {
 			topology: v1.SingleReplicaTopologyMode,
 		},
 		{
+			name:              "allows unrelated console operator readiness failure through universal matcher",
+			interval:          BuildTestDupeKubeEvent("openshift-console-operator", "console-operator-75598d57fd-dq888", "Unhealthy", "Readiness probe failed: HTTP probe failed with statuscode: 500", 21),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "KubeletUnhealthyReadinessProbeFailed",
+		},
+		{
+			name:              "allows console operator backoff through universal matcher",
+			interval:          BuildTestDupeKubeEvent("openshift-console-operator", "console-operator-75598d57fd-dq888", "BackOff", "Back-off restarting failed container console-operator in pod console-operator-75598d57fd-dq888", 21),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "AllowBackOffRestartingFailedContainer",
+		},
+		{
 			name:     "rejects console operator readiness probe above bound",
 			interval: BuildTestDupeKubeEvent("openshift-console-operator", "console-operator-75598d57fd-dq888", "ProbeError", consoleReadinessProbeError, singleNodeUpgradeProbeRepeatThreshold+1),
 			topology: v1.SingleReplicaTopologyMode,
@@ -455,6 +467,18 @@ func TestSingleNodeUpgradePathologicalEventAllowances(t *testing.T) {
 			name:     "rejects machine API startup probe failure reason with error message",
 			interval: BuildTestDupeKubeEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "Unhealthy", machineAPIStartupProbeError, 28),
 			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:              "allows unrelated machine API readiness failure through universal matcher",
+			interval:          BuildTestDupeKubeEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "Unhealthy", "Readiness probe failed: HTTP probe failed with statuscode: 500", 21),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "KubeletUnhealthyReadinessProbeFailed",
+		},
+		{
+			name:              "allows machine API backoff through universal matcher",
+			interval:          BuildTestDupeKubeEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "BackOff", "Back-off restarting failed container machine-api-controllers in pod machine-api-controllers-869c4d6f45-p74jx", 21),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "AllowBackOffRestartingFailedContainer",
 		},
 		{
 			name:     "rejects machine API startup probe error above bound",
