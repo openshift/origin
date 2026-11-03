@@ -648,35 +648,34 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			g.Skip("In non-cloud environments (like KIND), OVN-Kubernetes does not have an ENI limit.")
 		}
 
-		// In cloud providers (e.g. AWS ENI), 1 IP is reserved for the primary node interface:
-		// Usable EgressIP slots = Raw Capacity - 1 (e.g., 14 - 1 = 13 usable slots)
+		// In cloud providers (e.g. AWS ENI)
 		usableCapacity := targetRawCapacity
 		framework.Logf("Selected cloud node: %s, Interface: %s, Subnet: %s, Raw Capacity: %d, Usable Capacity: %d",
 			targetNode.Name, targetInterface, targetSubnet.String(), targetRawCapacity, usableCapacity)
 
-		g.By("2. Isolate target node and preserve pre-existing labels for suite restoration")
-		// Fetch fresh node list to detect all currently assigned egress-assignable labels
+		g.By("2. Remove egress-assignable annotation and label from ALL worker nodes to ensure complete isolation")
 		freshNodes, err := f.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to refresh cluster nodes")
-		var previouslyLabeledNodes []string
 		for _, node := range freshNodes.Items {
-			if _, hasLabel := node.Labels["k8s.ovn.org/egress-assignable"]; hasLabel {
-				previouslyLabeledNodes = append(previouslyLabeledNodes, node.Name)
-				if node.Name != targetNode.Name {
+			if _, isWorker := node.Labels["node-role.kubernetes.io/worker"]; isWorker {
+				_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "annotate", "node", node.Name, "k8s.ovn.org/egress-assignable-", "--overwrite")
+				e2enode.RemoveLabelOffNode(f.ClientSet, node.Name, "k8s.ovn.org/egress-assignable")
+			}
+		}
+
+		g.By("3. Enable egress-assignable ONLY on target worker node")
+		e2enode.AddOrUpdateLabelOnNode(f.ClientSet, targetNode.Name, "k8s.ovn.org/egress-assignable", "")
+		defer func() {
+			g.By("Cleanup: remove egress-assignable annotation and label from target node and all worker nodes")
+			_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "annotate", "node", targetNode.Name, "k8s.ovn.org/egress-assignable-", "--overwrite")
+			e2enode.RemoveLabelOffNode(f.ClientSet, targetNode.Name, "k8s.ovn.org/egress-assignable")
+			cleanNodes, err := f.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+			if err == nil {
+				for _, node := range cleanNodes.Items {
+					_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "annotate", "node", node.Name, "k8s.ovn.org/egress-assignable-", "--overwrite")
 					e2enode.RemoveLabelOffNode(f.ClientSet, node.Name, "k8s.ovn.org/egress-assignable")
 				}
 			}
-		}
-		defer func() {
-			for _, nodeName := range previouslyLabeledNodes {
-				e2enode.AddOrUpdateLabelOnNode(f.ClientSet, nodeName, "k8s.ovn.org/egress-assignable", "")
-			}
-		}()
-
-		g.By("3. Enable egress-assignable on target node")
-		e2enode.AddOrUpdateLabelOnNode(f.ClientSet, targetNode.Name, "k8s.ovn.org/egress-assignable", "")
-		defer func() {
-			e2enode.RemoveLabelOffNode(f.ClientSet, targetNode.Name, "k8s.ovn.org/egress-assignable")
 		}()
 
 		g.By(fmt.Sprintf("4. Creating %d (usableCapacity + 2) EgressIPs on the same subnet as target node", usableCapacity+2))
