@@ -80,33 +80,29 @@ func TestEvaluateBinding(t *testing.T) {
 		wantPassChecks  map[string]bool // checks that emit a single passing (green) case, no fail
 	}{
 		{
-			name:            "direct cluster-admin",
-			binding:         binding("some-admin", "admin-role", saSubject),
-			rolesByName:     map[string][]rbacv1.PolicyRule{"admin-role": {clusterAdminRule}},
-			wantCheckIDs:    []string{"cluster-admin"},
-			wantFlakeChecks: map[string]bool{"cluster-admin": true}, // Temporary
+			name:         "direct cluster-admin",
+			binding:      binding("some-admin", "admin-role", saSubject),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"admin-role": {clusterAdminRule}},
+			wantCheckIDs: []string{"cluster-admin"},
 		},
 		{
-			name:            "escalate rbac",
-			binding:         binding("escalator", "escalate-role", saSubject),
-			rolesByName:     map[string][]rbacv1.PolicyRule{"escalate-role": {escalateRule}},
-			wantCheckIDs:    []string{"escalate-rbac"},
-			wantFlakeChecks: map[string]bool{"escalate-rbac": true}, // Temporary
+			name:         "escalate rbac",
+			binding:      binding("escalator", "escalate-role", saSubject),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"escalate-role": {escalateRule}},
+			wantCheckIDs: []string{"escalate-rbac"},
 		},
 		{
-			name:            "impersonate",
-			binding:         binding("imp", "imp-role", saSubject),
-			rolesByName:     map[string][]rbacv1.PolicyRule{"imp-role": {impersonateRule}},
-			wantCheckIDs:    []string{"impersonate"},
-			wantFlakeChecks: map[string]bool{"impersonate": true}, // Temporary
+			name:         "impersonate",
+			binding:      binding("imp", "imp-role", saSubject),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"imp-role": {impersonateRule}},
+			wantCheckIDs: []string{"impersonate"},
 		},
 		{
 			name:        "two checks tripped",
 			binding:     binding("multi", "multi-role", saSubject),
 			rolesByName: map[string][]rbacv1.PolicyRule{"multi-role": {escalateRule, impersonateRule}},
 			// escalate-rbac precedes impersonate in escalationChecks ordering.
-			wantCheckIDs:    []string{"escalate-rbac", "impersonate"},
-			wantFlakeChecks: map[string]bool{"escalate-rbac": true, "impersonate": true}, // Temporary
+			wantCheckIDs: []string{"escalate-rbac", "impersonate"},
 		},
 		{
 			name:         "benign role emits nothing",
@@ -151,9 +147,8 @@ func TestEvaluateBinding(t *testing.T) {
 			binding: binding("perm-admin", "cluster-admin",
 				permSubject,
 				rbacv1.Subject{Kind: "ServiceAccount", Namespace: "openshift-ns", Name: "sneaky"}),
-			rolesByName:     map[string][]rbacv1.PolicyRule{"cluster-admin": {clusterAdminRule}},
-			wantCheckIDs:    []string{"cluster-admin"},
-			wantFlakeChecks: map[string]bool{"cluster-admin": true}, // Temporary
+			rolesByName:  map[string][]rbacv1.PolicyRule{"cluster-admin": {clusterAdminRule}},
+			wantCheckIDs: []string{"cluster-admin"},
 		},
 		{
 			// Modifying webhook configs scoped to a specific resourceName cannot be used to point a
@@ -167,11 +162,10 @@ func TestEvaluateBinding(t *testing.T) {
 			// resourceNames are ineffective for create (the API server ignores them), so a role that
 			// appears to "restrict" create on webhook configs to a name in fact grants create on all of
 			// them and is still an escalation path.
-			name:            "webhook create scoped by resourceName still fires",
-			binding:         binding("scoped-create-webhook", "scoped-create-webhook-role", saSubject),
-			rolesByName:     map[string][]rbacv1.PolicyRule{"scoped-create-webhook-role": {ruleWithNames([]string{"create"}, webhookGroup, webhookResources, []string{"my-webhook"})}},
-			wantCheckIDs:    []string{"admission-webhooks"},
-			wantFlakeChecks: map[string]bool{"admission-webhooks": true}, // Temporary
+			name:         "webhook create scoped by resourceName still fires",
+			binding:      binding("scoped-create-webhook", "scoped-create-webhook-role", saSubject),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"scoped-create-webhook-role": {ruleWithNames([]string{"create"}, webhookGroup, webhookResources, []string{"my-webhook"})}},
+			wantCheckIDs: []string{"admission-webhooks"},
 		},
 		{
 			// Unrestricted create on webhook configs is always an escalation path (create cannot be
@@ -182,43 +176,38 @@ func TestEvaluateBinding(t *testing.T) {
 				rule([]string{"create"}, webhookGroup, webhookResources),
 				ruleWithNames([]string{"update", "patch"}, webhookGroup, webhookResources, []string{"my-webhook"}),
 			}},
-			wantCheckIDs:    []string{"admission-webhooks"},
-			wantFlakeChecks: map[string]bool{"admission-webhooks": true}, // Temporary
+			wantCheckIDs: []string{"admission-webhooks"},
 		},
 		{
 			// Unrestricted bind can reference the cluster-admin role, so it is an escalation path.
-			name:            "unrestricted bind fires",
-			binding:         binding("binder", "bind-role", saSubject),
-			rolesByName:     map[string][]rbacv1.PolicyRule{"bind-role": {rule([]string{"bind"}, []string{rbacv1.GroupName}, []string{"clusterroles"})}},
-			wantCheckIDs:    []string{"escalate-rbac"},
-			wantFlakeChecks: map[string]bool{"escalate-rbac": true}, // Temporary
+			name:         "unrestricted bind fires",
+			binding:      binding("binder", "bind-role", saSubject),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"bind-role": {rule([]string{"bind"}, []string{rbacv1.GroupName}, []string{"clusterroles"})}},
+			wantCheckIDs: []string{"escalate-rbac"},
 		},
 		{
 			// bind scoped by resourceName to the cluster-admin role is a direct path to cluster-admin.
-			name:            "bind scoped to cluster-admin fires",
-			binding:         binding("ca-binder", "ca-bind-role", saSubject),
-			rolesByName:     map[string][]rbacv1.PolicyRule{"ca-bind-role": {ruleWithNames([]string{"bind"}, []string{rbacv1.GroupName}, []string{"clusterroles"}, []string{"cluster-admin"})}},
-			wantCheckIDs:    []string{"escalate-rbac"},
-			wantFlakeChecks: map[string]bool{"escalate-rbac": true}, // Temporary
+			name:         "bind scoped to cluster-admin fires",
+			binding:      binding("ca-binder", "ca-bind-role", saSubject),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"ca-bind-role": {ruleWithNames([]string{"bind"}, []string{rbacv1.GroupName}, []string{"clusterroles"}, []string{"cluster-admin"})}},
+			wantCheckIDs: []string{"escalate-rbac"},
 		},
 		{
 			// bind is flagged regardless of resourceNames scoping: even scoped to non-cluster-admin roles
 			// it lets the subject grant those roles to arbitrary subjects (bind bypasses
 			// ConfirmNoEscalation), so it is still an escalation path.
-			name:            "bind scoped to non-cluster-admin still fires",
-			binding:         binding("scoped-binder", "scoped-bind-role", saSubject),
-			rolesByName:     map[string][]rbacv1.PolicyRule{"scoped-bind-role": {ruleWithNames([]string{"bind"}, []string{rbacv1.GroupName}, []string{"clusterroles"}, []string{"view", "edit"})}},
-			wantCheckIDs:    []string{"escalate-rbac"},
-			wantFlakeChecks: map[string]bool{"escalate-rbac": true}, // Temporary
+			name:         "bind scoped to non-cluster-admin still fires",
+			binding:      binding("scoped-binder", "scoped-bind-role", saSubject),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"scoped-bind-role": {ruleWithNames([]string{"bind"}, []string{rbacv1.GroupName}, []string{"clusterroles"}, []string{"view", "edit"})}},
+			wantCheckIDs: []string{"escalate-rbac"},
 		},
 		{
 			// Unrestricted create on serviceaccounts/token can mint a token for ANY service account,
 			// including cluster-admin-bound ones, so it is an escalation path (impersonate check).
-			name:            "unrestricted serviceaccount token create fires",
-			binding:         binding("token-minter", "token-minter-role", saSubject),
-			rolesByName:     map[string][]rbacv1.PolicyRule{"token-minter-role": {rule([]string{"create"}, []string{""}, []string{"serviceaccounts/token"})}},
-			wantCheckIDs:    []string{"impersonate"},
-			wantFlakeChecks: map[string]bool{"impersonate": true}, // Temporary
+			name:         "unrestricted serviceaccount token create fires",
+			binding:      binding("token-minter", "token-minter-role", saSubject),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"token-minter-role": {rule([]string{"create"}, []string{""}, []string{"serviceaccounts/token"})}},
+			wantCheckIDs: []string{"impersonate"},
 		},
 		{
 			// create on the serviceaccounts/token subresource honors resourceNames (the SA name is known
@@ -230,22 +219,21 @@ func TestEvaluateBinding(t *testing.T) {
 			wantCheckIDs: nil,
 		},
 		{
-			// A tracked exception on a check in flake mode (all real checks are currently in flake mode)
-			// emits a single green passing case: we already know about it, so it does not flake.
-			name:           "tracked exception passes green in flake mode",
-			binding:        binding("tracked-esc", "escalate-role", saSubject),
-			rolesByName:    map[string][]rbacv1.PolicyRule{"escalate-role": {escalateRule}},
-			wantCheckIDs:   nil,
-			wantPassChecks: map[string]bool{"escalate-rbac": true},
+			// A tracked exception on an enforcing check flakes (fail + pass) so it stays visible in
+			// Sippy while it is burned down.
+			name:            "tracked exception flakes under enforcement",
+			binding:         binding("tracked-esc", "escalate-role", saSubject),
+			rolesByName:     map[string][]rbacv1.PolicyRule{"escalate-role": {escalateRule}},
+			wantCheckIDs:    []string{"escalate-rbac"},
+			wantFlakeChecks: map[string]bool{"escalate-rbac": true},
 		},
 		{
 			// Same tracked binding+check but repointed at a different escalating role: the roleRef no
 			// longer matches the approved grant, so it hard-fails instead of flaking.
-			name:            "tracked exception revoked by roleref change",
-			binding:         binding("tracked-esc", "other-escalate-role", saSubject),
-			rolesByName:     map[string][]rbacv1.PolicyRule{"other-escalate-role": {escalateRule}},
-			wantCheckIDs:    []string{"escalate-rbac"},
-			wantFlakeChecks: map[string]bool{"escalate-rbac": true}, // Temporary
+			name:         "tracked exception revoked by roleref change",
+			binding:      binding("tracked-esc", "other-escalate-role", saSubject),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"other-escalate-role": {escalateRule}},
+			wantCheckIDs: []string{"escalate-rbac"},
 		},
 	}
 
