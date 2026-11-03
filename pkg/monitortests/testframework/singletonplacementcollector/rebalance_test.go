@@ -130,7 +130,7 @@ func TestRebalanceSingletons(t *testing.T) {
 	t.Run("deletes the excess from the overloaded master", func(t *testing.T) {
 		client := fake.NewSimpleClientset(overloaded(readyMasters())...)
 		replaceDeletedPods(t, client)
-		require.NoError(t, rebalanceSingletons(context.Background(), client, 1, time.Millisecond, time.Second))
+		require.NoError(t, rebalanceSingletons(context.Background(), client, time.Millisecond, time.Second))
 		// 4 pods over 3 masters: master-0 keeps 2, so one of its three equal pods is deleted (first by name)
 		assert.Equal(t, []string{"openshift-a"}, deletedPods(client))
 	})
@@ -138,13 +138,13 @@ func TestRebalanceSingletons(t *testing.T) {
 	t.Run("skips when a master is not ready", func(t *testing.T) {
 		client := fake.NewSimpleClientset(overloaded(readyMasters("master-2"))...)
 		replaceDeletedPods(t, client)
-		require.NoError(t, rebalanceSingletons(context.Background(), client, 1, time.Millisecond, time.Second))
+		require.NoError(t, rebalanceSingletons(context.Background(), client, time.Millisecond, time.Second))
 		assert.Empty(t, deletedPods(client))
 	})
 
 	t.Run("errors when no replacement pod comes up", func(t *testing.T) {
 		client := fake.NewSimpleClientset(overloaded(readyMasters())...)
-		err := rebalanceSingletons(context.Background(), client, 1, time.Millisecond, 50*time.Millisecond)
+		err := rebalanceSingletons(context.Background(), client, time.Millisecond, 50*time.Millisecond)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "no ready replacement for openshift-a/a-abc123-xyz")
 	})
@@ -154,7 +154,7 @@ func TestRebalanceSingletons(t *testing.T) {
 		objs[len(threeMasters())].(*appsv1.Deployment).Status.ReadyReplicas = 0
 		client := fake.NewSimpleClientset(objs...)
 		replaceDeletedPods(t, client)
-		err := rebalanceSingletons(context.Background(), client, 1, time.Millisecond, 50*time.Millisecond)
+		err := rebalanceSingletons(context.Background(), client, time.Millisecond, 50*time.Millisecond)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "deployment openshift-a/a not ready")
 	})

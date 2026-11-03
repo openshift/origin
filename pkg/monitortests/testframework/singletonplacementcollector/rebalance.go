@@ -17,9 +17,8 @@ import (
 )
 
 const (
-	rebalanceRounds       = 3
 	rebalancePollInterval = 5 * time.Second
-	rebalanceRoundTimeout = 5 * time.Minute
+	rebalanceTimeout      = 5 * time.Minute
 )
 
 // RebalanceSingletons is an experiment for OCPBUGS-131892. Singletons pile up on whichever master
@@ -28,60 +27,60 @@ const (
 // overloaded masters lets the scheduler spread the replacements: their memory requests are well
 // below real usage, but they are low by a similar factor on every master, so the request totals
 // still show which master is overloaded.
+// It makes a single pass. The scheduler balances requests rather than pod counts, so further
+// passes only bounce a pod or two between the same masters.
 // It should run before monitor tests start so the disruption it causes is not measured.
 func RebalanceSingletons(ctx context.Context, restConfig *rest.Config) error {
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return err
 	}
-	return rebalanceSingletons(ctx, kubeClient, rebalanceRounds, rebalancePollInterval, rebalanceRoundTimeout)
+	return rebalanceSingletons(ctx, kubeClient, rebalancePollInterval, rebalanceTimeout)
 }
 
-func rebalanceSingletons(ctx context.Context, kubeClient kubernetes.Interface, rounds int, pollInterval, roundTimeout time.Duration) error {
+func rebalanceSingletons(ctx context.Context, kubeClient kubernetes.Interface, pollInterval, timeout time.Duration) error {
 	logger := logrus.WithField("func", "RebalanceSingletons")
 
-	for round := 1; round <= rounds; round++ {
-		if notReady, err := unschedulableMasters(ctx, kubeClient); err != nil {
-			return err
-		} else if len(notReady) > 0 {
-			logger.Infof("skipping singleton rebalance, masters not ready or schedulable: %s", strings.Join(notReady, ", "))
-			return nil
-		}
-
-		masters, pods, err := listSingletonPods(ctx, kubeClient, time.Now())
-		if err != nil {
-			return err
-		}
-		if len(masters) < 2 {
-			logger.Infof("found %d master nodes, skipping singleton rebalance", len(masters))
-			return nil
-		}
-		logger.Infof("round %d singleton placement: %s", round, formatPlacement(masters, pods))
-
-		toDelete := podsToRebalance(masters, pods)
-		if len(toDelete) == 0 {
-			logger.Infof("singletons are balanced across masters after %d round(s)", round-1)
-			return nil
-		}
-
-		for _, pod := range toDelete {
-			logger.Infof("deleting singleton pod %s/%s from %s", pod.namespace, pod.podName, pod.nodeName)
-			err := kubeClient.CoreV1().Pods(pod.namespace).Delete(ctx, pod.podName, metav1.DeleteOptions{})
-			if err != nil && !apierrors.IsNotFound(err) {
-				return fmt.Errorf("failed to delete pod %s/%s: %w", pod.namespace, pod.podName, err)
-			}
-		}
-
-		if err := waitForReplacements(ctx, kubeClient, toDelete, pollInterval, roundTimeout); err != nil {
-			return err
-		}
+	if notReady, err := unschedulableMasters(ctx, kubeClient); err != nil {
+		return err
+	} else if len(notReady) > 0 {
+		logger.Infof("skipping singleton rebalance, masters not ready or schedulable: %s", strings.Join(notReady, ", "))
+		return nil
 	}
 
 	masters, pods, err := listSingletonPods(ctx, kubeClient, time.Now())
 	if err != nil {
 		return err
 	}
-	logger.Infof("singleton placement after %d rebalance rounds: %s", rounds, formatPlacement(masters, pods))
+	if len(masters) < 2 {
+		logger.Infof("found %d master nodes, skipping singleton rebalance", len(masters))
+		return nil
+	}
+	logger.Infof("singleton placement before rebalance: %s", formatPlacement(masters, pods))
+
+	toDelete := podsToRebalance(masters, pods)
+	if len(toDelete) == 0 {
+		logger.Infof("singletons are already balanced across masters")
+		return nil
+	}
+
+	for _, pod := range toDelete {
+		logger.Infof("deleting singleton pod %s/%s from %s", pod.namespace, pod.podName, pod.nodeName)
+		err := kubeClient.CoreV1().Pods(pod.namespace).Delete(ctx, pod.podName, metav1.DeleteOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			return fmt.Errorf("failed to delete pod %s/%s: %w", pod.namespace, pod.podName, err)
+		}
+	}
+
+	if err := waitForReplacements(ctx, kubeClient, toDelete, pollInterval, timeout); err != nil {
+		return err
+	}
+
+	masters, pods, err = listSingletonPods(ctx, kubeClient, time.Now())
+	if err != nil {
+		return err
+	}
+	logger.Infof("singleton placement after rebalance: %s", formatPlacement(masters, pods))
 	return nil
 }
 
