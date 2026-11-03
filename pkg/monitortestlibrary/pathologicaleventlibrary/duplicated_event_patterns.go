@@ -141,8 +141,26 @@ func (ade *SimplePathologicalEventMatcher) allowsIgnoringRepeatThreshold(i monit
 }
 
 type AllowedPathologicalEventRegistry struct {
-	matchers              map[string]EventMatcher
-	authoritativeMatchers []EventMatcher
+	matchers                   map[string]EventMatcher
+	authoritativeEventFamilies []authoritativePathologicalEventFamily
+}
+
+type authoritativePathologicalEventFamily struct {
+	claims     func(monitorapi.Interval) bool
+	allowances []EventMatcher
+}
+
+func claimsPathologicalEventFamily(i monitorapi.Interval, namespaceRegex, podRegex *regexp.Regexp, messageRegexes ...*regexp.Regexp) bool {
+	namespaceMatches := namespaceRegex.MatchString(i.Locator.Keys[monitorapi.LocatorNamespaceKey])
+	podMatches := podRegex.MatchString(i.Locator.Keys[monitorapi.LocatorPodKey])
+	messageMatches := false
+	for _, messageRegex := range messageRegexes {
+		messageMatches = messageMatches || messageRegex.MatchString(i.Message.HumanMessage)
+	}
+
+	// Two family signals claim any one-field variant without capturing unrelated events
+	// that happen to share a broad failure message.
+	return (messageMatches && (namespaceMatches || podMatches)) || (namespaceMatches && podMatches)
 }
 
 func (r *AllowedPathologicalEventRegistry) AddPathologicalEventMatcher(eventMatcher EventMatcher) error {
@@ -163,12 +181,17 @@ func (r *AllowedPathologicalEventRegistry) AddPathologicalEventMatcherOrDie(even
 	}
 }
 
-// addAuthoritativePathologicalEventMatcherOrDie registers a matcher whose decision is final
-// for every interval it matches. This keeps a more specific bounded allowance from falling
-// through to a broader matcher when the specific allowance rejects the interval.
-func (r *AllowedPathologicalEventRegistry) addAuthoritativePathologicalEventMatcherOrDie(eventMatcher EventMatcher) {
-	r.AddPathologicalEventMatcherOrDie(eventMatcher)
-	r.authoritativeMatchers = append(r.authoritativeMatchers, eventMatcher)
+// addAuthoritativePathologicalEventFamilyOrDie registers exact allowances whose collective
+// decision is final for every interval claimed by the family. This keeps a recognizable variant
+// from falling through to a broader matcher when none of the exact allowances accept it.
+func (r *AllowedPathologicalEventRegistry) addAuthoritativePathologicalEventFamilyOrDie(claims func(monitorapi.Interval) bool, allowances ...EventMatcher) {
+	for _, allowance := range allowances {
+		r.AddPathologicalEventMatcherOrDie(allowance)
+	}
+	r.authoritativeEventFamilies = append(r.authoritativeEventFamilies, authoritativePathologicalEventFamily{
+		claims:     claims,
+		allowances: allowances,
+	})
 }
 
 // MatchesAny checks if the given event locator and message match any registered matcher.
@@ -195,13 +218,15 @@ func (r *AllowedPathologicalEventRegistry) AllowedByAny(
 	topology v1.TopologyMode) (bool, EventMatcher) {
 	l := i.Locator
 	msg := i.Message
-	for _, m := range r.authoritativeMatchers {
-		if !m.Matches(i) {
+	for _, family := range r.authoritativeEventFamilies {
+		if !family.claims(i) {
 			continue
 		}
-		if m.Allows(i, topology) {
-			logrus.WithField("message", msg).WithField("locator", l).Infof("duplicated event allowed by %s", m.Name())
-			return true, m
+		for _, allowance := range family.allowances {
+			if allowance.Allows(i, topology) {
+				logrus.WithField("message", msg).WithField("locator", l).Infof("duplicated event allowed by %s", allowance.Name())
+				return true, allowance
+			}
 		}
 		return false, nil
 	}
@@ -728,7 +753,7 @@ func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals
 	// SNO upgrades restart the only node, so these probes can accumulate while their
 	// operands recover. Keep the allowances scoped to the exact observed components,
 	// probe types, and failure modes, with a small bound over the observed maximum of 28.
-	registry.addAuthoritativePathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+	consoleReadinessProbeError := &SimplePathologicalEventMatcher{
 		name: "SingleNodeConsoleOperatorReadinessProbeError",
 		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-console-operator$`),
@@ -738,9 +763,15 @@ func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals
 		messageHumanRegex:       regexp.MustCompile(`^Readiness probe error: Get "https://[0-9]{1,3}(\.[0-9]{1,3}){3}:8443/readyz": dial tcp [0-9]{1,3}(\.[0-9]{1,3}){3}:8443: connect: connection refused\nbody: \n$`),
 		repeatThresholdOverride: singleNodeUpgradeProbeRepeatThreshold,
 		topology:                &singleReplicaTopology,
-	})
+	}
+	registry.addAuthoritativePathologicalEventFamilyOrDie(func(i monitorapi.Interval) bool {
+		return claimsPathologicalEventFamily(i,
+			consoleReadinessProbeError.locatorKeyRegexes[monitorapi.LocatorNamespaceKey],
+			consoleReadinessProbeError.locatorKeyRegexes[monitorapi.LocatorPodKey],
+			consoleReadinessProbeError.messageHumanRegex)
+	}, consoleReadinessProbeError)
 
-	registry.addAuthoritativePathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+	machineAPIStartupProbeError := &SimplePathologicalEventMatcher{
 		name: "SingleNodeMachineAPIStartupProbeError",
 		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-machine-api$`),
@@ -750,9 +781,9 @@ func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals
 		messageHumanRegex:       regexp.MustCompile(`^Startup probe error: Get "http://[0-9]{1,3}(\.[0-9]{1,3}){3}:9441/readyz": context deadline exceeded \(Client\.Timeout exceeded while awaiting headers\)\nbody: \n$`),
 		repeatThresholdOverride: singleNodeUpgradeProbeRepeatThreshold,
 		topology:                &singleReplicaTopology,
-	})
+	}
 
-	registry.addAuthoritativePathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+	machineAPIStartupProbeFailed := &SimplePathologicalEventMatcher{
 		name: "SingleNodeMachineAPIStartupProbeFailed",
 		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-machine-api$`),
@@ -762,7 +793,14 @@ func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals
 		messageHumanRegex:       regexp.MustCompile(`^Startup probe failed: Get "http://[0-9]{1,3}(\.[0-9]{1,3}){3}:9441/readyz": context deadline exceeded \(Client\.Timeout exceeded while awaiting headers\)$`),
 		repeatThresholdOverride: singleNodeUpgradeProbeRepeatThreshold,
 		topology:                &singleReplicaTopology,
-	})
+	}
+	registry.addAuthoritativePathologicalEventFamilyOrDie(func(i monitorapi.Interval) bool {
+		return claimsPathologicalEventFamily(i,
+			machineAPIStartupProbeError.locatorKeyRegexes[monitorapi.LocatorNamespaceKey],
+			machineAPIStartupProbeError.locatorKeyRegexes[monitorapi.LocatorPodKey],
+			machineAPIStartupProbeError.messageHumanRegex,
+			machineAPIStartupProbeFailed.messageHumanRegex)
+	}, machineAPIStartupProbeError, machineAPIStartupProbeFailed)
 
 	// OLM reports the successful packageserver install repeatedly during SNO upgrades.
 	// Only the exact successful CSV event is allowed, bounded just above the observed 55.

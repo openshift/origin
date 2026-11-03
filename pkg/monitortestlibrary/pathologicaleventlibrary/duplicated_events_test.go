@@ -596,6 +596,38 @@ func TestSingleNodeUpgradeBoundedAllowancesTakePrecedenceOverOverlapMatchers(t *
 			interval: buildEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "Unhealthy", machineAPIStartupProbeFailed, singleNodeUpgradeProbeRepeatThreshold+1),
 		},
 		{
+			name:     "rejects console probe in another namespace during TargetDown",
+			interval: buildEvent("openshift-console", "console-operator-75598d57fd-dq888", "ProbeError", consoleReadinessProbeError, singleNodeUpgradeProbeRepeatThreshold),
+		},
+		{
+			name:     "rejects console probe for another pod during TargetDown",
+			interval: buildEvent("openshift-console-operator", "console-operator", "ProbeError", consoleReadinessProbeError, singleNodeUpgradeProbeRepeatThreshold),
+		},
+		{
+			name:     "rejects console probe with another reason during TargetDown",
+			interval: buildEvent("openshift-console-operator", "console-operator-75598d57fd-dq888", "Unhealthy", consoleReadinessProbeError, singleNodeUpgradeProbeRepeatThreshold),
+		},
+		{
+			name:     "rejects console probe with another message during TargetDown",
+			interval: buildEvent("openshift-console-operator", "console-operator-75598d57fd-dq888", "ProbeError", "Readiness probe error: Get \"https://10.128.0.18:9443/healthz\": dial tcp 10.128.0.18:9443: connect: connection refused", singleNodeUpgradeProbeRepeatThreshold),
+		},
+		{
+			name:     "rejects machine API probe in another namespace while kube API progresses",
+			interval: buildEvent("openshift-machine-config-operator", "machine-api-controllers-869c4d6f45-p74jx", "ProbeError", machineAPIStartupProbeError, singleNodeUpgradeProbeRepeatThreshold),
+		},
+		{
+			name:     "rejects machine API probe for another pod while kube API progresses",
+			interval: buildEvent("openshift-machine-api", "machine-api-operator-869c4d6f45-p74jx", "ProbeError", machineAPIStartupProbeError, singleNodeUpgradeProbeRepeatThreshold),
+		},
+		{
+			name:     "rejects machine API probe with another reason while kube API progresses",
+			interval: buildEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "Unhealthy", machineAPIStartupProbeError, singleNodeUpgradeProbeRepeatThreshold),
+		},
+		{
+			name:     "rejects machine API probe with another message while kube API progresses",
+			interval: buildEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "ProbeError", "Startup probe error: Get \"http://10.128.0.56:9441/healthz\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)", singleNodeUpgradeProbeRepeatThreshold),
+		},
+		{
 			name:              "allows bounded console probe during TargetDown",
 			interval:          buildEvent("openshift-console-operator", "console-operator-75598d57fd-dq888", "ProbeError", consoleReadinessProbeError, singleNodeUpgradeProbeRepeatThreshold),
 			expectedAllowName: "SingleNodeConsoleOperatorReadinessProbeError",
