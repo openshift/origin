@@ -140,16 +140,19 @@ func (ade *SimplePathologicalEventMatcher) allowsIgnoringRepeatThreshold(i monit
 	return true
 }
 
+// AllowedPathologicalEventRegistry stores matchers for events that may repeat pathologically.
 type AllowedPathologicalEventRegistry struct {
 	matchers                   map[string]EventMatcher
 	authoritativeEventFamilies []authoritativePathologicalEventFamily
 }
 
+// authoritativePathologicalEventFamily groups exact allowances under a final family claim.
 type authoritativePathologicalEventFamily struct {
 	claims     func(monitorapi.Interval) bool
 	allowances []EventMatcher
 }
 
+// claimsPathologicalEventFamily reports whether an interval belongs to a probe event family.
 func claimsPathologicalEventFamily(i monitorapi.Interval, namespaceRegex, podRegex *regexp.Regexp, messageRegexes ...*regexp.Regexp) bool {
 	namespaceMatches := namespaceRegex.MatchString(i.Locator.Keys[monitorapi.LocatorNamespaceKey])
 	podMatches := podRegex.MatchString(i.Locator.Keys[monitorapi.LocatorPodKey])
@@ -163,6 +166,7 @@ func claimsPathologicalEventFamily(i monitorapi.Interval, namespaceRegex, podReg
 	return messageMatches && (namespaceMatches || podMatches)
 }
 
+// AddPathologicalEventMatcher registers an event matcher by its unique name.
 func (r *AllowedPathologicalEventRegistry) AddPathologicalEventMatcher(eventMatcher EventMatcher) error {
 	if _, ok := r.matchers[eventMatcher.Name()]; ok {
 		return fmt.Errorf("%q is already registered", eventMatcher.Name())
@@ -174,6 +178,7 @@ func (r *AllowedPathologicalEventRegistry) AddPathologicalEventMatcher(eventMatc
 	return nil
 }
 
+// AddPathologicalEventMatcherOrDie registers an event matcher or panics if it is invalid.
 func (r *AllowedPathologicalEventRegistry) AddPathologicalEventMatcherOrDie(eventMatcher EventMatcher) {
 	err := r.AddPathologicalEventMatcher(eventMatcher)
 	if err != nil {
@@ -198,12 +203,13 @@ func (r *AllowedPathologicalEventRegistry) addAuthoritativePathologicalEventFami
 // Returns true if so, the matcher name, and the matcher itself.
 // It does NOT check if the interval should be allowed.
 func (r *AllowedPathologicalEventRegistry) MatchesAny(i monitorapi.Interval) (bool, EventMatcher) {
-	l := i.Locator
-	msg := i.Message
 	for k, m := range r.matchers {
 		allowed := m.Matches(i)
 		if allowed {
-			logrus.WithField("message", msg).WithField("locator", l).Infof("event interval matches %s", k)
+			logrus.WithFields(logrus.Fields{
+				"matcher":     k,
+				"repeatCount": GetTimesAnEventHappened(i.Message),
+			}).Info("event interval matched")
 			return allowed, m
 		}
 	}
@@ -216,15 +222,16 @@ func (r *AllowedPathologicalEventRegistry) MatchesAny(i monitorapi.Interval) (bo
 func (r *AllowedPathologicalEventRegistry) AllowedByAny(
 	i monitorapi.Interval,
 	topology v1.TopologyMode) (bool, EventMatcher) {
-	l := i.Locator
-	msg := i.Message
 	for _, family := range r.authoritativeEventFamilies {
 		if !family.claims(i) {
 			continue
 		}
 		for _, allowance := range family.allowances {
 			if allowance.Allows(i, topology) {
-				logrus.WithField("message", msg).WithField("locator", l).Infof("duplicated event allowed by %s", allowance.Name())
+				logrus.WithFields(logrus.Fields{
+					"allower":     allowance.Name(),
+					"repeatCount": GetTimesAnEventHappened(i.Message),
+				}).Info("duplicated event allowed")
 				return true, allowance
 			}
 		}
@@ -233,13 +240,17 @@ func (r *AllowedPathologicalEventRegistry) AllowedByAny(
 	for k, m := range r.matchers {
 		allowed := m.Allows(i, topology)
 		if allowed {
-			logrus.WithField("message", msg).WithField("locator", l).Infof("duplicated event allowed by %s", k)
+			logrus.WithFields(logrus.Fields{
+				"allower":     k,
+				"repeatCount": GetTimesAnEventHappened(i.Message),
+			}).Info("duplicated event allowed")
 			return allowed, m
 		}
 	}
 	return false, nil
 }
 
+// GetMatcherByName returns the registered matcher with the given name.
 func (r *AllowedPathologicalEventRegistry) GetMatcherByName(name string) (EventMatcher, error) {
 
 	matcher, ok := r.matchers[name]
@@ -249,8 +260,7 @@ func (r *AllowedPathologicalEventRegistry) GetMatcherByName(name string) (EventM
 	return matcher, nil
 }
 
-// AllowedPathologicalEvents is the list of all allowed duplicate events on all jobs. Upgrade has an additional
-// list which is combined with this one.
+// NewUniversalPathologicalEventMatchers creates the registry of duplicate events allowed for all jobs.
 func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals monitorapi.Intervals) *AllowedPathologicalEventRegistry {
 	registry := &AllowedPathologicalEventRegistry{matchers: map[string]EventMatcher{}}
 
