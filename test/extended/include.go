@@ -49,6 +49,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/node/dra/partitionable"
 	_ "github.com/openshift/origin/test/extended/node/node_e2e"
 	_ "github.com/openshift/origin/test/extended/node_tuning"
+	_ "github.com/openshift/origin/test/extended/nri"
 	_ "github.com/openshift/origin/test/extended/oauth"
 	_ "github.com/openshift/origin/test/extended/olm"
 	_ "github.com/openshift/origin/test/extended/operators"

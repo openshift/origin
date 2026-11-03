@@ -482,6 +482,21 @@ var staticSuites = []ginkgo.TestSuite{
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
+		Name: "openshift/nri",
+		Description: templates.LongDesc(`
+		This test suite validates the Node Resource Interface (NRI) integration:
+		CRI-O serving the NRI socket, an NRI plugin registering and receiving
+		pod/container events, and the plugin adjusting containers (environment,
+		annotations, mounts, devices, cpuset) before they start.
+		`),
+		Qualifiers: []string{
+			`name.contains("[Suite:openshift/nri")`,
+		},
+		Parallelism:                1,
+		TestTimeout:                30 * time.Minute,
+		ClusterStabilityDuringTest: ginkgo.Stable,
+	},
+	{
 		Name: "openshift/disruptive-longrunning",
 		Description: templates.LongDesc(`
 		Long-running disruptive test suite. Tests in this suite are disruptive (cause node reboots,
