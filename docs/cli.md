@@ -364,7 +364,7 @@ Available formats include:
 
 | Value        | Description                                           |
 |:-------------|:------------------------------------------------------|
-| json         | Pretty formated JSON format |
+| json         | Pretty formatted JSON format |
 | yaml         | [YAML](http://www.yaml.org/) format |
 | template     | User defined [Go template](http://golang.org/pkg/text/template) (combined with the `-t` flag) |
 | templatefile | Same as above, but use the template file instead of `-t` |
