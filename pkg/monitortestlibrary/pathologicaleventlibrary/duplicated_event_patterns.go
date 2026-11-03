@@ -30,6 +30,9 @@ const (
 	DuplicateEventThreshold = 20
 	PathologicalMark        = "pathological/true"
 	InterestingMark         = "interesting/true"
+
+	singleNodeUpgradeProbeRepeatThreshold            = 30
+	singleNodeUpgradeInstallSucceededRepeatThreshold = 60
 )
 
 type EventMatcher interface {
@@ -701,6 +704,60 @@ func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals
 	registry := NewUniversalPathologicalEventMatchers(kubeConfig, finalIntervals)
 
 	// Now add in the matchers we only want to apply during upgrade:
+	singleReplicaTopology := v1.SingleReplicaTopologyMode
+
+	// SNO upgrades restart the only node, so these probes can accumulate while their
+	// operands recover. Keep the allowances scoped to the exact observed components,
+	// probe types, and failure modes, with a small bound over the observed maximum of 28.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "SingleNodeConsoleOperatorReadinessProbeError",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-console-operator$`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^console-operator-[a-z0-9]+-[a-z0-9]+$`),
+		},
+		messageReasonRegex:      regexp.MustCompile(`^ProbeError$`),
+		messageHumanRegex:       regexp.MustCompile(`^Readiness probe error: Get "https://[0-9]{1,3}(\.[0-9]{1,3}){3}:8443/readyz": dial tcp [0-9]{1,3}(\.[0-9]{1,3}){3}:8443: connect: connection refused\nbody: \n$`),
+		repeatThresholdOverride: singleNodeUpgradeProbeRepeatThreshold,
+		topology:                &singleReplicaTopology,
+	})
+
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "SingleNodeMachineAPIStartupProbeError",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-machine-api$`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^machine-api-controllers-[a-z0-9]+-[a-z0-9]+$`),
+		},
+		messageReasonRegex:      regexp.MustCompile(`^ProbeError$`),
+		messageHumanRegex:       regexp.MustCompile(`^Startup probe error: Get "http://[0-9]{1,3}(\.[0-9]{1,3}){3}:9441/readyz": context deadline exceeded \(Client\.Timeout exceeded while awaiting headers\)\nbody: \n$`),
+		repeatThresholdOverride: singleNodeUpgradeProbeRepeatThreshold,
+		topology:                &singleReplicaTopology,
+	})
+
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "SingleNodeMachineAPIStartupProbeFailed",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-machine-api$`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^machine-api-controllers-[a-z0-9]+-[a-z0-9]+$`),
+		},
+		messageReasonRegex:      regexp.MustCompile(`^Unhealthy$`),
+		messageHumanRegex:       regexp.MustCompile(`^Startup probe failed: Get "http://[0-9]{1,3}(\.[0-9]{1,3}){3}:9441/readyz": context deadline exceeded \(Client\.Timeout exceeded while awaiting headers\)$`),
+		repeatThresholdOverride: singleNodeUpgradeProbeRepeatThreshold,
+		topology:                &singleReplicaTopology,
+	})
+
+	// OLM reports the successful packageserver install repeatedly during SNO upgrades.
+	// Only the exact successful CSV event is allowed, bounded just above the observed 55.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "SingleNodePackageServerInstallSucceeded",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey:                 regexp.MustCompile(`^openshift-operator-lifecycle-manager$`),
+			monitorapi.LocatorKey("clusterserviceversion"): regexp.MustCompile(`^packageserver$`),
+		},
+		messageReasonRegex:      regexp.MustCompile(`^InstallSucceeded$`),
+		messageHumanRegex:       regexp.MustCompile(`^install strategy completed with no errors$`),
+		repeatThresholdOverride: singleNodeUpgradeInstallSucceededRepeatThreshold,
+		topology:                &singleReplicaTopology,
+	})
 
 	// Operators that use library-go can report about multiple versions during upgrades.
 	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{

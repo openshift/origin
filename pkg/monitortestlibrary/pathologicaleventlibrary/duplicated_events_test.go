@@ -347,6 +347,194 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 
 }
 
+func TestSingleNodeUpgradePathologicalEventAllowances(t *testing.T) {
+	const (
+		consoleReadinessProbeError    = "Readiness probe error: Get \"https://10.128.0.18:8443/readyz\": dial tcp 10.128.0.18:8443: connect: connection refused\nbody: \n"
+		machineAPIStartupProbeError   = "Startup probe error: Get \"http://10.128.0.56:9441/readyz\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)\nbody: \n"
+		machineAPIStartupProbeFailed  = "Startup probe failed: Get \"http://10.128.0.56:9441/readyz\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+		packageServerInstallSucceeded = "install strategy completed with no errors"
+	)
+
+	packageServerEvent := func(namespace, csv, reason, message string, count int) monitorapi.Interval {
+		return monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+			Locator(monitorapi.Locator{
+				Type: monitorapi.LocatorTypeKind,
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey:                 namespace,
+					monitorapi.LocatorKey("clusterserviceversion"): csv,
+				},
+			}).
+			Message(monitorapi.NewMessage().
+				Reason(monitorapi.IntervalReason(reason)).
+				HumanMessage(message).
+				WithAnnotation(monitorapi.AnnotationCount, fmt.Sprintf("%d", count))).
+			BuildNow()
+	}
+
+	tests := []struct {
+		name              string
+		interval          monitorapi.Interval
+		topology          v1.TopologyMode
+		expectedAllowName string
+		expectedMatchName string
+	}{
+		{
+			name:              "allows observed console operator readiness probe on single replica",
+			interval:          BuildTestDupeKubeEvent("openshift-console-operator", "console-operator-75598d57fd-dq888", "ProbeError", consoleReadinessProbeError, 21),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "SingleNodeConsoleOperatorReadinessProbeError",
+		},
+		{
+			name:     "rejects console operator readiness probe on highly available topology",
+			interval: BuildTestDupeKubeEvent("openshift-console-operator", "console-operator-75598d57fd-dq888", "ProbeError", consoleReadinessProbeError, 21),
+			topology: v1.HighlyAvailableTopologyMode,
+		},
+		{
+			name:     "rejects console operator readiness probe in another namespace",
+			interval: BuildTestDupeKubeEvent("openshift-console", "console-operator-75598d57fd-dq888", "ProbeError", consoleReadinessProbeError, 21),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects console operator readiness probe for another pod",
+			interval: BuildTestDupeKubeEvent("openshift-console-operator", "console-operator", "ProbeError", consoleReadinessProbeError, 21),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects console operator readiness probe with another reason",
+			interval: BuildTestDupeKubeEvent("openshift-console-operator", "console-operator-75598d57fd-dq888", "Unhealthy", consoleReadinessProbeError, 21),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects console operator readiness probe with another message",
+			interval: BuildTestDupeKubeEvent("openshift-console-operator", "console-operator-75598d57fd-dq888", "ProbeError", "Readiness probe error: Get \"https://10.128.0.18:8443/healthz\": context deadline exceeded\nbody: \n", 21),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects console operator readiness probe above bound",
+			interval: BuildTestDupeKubeEvent("openshift-console-operator", "console-operator-75598d57fd-dq888", "ProbeError", consoleReadinessProbeError, singleNodeUpgradeProbeRepeatThreshold+1),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:              "allows observed machine API startup probe error on single replica",
+			interval:          BuildTestDupeKubeEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "ProbeError", machineAPIStartupProbeError, 28),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "SingleNodeMachineAPIStartupProbeError",
+		},
+		{
+			name:              "allows observed machine API startup probe failure on single replica",
+			interval:          BuildTestDupeKubeEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "Unhealthy", machineAPIStartupProbeFailed, 28),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "SingleNodeMachineAPIStartupProbeFailed",
+		},
+		{
+			name:     "rejects machine API startup probe error on highly available topology",
+			interval: BuildTestDupeKubeEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "ProbeError", machineAPIStartupProbeError, 28),
+			topology: v1.HighlyAvailableTopologyMode,
+		},
+		{
+			name:     "rejects machine API startup probe failure on highly available topology",
+			interval: BuildTestDupeKubeEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "Unhealthy", machineAPIStartupProbeFailed, 28),
+			topology: v1.HighlyAvailableTopologyMode,
+		},
+		{
+			name:     "rejects machine API startup probe in another namespace",
+			interval: BuildTestDupeKubeEvent("openshift-machine-config-operator", "machine-api-controllers-869c4d6f45-p74jx", "ProbeError", machineAPIStartupProbeError, 28),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects machine API startup probe for another pod",
+			interval: BuildTestDupeKubeEvent("openshift-machine-api", "machine-api-operator-869c4d6f45-p74jx", "ProbeError", machineAPIStartupProbeError, 28),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects machine API startup probe error reason with failure message",
+			interval: BuildTestDupeKubeEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "ProbeError", machineAPIStartupProbeFailed, 28),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects machine API startup probe failure reason with error message",
+			interval: BuildTestDupeKubeEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "Unhealthy", machineAPIStartupProbeError, 28),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects machine API startup probe error above bound",
+			interval: BuildTestDupeKubeEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "ProbeError", machineAPIStartupProbeError, singleNodeUpgradeProbeRepeatThreshold+1),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects machine API startup probe failure above bound",
+			interval: BuildTestDupeKubeEvent("openshift-machine-api", "machine-api-controllers-869c4d6f45-p74jx", "Unhealthy", machineAPIStartupProbeFailed, singleNodeUpgradeProbeRepeatThreshold+1),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:              "allows observed packageserver success on single replica",
+			interval:          packageServerEvent("openshift-operator-lifecycle-manager", "packageserver", "InstallSucceeded", packageServerInstallSucceeded, 55),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "SingleNodePackageServerInstallSucceeded",
+		},
+		{
+			name:     "rejects packageserver success on highly available topology",
+			interval: packageServerEvent("openshift-operator-lifecycle-manager", "packageserver", "InstallSucceeded", packageServerInstallSucceeded, 55),
+			topology: v1.HighlyAvailableTopologyMode,
+		},
+		{
+			name:     "rejects packageserver success in another namespace",
+			interval: packageServerEvent("openshift-marketplace", "packageserver", "InstallSucceeded", packageServerInstallSucceeded, 55),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects another CSV success event",
+			interval: packageServerEvent("openshift-operator-lifecycle-manager", "other-operator", "InstallSucceeded", packageServerInstallSucceeded, 55),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects packageserver failure event",
+			interval: packageServerEvent("openshift-operator-lifecycle-manager", "packageserver", "InstallFailed", "install strategy failed", 55),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects packageserver success with another message",
+			interval: packageServerEvent("openshift-operator-lifecycle-manager", "packageserver", "InstallSucceeded", "install strategy completed with errors", 55),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects packageserver success above bound",
+			interval: packageServerEvent("openshift-operator-lifecycle-manager", "packageserver", "InstallSucceeded", packageServerInstallSucceeded, singleNodeUpgradeInstallSucceededRepeatThreshold+1),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name: "keeps no CNI pod sandbox event rejected",
+			interval: BuildTestDupeKubeEvent("openshift-insights", "periodic-gathering-7rrt5-bx7ts", "FailedCreatePodSandBox",
+				"Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox: no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
+				DuplicateEventThreshold+1),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedMatchName: "PodSandbox",
+		},
+	}
+
+	registry := NewUpgradePathologicalEventMatchers(nil, nil)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			allowed, matcher := registry.AllowedByAny(test.interval, test.topology)
+			if test.expectedAllowName == "" {
+				require.False(t, allowed)
+				require.Nil(t, matcher)
+			} else {
+				require.True(t, allowed)
+				require.NotNil(t, matcher)
+				assert.Equal(t, test.expectedAllowName, matcher.Name())
+			}
+
+			if test.expectedMatchName != "" {
+				matches, matched := registry.MatchesAny(test.interval)
+				require.True(t, matches)
+				require.NotNil(t, matched)
+				assert.Equal(t, test.expectedMatchName, matched.Name())
+			}
+		})
+	}
+}
+
 func TestPathologicalEventsWithNamespaces(t *testing.T) {
 	from := time.Unix(872827200, 0).In(time.UTC)
 	to := time.Unix(872827200, 0).In(time.UTC)
