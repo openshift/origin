@@ -587,6 +587,25 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 	g.It("Should not create CloudPrivateIPConfig or assign EgressIPs exceeding cloud node capacity [Cloud] [Serial]", func() {
 		f := oc.KubeFramework()
 
+		// Skip if not a supported cloud platform
+		g.By("Verifying this is a supported cloud platform")
+		supportedCloudPlatforms := []configv1.PlatformType{
+			configv1.AWSPlatformType,
+			configv1.GCPPlatformType,
+			configv1.AzurePlatformType,
+			configv1.OpenStackPlatformType,
+		}
+		isCloudPlatform := false
+		for _, platform := range supportedCloudPlatforms {
+			if cloudType == platform {
+				isCloudPlatform = true
+				break
+			}
+		}
+		if !isCloudPlatform {
+			g.Skip(fmt.Sprintf("Test requires a cloud platform (AWS/GCP/Azure/OpenStack), current platform: %s", cloudType))
+		}
+
 		g.By("Step-1: Checking if we have at least 1 egress node for testing")
 		if len(egressIPNodesOrderedNames) < 1 {
 			g.Skip("Testing requires at least 1 egress node")
