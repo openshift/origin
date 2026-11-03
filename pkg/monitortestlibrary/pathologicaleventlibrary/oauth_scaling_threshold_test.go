@@ -13,7 +13,7 @@ import (
 )
 
 // These tests pin the scoped, proximity-bounded tolerance for oauth-openshift ScalingReplicaSet
-// repeats during the AuthenticationComponentProxy serial tests. The finite cap (70) applies
+// repeats during the AuthenticationComponentProxy serial tests. The finite cap (105) applies
 // only to repeats whose LATEST occurrence falls during one of the eligible passing tests or
 // within authenticationComponentProxyPostTestGrace AFTER that test ends (no pre-test grace).
 // Repeats outside those windows are allowed only if, once the occurrences of the same Event
@@ -127,7 +127,7 @@ func TestAuthenticationComponentProxyScalingReplicaSet_EligibleDuringEachTest(t 
 		events := monitorapi.Intervals{cpTestInterval(name, "Passed", from, to)}
 		m := scalingMatcher(t, events)
 		eventTime := from.Add(2 * time.Minute)
-		inWindow := oauthScaleEvent(70, eventTime)
+		inWindow := oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, eventTime)
 		assert.Truef(t, m.Allows(inWindow, v1.HighlyAvailableTopologyMode),
 			"event during eligible test %d must be allowed: %s", i+1, cpEventDetails(inWindow, from, to))
 	}
@@ -171,7 +171,7 @@ func TestAuthenticationComponentProxyScalingReplicaSet_PostTestGraceAndBoundarie
 	}
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%s (latest=%s, offset from test end=%s)", c.name, c.latest.Format(time.RFC3339Nano), c.latest.Sub(to)), func(t *testing.T) {
-			event := oauthScaleEvent(70, c.latest)
+			event := oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, c.latest)
 			t.Logf("%s", cpEventDetails(event, from, to))
 			got := m.Allows(event, v1.HighlyAvailableTopologyMode)
 			assert.Equalf(t, c.allow, got, "case %q: %s", c.name, cpEventDetails(event, from, to))
@@ -188,13 +188,13 @@ func TestAuthenticationComponentProxyScalingReplicaSet_SecondPrecisionGraceBound
 	// post-grace window; an occurrence whose cover extends past end+grace is NOT allowed, avoiding
 	// the earlier unsafe point assumption that accepted +500ms past the end.
 	wellWithin := to.Add(grace - time.Minute)
-	withinEvent := oauthScaleEvent(70, wellWithin)
+	withinEvent := oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, wellWithin)
 	assert.Truef(t, m.Allows(withinEvent, v1.HighlyAvailableTopologyMode),
 		"whole event cover fits within grace: %s", cpEventDetails(withinEvent, from, to))
 
 	// end+grace-0.5s: cover is [end+grace-0.5s, end+grace+0.5s), which extends past end+grace -> not allowed.
 	straddles := to.Add(grace - 500*time.Millisecond)
-	straddlingEvent := oauthScaleEvent(70, straddles)
+	straddlingEvent := oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, straddles)
 	assert.Falsef(t, m.Allows(straddlingEvent, v1.HighlyAvailableTopologyMode),
 		"cover straddling the grace boundary -> conservatively rejected: %s", cpEventDetails(straddlingEvent, from, to))
 }
@@ -203,12 +203,12 @@ func TestAuthenticationComponentProxyScalingReplicaSet_OverCapRejectedEvenInWind
 	events, from, to := onePassingWindow()
 	m := scalingMatcher(t, events)
 	duringTest := from.Add(2 * time.Minute)
-	over := oauthScaleEvent(71, duringTest)
+	over := oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit+1, duringTest)
 	assert.Falsef(t, m.Allows(over, v1.HighlyAvailableTopologyMode),
 		"over-cap event must be rejected even inside an eligible window: %s", cpEventDetails(over, from, to))
 	// The cap is enforced across the whole eligibility window, including the post-test grace.
 	duringGrace := to.Add(90 * time.Second)
-	overInGrace := oauthScaleEvent(71, duringGrace)
+	overInGrace := oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit+1, duringGrace)
 	assert.Falsef(t, m.Allows(overInGrace, v1.HighlyAvailableTopologyMode),
 		"over-cap event must be rejected even within the post-test grace: %s", cpEventDetails(overInGrace, from, to))
 }
@@ -217,13 +217,14 @@ func TestAuthenticationComponentProxyScalingReplicaSet_NegativeControls(t *testi
 	events, from, to := onePassingWindow()
 	m := scalingMatcher(t, events)
 	in := from.Add(2 * time.Minute)
-	t.Logf("negative controls: %s", cpEventDetails(oauthScaleEvent(30, in), from, to))
+	const observedCount = 103
+	t.Logf("negative controls: %s", cpEventDetails(oauthScaleEvent(observedCount, in), from, to))
 
-	assert.False(t, m.Allows(oauthScaleEventNS("openshift-authentication", "not-oauth-openshift", "ScalingReplicaSet", 30, in), v1.HighlyAvailableTopologyMode),
+	assert.False(t, m.Allows(oauthScaleEventNS("openshift-authentication", "not-oauth-openshift", "ScalingReplicaSet", observedCount, in), v1.HighlyAvailableTopologyMode),
 		"wrong deployment not allowed")
-	assert.False(t, m.Allows(oauthScaleEventNS("openshift-authentication", "oauth-openshift", "DeploymentUpdated", 30, in), v1.HighlyAvailableTopologyMode),
+	assert.False(t, m.Allows(oauthScaleEventNS("openshift-authentication", "oauth-openshift", "DeploymentUpdated", observedCount, in), v1.HighlyAvailableTopologyMode),
 		"wrong reason not allowed")
-	assert.False(t, m.Allows(oauthScaleEventNS("openshift-other", "oauth-openshift", "ScalingReplicaSet", 30, in), v1.HighlyAvailableTopologyMode),
+	assert.False(t, m.Allows(oauthScaleEventNS("openshift-other", "oauth-openshift", "ScalingReplicaSet", observedCount, in), v1.HighlyAvailableTopologyMode),
 		"wrong namespace not allowed")
 
 	// Without eligible test intervals, the matcher is not registered and grants no exception.
@@ -231,7 +232,7 @@ func TestAuthenticationComponentProxyScalingReplicaSet_NegativeControls(t *testi
 	matcher, err := withoutTests.GetMatcherByName("AuthenticationComponentProxyScalingReplicaSet")
 	assert.Error(t, err)
 	assert.Nil(t, matcher)
-	allowed, _ := withoutTests.AllowedByAny(oauthScaleEvent(70, in), v1.HighlyAvailableTopologyMode)
+	allowed, _ := withoutTests.AllowedByAny(oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, in), v1.HighlyAvailableTopologyMode)
 	assert.False(t, allowed,
 		"without an eligible test the oauth scaling exception must not apply")
 }
@@ -245,7 +246,7 @@ func TestAuthenticationComponentProxyScalingReplicaSet_FailedOrSkippedWindowExcl
 		events := monitorapi.Intervals{cpTestInterval(cpEligibleFullNames[0], status, from, to)}
 		reg := NewUniversalPathologicalEventMatchers(nil, events)
 		eventTime := from.Add(2 * time.Minute)
-		inWindow := oauthScaleEvent(70, eventTime)
+		inWindow := oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, eventTime)
 		allowed, _ := reg.AllowedByAny(inWindow, v1.HighlyAvailableTopologyMode)
 		assert.Falsef(t, allowed, "status %q must NOT grant the exception: %s", status, cpEventDetails(inWindow, from, to))
 	}
@@ -265,7 +266,7 @@ func TestAuthenticationComponentProxyScalingReplicaSet_AdjacentWindowGapNotAllow
 	}
 	m := scalingMatcher(t, events)
 	gapTime := wA1.Add(11 * time.Minute)
-	inGap := oauthScaleEvent(70, gapTime) // well past A+grace, before B
+	inGap := oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, gapTime) // well past A+grace, before B
 	assert.Falsef(t, m.Allows(inGap, v1.HighlyAvailableTopologyMode),
 		"latest occurrence in the inter-test gap must not be allowed despite earlier overlap; first window: %s; second window: %s",
 		cpEventDetails(inGap, wA0, wA1), cpEventDetails(inGap, wB0, wB1))
@@ -291,7 +292,7 @@ func TestAuthenticationComponentProxyScalingReplicaSet_DegenerateWindowExcluded(
 		events := monitorapi.Intervals{cpTestInterval(cpEligibleFullNames[0], "Passed", c.from, c.to)}
 		reg := NewUniversalPathologicalEventMatchers(nil, events)
 		// Probe near cpT0 where a real window would have been.
-		ev := oauthScaleEvent(70, probeTime)
+		ev := oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, probeTime)
 		allowed, _ := reg.AllowedByAny(ev, v1.HighlyAvailableTopologyMode)
 		assert.Falsef(t, allowed, "degenerate window %q must grant no exception: %s", c.name, cpEventDetails(ev, c.from, c.to))
 	}
@@ -343,8 +344,8 @@ func TestAuthenticationComponentProxyOperatorEvents(t *testing.T) {
 }
 
 // TestAuthenticationComponentProxyScalingReplicaSet_ThroughLegacyConsumer drives the actual
-// legacy evaluator end-to-end: an in-window 70 passes, 71 rejects, and a 70 past the grace
-// rejects.
+// legacy evaluator end-to-end: in-window counts 103 and 105 pass, 106 rejects, and a count at
+// the cap past the grace rejects.
 func TestAuthenticationComponentProxyScalingReplicaSet_ThroughLegacyConsumer(t *testing.T) {
 	from := cpT0
 	to := cpT0.Add(4 * time.Minute)
@@ -367,13 +368,15 @@ func TestAuthenticationComponentProxyScalingReplicaSet_ThroughLegacyConsumer(t *
 	}
 
 	duringTest := from.Add(2 * time.Minute)
-	assert.False(t, run(oauthScaleEvent(70, duringTest)).failed, "in-window event must pass the legacy consumer")
+	assert.Equal(t, 105, authenticationComponentProxyScalingReplicaSetRepeatLimit, "requested numeric policy must remain pinned")
+	assert.False(t, run(oauthScaleEvent(103, duringTest)).failed, "observed in-window count must pass the legacy consumer")
+	assert.False(t, run(oauthScaleEvent(105, duringTest)).failed, "in-window event at the cap must pass the legacy consumer")
 	duringGrace := to.Add(90 * time.Second)
-	assert.Falsef(t, run(oauthScaleEvent(70, duringGrace)).failed,
+	assert.Falsef(t, run(oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, duringGrace)).failed,
 		"event within the %s grace must pass", authenticationComponentProxyPostTestGrace)
-	assert.True(t, run(oauthScaleEvent(71, duringTest)).failed, "over-cap event must be rejected")
+	assert.True(t, run(oauthScaleEvent(106, duringTest)).failed, "over-cap event must be rejected")
 	afterGrace := to.Add(authenticationComponentProxyPostTestGrace + 30*time.Second)
-	assert.Truef(t, run(oauthScaleEvent(70, afterGrace)).failed,
+	assert.Truef(t, run(oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, afterGrace)).failed,
 		"event past the %s grace must be rejected", authenticationComponentProxyPostTestGrace)
 }
 
@@ -383,7 +386,7 @@ const cpNoProxyName = cpPrefix + " oauth-server should bypass proxy by directly 
 // TestAuthenticationComponentProxyScalingReplicaSet_NoProxyWindow pins the newly eligible
 // noProxy bypass test through the actual registry and legacy consumer. The window behaves
 // exactly like the other eligible tests: a pathological repeat (>20) whose latest occurrence
-// falls inside the passing window or within the post-test grace is tolerated up to 70;
+// falls inside the passing window or within the post-test grace is tolerated up to 105;
 // everything else is rejected. Only a completed, Passed noProxy run grants the window, and the
 // name must match exactly.
 func TestAuthenticationComponentProxyScalingReplicaSet_NoProxyWindow(t *testing.T) {
@@ -426,19 +429,19 @@ func TestAuthenticationComponentProxyScalingReplicaSet_NoProxyWindow(t *testing.
 	// Matcher-level boundary checks scoped to the passing noProxy window.
 	m := scalingMatcher(t, monitorapi.Intervals{passing})
 	duringGrace := to.Add(90 * time.Second)
-	withinGrace := oauthScaleEvent(70, duringGrace)
+	withinGrace := oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, duringGrace)
 	assert.Truef(t, m.Allows(withinGrace, v1.HighlyAvailableTopologyMode),
 		"event within the grace of the noProxy window is accepted: %s", cpEventDetails(withinGrace, from, to))
 	afterGrace := to.Add(authenticationComponentProxyPostTestGrace + 30*time.Second)
-	pastGrace := oauthScaleEvent(70, afterGrace)
+	pastGrace := oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, afterGrace)
 	assert.Falsef(t, m.Allows(pastGrace, v1.HighlyAvailableTopologyMode),
 		"event past the noProxy grace is rejected: %s", cpEventDetails(pastGrace, from, to))
 	// cover [end+grace-0.5s, end+grace+0.5s) straddles the grace boundary -> rejected.
 	straddlingGrace := to.Add(authenticationComponentProxyPostTestGrace - 500*time.Millisecond)
-	straddles := oauthScaleEvent(70, straddlingGrace)
+	straddles := oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, straddlingGrace)
 	assert.Falsef(t, m.Allows(straddles, v1.HighlyAvailableTopologyMode),
 		"event cover straddling the noProxy grace boundary is rejected: %s", cpEventDetails(straddles, from, to))
-	overCap := oauthScaleEvent(71, duringTest)
+	overCap := oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit+1, duringTest)
 	assert.Falsef(t, m.Allows(overCap, v1.HighlyAvailableTopologyMode),
 		"over-cap event inside the noProxy window is rejected: %s", cpEventDetails(overCap, from, to))
 }
@@ -768,10 +771,20 @@ func TestAuthenticationComponentProxy_DiscountsInWindowOccurrences(t *testing.T)
 			name:       "aggregated Event discounted even when the cumulative count exceeds the in-window cap",
 			testStatus: "Passed",
 			namespace:  "openshift-authentication",
-			// 60 in-window occurrences (cap 70) plus 11 outside: cumulative 71 > 70.
+			// 86 in-window occurrences (cap 105) plus 20 outside: cumulative 106 > 105.
 			events: concat(
-				scaling.series(1, 60, proxyStart),
-				scaling.series(61, 71, later)),
+				scaling.series(1, 86, proxyStart),
+				scaling.series(87, 106, later)),
+		},
+		{
+			name:       "aggregated Event outside residual over threshold rejected above the in-window cap",
+			testStatus: "Passed",
+			namespace:  "openshift-authentication",
+			// 85 in-window occurrences plus 21 outside: cumulative 106 > 105.
+			events: concat(
+				scaling.series(1, 85, proxyStart),
+				scaling.series(86, 106, later)),
+			wantFailed: true,
 		},
 		{
 			name:       "out-of-window occurrences over threshold rejected above the in-window cap",

@@ -653,9 +653,9 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^oauth-openshift$`),
 				},
 				messageReasonRegex: regexp.MustCompile(`^ScalingReplicaSet$`),
-				// Observed 58 times during the proxy tests, including cleanup.
-				// Rounded to 70, close to 15%
-				repeatThresholdOverride: 70,
+				// Observed cumulative counts up to 103 within eligible proxy-test windows.
+				// Keep a narrow buffer above the highest observed cumulative count.
+				repeatThresholdOverride: authenticationComponentProxyScalingReplicaSetRepeatLimit,
 			},
 		} {
 			matcher := &OverlapOtherIntervalsPathologicalEventMatcher{
