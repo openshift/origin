@@ -655,19 +655,29 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		// Snapshot original egress-assignable state for all worker nodes before Step-3 modification
 		defer func() {
 			g.By("Cleanup: restoring original egress-assignable markers on all worker nodes")
+			var cleanupErrors []error
 			for nodeName, state := range originalWorkerStates {
 				if state.hasAnnotation {
-					_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "annotate", "node", nodeName, "k8s.ovn.org/egress-assignable=", "--overwrite")
+					if _, err := e2ekubectl.RunKubectl(f.Namespace.Name, "annotate", "node", nodeName, "k8s.ovn.org/egress-assignable=", "--overwrite"); err != nil {
+						cleanupErrors = append(cleanupErrors, fmt.Errorf("failed to restore annotation on node %s: %w", nodeName, err))
+					}
 				} else {
-					_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "annotate", "node", nodeName, "k8s.ovn.org/egress-assignable-", "--overwrite")
+					if _, err := e2ekubectl.RunKubectl(f.Namespace.Name, "annotate", "node", nodeName, "k8s.ovn.org/egress-assignable-", "--overwrite"); err != nil {
+						cleanupErrors = append(cleanupErrors, fmt.Errorf("failed to remove annotation on node %s: %w", nodeName, err))
+					}
 				}
 
 				if state.hasLabel {
-					_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "label", "node", nodeName, "k8s.ovn.org/egress-assignable=", "--overwrite")
+					if _, err := e2ekubectl.RunKubectl(f.Namespace.Name, "label", "node", nodeName, "k8s.ovn.org/egress-assignable=", "--overwrite"); err != nil {
+						cleanupErrors = append(cleanupErrors, fmt.Errorf("failed to restore label on node %s: %w", nodeName, err))
+					}
 				} else {
-					_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "label", "node", nodeName, "k8s.ovn.org/egress-assignable-", "--overwrite")
+					if _, err := e2ekubectl.RunKubectl(f.Namespace.Name, "label", "node", nodeName, "k8s.ovn.org/egress-assignable-", "--overwrite"); err != nil {
+						cleanupErrors = append(cleanupErrors, fmt.Errorf("failed to remove label on node %s: %w", nodeName, err))
+					}
 				}
 			}
+			o.Expect(cleanupErrors).To(o.BeEmpty(), "errors encountered while restoring worker node markers: %v", cleanupErrors)
 		}()
 
 		// Verify only target node is egress-assignable with polling to allow controller sync
@@ -748,10 +758,14 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		// Register cleanup before creation loop so partial creation failures are cleaned up
 		defer func() {
 			g.By("Cleanup: deleting all created test EgressIPs")
+			var deleteErrors []error
 			for _, item := range createdEIPs {
 				framework.Logf("Cleanup: deleting EgressIP %s", item.name)
-				_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "delete", "egressip", item.name, "--ignore-not-found=true")
+				if _, err := e2ekubectl.RunKubectl(f.Namespace.Name, "delete", "egressip", item.name, "--ignore-not-found=true"); err != nil {
+					deleteErrors = append(deleteErrors, fmt.Errorf("failed to delete EgressIP %s: %w", item.name, err))
+				}
 			}
+			o.Expect(deleteErrors).To(o.BeEmpty(), "errors encountered during EgressIP deletion cleanup: %v", deleteErrors)
 		}()
 
 		for i := 0; i < totalEIPs; i++ {
