@@ -571,11 +571,18 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 	}) // end testing to external targets
 
 	/*
-		OCPBUGS-85540 / PR #7094 / Downstream PR #3591 / Origin PR #31841:
 		Verify that when EgressIP creation exceeds node capacity:
 		  - Exactly usableCapacity EgressIPs are assigned to the target node.
 		  - The last 2 overflow EgressIPs remain unassigned.
 		  - For unassigned EgressIPs, CloudPrivateIPConfig objects are NOT created.
+		Steps:
+			Step-1: Checking if we have at least 1 egress node for testing
+			Step-2: Select one worker node for capacity testing
+			Step-3: Removing egress-assignable annotation and label from all worker nodes except Selected Node
+			Step-4: Find Capacity, Subnet & target interface of the Selected Node
+			Step-5: Creating (usableCapacity + 2) EgressIPs on the same subnet as target node
+			Step-6: Identify the 2 unassigned overflow EgressIPs
+			Step-7: Validate that NO CloudPrivateIPConfig CRDs were created for the unassigned EgressIPs
 	*/
 	g.It("Should not create CloudPrivateIPConfig or assign EgressIPs exceeding cloud node capacity [Cloud] [Serial]", func() {
 		f := oc.KubeFramework()
@@ -592,9 +599,27 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		targetNode, err := f.ClientSet.CoreV1().Nodes().Get(context.TODO(), targetNodeName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get target worker node %s", targetNodeName)
 
+		// Snapshot original egress-assignable state for all worker nodes before Step-3 modification
+		type nodeMarkerState struct {
+			hasLabel      bool
+			hasAnnotation bool
+		}
+		originalWorkerStates := make(map[string]nodeMarkerState)
+
 		g.By("Step-3: Removing egress-assignable annotation and label from all worker nodes except Selected Node")
 		allNodes, err := f.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to list cluster nodes")
+		for _, node := range allNodes.Items {
+			if _, isWorker := node.Labels["node-role.kubernetes.io/worker"]; isWorker {
+				_, hasLabel := node.Labels["k8s.ovn.org/egress-assignable"]
+				_, hasAnnotation := node.Annotations["k8s.ovn.org/egress-assignable"]
+				originalWorkerStates[node.Name] = nodeMarkerState{
+					hasLabel:      hasLabel,
+					hasAnnotation: hasAnnotation,
+				}
+			}
+		}
+
 		for _, node := range allNodes.Items {
 			if _, isWorker := node.Labels["node-role.kubernetes.io/worker"]; isWorker && node.Name != targetNodeName {
 				framework.Logf("Removing egress-assignable from non-target worker node: %s", node.Name)
@@ -608,20 +633,20 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "annotate", "node", targetNodeName, "k8s.ovn.org/egress-assignable=", "--overwrite")
 		_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "label", "node", targetNodeName, "k8s.ovn.org/egress-assignable=", "--overwrite")
 
-		// Defer cleanup to remove egress-assignable from target node and ensure cluster clean state
+		// Snapshot original egress-assignable state for all worker nodes before Step-3 modification
 		defer func() {
-			g.By("Cleanup: removing egress-assignable annotation and label from target node and all worker nodes")
-			framework.Logf("Cleanup: removing egress-assignable from target node: %s", targetNodeName)
-			_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "annotate", "node", targetNodeName, "k8s.ovn.org/egress-assignable-", "--overwrite")
-			_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "label", "node", targetNodeName, "k8s.ovn.org/egress-assignable-", "--overwrite")
-			cleanNodes, err := f.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
-			if err == nil {
-				for _, node := range cleanNodes.Items {
-					if _, isWorker := node.Labels["node-role.kubernetes.io/worker"]; isWorker {
-						framework.Logf("Cleanup: removing egress-assignable from worker node: %s", node.Name)
-						_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "annotate", "node", node.Name, "k8s.ovn.org/egress-assignable-", "--overwrite")
-						_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "label", "node", node.Name, "k8s.ovn.org/egress-assignable-", "--overwrite")
-					}
+			g.By("Cleanup: restoring original egress-assignable markers on all worker nodes")
+			for nodeName, state := range originalWorkerStates {
+				if state.hasAnnotation {
+					_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "annotate", "node", nodeName, "k8s.ovn.org/egress-assignable=", "--overwrite")
+				} else {
+					_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "annotate", "node", nodeName, "k8s.ovn.org/egress-assignable-", "--overwrite")
+				}
+
+				if state.hasLabel {
+					_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "label", "node", nodeName, "k8s.ovn.org/egress-assignable=", "--overwrite")
+				} else {
+					_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "label", "node", nodeName, "k8s.ovn.org/egress-assignable-", "--overwrite")
 				}
 			}
 		}()
@@ -692,10 +717,30 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		}
 		var createdEIPs []testEIPItem
 
+		// Pre-flight check ensuring generated IPs stay strictly within targetSubnet
+		for i := 0; i < totalEIPs; i++ {
+			curInt := ipInt + uint32(i)
+			candidate := net.IPv4(byte(curInt>>24), byte(curInt>>16), byte(curInt>>8), byte(curInt))
+			if !targetSubnet.Contains(candidate) {
+				framework.Failf("Generated EgressIP %s is outside node subnet %s (capacity %d exceeds the supported subnet range)", candidate.String(), targetSubnet.String(), usableCapacity)
+			}
+		}
+
+		// Register cleanup before creation loop so partial creation failures are cleaned up
+		defer func() {
+			g.By("Cleanup: deleting all created test EgressIPs")
+			for _, item := range createdEIPs {
+				framework.Logf("Cleanup: deleting EgressIP %s", item.name)
+				_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "delete", "egressip", item.name, "--ignore-not-found=true")
+			}
+		}()
+
 		for i := 0; i < totalEIPs; i++ {
 			curInt := ipInt + uint32(i)
 			eipIP := fmt.Sprintf("%d.%d.%d.%d", byte(curInt>>24), byte(curInt>>16), byte(curInt>>8), byte(curInt))
 			eipName := fmt.Sprintf("e2e-capacity-eip-%d-%s", i, strings.ReplaceAll(eipIP, ".", "-"))
+
+			createdEIPs = append(createdEIPs, testEIPItem{name: eipName, ip: eipIP})
 
 			eipYAML := fmt.Sprintf(`
 apiVersion: k8s.ovn.org/v1
@@ -713,18 +758,8 @@ spec:
 			_, err := e2ekubectl.RunKubectlInput(f.Namespace.Name, eipYAML, "apply", "-f", "-")
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to create EgressIP %s", eipName)
 
-			createdEIPs = append(createdEIPs, testEIPItem{name: eipName, ip: eipIP})
 			framework.Logf("Created EgressIP [%d/%d]: %s, IP: %s, Intended Target: %s", i+1, totalEIPs, eipName, eipIP, targetNode.Name)
 		}
-
-		// Cleanup created EgressIPs regardless of test success or failure
-		defer func() {
-			g.By("Cleanup: deleting all created test EgressIPs")
-			for _, item := range createdEIPs {
-				framework.Logf("Cleanup: deleting EgressIP %s", item.name)
-				_, _ = e2ekubectl.RunKubectl(f.Namespace.Name, "delete", "egressip", item.name, "--ignore-not-found=true")
-			}
-		}()
 
 		g.By(fmt.Sprintf("Validating exactly %d EgressIPs are assigned to target node %s", usableCapacity, targetNode.Name))
 		var assignedEIPs []string
