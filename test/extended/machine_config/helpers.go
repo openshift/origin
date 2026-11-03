@@ -380,12 +380,13 @@ func GetRandomSchedulableWorkerNode(oc *exutil.CLI) corev1.Node {
 
 	var readyNodes []corev1.Node
 	for _, node := range nodes {
-		// Exclude nodes that also hold the control-plane or master role: they
-		// belong to the master pool and cannot join a custom MCP.
-		if _, ok := node.Labels["node-role.kubernetes.io/control-plane"]; ok {
-			continue
-		}
-		if _, ok := node.Labels["node-role.kubernetes.io/master"]; ok {
+		// Exclude nodes carrying any node-role label besides "worker": a
+		// worker-labeled node with an extra role (control-plane, master, or a
+		// custom role such as infra) already belongs to another
+		// MachineConfigPool, and moving it between pools breaks
+		// CleanupCustomMCP, which waits for the node to return to the worker
+		// configuration after the custom label is removed.
+		if hasExtraNodeRole(node) {
 			continue
 		}
 		// Exclude tainted nodes (dedicated hosts such as the OPCT execution
@@ -414,6 +415,19 @@ func GetRandomSchedulableWorkerNode(oc *exutil.CLI) corev1.Node {
 func hasBlockingTaint(node corev1.Node) bool {
 	for _, taint := range node.Spec.Taints {
 		if taint.Effect == corev1.TaintEffectNoSchedule || taint.Effect == corev1.TaintEffectNoExecute {
+			return true
+		}
+	}
+
+	return false
+}
+
+// `hasExtraNodeRole` reports whether a node carries a node-role label other
+// than "worker" (control-plane, master, or a custom role such as infra); such
+// nodes belong to another MachineConfigPool
+func hasExtraNodeRole(node corev1.Node) bool {
+	for label := range node.Labels {
+		if strings.HasPrefix(label, "node-role.kubernetes.io/") && label != "node-role.kubernetes.io/worker" {
 			return true
 		}
 	}
