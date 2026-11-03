@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -96,10 +97,15 @@ var _ = g.Describe("[sig-service-ca] Service CA serving certificate management",
 		dcErr := oc.Run("create").Args("-f", template).Execute()
 		o.Expect(dcErr).NotTo(o.HaveOccurred())
 
-		podsOutput, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("pod", "-n", testNamespace, "-l", "name=web-server-rc", "-o=jsonpath={.items[*].metadata.name}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		pods := strings.Fields(podsOutput)
-		o.Expect(pods).NotTo(o.BeEmpty())
+		var pods []string
+		o.Eventually(func() []string {
+			podsOutput, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("pod", "-n", testNamespace, "-l", "name=web-server-rc", "-o=jsonpath={.items[*].metadata.name}").Output()
+			if err != nil {
+				return nil
+			}
+			pods = strings.Fields(podsOutput)
+			return pods
+		}, 2*time.Minute, 5*time.Second).ShouldNot(o.BeEmpty())
 		appPodName := pods[0]
 		compat_otp.AssertPodToBeReady(oc, appPodName, testNamespace)
 		cmName, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("configmaps", "nginx-config", "-n", testNamespace, "-o=jsonpath={.metadata.name}").Output()
@@ -199,8 +205,8 @@ var _ = g.Describe("[sig-service-ca] Service CA certificate validation", func() 
 		o.Expect(podIP).NotTo(o.BeEmpty(), "no pod IP found for pod %s", podName)
 
 		g.By("4) Check openshift-apiserver https api metrics endpoint URL for duplicate serial number errors")
-		metricsUrl := fmt.Sprintf(`https://%s:8443/metrics`, podIP)
-		cmd := fmt.Sprintf(`curl -k --connect-timeout 5 --retry 2 -N -s %s`, metricsUrl)
+		metricsUrl := fmt.Sprintf(`https://%s/metrics`, net.JoinHostPort(podIP, "8443"))
+		cmd := fmt.Sprintf(`curl -k --connect-timeout 5 --max-time 30 --retry 2 -N -s %s`, metricsUrl)
 
 		metricsOut, err := oc.AsAdmin().WithoutNamespace().Run("exec").Args("-n", "openshift-apiserver", podName, "-c", "openshift-apiserver", "--", "sh", "-c", cmd).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())

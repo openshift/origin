@@ -326,7 +326,8 @@ var _ = ginkgo.Describe("[Conformance][Suite:openshift/kube-apiserver/rollout][J
 		framework.Logf("Check openshift-kube-apiserver pods current revision before changes")
 		out, revisionChkError := oc.WithoutNamespace().Run("get").Args("po", "-n", "openshift-kube-apiserver", "-l=apiserver", "-o", "jsonpath={.items[*].metadata.labels.revision}").Output()
 		framework.ExpectNoError(revisionChkError)
-		PreRevision, _ := strconv.Atoi(out)
+		PreRevision, convErr := strconv.Atoi(strings.TrimSpace(out))
+		framework.ExpectNoError(convErr, "unexpected kube-apiserver revision output %q", out)
 		framework.Logf("Current revision Count: %v", PreRevision)
 
 		defer func() {
@@ -377,7 +378,16 @@ var _ = ginkgo.Describe("[Conformance][Suite:openshift/kube-apiserver/rollout][J
 		fallbackError := wait.PollUntilContextTimeout(context.Background(), 100*time.Second, 900*time.Second, false, func(cxt context.Context) (bool, error) {
 			annotations, fallbackErr := oc.WithoutNamespace().Run("get").Args("po", "-n", "openshift-kube-apiserver", "-l=apiserver", "-o", `jsonpath={.items[*].metadata.annotations.startup-monitor\.static-pods\.openshift\.io/fallback-for-revision}`).Output()
 			if fallbackErr == nil {
-				failedRevision, _ := strconv.Atoi(annotations)
+				annotations = strings.TrimSpace(annotations)
+				if annotations == "" {
+					framework.Logf("fallback annotation not present yet")
+					return false, nil
+				}
+				failedRevision, convErr := strconv.Atoi(annotations)
+				if convErr != nil {
+					framework.Logf("unexpected fallback annotation %q: %v", annotations, convErr)
+					return false, nil
+				}
 				o.Expect(failedRevision - 1).Should(o.BeNumerically("==", PreRevision))
 				compat_otp.By("Check created soft-link kube-apiserver-last-known-good to the last good revision")
 				out, fileChkError := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, nodes[0], []string{"--to-namespace=openshift-kube-apiserver"}, "bash", "-c", "ls -l /etc/kubernetes/static-pod-resources/kube-apiserver-last-known-good")

@@ -159,7 +159,7 @@ var _ = g.Describe("[Conformance][sig-api-machinery][Feature:APIServer] admin ku
 			userSubj       = dirname + "/O=" + group + "/CN=" + user
 			newKubeconfig  = dirname + "kubeconfig." + user
 			patch          = `[{"op": "add", "path": "/spec/clientCA", "value":{"name":"client-ca-custom"}}]`
-			patchToRecover = `[{"op": "replace", "path": "/spec/clientCA", "value":}]`
+			patchToRecover = `[{"op": "replace", "path": "/spec/clientCA", "value": {"name": ""}}]`
 			configmapBkp   = dirname + "OCP-41899-bkp.yaml"
 		)
 

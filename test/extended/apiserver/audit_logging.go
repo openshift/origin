@@ -49,7 +49,7 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Audit Logging and 
 		var (
 			patchAllRequestBodies   = `{"spec":{"audit":{"profile":"AllRequestBodies"}}}`
 			patchWriteRequestBodies = `{"spec":{"audit":{"profile":"WriteRequestBodies"}}}`
-			podScript               = "grep -r '\"managedFields\":{' /var/log/kube-apiserver | wc -l"
+			podScript               = "grep -r '\"managedFields\":\\[' /var/log/kube-apiserver | wc -l"
 			now                     = time.Now().UTC()
 			unixTimestamp           = now.Unix()
 		)
@@ -63,8 +63,18 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Audit Logging and 
 
 		defer func() {
 			g.By("Cleanup: Revert to original audit profile")
+			currentAPIServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(
+				ctx, "cluster", metav1.GetOptions{})
+			if err != nil {
+				framework.Logf("Warning: failed to get current apiserver profile during cleanup: %v", err)
+				return
+			}
+			if currentAPIServer.Spec.Audit.Profile == originalProfile {
+				framework.Logf("Audit profile unchanged, skipping rollout wait")
+				return
+			}
 			patch := fmt.Sprintf(`{"spec":{"audit":{"profile":%q}}}`, originalProfile)
-			_, err := oc.AsAdmin().WithoutNamespace().Run("patch").Args(
+			_, err = oc.AsAdmin().WithoutNamespace().Run("patch").Args(
 				"apiserver", "cluster",
 				"--type=merge",
 				"--patch="+patch,
@@ -130,7 +140,10 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Audit Logging and 
 		apiserverauth.CheckApiserversAuditPolicies(oc, "AllRequestBodies")
 
 		g.By("10) Verify verbs and managedFields in kube-apiserver audit logs after AllRequestBodies profile")
-		masterNodeLogs, errCount = apiserverauth.CheckAuditLogs(oc, script, masterNodes[0], "openshift-kube-apiserver")
+		nowAllReq := time.Now().UTC()
+		unixTimestampAllReq := nowAllReq.Unix()
+		scriptAllReq := fmt.Sprintf(`grep -hE "\"verb\":\"(create|delete|patch|update)\",\"user\":.*(requestObject|responseObject)|\"verb\":\"(get|list|watch)\",\"user\":.*(requestObject|responseObject)" /var/log/kube-apiserver/audit.log | jq -r "select (.requestReceivedTimestamp | .[0:19] + \"Z\" | fromdateiso8601 > %v)" | tail -n 1`, unixTimestampAllReq)
+		masterNodeLogs, errCount = apiserverauth.CheckAuditLogs(oc, scriptAllReq, masterNodes[0], "openshift-kube-apiserver")
 		if errCount == 0 {
 			framework.Failf("Post audit profile to AllRequestBodies, No Verbs in kube-apiserver audit logs on master node %v :: %v", masterNodes[0], masterNodeLogs)
 		}
@@ -416,12 +429,12 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Audit Logging and 
 		exceptions := `W[0-9]{4}|panicked: false|e2e-test-|kernel.*-panic|non-fatal|(ocp|OCP)\d{4,}|W\d{4}.*fatal|SHOULD NOT HAPPEN.*(pwomnew|lmnew|pmnew|lwomnew)-(app|build)|SubjectAccessReview|LocalResourceAccessReview|(APIServicesDegraded|ConfigObservationDegraded|APIServerWorkloadDegraded|APIServerDeploymentAvailable|APIServerDeploymentDegraded|APIServicesAvailable|APIServerDeploymentProgressing).*fatal`
 		cmd := fmt.Sprintf(`export KUBECONFIG=/etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-ext.kubeconfig
 grep -hriE "(%s%s%s)+" /var/log/pods/openshift-apiserver-operator* | grep -Ev "%s" > /tmp/OCP-38865-oaso-errors.log
-sed -E "s/%s/../g" /tmp/OCP-38865-oaso-errors.log | sort | uniq -c | sort -h | tee /tmp/OCP-38865-oaso-uniq-errors.log | head -10
 echo '%s'
+sed -E "s/%s/../g" /tmp/OCP-38865-oaso-errors.log | sort | uniq -c | sort -h | tee /tmp/OCP-38865-oaso-uniq-errors.log | head -10
 while read line; do
     grep "$line" /tmp/OCP-38865-oaso-errors.log | head -1
 done < <(grep -oP "\w+?\.go\:[0-9]+" /tmp/OCP-38865-oaso-uniq-errors.log | uniq | head -10)
-echo '%s'`, frontwords, keywords, afterwords, exceptions, format, startTag, endTag)
+echo '%s'`, frontwords, keywords, afterwords, exceptions, startTag, format, endTag)
 		masterNode, err := oc.WithoutNamespace().Run("get").Args("po", "-n", clusterOperator, "-o", `jsonpath={.items[0].spec.nodeName}`).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -472,12 +485,12 @@ echo '%s'`, exceptions, startTag, exceptions, endTag)
 		g.By("6) On all master nodes, check OAS log files for abnormal (fatal/SHOULD NOT HAPPEN) logs, expect none")
 		keywords = "fatal|SHOULD NOT HAPPEN"
 		cmd = fmt.Sprintf(`grep -hriE "(%s%s%s)+" /var/log/pods/openshift-apiserver_apiserver* | grep -Ev "%s"  > /tmp/OCP-38865-oas-errors.log
-sed -E "s/%s/../g" /tmp/OCP-38865-oas-errors.log | sort | uniq -c | sort -h | tee > /tmp/OCP-38865-oas-uniq-errors.log | head -10
 echo '%s'
+sed -E "s/%s/../g" /tmp/OCP-38865-oas-errors.log | sort | uniq -c | sort -h | tee /tmp/OCP-38865-oas-uniq-errors.log | head -10
 while read line; do
     grep "$line" /tmp/OCP-38865-oas-errors.log | head -1
 done < <(grep -oP "\w+?\.go\:[0-9]+" /tmp/OCP-38865-oas-uniq-errors.log | uniq | head -10)
-echo '%s'`, frontwords, keywords, afterwords, exceptions, format, startTag, endTag)
+echo '%s'`, frontwords, keywords, afterwords, exceptions, startTag, format, endTag)
 
 		for i, masterNode := range masterNodes {
 			g.By(fmt.Sprintf("6.%d) Get log file from %s", i+1, masterNode))
@@ -551,7 +564,11 @@ var _ = g.Describe("[sig-api-machinery] Kube APIServer Error Checking", func() {
 			regexToGrep2 = "(" + words + keywords + afterwords + ")" + "+"
 		)
 
-		defer os.RemoveAll(dirname)
+		defer func() {
+			if err := os.RemoveAll(dirname); err != nil {
+				framework.Logf("Warning: failed to cleanup directory %s: %v", dirname, err)
+			}
+		}()
 		err = os.MkdirAll(dirname, 0755)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -569,7 +586,7 @@ var _ = g.Describe("[sig-api-machinery] Kube APIServer Error Checking", func() {
 		masterNode, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("nodes", "--selector=node-role.kubernetes.io/master=", "-o=jsonpath={.items[*].metadata.name}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		masterName := strings.Fields(masterNode)
-		cmd = fmt.Sprintf(`grep -rohiE '%s' |grep -iEv '%s' /var/log/pods/openshift-kube-apiserver_kube-apiserver*/*/* | sed -E 's/%s/../g'`, regexToGrep2, exceptions, format)
+		cmd = fmt.Sprintf(`grep -rhiE '%s' /var/log/pods/openshift-kube-apiserver_kube-apiserver*/*/* | grep -iEv '%s' | grep -oiE '%s' | sed -E 's/%s/../g'`, regexToGrep2, exceptions, regexToGrep2, format)
 		for i := 0; i < len(masterName); i++ {
 			_, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args("-n", "openshift-kube-apiserver", "node/"+masterName[i], "--", "chroot", "/host", "bash", "-c", cmd).OutputToFile("OCP-43889/kas_pod.log." + masterName[i])
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -580,7 +597,7 @@ var _ = g.Describe("[sig-api-machinery] Kube APIServer Error Checking", func() {
 		framework.Logf("%s", kasPodlogs)
 
 		g.By("3) Check the audit log files of KAS")
-		cmd = fmt.Sprintf(`grep -rohiE '%s' /var/log/kube-apiserver/audit*.log |grep -iEv '%s' | sed -E 's/%s/../g'`, regexToGrep2, exceptions, format)
+		cmd = fmt.Sprintf(`grep -rhiE '%s' /var/log/kube-apiserver/audit*.log | grep -iEv '%s' | grep -oiE '%s' | sed -E 's/%s/../g'`, regexToGrep2, exceptions, regexToGrep2, format)
 		for i := 0; i < len(masterName); i++ {
 			_, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args("-n", "openshift-kube-apiserver", "node/"+masterName[i], "--", "chroot", "/host", "bash", "-c", cmd).OutputToFile("OCP-43889/kas_audit.log." + masterName[i])
 			o.Expect(err).NotTo(o.HaveOccurred())

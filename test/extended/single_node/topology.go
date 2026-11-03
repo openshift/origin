@@ -192,7 +192,10 @@ var _ = ginkgo.Describe("[sig-arch] Single node upgrade tests", func() {
 		if len(matches) <= 1 {
 			e2e.Failf("No match last-known-good config file for kube-apiserver found!")
 		}
-		lastGoodRevision, _ := strconv.Atoi(matches[1])
+		lastGoodRevision, err := strconv.Atoi(matches[1])
+		if err != nil {
+			e2e.Failf("Failed to parse last-known-good revision %q: %v", matches[1], err)
+		}
 		gomega.Expect(lastGoodRevision).To(gomega.BeNumerically(">", 0))
 
 		ginkgo.By("4) Check cluster operator kube-apiserver is normal, not degraded, and does not contain abnormal statuses")
@@ -201,7 +204,10 @@ var _ = ginkgo.Describe("[sig-arch] Single node upgrade tests", func() {
 		ginkgo.By("5) Check the currentRevision kube-apiserver should be the same with last-known-good pointing")
 		kasOperatorCurrentRevision, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("kubeapiserver.operator", "cluster", "-o", "jsonpath={.status.nodeStatuses[0].currentRevision}").Output()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-		n, _ := strconv.Atoi(kasOperatorCurrentRevision)
+		n, err := strconv.Atoi(kasOperatorCurrentRevision)
+		if err != nil {
+			e2e.Failf("Failed to parse current revision %q: %v", kasOperatorCurrentRevision, err)
+		}
 		gomega.Expect(n).To(gomega.Equal(lastGoodRevision))
 	})
 })
