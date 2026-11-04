@@ -35,6 +35,7 @@ type staticPodFailure struct {
 	failureMessage    string
 }
 
+// staticPodFailureFromMessage extracts the pod identity and revision needed to match recovery evidence.
 func staticPodFailureFromMessage(message string) (*staticPodFailure, error) {
 	matches := staticPodFailureRegex.FindStringSubmatch(message)
 	if len(matches) != 5 {
@@ -54,6 +55,7 @@ func staticPodFailureFromMessage(message string) (*staticPodFailure, error) {
 	}, nil
 }
 
+// testStaticPodLifecycleFailure reports failures without readiness evidence after their latest occurrence.
 func testStaticPodLifecycleFailure(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	ctx := context.TODO()
 	const testName = `[sig-node] static pods should start after being created`
@@ -142,6 +144,8 @@ func testStaticPodLifecycleFailure(events monitorapi.Intervals, kubeClientConfig
 	}
 }
 
+// staticPodEventTime includes aggregated repeats so readiness between occurrences
+// cannot forgive a later failure.
 func staticPodEventTime(event eventsv1.Event) time.Time {
 	lastObserved := event.EventTime.Time
 	if event.Series != nil && event.Series.LastObservedTime.After(lastObserved) {
@@ -153,6 +157,8 @@ func staticPodEventTime(event eventsv1.Event) time.Time {
 	return lastObserved
 }
 
+// staticPodFailureRecovered requires fresh readiness for the failed node and revision.
+// Mirror-pod readiness handles same-revision restorations without revision-change events.
 func staticPodFailureRecovered(ctx context.Context, kubeClient kubernetes.Interface, failure staticPodFailure, events []eventsv1.Event) (bool, error) {
 	if failure.lastObserved.IsZero() {
 		return false, nil

@@ -15,6 +15,7 @@ import (
 	clienttesting "k8s.io/client-go/testing"
 )
 
+// Test_staticPodFailureFromMessage verifies recovery identity is parsed from operator failures.
 func Test_staticPodFailureFromMessage(t *testing.T) {
 	type args struct {
 		message string
@@ -65,6 +66,7 @@ func Test_staticPodFailureFromMessage(t *testing.T) {
 	}
 }
 
+// TestStaticPodFailureRecovered distinguishes fresh recovery from stale or mismatched evidence.
 func TestStaticPodFailureRecovered(t *testing.T) {
 	t.Parallel()
 	failureTime := time.Date(2026, 11, 1, 8, 21, 27, 0, time.UTC)
@@ -86,10 +88,10 @@ func TestStaticPodFailureRecovered(t *testing.T) {
 		repeated  bool
 		want      bool
 	}{
-		{name: "green history earlier revision 21 readiness cannot forgive missing revision 21", revision: 21, events: []eventsv1.Event{readyEvent("node", 21, failureTime.Add(-6*time.Minute-32*time.Second))}, noPod: true},
-		{name: "red history earlier revision 15 cannot forgive missing revision 19", revision: 19, events: []eventsv1.Event{readyEvent("node", 15, failureTime.Add(-16*time.Minute-15*time.Second))}, noPod: true},
-		{name: "red history restored revision 19 mirror pod", revision: 19, events: []eventsv1.Event{readyEvent("node", 15, failureTime.Add(-16*time.Minute-15*time.Second))}, want: true},
-		{name: "green history restored revision 21 mirror pod", revision: 21, events: []eventsv1.Event{readyEvent("node", 21, failureTime.Add(-6*time.Minute-32*time.Second))}, want: true},
+		{name: "earlier matching revision readiness does not recover a missing pod", revision: 21, events: []eventsv1.Event{readyEvent("node", 21, failureTime.Add(-6*time.Minute-32*time.Second))}, noPod: true},
+		{name: "earlier older revision readiness does not recover a missing pod", revision: 19, events: []eventsv1.Event{readyEvent("node", 15, failureTime.Add(-16*time.Minute-15*time.Second))}, noPod: true},
+		{name: "matching mirror pod recovers despite earlier older revision readiness", revision: 19, events: []eventsv1.Event{readyEvent("node", 15, failureTime.Add(-16*time.Minute-15*time.Second))}, want: true},
+		{name: "matching mirror pod recovers despite earlier matching revision readiness", revision: 21, events: []eventsv1.Event{readyEvent("node", 21, failureTime.Add(-6*time.Minute-32*time.Second))}, want: true},
 		{name: "same revision recovery without revision event", want: true},
 		{name: "later revision mirror pod", mutatePod: func(pod *corev1.Pod) { pod.Labels["revision"] = "22" }, want: true},
 		{name: "later same revision event", events: []eventsv1.Event{readyEvent("node", 19, failureTime.Add(time.Second))}, noPod: true, want: true},
@@ -164,6 +166,7 @@ func TestStaticPodFailureRecovered(t *testing.T) {
 	}
 }
 
+// TestStaticPodEventTime verifies repeated and legacy events use their latest observation.
 func TestStaticPodEventTime(t *testing.T) {
 	t.Parallel()
 	first := time.Date(2026, 11, 1, 8, 0, 0, 0, time.UTC)
