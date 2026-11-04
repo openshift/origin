@@ -15,11 +15,11 @@ func TestNodeResourcePoolSize(t *testing.T) {
 		env  string
 		want int
 	}{
-		{name: "unset uses default", env: "", want: defaultNodeResourcePoolSize},
-		{name: "valid override", env: "5", want: 5},
-		{name: "zero falls back to default", env: "0", want: defaultNodeResourcePoolSize},
-		{name: "negative falls back to default", env: "-2", want: defaultNodeResourcePoolSize},
-		{name: "non-numeric falls back to default", env: "abc", want: defaultNodeResourcePoolSize},
+		{name: "unset uses default", env: "", want: DefaultNodeResourcePoolSize},
+		{name: "valid override", env: "3", want: 3},
+		{name: "zero falls back to default", env: "0", want: DefaultNodeResourcePoolSize},
+		{name: "negative falls back to default", env: "-2", want: DefaultNodeResourcePoolSize},
+		{name: "non-numeric falls back to default", env: "abc", want: DefaultNodeResourcePoolSize},
 	}
 
 	for _, tt := range tests {
@@ -67,7 +67,7 @@ func newTestWorkerMachineSet(name string) *machinev1beta1.MachineSet {
 func TestBuildPoolMachineSet(t *testing.T) {
 	template := newTestWorkerMachineSet("worker-us-east-1a")
 
-	pool := buildPoolMachineSet(template, 3)
+	pool := buildPoolMachineSet(template, DefaultNodeResourcePoolSize)
 
 	if pool.Name == template.Name {
 		t.Errorf("pool MachineSet must get its own name, got the template's name %q", pool.Name)
@@ -75,8 +75,8 @@ func TestBuildPoolMachineSet(t *testing.T) {
 	if pool.Namespace != machineAPINamespace {
 		t.Errorf("pool.Namespace = %q, want %q", pool.Namespace, machineAPINamespace)
 	}
-	if pool.Spec.Replicas == nil || *pool.Spec.Replicas != 3 {
-		t.Errorf("pool.Spec.Replicas = %v, want 3", pool.Spec.Replicas)
+	if pool.Spec.Replicas == nil || *pool.Spec.Replicas != DefaultNodeResourcePoolSize {
+		t.Errorf("pool.Spec.Replicas = %v, want %d", pool.Spec.Replicas, DefaultNodeResourcePoolSize)
 	}
 	if pool.Spec.Selector.MatchLabels[machineSetOwningLabel] != pool.Name {
 		t.Errorf("pool selector must match the pool's own name, got %v", pool.Spec.Selector.MatchLabels)

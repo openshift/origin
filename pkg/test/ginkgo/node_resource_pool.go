@@ -38,8 +38,9 @@ const (
 	// nodeResourcePoolNamePrefix plus a random suffix avoids MachineSet name collisions.
 	nodeResourcePoolNamePrefix = "openshift-tests-noderesource-"
 
-	// defaultNodeResourcePoolSize matches the worker count HA clusters were tuned for.
-	defaultNodeResourcePoolSize = 3
+	// DefaultNodeResourcePoolSize is the default ephemeral worker count for
+	// openshift/nodes/isolated. Override with OPENSHIFT_TESTS_NODERESOURCE_POOL_SIZE.
+	DefaultNodeResourcePoolSize = 5
 	// nodeResourcePoolSizeEnvVar overrides pool size (OPENSHIFT_TESTS_NODERESOURCE_POOL_SIZE).
 	nodeResourcePoolSizeEnvVar = "OPENSHIFT_TESTS_NODERESOURCE_POOL_SIZE"
 
@@ -60,20 +61,20 @@ type nodeResourcePool struct {
 }
 
 // nodeResourcePoolSize returns the number of nodes to provision for the
-// dedicated NodeResource pool, defaulting to defaultNodeResourcePoolSize.
+// dedicated NodeResource pool, defaulting to DefaultNodeResourcePoolSize.
 func nodeResourcePoolSize() int {
 	raw := os.Getenv(nodeResourcePoolSizeEnvVar)
 	if raw == "" {
-		return defaultNodeResourcePoolSize
+		return DefaultNodeResourcePoolSize
 	}
 	n, err := strconv.Atoi(raw)
 	if err != nil || n <= 0 {
-		logrus.Warnf("Ignoring invalid %s=%q, using default of %d", nodeResourcePoolSizeEnvVar, raw, defaultNodeResourcePoolSize)
-		return defaultNodeResourcePoolSize
+		logrus.Warnf("Ignoring invalid %s=%q, using default of %d", nodeResourcePoolSizeEnvVar, raw, DefaultNodeResourcePoolSize)
+		return DefaultNodeResourcePoolSize
 	}
 	if n > math.MaxInt32 {
-		logrus.Warnf("Ignoring %s=%d above MaxInt32, using default of %d", nodeResourcePoolSizeEnvVar, n, defaultNodeResourcePoolSize)
-		return defaultNodeResourcePoolSize
+		logrus.Warnf("Ignoring %s=%d above MaxInt32, using default of %d", nodeResourcePoolSizeEnvVar, n, DefaultNodeResourcePoolSize)
+		return DefaultNodeResourcePoolSize
 	}
 	return n
 }
