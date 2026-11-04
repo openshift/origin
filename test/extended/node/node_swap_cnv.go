@@ -89,13 +89,10 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 
 		// Teardown: Uninstall CNV operator after all tests
 		g.AfterAll(func(ctx context.Context) {
-			// Uninstall CNV operator if we installed it
 			if cnvInstalledByTest {
 				framework.Logf("Uninstalling CNV operator...")
 				err := uninstallCNVOperator(ctx, oc)
-				if err != nil {
-					framework.Logf("Warning: failed to uninstall CNV operator: %v", err)
-				}
+				o.Expect(err).NotTo(o.HaveOccurred(), "CNV uninstall must remove kubevirt cluster RBAC and API extensions")
 			}
 		})
 
