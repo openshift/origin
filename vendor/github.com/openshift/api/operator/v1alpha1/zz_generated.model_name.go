@@ -106,6 +106,11 @@ func (in EtcdBackupStatus) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in GatewayAPIIngressConfig) OpenAPIModelName() string {
+	return "com.github.openshift.api.operator.v1alpha1.GatewayAPIIngressConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in GenerationHistory) OpenAPIModelName() string {
 	return "com.github.openshift.api.operator.v1alpha1.GenerationHistory"
 }
@@ -128,6 +133,26 @@ func (in ImageContentSourcePolicyList) OpenAPIModelName() string {
 // OpenAPIModelName returns the OpenAPI model name for this type.
 func (in ImageContentSourcePolicySpec) OpenAPIModelName() string {
 	return "com.github.openshift.api.operator.v1alpha1.ImageContentSourcePolicySpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in Ingress) OpenAPIModelName() string {
+	return "com.github.openshift.api.operator.v1alpha1.Ingress"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in IngressList) OpenAPIModelName() string {
+	return "com.github.openshift.api.operator.v1alpha1.IngressList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in IngressSpec) OpenAPIModelName() string {
+	return "com.github.openshift.api.operator.v1alpha1.IngressSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in IngressStatus) OpenAPIModelName() string {
+	return "com.github.openshift.api.operator.v1alpha1.IngressStatus"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.

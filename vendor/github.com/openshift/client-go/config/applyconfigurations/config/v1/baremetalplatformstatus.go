@@ -45,6 +45,17 @@ type BareMetalPlatformStatusApplyConfiguration struct {
 	NodeDNSIP *string `json:"nodeDNSIP,omitempty"`
 	// loadBalancer defines how the load balancer used by the cluster is configured.
 	LoadBalancer *BareMetalPlatformLoadBalancerApplyConfiguration `json:"loadBalancer,omitempty"`
+	// vipManagement indicates which VIP management mechanism is active
+	// on this cluster.
+	// Allowed values are `Keepalived`, `BGP`, and omitted.
+	// Once set to a non-empty value, this field is immutable.
+	// When set to `BGP`, kube-vip (Routing Table Mode) and frr-k8s are
+	// deployed as static pods to advertise VIPs via BGP, replacing the
+	// default keepalived/VRRP mechanism.
+	// When set to `Keepalived`, the default keepalived-based VIP
+	// management is used.
+	// When omitted, the default keepalived-based VIP management is used.
+	VIPManagement *configv1.VIPManagementType `json:"vipManagement,omitempty"`
 	// dnsRecordsType determines whether records for api, api-int, and ingress
 	// are provided by the internal DNS service or externally.
 	// Allowed values are `Internal`, `External`, and omitted.
@@ -117,6 +128,14 @@ func (b *BareMetalPlatformStatusApplyConfiguration) WithNodeDNSIP(value string) 
 // If called multiple times, the LoadBalancer field is set to the value of the last call.
 func (b *BareMetalPlatformStatusApplyConfiguration) WithLoadBalancer(value *BareMetalPlatformLoadBalancerApplyConfiguration) *BareMetalPlatformStatusApplyConfiguration {
 	b.LoadBalancer = value
+	return b
+}
+
+// WithVIPManagement sets the VIPManagement field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the VIPManagement field is set to the value of the last call.
+func (b *BareMetalPlatformStatusApplyConfiguration) WithVIPManagement(value configv1.VIPManagementType) *BareMetalPlatformStatusApplyConfiguration {
+	b.VIPManagement = &value
 	return b
 }
 

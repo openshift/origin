@@ -123,7 +123,24 @@ linters:
         text: "conditions: Conditions field in (PacemakerClusterStatus|PacemakerClusterNodeStatus|PacemakerClusterFencingAgentStatus|PacemakerClusterResourceStatus) is missing the following markers: optional"
       - linters:
         - kubeapilinter
-        path: features|payload-command/*.go
+        # ConsoleSpec.Ingress is a legacy optional value struct. Requiring properties would
+        # change the validation of the stable API, so preserve the existing wire behavior.
+        path: '^operator/v1/types_console\.go$'
+        text: '^minlength: field ConsoleSpec\.Ingress type ConsoleIngress must have either a required field or a minimum properties, add kubebuilder:validation:MinProperties marker$'
+      - linters:
+        - kubeapilinter
+        # ConsoleSpec.Ingress is intentionally a value struct in the stable API; changing
+        # it to a pointer would break existing Go consumers.
+        path: '^operator/v1/types_console\.go$'
+        text: '^optionalfields: field ConsoleSpec\.Ingress has a valid zero value \(\{"consoleURL": "", "clientDownloadsURL": ""\}\) and should be a pointer\.$'
+      - linters:
+        - kubeapilinter
+        # Preserve the legacy JSON serialization of ConsoleSpec.Ingress.
+        path: '^operator/v1/types_console\.go$'
+        text: '^optionalfields: field ConsoleSpec\.Ingress should have the omitempty tag\.$'
+      - linters:
+        - kubeapilinter
+        path: features|payload-command/
 issues:
   # We have a lot of existing issues.
   # Want to make sure that those adding new fields have an
