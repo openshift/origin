@@ -171,7 +171,8 @@ const (
 // alphanumeric characters, '-', '_', or '.', starting and ending with
 // an alphanumeric character.
 // +kubebuilder:validation:MaxLength=63
-// +kubebuilder:validation:XValidation:rule="!format.labelValue().validate(self).hasValue()",message="label values must be valid Kubernetes label values (at most 63 characters, alphanumeric, '-', '_', or '.', must start and end with alphanumeric)"
+// +kubebuilder:validation:MinLength=0
+// +kubebuilder:validation:XValidation:rule="self == \"\" || self.matches('^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$')",message="label values must be valid Kubernetes label values (at most 63 characters, alphanumeric, '-', '_', or '.', must start and end with alphanumeric)"
 type LabelValue string
 
 // ConsumingUser is an alias for string which we add validation to. Currently only service accounts are supported.
@@ -278,7 +279,8 @@ type ComponentRouteSpec struct {
 	// +mapType=granular
 	// +kubebuilder:validation:MinProperties=1
 	// +kubebuilder:validation:MaxProperties=8
-	// +kubebuilder:validation:XValidation:rule="self.all(key, !format.qualifiedName().validate(key).hasValue())",message="label keys must be valid qualified names, consisting of an optional DNS subdomain prefix of up to 253 characters followed by a slash and a name segment of 1-63 characters, that consists only of alphanumeric characters, dashes, underscores, and dots, and must start and end with an alphanumeric character"
+	// +kubebuilder:validation:XValidation:rule="self.all(key, key.size() <= 63 && key.size() > 0)",message="label keys must be between 1 and 63 characters in length"
+	// +kubebuilder:validation:XValidation:rule="self.all(key, key.matches('^([a-z0-9]([a-z0-9\\\\-]*[a-z0-9])?(\\\\.[a-z0-9]([a-z0-9\\\\-]*[a-z0-9])?)*\\\\/)?[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$') && key.size() <= 253)",message="label keys must be valid qualified names, consisting of an optional DNS subdomain prefix of up to 253 characters followed by a slash and a name segment of 1-63 characters, that consists only of alphanumeric characters, dashes, underscores, and dots, and must start and end with an alphanumeric character"
 	// +kubebuilder:validation:XValidation:rule="self.all(key, !key.startsWith('kubernetes.io/') && !key.startsWith('k8s.io/') && !key.startsWith('openshift.io/'))",message="kubernetes.io/, k8s.io/, and openshift.io/ prefixed label keys are reserved and may not be used"
 	Labels map[string]LabelValue `json:"labels,omitempty"`
 }

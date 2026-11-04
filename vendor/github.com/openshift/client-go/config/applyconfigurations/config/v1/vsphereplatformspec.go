@@ -25,6 +25,7 @@ type VSpherePlatformSpecApplyConfiguration struct {
 	VCenters []VSpherePlatformVCenterSpecApplyConfiguration `json:"vcenters,omitempty"`
 	// failureDomains contains the definition of region, zone and the vCenter topology.
 	// If this is omitted failure domains (regions and zones) will not be used.
+	// Each failure domain's server must match the server field of an entry in the vcenters list.
 	FailureDomains []VSpherePlatformFailureDomainSpecApplyConfiguration `json:"failureDomains,omitempty"`
 	// nodeNetworking contains the definition of internal and external network constraints for
 	// assigning the node's networking.

@@ -33,6 +33,15 @@ type AWSPlatformStatusApplyConfiguration struct {
 	// network resources. This controls whether AWS resources are created with
 	// IPv4-only, or dual-stack networking with IPv4 or IPv6 as the primary
 	// protocol family.
+	//
+	// Valid values are:
+	// * "IPv4" (default): Cloud platform resources use IPv4 addressing only.
+	// * "DualStackIPv6Primary": Cloud platform resources use dual-stack networking with IPv6 as the primary protocol family.
+	// * "DualStackIPv4Primary": Cloud platform resources use dual-stack networking with IPv4 as the primary protocol family.
+	//
+	// When omitted, this field defaults to "IPv4".
+	//
+	// This field is immutable and cannot be changed once set.
 	IPFamily *configv1.IPFamilyType `json:"ipFamily,omitempty"`
 }
 

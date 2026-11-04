@@ -210,6 +210,21 @@ const (
 	DNSRecordsTypeInternal DNSRecordsType = "Internal"
 )
 
+// VIPManagementType defines which mechanism manages the API and Ingress
+// VIPs on an on-premise cluster.
+// +kubebuilder:validation:Enum=Keepalived;BGP
+// +enum
+type VIPManagementType string
+
+const (
+	// VIPManagementTypeKeepalived means the VIPs are managed by the default
+	// keepalived/VRRP mechanism.
+	VIPManagementTypeKeepalived VIPManagementType = "Keepalived"
+	// VIPManagementTypeBGP means the VIPs are advertised via BGP by kube-vip
+	// (Routing Table Mode) and frr-k8s running as static pods.
+	VIPManagementTypeBGP VIPManagementType = "BGP"
+)
+
 // PlatformType is a specific supported infrastructure provider.
 // +kubebuilder:validation:Enum="";AWS;Azure;BareMetal;GCP;Libvirt;OpenStack;None;VSphere;oVirt;IBMCloud;KubeVirt;EquinixMetal;PowerVS;AlibabaCloud;Nutanix;External
 type PlatformType string
@@ -586,6 +601,15 @@ type AWSPlatformStatus struct {
 	// IPv4-only, or dual-stack networking with IPv4 or IPv6 as the primary
 	// protocol family.
 	//
+	// Valid values are:
+	// * "IPv4" (default): Cloud platform resources use IPv4 addressing only.
+	// * "DualStackIPv6Primary": Cloud platform resources use dual-stack networking with IPv6 as the primary protocol family.
+	// * "DualStackIPv4Primary": Cloud platform resources use dual-stack networking with IPv4 as the primary protocol family.
+	//
+	// When omitted, this field defaults to "IPv4".
+	//
+	// This field is immutable and cannot be changed once set.
+	//
 	// +default="IPv4"
 	// +kubebuilder:default="IPv4"
 	// +kubebuilder:validation:XValidation:rule="oldSelf == '' || self == oldSelf",message="ipFamily is immutable once set"
@@ -806,6 +830,25 @@ type GCPPlatformStatus struct {
 	// +optional
 	// +nullable
 	CloudLoadBalancerConfig *CloudLoadBalancerConfig `json:"cloudLoadBalancerConfig,omitempty"`
+
+	// universeDomain is the GCP universe domain for the cluster, detected from
+	// the installer credentials. Components with their own GCP credentials should
+	// read the universe domain from those credentials, as they are the authoritative
+	// source. This field is provided for components that do not have GCP credentials
+	// and for general observability.
+	//
+	// When omitted, standard public GCP (googleapis.com) is assumed.
+	//
+	// universeDomain is an optional field that, when specified, must be non-empty and at most
+	// 253 characters. It must be a valid DNS subdomain: containing only lowercase alphanumeric
+	// characters, '-' or '.', and starting and ending with an alphanumeric character.
+	//
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:XValidation:rule="!format.dns1123Subdomain().validate(self).hasValue()",message="universeDomain must be a valid DNS subdomain: contain no more than 253 characters, contain only lowercase alphanumeric characters, '-' or '.', and start and end with an alphanumeric character"
+	// +optional
+	// +openshift:enable:FeatureGate=GCPSovereignCloudInstall
+	UniverseDomain string `json:"universeDomain,omitempty"`
 
 	// This field was introduced and removed under tech preview.
 	// serviceEndpoints specifies endpoints that override the default endpoints
@@ -1073,6 +1116,21 @@ type BareMetalPlatformStatus struct {
 	// +kubebuilder:default={"type": "OpenShiftManagedDefault"}
 	// +optional
 	LoadBalancer *BareMetalPlatformLoadBalancer `json:"loadBalancer,omitempty"`
+
+	// vipManagement indicates which VIP management mechanism is active
+	// on this cluster.
+	// Allowed values are `Keepalived`, `BGP`, and omitted.
+	// Once set to a non-empty value, this field is immutable.
+	// When set to `BGP`, kube-vip (Routing Table Mode) and frr-k8s are
+	// deployed as static pods to advertise VIPs via BGP, replacing the
+	// default keepalived/VRRP mechanism.
+	// When set to `Keepalived`, the default keepalived-based VIP
+	// management is used.
+	// When omitted, the default keepalived-based VIP management is used.
+	// +kubebuilder:validation:XValidation:rule="oldSelf == '' || self == oldSelf",message="vipManagement is immutable once set"
+	// +openshift:enable:FeatureGate=BGPBasedVIPManagement
+	// +optional
+	VIPManagement VIPManagementType `json:"vipManagement,omitempty"`
 
 	// dnsRecordsType determines whether records for api, api-int, and ingress
 	// are provided by the internal DNS service or externally.
@@ -1423,6 +1481,9 @@ type VSpherePlatformFailureDomainSpec struct {
 	ZoneAffinity *VSphereFailureDomainZoneAffinity `json:"zoneAffinity,omitempty"`
 
 	// server is the fully-qualified domain name or the IP address of the vCenter server.
+	// This must match the server field of an entry in the vcenters list.
+	// The match is case-sensitive; the value must be specified exactly as it appears in the vcenters entry.
+	// The value must be between 1 and 255 characters long.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=255
@@ -1657,6 +1718,7 @@ type VSpherePlatformNodeNetworking struct {
 // use these fields for configuration.
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.apiServerInternalIPs) || has(self.apiServerInternalIPs)",message="apiServerInternalIPs list is required once set"
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.ingressIPs) || has(self.ingressIPs)",message="ingressIPs list is required once set"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=VSphereMultiVCenterDay2,rule="!has(self.failureDomains) || size(self.failureDomains) == 0 || (has(self.vcenters) && self.failureDomains.all(fd, self.vcenters.exists(vc, vc.server == fd.server)))",message="all failure domains must have a corresponding vCenter entry"
 type VSpherePlatformSpec struct {
 	// vcenters holds the connection details for services to communicate with vCenter.
 	// Up to 3 vCenters are supported.
@@ -1681,6 +1743,7 @@ type VSpherePlatformSpec struct {
 
 	// failureDomains contains the definition of region, zone and the vCenter topology.
 	// If this is omitted failure domains (regions and zones) will not be used.
+	// Each failure domain's server must match the server field of an entry in the vcenters list.
 	// +listType=map
 	// +listMapKey=name
 	// +optional

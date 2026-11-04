@@ -2,11 +2,11 @@
 
 package v1
 
-// IngressApplyConfiguration represents a declarative configuration of the Ingress type for use
+// ConsoleIngressApplyConfiguration represents a declarative configuration of the ConsoleIngress type for use
 // with apply.
 //
 // Ingress allows cluster admin to configure alternative ingress for the console.
-type IngressApplyConfiguration struct {
+type ConsoleIngressApplyConfiguration struct {
 	// consoleURL is a URL to be used as the base console address.
 	// If not specified, the console route hostname will be used.
 	// This field is required for clusters without ingress capability,
@@ -26,16 +26,16 @@ type IngressApplyConfiguration struct {
 	ClientDownloadsURL *string `json:"clientDownloadsURL,omitempty"`
 }
 
-// IngressApplyConfiguration constructs a declarative configuration of the Ingress type for use with
+// ConsoleIngressApplyConfiguration constructs a declarative configuration of the ConsoleIngress type for use with
 // apply.
-func Ingress() *IngressApplyConfiguration {
-	return &IngressApplyConfiguration{}
+func ConsoleIngress() *ConsoleIngressApplyConfiguration {
+	return &ConsoleIngressApplyConfiguration{}
 }
 
 // WithConsoleURL sets the ConsoleURL field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ConsoleURL field is set to the value of the last call.
-func (b *IngressApplyConfiguration) WithConsoleURL(value string) *IngressApplyConfiguration {
+func (b *ConsoleIngressApplyConfiguration) WithConsoleURL(value string) *ConsoleIngressApplyConfiguration {
 	b.ConsoleURL = &value
 	return b
 }
@@ -43,7 +43,7 @@ func (b *IngressApplyConfiguration) WithConsoleURL(value string) *IngressApplyCo
 // WithClientDownloadsURL sets the ClientDownloadsURL field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ClientDownloadsURL field is set to the value of the last call.
-func (b *IngressApplyConfiguration) WithClientDownloadsURL(value string) *IngressApplyConfiguration {
+func (b *ConsoleIngressApplyConfiguration) WithClientDownloadsURL(value string) *ConsoleIngressApplyConfiguration {
 	b.ClientDownloadsURL = &value
 	return b
 }

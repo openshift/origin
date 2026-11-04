@@ -43,6 +43,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ClusterVersionOperatorList{},
 		&ClusterAPI{},
 		&ClusterAPIList{},
+		&Ingress{},
+		&IngressList{},
 	)
 
 	return nil

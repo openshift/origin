@@ -21,6 +21,12 @@ type RemoteWriteSpecApplyConfiguration struct {
 	// Must contain only alphanumeric characters, hyphens, and underscores.
 	// Must be between 1 and 63 characters in length.
 	Name *string `json:"name,omitempty"`
+	// messageVersion defines the Remote Write message's version to use when writing to the endpoint.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
+	// The default value is "V1.0".
+	// When set to "V1.0", Prometheus uses the `prometheus.WriteRequest` protobuf message introduced in Remote Write 1.0.
+	// When set to "V2.0", Prometheus uses the `io.prometheus.write.v2.Request` protobuf message introduced in Remote Write 2.0.
+	MessageVersion *configv1alpha1.RemoteWriteMessageVersion `json:"messageVersion,omitempty"`
 	// authorization defines the authorization method for the remote write endpoint.
 	// When omitted, no authorization is performed.
 	// When set, type must be one of Authorization, BasicAuth, OAuth2, SigV4, or ServiceAccount; the corresponding nested config must be set (ServiceAccount has no config).
@@ -89,6 +95,14 @@ func (b *RemoteWriteSpecApplyConfiguration) WithURL(value string) *RemoteWriteSp
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *RemoteWriteSpecApplyConfiguration) WithName(value string) *RemoteWriteSpecApplyConfiguration {
 	b.Name = &value
+	return b
+}
+
+// WithMessageVersion sets the MessageVersion field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the MessageVersion field is set to the value of the last call.
+func (b *RemoteWriteSpecApplyConfiguration) WithMessageVersion(value configv1alpha1.RemoteWriteMessageVersion) *RemoteWriteSpecApplyConfiguration {
+	b.MessageVersion = &value
 	return b
 }
 

@@ -27,6 +27,18 @@ type GCPPlatformStatusApplyConfiguration struct {
 	// must be provided for the API and internal API load balancers as well as the
 	// ingress load balancer.
 	CloudLoadBalancerConfig *CloudLoadBalancerConfigApplyConfiguration `json:"cloudLoadBalancerConfig,omitempty"`
+	// universeDomain is the GCP universe domain for the cluster, detected from
+	// the installer credentials. Components with their own GCP credentials should
+	// read the universe domain from those credentials, as they are the authoritative
+	// source. This field is provided for components that do not have GCP credentials
+	// and for general observability.
+	//
+	// When omitted, standard public GCP (googleapis.com) is assumed.
+	//
+	// universeDomain is an optional field that, when specified, must be non-empty and at most
+	// 253 characters. It must be a valid DNS subdomain: containing only lowercase alphanumeric
+	// characters, '-' or '.', and starting and ending with an alphanumeric character.
+	UniverseDomain *string `json:"universeDomain,omitempty"`
 }
 
 // GCPPlatformStatusApplyConfiguration constructs a declarative configuration of the GCPPlatformStatus type for use with
@@ -82,5 +94,13 @@ func (b *GCPPlatformStatusApplyConfiguration) WithResourceTags(values ...*GCPRes
 // If called multiple times, the CloudLoadBalancerConfig field is set to the value of the last call.
 func (b *GCPPlatformStatusApplyConfiguration) WithCloudLoadBalancerConfig(value *CloudLoadBalancerConfigApplyConfiguration) *GCPPlatformStatusApplyConfiguration {
 	b.CloudLoadBalancerConfig = value
+	return b
+}
+
+// WithUniverseDomain sets the UniverseDomain field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the UniverseDomain field is set to the value of the last call.
+func (b *GCPPlatformStatusApplyConfiguration) WithUniverseDomain(value string) *GCPPlatformStatusApplyConfiguration {
+	b.UniverseDomain = &value
 	return b
 }
