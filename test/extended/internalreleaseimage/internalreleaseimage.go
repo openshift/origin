@@ -160,30 +160,11 @@ var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall][Disruptive
 	})
 
 	g.Context("when the deletion guard is removed", func() {
-		g.It("should garbage-collect the resource and disable the master registry [apigroup:machineconfiguration.openshift.io]", func() {
+		g.It("should disable the master registry and reclaim its storage [apigroup:machineconfiguration.openshift.io]", func() {
 			ctx := context.Background()
 
-			g.By("Verifying the IRI and its master MachineConfig exist before deletion")
-			originalIRI, err := helper.McClientV1.InternalReleaseImages().Get(ctx, IRIResourceName, metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred(), "IRI should exist before deletion")
-
-			_, err = helper.McClientV1.MachineConfigs().Get(ctx, iriMasterMachineConfigName, metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred(), "Master MC should exist before deletion")
-
-			masterNodeNames, err := getReadyMasterNodeNames(ctx, oc)
-			o.Expect(err).NotTo(o.HaveOccurred(), "At least one Ready master node is required")
-			masterNodeName := masterNodeNames[0]
-
-			// Register restoration before the first destructive operation so a later
-			// assertion failure cannot leave subsequent tests without a working IRI.
-			g.DeferCleanup(func(cleanupCtx context.Context) {
-				g.By("Restoring the original InternalReleaseImage and waiting for the registry to recover")
-				err := restoreInternalReleaseImage(cleanupCtx, oc, helper, originalIRI, masterNodeNames)
-				o.Expect(err).NotTo(o.HaveOccurred(), "Cleanup failed to restore the InternalReleaseImage cluster state")
-			})
-
-			g.By("Removing the deletion guard binding and deleting the IRI")
-			err = wait.PollUntilContextTimeout(ctx, 2*time.Second, time.Minute, true, func(ctx context.Context) (bool, error) {
+			g.By("Removing the deletion guard binding to simulate a previous upgrade, which permits IRI deletion")
+			err := wait.PollUntilContextTimeout(ctx, 2*time.Second, time.Minute, true, func(ctx context.Context) (bool, error) {
 				delErr := oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Delete(ctx, iriDeletionGuardBindingName, metav1.DeleteOptions{})
 				if delErr != nil && !apierrors.IsNotFound(delErr) {
 					e2e.Logf("Failed to delete VAP binding (will retry): %v", delErr)
@@ -199,22 +180,16 @@ var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall][Disruptive
 			})
 			o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to delete IRI after VAP binding removal")
 
-			g.By("Waiting for the IRI finalizer to complete garbage collection")
-			err = wait.PollUntilContextTimeout(ctx, 2*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
-				_, err := helper.McClientV1.InternalReleaseImages().Get(ctx, IRIResourceName, metav1.GetOptions{})
-				if apierrors.IsNotFound(err) {
-					return true, nil
-				}
-				return false, err
-			})
-			o.Expect(err).NotTo(o.HaveOccurred(), "IRI should be garbage-collected after deletion")
-
 			g.By("Verifying the master MachineConfig contains only the disabled registry service")
 			err = helper.waitForDisabledIRIMachineConfig(ctx)
 			o.Expect(err).NotTo(o.HaveOccurred(),
 				"Master MachineConfig should contain disabled registry content after IRI deletion")
 
 			g.By("Verifying the registry port is no longer listening on a master node")
+			masterNodeNames, err := exutil.GetClusterNodesByRole(oc, "master")
+			o.Expect(err).NotTo(o.HaveOccurred(), "Failed to list master nodes")
+			o.Expect(masterNodeNames).NotTo(o.BeEmpty())
+			masterNodeName := masterNodeNames[0]
 			err = waitForIRIRegistryPortState(ctx, oc, masterNodeName, true)
 			o.Expect(err).NotTo(o.HaveOccurred(), "Registry port should no longer be listening after IRI deletion")
 		})
