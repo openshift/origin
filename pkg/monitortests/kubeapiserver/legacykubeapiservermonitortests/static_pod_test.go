@@ -2,16 +2,24 @@ package legacykubeapiservermonitortests
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	eventsv1 "k8s.io/api/events/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/rest"
 	clienttesting "k8s.io/client-go/testing"
 )
 
@@ -161,6 +169,81 @@ func TestStaticPodFailureRecovered(t *testing.T) {
 			recovered, err := staticPodFailureRecovered(context.Background(), client, failure, test.events)
 			if recovered != test.want || (err != nil) != test.apiError {
 				t.Fatalf("recovered=%v err=%v, want recovered=%v error=%v", recovered, err, test.want, test.apiError)
+			}
+		})
+	}
+}
+
+type staticPodRecoveryRoundTripper func(*http.Request) (*http.Response, error)
+
+func (transport staticPodRecoveryRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
+	return transport(request)
+}
+
+// TestStaticPodRecoveryLookupErrorsAreSanitized protects helper and JUnit output from API error payloads.
+func TestStaticPodRecoveryLookupErrorsAreSanitized(t *testing.T) {
+	t.Parallel()
+	failureTime := time.Date(2026, 11, 1, 8, 21, 27, 0, time.UTC)
+	const safeError = "checking static pod recovery: mirror pod lookup failed"
+	const failureNote = `static pod lifecycle failure - static pod: "etcd" in namespace: "openshift-etcd" for revision: 19 on node: "node" didn't show up, waited: 2m30s`
+	for _, test := range []struct {
+		name string
+		err  error
+	}{
+		{name: "forbidden", err: apierrors.NewForbidden(schema.GroupResource{Resource: "pods"}, "etcd-node", errors.New("access denied for private-host.example"))},
+		{name: "transport", err: errors.New("transport failed for private-host.example with private-payload")},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			failure := staticPodFailure{podName: "etcd", podNamespace: "openshift-etcd", node: "node", revision: 19, lastObserved: failureTime}
+			client := fake.NewSimpleClientset()
+			client.PrependReactor("get", "pods", func(clienttesting.Action) (bool, runtime.Object, error) {
+				return true, nil, test.err
+			})
+			recovered, err := staticPodFailureRecovered(context.Background(), client, failure, nil)
+			if recovered || err == nil || err.Error() != safeError || errors.Unwrap(err) != nil {
+				t.Fatal("lookup failure must return an unrecovered result and only the fixed diagnostic")
+			}
+
+			config := &rest.Config{Host: "https://unused.invalid", Transport: staticPodRecoveryRoundTripper(func(request *http.Request) (*http.Response, error) {
+				statusCode := http.StatusOK
+				var responseBody any
+				if request.URL.Path == "/api/v1/namespaces/openshift-etcd/pods/etcd-node" {
+					statusError, ok := test.err.(*apierrors.StatusError)
+					if !ok {
+						return nil, test.err
+					}
+					statusCode = int(statusError.ErrStatus.Code)
+					responseBody = statusError.ErrStatus
+				} else {
+					events := eventsv1.EventList{TypeMeta: metav1.TypeMeta{APIVersion: "events.k8s.io/v1", Kind: "EventList"}}
+					if request.URL.Path == "/apis/events.k8s.io/v1/namespaces/openshift-etcd-operator/events" {
+						events.Items = []eventsv1.Event{{Note: failureNote, EventTime: metav1.NewMicroTime(failureTime)}}
+					}
+					responseBody = events
+				}
+				body, err := json.Marshal(responseBody)
+				if err != nil {
+					return nil, err
+				}
+				return &http.Response{StatusCode: statusCode, Header: http.Header{"Content-Type": {"application/json"}}, Body: io.NopCloser(strings.NewReader(string(body)))}, nil
+			})}
+			results := testStaticPodLifecycleFailure(nil, config)
+			if len(results) != 1 || results[0].FailureOutput == nil {
+				t.Fatal("lookup failure must still fail the lifecycle invariant")
+			}
+			want := safeError + "\n" + failureNote
+			if results[0].FailureOutput.Output != want || results[0].SystemOut != want {
+				t.Fatal("JUnit output must contain only the fixed diagnostic and the original failure note")
+			}
+			output, err := json.Marshal(results)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, sensitive := range []string{test.err.Error(), "etcd-node", "private-host.example", "private-payload"} {
+				if strings.Contains(string(output), sensitive) {
+					t.Fatal("raw lookup error payload reached test-result output")
+				}
 			}
 		})
 	}

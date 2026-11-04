@@ -2,6 +2,7 @@ package legacykubeapiservermonitortests
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -182,7 +183,7 @@ func staticPodFailureRecovered(ctx context.Context, kubeClient kubernetes.Interf
 		return false, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("checking static pod recovery: %w", err)
+		return false, errors.New("checking static pod recovery: mirror pod lookup failed")
 	}
 	revision, err := strconv.ParseInt(pod.Labels["revision"], 10, 64)
 	if err != nil || revision < failure.revision || pod.Spec.NodeName != failure.node ||
