@@ -209,14 +209,14 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 	})
 
 	g.It("should update image volume references when local names are on [FeatureGate:ImageVolume][apigroup:image.openshift.io]", func() {
-		err := oc.Run("tag").Args(k8simage.GetE2EImage(k8simage.BusyBox), "busybox:latest").Execute()
+		err := oc.Run("tag").Args(k8simage.GetE2EImage(k8simage.BusyBox), "busybox:latest", "--import-mode=PreserveOriginal").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.Run("set", "image-lookup").Args("busybox").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		var internalImageReference string
 		var lastErr error
-		err = wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
+		err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
 			tag, err := oc.ImageClient().ImageV1().ImageTags(oc.Namespace()).Get(ctx, "busybox:latest", metav1.GetOptions{})
 			if err != nil || tag.Image == nil {
 				lastErr = err
