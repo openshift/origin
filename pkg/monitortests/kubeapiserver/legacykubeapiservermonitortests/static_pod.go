@@ -6,9 +6,13 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	corev1 "k8s.io/api/core/v1"
+	eventsv1 "k8s.io/api/events/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -17,10 +21,15 @@ import (
 // staticPodFailureRegex trying to pull out information from messages like
 // `static pod lifecycle failure - static pod: "etcd" in namespace: "openshift-etcd" for revision: 6 on node: "ovirt10-gh8t5-master-2" didn't show up, waited: 2m30s`
 var staticPodFailureRegex = regexp.MustCompile(
-	`static pod lifecycle failure - static pod: ".*" in namespace: ".*" for revision: (\d+) on node: "(.*)" didn't show up, waited: .*`)
+	`static pod lifecycle failure - static pod: "([^"]+)" in namespace: "([^"]+)" for revision: (\d+) on node: "([^"]+)" didn't show up, waited: .*`)
+
+var staticPodReadyRegex = regexp.MustCompile(`^Updated node "([^"]+)" from revision [0-9]+ to ([0-9]+) because static pod is ready$`)
 
 type staticPodFailure struct {
 	operatorNamespace string
+	podName           string
+	podNamespace      string
+	lastObserved      time.Time
 	node              string
 	revision          int64
 	failureMessage    string
@@ -28,16 +37,18 @@ type staticPodFailure struct {
 
 func staticPodFailureFromMessage(message string) (*staticPodFailure, error) {
 	matches := staticPodFailureRegex.FindStringSubmatch(message)
-	if len(matches) != 3 {
+	if len(matches) != 5 {
 		return nil, fmt.Errorf("wrong number of matches: %v from: %q", matches, message)
 	}
-	revision, err := strconv.ParseInt(matches[1], 0, 64)
+	revision, err := strconv.ParseInt(matches[3], 10, 64)
 	if err != nil {
 		return nil, err
 	}
 
 	return &staticPodFailure{
-		node:           matches[2],
+		podName:        matches[1],
+		podNamespace:   matches[2],
+		node:           matches[4],
 		revision:       revision,
 		failureMessage: message,
 	}, nil
@@ -90,6 +101,7 @@ func testStaticPodLifecycleFailure(events monitorapi.Intervals, kubeClientConfig
 				continue
 			}
 			staticPodFailure.operatorNamespace = ns
+			staticPodFailure.lastObserved = staticPodEventTime(event)
 			staticPodFailures = append(staticPodFailures, *staticPodFailure)
 		}
 	}
@@ -102,24 +114,11 @@ func testStaticPodLifecycleFailure(events monitorapi.Intervals, kubeClientConfig
 			failures = append(failures, err.Error())
 			continue
 		}
-		foundEventForProperRevision := false
-		for _, event := range events.Items {
-			isRevisionUpdate := event.Reason == "NodeCurrentRevisionChanged"
-			isForNode := strings.Contains(event.Note, staticPodFailure.node)
-			matches := regexp.MustCompile("to ([0-9]+) because static pod is ready").FindStringSubmatch(event.Note)
-			if len(matches) == 2 {
-				reachedRevision, _ := strconv.ParseInt(matches[1], 0, 64)
-				if isRevisionUpdate && isForNode && reachedRevision >= staticPodFailure.revision {
-					// If we reach the level eventually, don't fail the test. We might choose to add an "it's slow" test, but
-					// it hasn't failed. It is possible to go directly to a later revision such as in a RT environment where
-					// revisions can happen rapidly. In this case, it is okay if a revision never appears and a later revision
-					// is located.
-					foundEventForProperRevision = true
-				}
-			}
+		recovered, err := staticPodFailureRecovered(ctx, kubeClient, staticPodFailure, events.Items)
+		if err != nil {
+			failures = append(failures, err.Error())
 		}
-
-		if !foundEventForProperRevision {
+		if !recovered {
 			failures = append(failures, staticPodFailure.failureMessage)
 		}
 	}
@@ -141,4 +140,53 @@ func testStaticPodLifecycleFailure(events monitorapi.Intervals, kubeClientConfig
 			Name: testName,
 		},
 	}
+}
+
+func staticPodEventTime(event eventsv1.Event) time.Time {
+	lastObserved := event.EventTime.Time
+	if event.Series != nil && event.Series.LastObservedTime.After(lastObserved) {
+		lastObserved = event.Series.LastObservedTime.Time
+	}
+	if event.DeprecatedLastTimestamp.After(lastObserved) {
+		lastObserved = event.DeprecatedLastTimestamp.Time
+	}
+	return lastObserved
+}
+
+func staticPodFailureRecovered(ctx context.Context, kubeClient kubernetes.Interface, failure staticPodFailure, events []eventsv1.Event) (bool, error) {
+	if failure.lastObserved.IsZero() {
+		return false, nil
+	}
+	for _, event := range events {
+		if event.Reason != "NodeCurrentRevisionChanged" || !staticPodEventTime(event).After(failure.lastObserved) {
+			continue
+		}
+		matches := staticPodReadyRegex.FindStringSubmatch(event.Note)
+		if len(matches) != 3 || matches[1] != failure.node {
+			continue
+		}
+		revision, err := strconv.ParseInt(matches[2], 10, 64)
+		if err == nil && revision >= failure.revision {
+			return true, nil
+		}
+	}
+
+	pod, err := kubeClient.CoreV1().Pods(failure.podNamespace).Get(ctx, failure.podName+"-"+failure.node, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("checking static pod recovery: %w", err)
+	}
+	revision, err := strconv.ParseInt(pod.Labels["revision"], 10, 64)
+	if err != nil || revision < failure.revision || pod.Spec.NodeName != failure.node ||
+		len(pod.Annotations["kubernetes.io/config.mirror"]) == 0 || pod.DeletionTimestamp != nil || pod.Status.Phase != corev1.PodRunning {
+		return false, nil
+	}
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue && condition.LastTransitionTime.After(failure.lastObserved) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
