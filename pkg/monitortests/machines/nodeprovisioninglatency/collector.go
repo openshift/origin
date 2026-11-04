@@ -174,7 +174,9 @@ func (c *collectionState) observeNodeDeleted(obj any) {
 }
 
 // rows correlates Machines with Nodes and produces one row per observed Machine, ordered by
-// Machine name so the autodl file is stable across runs.
+// Machine name so the autodl file is stable across runs. Masters that predate the run are
+// dropped: they are created by the installer, so their timestamps measure install time rather
+// than Machine API provisioning.
 func (c *collectionState) rows(beginning time.Time) []provisioningRow {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -196,7 +198,11 @@ func (c *collectionState) rows(beginning time.Time) []provisioningRow {
 		if node == nil {
 			node = nodesByMachine[rec.Name]
 		}
-		rows = append(rows, buildRow(rec, node, beginning))
+		row := buildRow(rec, node, beginning)
+		if installerCreatedMaster(row) {
+			continue
+		}
+		rows = append(rows, row)
 	}
 
 	sort.Slice(rows, func(i, j int) bool { return rows[i].MachineName < rows[j].MachineName })

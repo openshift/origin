@@ -77,6 +77,36 @@ func TestCollectionStateRows(t *testing.T) {
 	}
 }
 
+func TestCollectionStateExcludesPreExistingMasters(t *testing.T) {
+	beginning := time.Date(2026, 1, 1, 10, 0, 0, 0, time.UTC)
+	state := newCollectionState()
+
+	preExistingMaster := testMachine("master-0", types.UID("uid-master-0"), beginning.Add(-time.Hour), nil)
+	preExistingMaster.Labels[machineRoleLabel] = roleMaster
+	preExistingWorker := testMachine("worker-0", types.UID("uid-worker-0"), beginning.Add(-time.Hour), nil)
+	newMaster := testMachine("master-1", types.UID("uid-master-1"), beginning.Add(time.Minute), nil)
+	newMaster.Labels[machineRoleLabel] = roleMaster
+
+	state.observeMachine(preExistingMaster)
+	state.observeMachine(preExistingWorker)
+	state.observeMachine(newMaster)
+
+	rowsByName := map[string]provisioningRow{}
+	for _, row := range state.rows(beginning) {
+		rowsByName[row.MachineName] = row
+	}
+
+	if _, ok := rowsByName["master-0"]; ok {
+		t.Errorf("expected the install-time master to be excluded")
+	}
+	if _, ok := rowsByName["worker-0"]; !ok {
+		t.Errorf("expected the install-time worker to be kept")
+	}
+	if _, ok := rowsByName["master-1"]; !ok {
+		t.Errorf("expected the master created during the run to be kept")
+	}
+}
+
 func TestCollectionStateRetainsDeletedMachinesAndSortsRows(t *testing.T) {
 	beginning := time.Date(2026, 1, 1, 10, 0, 0, 0, time.UTC)
 	state := newCollectionState()

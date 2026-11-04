@@ -248,6 +248,27 @@ func TestMachineNameFromAnnotation(t *testing.T) {
 	}
 }
 
+func TestInstallerCreatedMaster(t *testing.T) {
+	tests := []struct {
+		name string
+		row  provisioningRow
+		want bool
+	}{
+		{name: "master that predates the run", row: provisioningRow{MachineRole: roleMaster}, want: true},
+		{name: "master created during the run", row: provisioningRow{MachineRole: roleMaster, CreatedDuringRun: true}, want: false},
+		{name: "worker that predates the run", row: provisioningRow{MachineRole: roleWorker}, want: false},
+		{name: "unknown role", row: provisioningRow{MachineRole: roleUnknown}, want: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := installerCreatedMaster(test.row); got != test.want {
+				t.Errorf("installerCreatedMaster(%+v) = %t, want %t", test.row, got, test.want)
+			}
+		})
+	}
+}
+
 func durationPtr(d time.Duration) *time.Duration {
 	return &d
 }

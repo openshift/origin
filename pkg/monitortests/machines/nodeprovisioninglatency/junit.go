@@ -132,6 +132,10 @@ func (m *nodeProvisioningLatency) skipAll(message string) []*junitapi.JUnitTestC
 func (m *nodeProvisioningLatency) evaluateSegment(jobType platformidentification.JobType, segment string, duration func(provisioningRow) *time.Duration, role string, createdDuringRun bool) *junitapi.JUnitTestCase {
 	testName := provisioningTestName(segment, role, createdDuringRun)
 
+	if role == roleMaster && !createdDuringRun {
+		return skipJunit(testName, "masters created before the run are excluded: they measure install time, not Machine API provisioning")
+	}
+
 	samples := []time.Duration{}
 	for _, row := range m.rows {
 		if row.MachineRole != role || row.CreatedDuringRun != createdDuringRun {

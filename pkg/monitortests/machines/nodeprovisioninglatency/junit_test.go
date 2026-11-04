@@ -1,6 +1,7 @@
 package nodeprovisioninglatency
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -140,6 +141,24 @@ func TestEvaluateSegment(t *testing.T) {
 				t.Fatalf("unexpected failure: %s", junit.FailureOutput.Output)
 			}
 		})
+	}
+}
+
+func TestEvaluateSegmentSkipsInstallerCreatedMasters(t *testing.T) {
+	m := &nodeProvisioningLatency{rows: []provisioningRow{{
+		MachineRole:       roleMaster,
+		CreatedDuringRun:  false,
+		MachineToInstance: durationPtr(time.Minute),
+	}}}
+
+	junit := m.evaluateSegment(platformidentification.JobType{Platform: "aws"}, segmentMachineToInstance,
+		func(row provisioningRow) *time.Duration { return row.MachineToInstance }, roleMaster, false)
+
+	if junit.SkipMessage == nil {
+		t.Fatalf("expected a skip, got %+v", junit)
+	}
+	if !strings.Contains(junit.SkipMessage.Message, "install time") {
+		t.Errorf("unexpected skip message: %s", junit.SkipMessage.Message)
 	}
 }
 

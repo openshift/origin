@@ -7,6 +7,9 @@
 // InstanceExists timestamp is MAO's first successful observation of the instance, which can
 // trail actual cloud creation by up to MAO's requeue interval; InstanceExistsSource records
 // whether the condition or the observed phase was used.
+//
+// Masters that already existed when the run started are ignored. They are created by the
+// installer, so their timestamps measure install time rather than Machine API provisioning.
 package nodeprovisioninglatency
 
 import (

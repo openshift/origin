@@ -246,6 +246,13 @@ func buildRow(rec *machineRecord, node *nodeRecord, beginning time.Time) provisi
 	}
 }
 
+// installerCreatedMaster reports whether the row describes a master that already existed when the
+// run began. Those Machines belong to the install rather than to Machine API provisioning, so
+// including them would compare install time against provisioning time.
+func installerCreatedMaster(row provisioningRow) bool {
+	return row.MachineRole == roleMaster && !row.CreatedDuringRun
+}
+
 // medianDuration returns the middle value, averaging the two middle values for an even count.
 func medianDuration(values []time.Duration) time.Duration {
 	if len(values) == 0 {
