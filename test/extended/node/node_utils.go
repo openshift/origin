@@ -872,7 +872,50 @@ func uninstallCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 		}
 	}
 
+	if err := waitForKubevirtClusterCleanup(ctx, oc); err != nil {
+		return fmt.Errorf("kubevirt cluster cleanup incomplete after CNV uninstall: %w", err)
+	}
+
 	framework.Logf("CNV operator uninstalled successfully")
+	return nil
+}
+
+var kubevirtLeakClusterRoleBindingPrefixes = []string{
+	"kubevirt.io:",
+	"cdi.kubevirt.io:",
+	"instancetype.kubevirt.io:",
+}
+
+func kubevirtClusterLeaks(ctx context.Context, oc *exutil.CLI) string {
+	crbs, err := oc.AdminKubeClient().RbacV1().ClusterRoleBindings().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return fmt.Sprintf("list ClusterRoleBindings: %v", err)
+	}
+	for _, crb := range crbs.Items {
+		for _, prefix := range kubevirtLeakClusterRoleBindingPrefixes {
+			if strings.HasPrefix(crb.Name, prefix) {
+				return fmt.Sprintf("ClusterRoleBinding %q still present", crb.Name)
+			}
+		}
+	}
+	return ""
+}
+
+func waitForKubevirtClusterCleanup(ctx context.Context, oc *exutil.CLI) error {
+	framework.Logf("Waiting for kubevirt cluster RBAC to be removed after CNV uninstall...")
+	err := wait.PollUntilContextTimeout(ctx, 15*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
+		if leak := kubevirtClusterLeaks(ctx, oc); leak != "" {
+			framework.Logf("Still waiting: %s", leak)
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		if leak := kubevirtClusterLeaks(ctx, oc); leak != "" {
+			return fmt.Errorf("%s", leak)
+		}
+		return err
+	}
 	return nil
 }
 
