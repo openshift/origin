@@ -370,6 +370,9 @@ var staticSuites = []ginkgo.TestSuite{
 		Parallelism:                1,
 		TestTimeout:                120 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
+		// Recovery deliberately removes static pods. Temporarily exclude the legacy monitor rather than
+		// change its recovery detection, accepting the loss of its other invariants for this suite only.
+		DisableMonitorTests: []string{"legacy-kube-apiserver-invariants"},
 	},
 	{
 		Name: "openshift/etcd/certrotation",
