@@ -1,11 +1,17 @@
 package ginkgo
 
 import (
+	"context"
+	"encoding/json"
 	"testing"
 
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/utils/ptr"
 )
 
@@ -97,11 +103,92 @@ func TestBuildPoolMachineSet(t *testing.T) {
 		t.Errorf("buildPoolMachineSet must preserve the template's providerSpec")
 	}
 
-	// The template itself must not be mutated.
 	if template.Spec.Template.Spec.Labels[nodeResourcePoolLabelKey] != "" {
 		t.Errorf("buildPoolMachineSet must not mutate the template MachineSet, got %v", template.Spec.Template.Spec.Labels)
 	}
 	if template.Spec.Template.Spec.ProviderID == nil {
 		t.Errorf("buildPoolMachineSet must not clear the template's ProviderID")
+	}
+}
+
+func TestIsPlainWorkerNode(t *testing.T) {
+	plain := corev1.Node{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{workerNodeRoleLabel: ""}}}
+	if !isPlainWorkerNode(plain) {
+		t.Error("expected plain worker node")
+	}
+	dual := corev1.Node{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{
+		workerNodeRoleLabel: "",
+		infraNodeRoleLabel:  "",
+	}}}
+	if isPlainWorkerNode(dual) {
+		t.Error("worker+infra node must not be a plain worker pool template source")
+	}
+	custom := corev1.Node{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{
+		workerNodeRoleLabel:                   "",
+		"node-role.kubernetes.io/custom-test": "",
+	}}}
+	if isPlainWorkerNode(custom) {
+		t.Error("worker with extra role must not be a plain worker")
+	}
+}
+
+// CAPI worker MachineSet from e2e-aws-nodes-isolated-techpreview payload.
+const tpCAPIWorkerMachineSet = `{"apiVersion":"cluster.x-k8s.io/v1beta2","kind":"MachineSet","metadata":{"name":"ci-op-nlnvxgz5-ead97-m8dxb-worker-us-west-2a","namespace":"openshift-cluster-api","labels":{"cluster.x-k8s.io/cluster-name":"ci-op-nlnvxgz5-ead97-m8dxb","machineconfiguration.openshift.io/osstream":"rhel-10"},"ownerReferences":[{"apiVersion":"cluster.x-k8s.io/v1beta2","kind":"Cluster","name":"ci-op-nlnvxgz5-ead97-m8dxb","uid":"45ee4cce-0732-4719-bedf-00c3d8d12db4"}],"resourceVersion":"41189","uid":"26c680cd-4138-4325-8e6e-0d8f60a0a661"},"spec":{"clusterName":"ci-op-nlnvxgz5-ead97-m8dxb","replicas":2,"selector":{"matchLabels":{"cluster.x-k8s.io/cluster-name":"ci-op-nlnvxgz5-ead97-m8dxb","cluster.x-k8s.io/set-name":"ci-op-nlnvxgz5-ead97-m8dxb-worker-us-west-2a"}},"template":{"metadata":{"labels":{"cluster.x-k8s.io/cluster-name":"ci-op-nlnvxgz5-ead97-m8dxb","cluster.x-k8s.io/set-name":"ci-op-nlnvxgz5-ead97-m8dxb-worker-us-west-2a","machineconfiguration.openshift.io/osstream":"rhel-10","node-role.kubernetes.io/worker":""}},"spec":{"bootstrap":{"dataSecretName":"worker-user-data"},"clusterName":"ci-op-nlnvxgz5-ead97-m8dxb","failureDomain":"us-west-2a","infrastructureRef":{"apiGroup":"infrastructure.cluster.x-k8s.io","kind":"AWSMachineTemplate","name":"ci-op-nlnvxgz5-ead97-m8dxb-worker-us-west-2a"}}}}}`
+
+func capiMS(t *testing.T) *unstructured.Unstructured {
+	t.Helper()
+	u := &unstructured.Unstructured{}
+	if err := json.Unmarshal([]byte(tpCAPIWorkerMachineSet), &u.Object); err != nil {
+		t.Fatal(err)
+	}
+	return u
+}
+
+func TestBuildPoolCAPIMachineSet(t *testing.T) {
+	template := capiMS(t)
+	pool := buildPoolCAPIMachineSet(template, 3)
+
+	if pool.GetName() == template.GetName() {
+		t.Errorf("pool must get its own name")
+	}
+	sel, _, _ := unstructured.NestedStringMap(pool.Object, "spec", "selector", "matchLabels")
+	tpl, _, _ := unstructured.NestedStringMap(pool.Object, "spec", "template", "metadata", "labels")
+	for k, v := range sel {
+		if tpl[k] != v {
+			t.Errorf("selector %s=%s does not match template labels %v", k, v, tpl)
+		}
+	}
+	if sel[capiMachineSetLabel] != pool.GetName() {
+		t.Errorf("selector set-name = %q, want %q", sel[capiMachineSetLabel], pool.GetName())
+	}
+	if r, _, _ := unstructured.NestedInt64(pool.Object, "spec", "replicas"); r != 3 {
+		t.Errorf("replicas = %d, want 3", r)
+	}
+	if !capiMachineSetIsNodeResourcePool(pool) {
+		t.Errorf("pool must be recognized as a NodeResource pool")
+	}
+	if len(pool.GetOwnerReferences()) != 0 || pool.GetResourceVersion() != "" || pool.GetUID() != "" {
+		t.Errorf("pool must drop ownerRefs/resourceVersion/uid")
+	}
+	if _, ok := tpl[workerNodeRoleLabel]; !ok {
+		t.Errorf("pool must keep the worker node-role label")
+	}
+	if capiMachineSetIsNodeResourcePool(template) {
+		t.Errorf("template must not be mutated")
+	}
+}
+
+func TestFindCAPITemplateWorkerMachineSetSkipsPool(t *testing.T) {
+	template := capiMS(t)
+	leaked := buildPoolCAPIMachineSet(template, 3)
+	leaked.SetName("a-sorts-first")
+	dc := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(),
+		map[schema.GroupVersionResource]string{capiMachineSetGVR: "MachineSetList"}, template, leaked)
+	got, err := findCAPITemplateWorkerMachineSet(context.Background(), dc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got == nil || got.GetName() != template.GetName() {
+		t.Fatalf("got %v, want %s", got, template.GetName())
 	}
 }
