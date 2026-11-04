@@ -31,11 +31,14 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/clioptions/upgradeoptions"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
+	"github.com/openshift/origin/test/shared/registryauth"
 )
 
 // InitializeOpenShiftTestsExtensionFramework creates and initializes the extension registry with the origin tests extension.
@@ -785,7 +788,9 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPat
 	defer os.RemoveAll(tmpDir)
 
 	oc := exutil.NewCLIWithoutNamespace("default")
-	registryAuthFilePath, err := DetermineRegistryAuthFilePath(tmpDir, oc)
+	registryAuthFilePath, err := registryauth.DetermineAuthFilePath(ctx, func() (corev1client.CoreV1Interface, error) {
+		return oc.AdminKubeClient().CoreV1(), nil
+	}, tmpDir)
 	if err != nil {
 		cleanupLocalFiles()
 		return nil, nil, nil, fmt.Errorf("failed to determine registry auth file path: %w", err)

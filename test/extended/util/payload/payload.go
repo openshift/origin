@@ -1,15 +1,20 @@
 package payload
 
 import (
+	"context"
 	"fmt"
+	"os"
+
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+
 	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/test/extended/util"
-	"os"
+	"github.com/openshift/origin/test/shared/registryauth"
 )
 
 // ExtractImageFromReleasePayload extracts the image pull spec for a specific tag from a release payload.
 // It returns the image pull spec for the specified tag or an error if the tag is not found.
-func ExtractImageFromReleasePayload(releaseImage, imageTag string, oc *util.CLI) (string, error) {
+func ExtractImageFromReleasePayload(ctx context.Context, releaseImage, imageTag string, oc *util.CLI) (string, error) {
 	// Create a temporary directory for extraction
 	tmpDir, err := os.MkdirTemp("", "release-extract")
 	if err != nil {
@@ -17,7 +22,7 @@ func ExtractImageFromReleasePayload(releaseImage, imageTag string, oc *util.CLI)
 	}
 	defer os.RemoveAll(tmpDir)
 
-	registryAuthFilePath, err := extensions.DetermineRegistryAuthFilePath(tmpDir, oc)
+	registryAuthFilePath, err := registryauth.DetermineAuthFilePath(ctx, clusterClient(oc), tmpDir)
 	if err != nil {
 		return "", fmt.Errorf("failed to determine registry auth file path: %w", err)
 	}
@@ -36,4 +41,16 @@ func ExtractImageFromReleasePayload(releaseImage, imageTag string, oc *util.CLI)
 	}
 
 	return "", fmt.Errorf("image tag %q not found in release payload %q", imageTag, releaseImage)
+}
+
+// clusterClient returns a client for the cluster oc targets, or nil when oc is
+// nil. It is a registryauth.ClientFunc so the cluster is only contacted when no
+// cheaper credential source is available.
+func clusterClient(oc *util.CLI) registryauth.ClientFunc {
+	return func() (corev1client.CoreV1Interface, error) {
+		if oc == nil {
+			return nil, nil
+		}
+		return oc.AdminKubeClient().CoreV1(), nil
+	}
 }
