@@ -6,12 +6,38 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 )
+
+func TestEvaluateAPILoadBalancerShutdownSkipped(t *testing.T) {
+	tests := []struct {
+		name   string
+		reason string
+	}{
+		{name: "ROSA", reason: "not applicable to ROSA"},
+		{name: "unknown cluster type", reason: "cluster type could not be determined"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			analyzer := &auditLogAnalyzer{
+				apiLoadBalancerSkipReason:     test.reason,
+				requestsDuringShutdownChecker: CheckForRequestsDuringShutdown(),
+			}
+
+			results := analyzer.evaluateAPILoadBalancerShutdown(monitorapi.Intervals{})
+			require.Len(t, results, 1)
+			require.NotNil(t, results[0].SkipMessage)
+			require.Equal(t, test.reason, results[0].SkipMessage.Message)
+			require.Nil(t, results[0].FailureOutput)
+		})
+	}
+}
 
 func TestEvaluateExcessiveAppliesUserBoundaries(t *testing.T) {
 	const (
