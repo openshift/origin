@@ -62,6 +62,8 @@ var (
 		// used by KubeVirt test to start fedora VMs
 		"quay.io/kubevirt/fedora-with-test-tooling-container-disk:v1.8.2": -1,
 
+		"ghcr.io/nicolaka/netshoot:v0.16": -1,
+
 		// used by external OIDC tests to simulate an external IdP
 		"quay.io/keycloak/keycloak:25.0": -1,
 
