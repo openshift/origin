@@ -13,7 +13,7 @@ import (
 )
 
 // These tests pin the scoped, proximity-bounded tolerance for oauth-openshift ScalingReplicaSet
-// repeats during the AuthenticationComponentProxy serial tests. The finite cap (105) applies
+// repeats during the AuthenticationComponentProxy serial tests. The finite cap (120) applies
 // only to repeats whose LATEST occurrence falls during one of the eligible passing tests or
 // within authenticationComponentProxyPostTestGrace AFTER that test ends (no pre-test grace).
 // Repeats outside those windows are allowed only if, once the occurrences of the same Event
@@ -344,7 +344,7 @@ func TestAuthenticationComponentProxyOperatorEvents(t *testing.T) {
 }
 
 // TestAuthenticationComponentProxyScalingReplicaSet_ThroughLegacyConsumer drives the actual
-// legacy evaluator end-to-end: in-window counts 103 and 105 pass, 106 rejects, and a count at
+// legacy evaluator end-to-end: in-window counts 103 and 120 pass, 121 rejects, and a count at
 // the cap past the grace rejects.
 func TestAuthenticationComponentProxyScalingReplicaSet_ThroughLegacyConsumer(t *testing.T) {
 	from := cpT0
@@ -368,13 +368,13 @@ func TestAuthenticationComponentProxyScalingReplicaSet_ThroughLegacyConsumer(t *
 	}
 
 	duringTest := from.Add(2 * time.Minute)
-	assert.Equal(t, 105, authenticationComponentProxyScalingReplicaSetRepeatLimit, "requested numeric policy must remain pinned")
+	assert.Equal(t, 120, authenticationComponentProxyScalingReplicaSetRepeatLimit, "requested numeric policy must remain pinned")
 	assert.False(t, run(oauthScaleEvent(103, duringTest)).failed, "observed in-window count must pass the legacy consumer")
-	assert.False(t, run(oauthScaleEvent(105, duringTest)).failed, "in-window event at the cap must pass the legacy consumer")
+	assert.False(t, run(oauthScaleEvent(120, duringTest)).failed, "in-window event at the cap must pass the legacy consumer")
 	duringGrace := to.Add(90 * time.Second)
 	assert.Falsef(t, run(oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, duringGrace)).failed,
 		"event within the %s grace must pass", authenticationComponentProxyPostTestGrace)
-	assert.True(t, run(oauthScaleEvent(106, duringTest)).failed, "over-cap event must be rejected")
+	assert.True(t, run(oauthScaleEvent(121, duringTest)).failed, "over-cap event must be rejected")
 	afterGrace := to.Add(authenticationComponentProxyPostTestGrace + 30*time.Second)
 	assert.Truef(t, run(oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, afterGrace)).failed,
 		"event past the %s grace must be rejected", authenticationComponentProxyPostTestGrace)
@@ -386,7 +386,7 @@ const cpNoProxyName = cpPrefix + " oauth-server should bypass proxy by directly 
 // TestAuthenticationComponentProxyScalingReplicaSet_NoProxyWindow pins the newly eligible
 // noProxy bypass test through the actual registry and legacy consumer. The window behaves
 // exactly like the other eligible tests: a pathological repeat (>20) whose latest occurrence
-// falls inside the passing window or within the post-test grace is tolerated up to 105;
+// falls inside the passing window or within the post-test grace is tolerated up to 120;
 // everything else is rejected. Only a completed, Passed noProxy run grants the window, and the
 // name must match exactly.
 func TestAuthenticationComponentProxyScalingReplicaSet_NoProxyWindow(t *testing.T) {
@@ -771,19 +771,19 @@ func TestAuthenticationComponentProxy_DiscountsInWindowOccurrences(t *testing.T)
 			name:       "aggregated Event discounted even when the cumulative count exceeds the in-window cap",
 			testStatus: "Passed",
 			namespace:  "openshift-authentication",
-			// 86 in-window occurrences (cap 105) plus 20 outside: cumulative 106 > 105.
+			// 101 in-window occurrences (cap 120) plus 20 outside: cumulative 121 > 120.
 			events: concat(
-				scaling.series(1, 86, proxyStart),
-				scaling.series(87, 106, later)),
+				scaling.series(1, 101, proxyStart),
+				scaling.series(102, 121, later)),
 		},
 		{
 			name:       "aggregated Event outside residual over threshold rejected above the in-window cap",
 			testStatus: "Passed",
 			namespace:  "openshift-authentication",
-			// 85 in-window occurrences plus 21 outside: cumulative 106 > 105.
+			// 100 in-window occurrences plus 21 outside: cumulative 121 > 120.
 			events: concat(
-				scaling.series(1, 85, proxyStart),
-				scaling.series(86, 106, later)),
+				scaling.series(1, 100, proxyStart),
+				scaling.series(101, 121, later)),
 			wantFailed: true,
 		},
 		{

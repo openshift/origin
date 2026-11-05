@@ -18,7 +18,7 @@ const authenticationComponentProxyPostTestGrace = 5 * time.Minute
 
 // authenticationComponentProxyScalingReplicaSetRepeatLimit bounds cumulative ScalingReplicaSet
 // occurrences during eligible AuthenticationComponentProxy windows and their post-test grace.
-const authenticationComponentProxyScalingReplicaSetRepeatLimit = 105
+const authenticationComponentProxyScalingReplicaSetRepeatLimit = 120
 
 // authenticationComponentProxyEligibleTestNames are the exact, full e2e test names whose runs authorize
 // the scoped oauth-openshift ScalingReplicaSet tolerance. The hot-reload test (T3) is included

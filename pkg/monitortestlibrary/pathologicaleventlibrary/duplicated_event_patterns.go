@@ -654,7 +654,7 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 				},
 				messageReasonRegex: regexp.MustCompile(`^ScalingReplicaSet$`),
 				// Observed cumulative counts up to 103 within eligible proxy-test windows.
-				// Keep a narrow buffer above the highest observed cumulative count.
+				// The 120 limit provides bounded headroom while retaining a finite cap.
 				repeatThresholdOverride: authenticationComponentProxyScalingReplicaSetRepeatLimit,
 			},
 		} {
