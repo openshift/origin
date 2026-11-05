@@ -20,6 +20,7 @@ func (client certRotationPodClient) List(ctx context.Context, options metav1.Lis
 	return client.list(ctx, options)
 }
 
+// rotationPod constructs a pod with independently controlled revision, phase, and readiness.
 func rotationPod(revision string, phase corev1.PodPhase, ready bool) corev1.Pod {
 	pod := corev1.Pod{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"revision": revision}}, Status: corev1.PodStatus{Phase: phase}}
 	if ready {
@@ -28,8 +29,13 @@ func rotationPod(revision string, phase corev1.PodPhase, ready bool) corev1.Pod 
 	return pod
 }
 
+// TestCertRotationPodRevision covers revision validation for single- and multi-replica pod sets.
 func TestCertRotationPodRevision(t *testing.T) {
 	t.Parallel()
+	podWithoutRevision := rotationPod("1", corev1.PodRunning, true)
+	delete(podWithoutRevision.Labels, "revision")
+	podWithoutLabels := rotationPod("1", corev1.PodRunning, true)
+	podWithoutLabels.Labels = nil
 	for _, test := range []struct {
 		name      string
 		pods      []corev1.Pod
@@ -37,6 +43,11 @@ func TestCertRotationPodRevision(t *testing.T) {
 		wantError bool
 	}{
 		{name: "no pods"},
+		{name: "missing labels", pods: []corev1.Pod{podWithoutLabels}},
+		{name: "missing revision", pods: []corev1.Pod{podWithoutRevision}},
+		{name: "empty revision", pods: []corev1.Pod{rotationPod("", corev1.PodRunning, true)}},
+		{name: "missing revision among ready pods", pods: []corev1.Pod{rotationPod("1", corev1.PodRunning, true), podWithoutRevision}},
+		{name: "empty revision among ready pods", pods: []corev1.Pod{rotationPod("1", corev1.PodRunning, true), rotationPod("", corev1.PodRunning, true)}},
 		{name: "single replica", pods: []corev1.Pod{rotationPod("1", corev1.PodRunning, true)}, ready: true},
 		{name: "three replicas", pods: []corev1.Pod{rotationPod("1", corev1.PodRunning, true), rotationPod("1", corev1.PodRunning, true), rotationPod("1", corev1.PodRunning, true)}, ready: true},
 		{name: "not ready", pods: []corev1.Pod{rotationPod("1", corev1.PodRunning, false)}},
@@ -56,9 +67,10 @@ func TestCertRotationPodRevision(t *testing.T) {
 	}
 }
 
+// TestCertRotationPodsRetryAndResetStability checks consecutive observations using a deterministic clock.
 func TestCertRotationPodsRetryAndResetStability(t *testing.T) {
 	t.Parallel()
-	for _, reset := range []string{"stable", "list timeout", "unready", "revision change"} {
+	for _, reset := range []string{"stable", "list timeout", "unready", "revision change", "missing revision", "empty revision"} {
 		t.Run(reset, func(t *testing.T) {
 			t.Parallel()
 			now := time.Unix(0, 0)
@@ -79,7 +91,16 @@ func TestCertRotationPodsRetryAndResetStability(t *testing.T) {
 				if calls == 3 && reset == "list timeout" {
 					return nil, context.DeadlineExceeded
 				}
-				return &corev1.PodList{Items: []corev1.Pod{rotationPod(revision, corev1.PodRunning, calls != 3 || reset != "unready")}}, nil
+				pod := rotationPod(revision, corev1.PodRunning, calls != 3 || reset != "unready")
+				if calls == 3 {
+					switch reset {
+					case "missing revision":
+						delete(pod.Labels, "revision")
+					case "empty revision":
+						pod.Labels["revision"] = ""
+					}
+				}
+				return &corev1.PodList{Items: []corev1.Pod{pod}}, nil
 			}}
 			condition := certRotationPodsStable(t, client, "app=etcd", func() time.Time { return now })
 			for observation := 1; observation <= 6; observation++ {
@@ -101,6 +122,7 @@ func TestCertRotationPodsRetryAndResetStability(t *testing.T) {
 	}
 }
 
+// TestCertRotationPodsDeadline verifies that requests and polling inherit the caller's deadline.
 func TestCertRotationPodsDeadline(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithDeadline(context.Background(), time.Unix(0, 0))
@@ -120,6 +142,7 @@ func TestCertRotationPodsDeadline(t *testing.T) {
 	}
 }
 
+// TestCertRotationPodsCancellation verifies that cancellation interrupts in-flight requests and polling.
 func TestCertRotationPodsCancellation(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())

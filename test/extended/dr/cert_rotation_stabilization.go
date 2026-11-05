@@ -16,20 +16,25 @@ import (
 
 const certRotationTimeout = 60 * time.Minute
 
+// waitForEtcdToStabilizeOnTheSameRevisionLonger waits for stable etcd pods within the certificate-rotation deadline.
 func waitForEtcdToStabilizeOnTheSameRevisionLonger(ctx context.Context, logger library.LoggingT, oc *exutil.CLI) error {
 	return waitForCertRotationPods(ctx, logger, oc.AdminKubeClient().CoreV1().Pods(openshiftEtcdNamespace), "app=etcd")
 }
 
+// waitForApiServerToStabilizeOnTheSameRevisionLonger waits for stable API server pods within the certificate-rotation deadline.
 func waitForApiServerToStabilizeOnTheSameRevisionLonger(ctx context.Context, logger library.LoggingT, oc *exutil.CLI) error {
 	return waitForCertRotationPods(ctx, logger, oc.AdminKubeClient().CoreV1().Pods("openshift-kube-apiserver"), "apiserver=true")
 }
 
+// waitForCertRotationPods retries observations until pods stabilize or the bounded context expires.
 func waitForCertRotationPods(ctx context.Context, logger library.LoggingT, pods corev1client.PodInterface, selector string) error {
 	ctx, cancel := context.WithTimeout(ctx, certRotationTimeout)
 	defer cancel()
 	return wait.PollUntilContextCancel(ctx, 10*time.Second, false, certRotationPodsStable(logger, pods, selector, time.Now))
 }
 
+// certRotationPodsStable requires three consecutive same-revision observations a minute apart, not three pods.
+// List errors, unreadiness, and revision changes reset stability; each request is bounded by 30 seconds and ctx.
 func certRotationPodsStable(logger library.LoggingT, pods corev1client.PodInterface, selector string, now func() time.Time) wait.ConditionWithContextFunc {
 	nextObservation := now().Add(time.Minute)
 	successes := 0
@@ -61,6 +66,8 @@ func certRotationPodsStable(logger library.LoggingT, pods corev1client.PodInterf
 	}
 }
 
+// certRotationPodRevision accepts a nonempty set of ready running pods on one nonempty revision, regardless of replica count.
+// Pending pods prevent stability; failed or succeeded pods on the running revision and unexpected phases are errors.
 func certRotationPodRevision(pods []corev1.Pod) (string, bool, error) {
 	if len(pods) == 0 {
 		return "", false, nil
@@ -78,7 +85,11 @@ func certRotationPodRevision(pods []corev1.Pod) (string, bool, error) {
 			if !ready {
 				return "", false, nil
 			}
-			goodRevisions.Insert(pod.Labels["revision"])
+			revision := pod.Labels["revision"]
+			if len(revision) == 0 {
+				return "", false, nil
+			}
+			goodRevisions.Insert(revision)
 		case corev1.PodPending:
 			return "", false, nil
 		case corev1.PodSucceeded, corev1.PodFailed:
