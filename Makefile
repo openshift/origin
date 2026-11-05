@@ -142,16 +142,25 @@ shared-test-unit:
 $(call add-bindata,bindata,-ignore ".*\.(go|md)$$$$" examples/db-templates examples/image-streams examples/sample-app examples/quickstarts/... examples/hello-openshift examples/jenkins/... examples/quickstarts/cakephp-mysql.json test/extended/testdata/... e2echart,testextended,testdata,test/extended/testdata/bindata.go)
 
 # Requires uv (installed in devcontainer). Regenerates CLAUDE.md, AGENTS.md, etc.
-_uvx_env = $(if $(filter true,$(CI)),UV_CACHE_DIR=/tmp/uv-cache UV_TOOL_DIR=/tmp/uv-tools)
+# NB: the linter parses this file as shell and cannot cope with make functions.
+# shellcheck disable=SC1009,SC1050,SC1072,SC1073
+# apm-cli >= 0.35 keeps per-user state in ~/.apm (lifecycle lock, config) and
+# does not honour APM_HOME for it. CI containers run with an empty HOME, which
+# resolves to /, so point HOME at a scratch dir alongside the uv caches.
+_uvx_env = $(if $(filter true,$(CI)),HOME=/tmp/apm-home UV_CACHE_DIR=/tmp/uv-cache UV_TOOL_DIR=/tmp/uv-tools)
+# vendor/ trees are walked by apm compile; excluding them keeps regeneration fast.
+# Nested AGENTS.md files are generated too, so they are listed explicitly.
+_apm_generated = .claude .cursor .gemini .opencode .agents .github/instructions .github/prompts \
+	.mcp.json opencode.json apm.lock.yaml AGENTS.md CLAUDE.md GEMINI.md test/shared/AGENTS.md
 apm:
-	$(_uvx_env) uvx --from apm-cli@0.13.0 apm install
-	$(_uvx_env) uvx --from apm-cli@0.13.0 apm compile
+	$(_uvx_env) uvx --from apm-cli@0.35.0 apm install
+	$(_uvx_env) uvx --from apm-cli@0.35.0 apm compile
 .PHONY: apm
 
 verify-apm: apm
-	@if [ -n "$$(git status --porcelain -- .claude .cursor .gemini .opencode .github/instructions .github/prompts AGENTS.md CLAUDE.md GEMINI.md)" ]; then \
+	@if [ -n "$$(git status --porcelain -- $(_apm_generated))" ]; then \
 		echo "ERROR: Generated APM files are out of date. Run 'make apm' and commit the results."; \
-		git status --short -- .claude .cursor .gemini .opencode .github/instructions .github/prompts AGENTS.md CLAUDE.md GEMINI.md; \
+		git status --short -- $(_apm_generated); \
 		exit 1; \
 	fi
 .PHONY: verify-apm
