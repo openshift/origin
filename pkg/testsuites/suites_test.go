@@ -2,11 +2,40 @@ package testsuites
 
 import (
 	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	"github.com/openshift/origin/pkg/test/ginkgo"
 )
+
+// TestSuiteMonitorExclusions confines the legacy monitor exclusion to etcd recovery
+// while preserving the existing exclusions for every other suite.
+func TestSuiteMonitorExclusions(t *testing.T) {
+	t.Parallel()
+	foundRecovery := false
+	for _, suite := range append(InternalTestSuites(), UpgradeTestSuites()...) {
+		if suite.Name == "openshift/etcd/recovery" {
+			foundRecovery = true
+		}
+		t.Run(suite.Name, func(t *testing.T) {
+			t.Parallel()
+			var expected []string
+			switch suite.Name {
+			case "openshift/etcd/recovery":
+				expected = []string{"legacy-kube-apiserver-invariants"}
+			case "openshift/etcd/scaling":
+				expected = []string{"node-lifecycle"}
+			}
+			if !slices.Equal(suite.DisableMonitorTests, expected) {
+				t.Errorf("expected disabled monitors %v, got %v", expected, suite.DisableMonitorTests)
+			}
+		})
+	}
+	if !foundRecovery {
+		t.Fatal("openshift/etcd/recovery suite not found")
+	}
+}
 
 // TestSuiteQualifiersValidCEL validates that all CEL expressions in suite qualifiers
 // are syntactically valid
