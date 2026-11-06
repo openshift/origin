@@ -29,6 +29,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/legacykubeapiservermonitortests"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/staticpodinstall"
 	"github.com/openshift/origin/pkg/monitortests/kubelet/containerfailures"
+	"github.com/openshift/origin/pkg/monitortests/machines/nodeprovisioninglatency"
 	"github.com/openshift/origin/pkg/monitortests/machines/watchmachines"
 	"github.com/openshift/origin/pkg/monitortests/monitoring/disruptionmetricsapi"
 	"github.com/openshift/origin/pkg/monitortests/monitoring/statefulsetsrecreation"
@@ -178,6 +179,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 
 	// Machines
 	monitorTestRegistry.AddMonitorTestOrDie("machine-lifecycle", "Cluster-Lifecycle / machine-api", watchmachines.NewMachineWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("node-provisioning-latency", "Cluster-Lifecycle / machine-api", nodeprovisioninglatency.NewNodeProvisioningLatency(monitortestframework.HardFail))
 
 	// Image Registry
 	monitorTestRegistry.AddMonitorTestOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewAvailabilityInvariant())
