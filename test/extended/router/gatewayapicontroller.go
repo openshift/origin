@@ -573,24 +573,69 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 // This function avoids calling g.Skip() or o.Expect() so it is safe to call from
 // upgrade test Skip() methods that run outside of Ginkgo leaf nodes.
 func shouldSkipGatewayAPITests(oc *exutil.CLI, noOLM bool) (bool, string, error) {
+	return shouldSkipGatewayAPITestsWithOptions(oc, noOLM, gatewayAPITestEligibilityOptions{})
+}
+
+// shouldSkipGatewayAPIManagementModeTests applies the shared Gateway API test
+// eligibility checks while allowing the management-mode suite to run on an
+// IPv6 or dual-stack cluster when Gateway API is installed without OLM.
+func shouldSkipGatewayAPIManagementModeTests(oc *exutil.CLI, noOLM bool) (bool, string, error) {
+	return shouldSkipGatewayAPITestsWithOptions(oc, noOLM, gatewayAPITestEligibilityOptions{
+		allowIPv6WithNoOLM: true,
+	})
+}
+
+type gatewayAPITestEligibilityOptions struct {
+	allowIPv6WithNoOLM bool
+}
+
+type gatewayAPITestEligibilityChecks struct {
+	isOKD                     func() (bool, error)
+	platformType              func() (configv1.PlatformType, error)
+	isIPv6OrDualStack         func() (bool, error)
+	allOLMCapabilitiesEnabled func() (bool, error)
+}
+
+func shouldSkipGatewayAPITestsWithOptions(oc *exutil.CLI, noOLM bool, options gatewayAPITestEligibilityOptions) (bool, string, error) {
+	checks := gatewayAPITestEligibilityChecks{
+		isOKD: func() (bool, error) {
+			return isOKD(oc)
+		},
+		platformType: func() (configv1.PlatformType, error) {
+			infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+			if err != nil {
+				return "", fmt.Errorf("failed to get infrastructure: %w", err)
+			}
+			if infra.Status.PlatformStatus == nil {
+				return "", errors.New("infrastructure PlatformStatus is nil")
+			}
+			return infra.Status.PlatformStatus.Type, nil
+		},
+		isIPv6OrDualStack: func() (bool, error) {
+			return isIPv6OrDualStack(oc)
+		},
+		allOLMCapabilitiesEnabled: func() (bool, error) {
+			return exutil.AllCapabilitiesEnabled(oc, olmCapabilities...)
+		},
+	}
+
+	return evaluateGatewayAPITestEligibility(noOLM, options, checks)
+}
+
+func evaluateGatewayAPITestEligibility(noOLM bool, options gatewayAPITestEligibilityOptions, checks gatewayAPITestEligibilityChecks) (bool, string, error) {
 	// TODO: Determine if we can enable and start testing OKD with Sail Library
-	isokd, err := isOKD(oc)
+	isokd, err := checks.isOKD()
 	if err != nil {
-		return false, "", fmt.Errorf("failed to determine if release is OKD: %v", err)
+		return false, "", fmt.Errorf("failed to determine if release is OKD: %w", err)
 	}
 	if isokd {
 		return true, "Skipping on OKD cluster as OSSM is not available as a community operator", nil
 	}
 
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	platformType, err := checks.platformType()
 	if err != nil {
-		return false, "", fmt.Errorf("failed to get infrastructure: %v", err)
+		return false, "", err
 	}
-
-	if infra.Status.PlatformStatus == nil {
-		return false, "", fmt.Errorf("infrastructure PlatformStatus is nil")
-	}
-	platformType := infra.Status.PlatformStatus.Type
 	switch platformType {
 	case configv1.AWSPlatformType,
 		configv1.AzurePlatformType,
@@ -604,18 +649,18 @@ func shouldSkipGatewayAPITests(oc *exutil.CLI, noOLM bool) (bool, string, error)
 		return true, fmt.Sprintf("Skipping on unsupported platform type %q", platformType), nil
 	}
 
-	ipv6, err := isIPv6OrDualStack(oc)
+	ipv6, err := checks.isIPv6OrDualStack()
 	if err != nil {
-		return false, "", fmt.Errorf("failed to check IPv6/dual-stack: %v", err)
+		return false, "", fmt.Errorf("failed to check IPv6/dual-stack: %w", err)
 	}
-	if ipv6 {
+	if ipv6 && !(noOLM && options.allowIPv6WithNoOLM) {
 		return true, "Skipping Gateway API tests on IPv6/dual-stack cluster", nil
 	}
 
 	if !noOLM {
-		enabled, err := exutil.AllCapabilitiesEnabled(oc, olmCapabilities...)
+		enabled, err := checks.allOLMCapabilitiesEnabled()
 		if err != nil {
-			return false, "", fmt.Errorf("failed to check OLM capabilities: %v", err)
+			return false, "", fmt.Errorf("failed to check OLM capabilities: %w", err)
 		}
 		if !enabled {
 			return true, "Skipping: OLM/Marketplace capabilities are not enabled and GatewayAPIWithoutOLM is not enabled", nil
@@ -657,15 +702,19 @@ func isDNSManaged(oc *exutil.CLI) bool {
 func isIPv6OrDualStack(oc *exutil.CLI) (bool, error) {
 	networkConfig, err := oc.AdminOperatorClient().OperatorV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
-		return false, fmt.Errorf("failed to get network config: %v", err)
+		return false, fmt.Errorf("failed to get network config: %w", err)
 	}
 
-	for _, cidr := range networkConfig.Spec.ServiceNetwork {
+	return hasIPv6ServiceNetwork(networkConfig.Spec.ServiceNetwork), nil
+}
+
+func hasIPv6ServiceNetwork(serviceNetworks []string) bool {
+	for _, cidr := range serviceNetworks {
 		if utilnet.IsIPv6CIDRString(cidr) {
-			return true, nil
+			return true
 		}
 	}
-	return false, nil
+	return false
 }
 
 func isNoOLMFeatureGateEnabled(oc *exutil.CLI) (bool, error) {
