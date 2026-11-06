@@ -32,14 +32,72 @@ var _ = g.Describe("[sig-imageregistry][Suite:openshift/test-image-stream-import
 	})
 })
 
+// expectedImageStreamImportMode mirrors the image-registry operator's
+// syncImageStatus logic (see cluster-image-registry-operator
+// pkg/operator/imageconfig.go) for deriving the effective
+// image.config.openshift.io/cluster status.imageStreamImportMode:
+//   - a non-empty spec value is used verbatim,
+//   - otherwise it is derived from the cluster's desired architecture:
+//     "Multi" -> PreserveOriginal, any other non-empty value -> Legacy,
+//   - and crucially, when the architecture is empty the operator preserves
+//     the current status value rather than defaulting to Legacy.
+//
+// The empty-architecture case is real on clusters where
+// ClusterVersion.status.desired.architecture is not populated (observed on
+// TechPreview jobs). Replicating the operator's decision here lets the test
+// know whether a given spec patch will actually change the status, and
+// therefore whether it will trigger an openshift-apiserver rollout.
+func expectedImageStreamImportMode(specMode, currentMode string, architecture configv1.ClusterVersionArchitecture) string {
+	if specMode != "" {
+		return specMode
+	}
+	switch architecture {
+	case configv1.ClusterVersionArchitectureMulti:
+		return string(configv1.ImportModePreserveOriginal)
+	case "":
+		return currentMode
+	default:
+		return string(configv1.ImportModeLegacy)
+	}
+}
+
 func changeImportModeAndWaitForApiServer(ctx context.Context, t g.GinkgoTInterface, oc *exutil.CLI, importMode string) error {
+	// Determine whether this spec change will actually change the effective
+	// status. The openshift-apiserver only rolls out when
+	// image.config status.imageStreamImportMode changes, so if the status will
+	// stay the same there is no rollout to wait for (waiting would just time
+	// out). This matters for revert patches (spec -> empty) on clusters with an
+	// empty desired architecture, where the operator preserves the existing
+	// status instead of writing Legacy.
+	imageConfig, err := oc.AdminConfigClient().ConfigV1().Images().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	currentMode := string(imageConfig.Status.ImageStreamImportMode)
+
+	var architecture configv1.ClusterVersionArchitecture
+	cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	architecture = cv.Status.Desired.Architecture
+
+	expectedMode := expectedImageStreamImportMode(importMode, currentMode, architecture)
+
 	data := fmt.Sprintf(`{"spec":{"imageStreamImportMode":null}}`)
 	if len(importMode) > 0 {
 		data = fmt.Sprintf(`{"spec":{"imageStreamImportMode":"%s"}}`, importMode)
 	}
-	_, err := oc.AdminConfigClient().ConfigV1().Images().Patch(context.Background(), "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
+	_, err = oc.AdminConfigClient().ConfigV1().Images().Patch(context.Background(), "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
 	if err != nil {
 		return err
+	}
+
+	if expectedMode == currentMode {
+		// No effective status change, so no openshift-apiserver rollout is
+		// expected. Nothing to wait for.
+		t.Logf("image controller import mode unchanged (%q); skipping apiserver rollout wait", currentMode)
+		return nil
 	}
 
 	// when pods are pending it means the config has started to propagate
