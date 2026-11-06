@@ -168,11 +168,13 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 			"pods/addon-operator-manager",
 			"pods/addon-operator-webhooks",
 		),
-		"openshift-backplane-srep":         sets.NewString("pods/osd-delete-ownerrefs-serviceaccounts"), // ROSAENG-74405 to fix (managed-cluster-config)
-		"openshift-monitoring":             sets.NewString("pods/osd-rebalance-infra-nodes"),            // ROSAENG-74405 to fix (managed-cluster-config)
-		"openshift-ocm-agent-operator":     sets.NewString("pods/ocm-agent"),                            // ROSAENG-74405 to fix (openshift/ocm-agent)
-		"openshift-package-operator":       sets.NewString("pods/package-operator-manager"),             // ROSAENG-74405 to fix (package-operator/package-operator)
-		"openshift-route-monitor-operator": sets.NewString("pods/blackbox-exporter"),                    // ROSAENG-74405 tofix (openshift/route-monitor-operator)
+		"openshift-backplane-srep": sets.NewString("pods/osd-delete-ownerrefs-serviceaccounts"), // ROSAENG-74405 to fix (managed-cluster-config)
+		"openshift-monitoring":     sets.NewString("pods/osd-rebalance-infra-nodes"),            // ROSAENG-74405 to fix (managed-cluster-config)
+		// Match the ocm-agent container specifically. The shared "pods/ocm-agent" prefix would also
+		// exempt the separate ocm-agent-operator workload in this namespace via strings.Contains.
+		"openshift-ocm-agent-operator":     sets.NewString("containers[ocm-agent]"),         // ROSAENG-74405 to fix (openshift/ocm-agent)
+		"openshift-package-operator":       sets.NewString("pods/package-operator-manager"), // ROSAENG-74405 to fix (package-operator/package-operator)
+		"openshift-route-monitor-operator": sets.NewString("pods/blackbox-exporter"),        // ROSAENG-74405 tofix (openshift/route-monitor-operator)
 		"openshift-security": sets.NewString( // TODO file OCPBUGS (managed-cluster-config + splunk-forwarder-operator)
 			"pods/audit-exporter",
 			"pods/splunkforwarder-ds",
