@@ -238,9 +238,21 @@ func setAdminGate(ctx context.Context, gateName string, gateValue string, oc *ex
 }
 
 // adminAckDeadline is the upper bound of time for CVO to notice a new adminack
-// gate. CVO sync loop duration is nondeterministic 2-4m interval so we set this
-// slightly above the worst case.
-const adminAckDeadline = 4*time.Minute + 5*time.Second
+// gate.
+//
+// Branches through 4.22 evaluate Upgradeable on a throttled loop (the CVO's
+// upgradeableCheckIntervals, 2m floor). The interval between successive evaluations is
+// driven by sync activity and routinely exceeds that floor: ~3m35s in steady state, with
+// gaps up to ~5m right after an update completes, while the previous evaluation still
+// reports UpdateInProgress. The former 4m5s bound sat inside that window, so this wait
+// could expire against a stale condition the CVO was about to refresh and fail a cluster
+// that was behaving correctly.
+//
+// Kept under 7m30s because the post-update check can run two of these waits back to back
+// inside a 15m context. 4.23 and later recompute Upgradeable on informer events and never
+// approach this deadline; the value is kept uniform across branches so cherry-picks stay
+// clean.
+const adminAckDeadline = 6 * time.Minute
 
 func waitForAdminAckRequired(ctx context.Context, config *restclient.Config, message string) error {
 	framework.Logf("Waiting for Upgradeable to be AdminAckRequired for %q ...", message)
