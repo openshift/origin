@@ -1279,15 +1279,32 @@ func WaitForAnImageStream(client imagev1typedclient.ImageStreamInterface,
 // WaitForAnImageStreamTag waits until an image stream with given name has non-empty history for given tag.
 // Defaults to waiting for 300 seconds
 func WaitForAnImageStreamTag(oc *CLI, namespace, name, tag string) error {
-	waitTimeout := time.Second * 300
 	g.By(fmt.Sprintf("waiting for an is importer to import a tag %s into a stream %s", tag, name))
+	return waitForAnImageStreamTag(oc.ImageClient().ImageV1().ImageStreams(namespace), namespace, name, tag, time.Second*300)
+}
+
+func waitForAnImageStreamTag(client imagev1typedclient.ImageStreamInterface, namespace, name, tag string, waitTimeout time.Duration) error {
 	start := time.Now()
-	c := make(chan error)
+	var statusLock sync.Mutex
+	lastStatus := "no image stream observed"
+	withImportStatus := func(err error) error {
+		if err == nil {
+			return nil
+		}
+		statusLock.Lock()
+		defer statusLock.Unlock()
+		return fmt.Errorf("%w; last observed import status: %s", err, lastStatus)
+	}
+	c := make(chan error, 1)
 	go func() {
 		err := WaitForAnImageStream(
-			oc.ImageClient().ImageV1().ImageStreams(namespace),
+			client,
 			name,
 			func(is *imagev1.ImageStream) bool {
+				status := imageStreamTagImportStatus(is, tag)
+				statusLock.Lock()
+				lastStatus = status
+				statusLock.Unlock()
 				statusTag, exists := imageutil.StatusHasTag(is, tag)
 				if !exists || len(statusTag.Items) == 0 {
 					return false
@@ -1302,9 +1319,59 @@ func WaitForAnImageStreamTag(oc *CLI, namespace, name, tag string) error {
 
 	select {
 	case e := <-c:
-		return e
+		return withImportStatus(e)
 	case <-time.After(waitTimeout):
-		return fmt.Errorf("timed out while waiting of an image stream tag %s/%s:%s", namespace, name, tag)
+		return withImportStatus(fmt.Errorf("timed out while waiting of an image stream tag %s/%s:%s", namespace, name, tag))
+	}
+}
+
+// imageStreamTagImportStatus omits free-form fields and unrecognized condition identifiers.
+func imageStreamTagImportStatus(stream *imagev1.ImageStream, tag string) string {
+	var status strings.Builder
+	fmt.Fprintf(&status, "stream generation=%d", stream.Generation)
+	for _, specTag := range stream.Spec.Tags {
+		if specTag.Name == tag {
+			if specTag.Generation != nil {
+				fmt.Fprintf(&status, "; requested generation=%d", *specTag.Generation)
+			}
+			break
+		}
+	}
+	statusTag, exists := imageutil.StatusHasTag(stream, tag)
+	if !exists {
+		return status.String() + "; tag status absent"
+	}
+	fmt.Fprintf(&status, "; items=%d; conditions=%d", len(statusTag.Items), len(statusTag.Conditions))
+	if len(statusTag.Items) > 0 {
+		fmt.Fprintf(&status, "; latest item generation=%d", statusTag.Items[0].Generation)
+	}
+	for index, condition := range statusTag.Conditions {
+		if index == 3 {
+			status.WriteString("; remaining conditions omitted")
+			break
+		}
+		conditionType := "omitted"
+		if condition.Type == imagev1.ImportSuccess {
+			conditionType = string(imagev1.ImportSuccess)
+		}
+		conditionStatus := "omitted"
+		switch condition.Status {
+		case corev1.ConditionTrue, corev1.ConditionFalse, corev1.ConditionUnknown:
+			conditionStatus = string(condition.Status)
+		}
+		fmt.Fprintf(&status, "; type=%q status=%q reason=%q generation=%d", conditionType, conditionStatus, importConditionReason(condition.Reason), condition.Generation)
+	}
+	return status.String()
+}
+
+// importConditionReason only exposes known API and image importer reasons.
+func importConditionReason(value string) string {
+	switch metav1.StatusReason(value) {
+	case metav1.StatusReasonUnauthorized, metav1.StatusReasonForbidden, metav1.StatusReasonNotFound,
+		metav1.StatusReasonInvalid, metav1.StatusReasonInternalError, "ImportFailed":
+		return value
+	default:
+		return "omitted"
 	}
 }
 
