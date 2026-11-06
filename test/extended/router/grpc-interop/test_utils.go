@@ -170,7 +170,7 @@ func DoServerStreaming(tc testpb.TestServiceClient, args ...grpc.CallOption) err
 		return fmt.Errorf("Failed to finish the server streaming rpc: %v", rpcStatus)
 	}
 	if respCnt != len(respSizes) {
-		return fmt.Errorf("Got %d reply, want %d", len(respSizes), respCnt)
+		return fmt.Errorf("Got %d reply, want %d", respCnt, len(respSizes))
 	}
 	return nil
 }
@@ -363,7 +363,9 @@ func DoCustomMetadata(tc testpb.TestServiceClient, args ...grpc.CallOption) erro
 	if t != testpb.PayloadType_COMPRESSABLE || s != 1 {
 		return fmt.Errorf("Got the reply with type %d len %d; want %d, %d", t, s, testpb.PayloadType_COMPRESSABLE, 1)
 	}
-	validateMetadata(header, trailer)
+	if err := validateMetadata(header, trailer); err != nil {
+		return err
+	}
 
 	// Testing with FullDuplex.
 	stream, err := tc.FullDuplexCall(ctx, args...)
@@ -397,7 +399,9 @@ func DoCustomMetadata(tc testpb.TestServiceClient, args ...grpc.CallOption) erro
 		return fmt.Errorf("%v failed to complete the custom metadata test: %v", stream, err)
 	}
 	streamTrailer := stream.Trailer()
-	validateMetadata(streamHeader, streamTrailer)
+	if err := validateMetadata(streamHeader, streamTrailer); err != nil {
+		return err
+	}
 	return nil
 }
 
