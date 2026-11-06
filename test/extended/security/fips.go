@@ -96,6 +96,18 @@ func isHostedClusterFIPS() (bool, error) {
 	return strconv.ParseBool(fipsValue)
 }
 
+// External topology also includes clusters without a HyperShift HostedCluster.
+// Use the HostedCluster FIPS setting only when management-cluster access is configured.
+func useHostedClusterFIPS(topology configv1.TopologyMode, kubeconfig, namespace string) (bool, error) {
+	if topology != configv1.ExternalTopologyMode {
+		return false, nil
+	}
+	if (kubeconfig == "") != (namespace == "") {
+		return false, fmt.Errorf("HYPERSHIFT_MANAGEMENT_CLUSTER_KUBECONFIG and HYPERSHIFT_MANAGEMENT_CLUSTER_NAMESPACE must be set together")
+	}
+	return kubeconfig != "", nil
+}
+
 var _ = g.Describe("[sig-arch] [Conformance] FIPS", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithPodSecurityLevel("fips", admissionapi.LevelPrivileged)
@@ -105,17 +117,20 @@ var _ = g.Describe("[sig-arch] [Conformance] FIPS", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		clusterAdminKubeClientset := oc.AdminKubeClient()
 
+		useHostedCluster, err := useHostedClusterFIPS(*controlPlaneTopology,
+			os.Getenv("HYPERSHIFT_MANAGEMENT_CLUSTER_KUBECONFIG"),
+			os.Getenv("HYPERSHIFT_MANAGEMENT_CLUSTER_NAMESPACE"))
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		var isFIPS bool
-		if *controlPlaneTopology == configv1.ExternalTopologyMode {
-			if os.Getenv("HYPERSHIFT_MANAGEMENT_CLUSTER_KUBECONFIG") == "" || os.Getenv("HYPERSHIFT_MANAGEMENT_CLUSTER_NAMESPACE") == "" {
-				g.Skip("HYPERSHIFT_MANAGEMENT_CLUSTER_KUBECONFIG and HYPERSHIFT_MANAGEMENT_CLUSTER_NAMESPACE must be set for FIPS test on HyperShift")
-			}
+		if useHostedCluster {
 			isFIPS, err = isHostedClusterFIPS()
-			o.Expect(err).NotTo(o.HaveOccurred())
 		} else {
 			isFIPS, err = exutil.IsFIPS(clusterAdminKubeClientset.CoreV1())
-			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+		o.Expect(err).NotTo(o.HaveOccurred())
 
+		if *controlPlaneTopology != configv1.ExternalTopologyMode {
 			masterNodes, err := clusterAdminKubeClientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 				LabelSelector: "node-role.kubernetes.io/master",
 			})
