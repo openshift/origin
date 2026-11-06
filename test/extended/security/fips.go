@@ -3,6 +3,7 @@ package security
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -18,10 +19,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-const (
-	installConfigName = "cluster-config-v1"
-	fipsFile          = "/proc/sys/crypto/fips_enabled"
-)
+const fipsFile = "/proc/sys/crypto/fips_enabled"
 
 func validateFIPSOnNode(oc *exutil.CLI, fipsExpected bool, node *corev1.Node) error {
 	// The oc debug output prints a bunch of info messages and possible warnings (the latter can not be disabled).
@@ -48,6 +46,70 @@ func validateFIPSOnNode(oc *exutil.CLI, fipsExpected bool, node *corev1.Node) er
 	return nil
 }
 
+// discoverHostedCluster finds the HostedCluster name and namespace on the
+// management cluster that corresponds to the given hosted control plane namespace.
+func discoverHostedCluster(mgmtCLI *exutil.CLI, hcpNS string) (string, string, error) {
+	output, _, err := mgmtCLI.AsAdmin().WithoutNamespace().Run("get").Args(
+		"hostedclusters", "-A",
+		"--request-timeout=30s",
+		"-o", `jsonpath={range .items[*]}{.metadata.namespace},{.metadata.name}{"\n"}{end}`,
+	).Outputs()
+	if err != nil {
+		return "", "", fmt.Errorf("failed to list HostedClusters: %v", err)
+	}
+	return findHostedCluster(output, hcpNS)
+}
+
+func findHostedCluster(output, hcpNS string) (string, string, error) {
+	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
+		parts := strings.SplitN(line, ",", 2)
+		if len(parts) == 2 {
+			ns, name := parts[0], parts[1]
+			// Match HyperShift's manifests.HostedControlPlaneNamespace transformation.
+			if ns+"-"+strings.ReplaceAll(name, ".", "-") == hcpNS {
+				return name, ns, nil
+			}
+		}
+	}
+	return "", "", fmt.Errorf("could not find HostedCluster matching HCP namespace %s", hcpNS)
+}
+
+func isHostedClusterFIPS() (bool, error) {
+	mgmtCLI := exutil.NewHypershiftManagementCLI("fips-mgmt")
+	_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
+	if err != nil {
+		return false, err
+	}
+
+	hcName, hcNS, err := discoverHostedCluster(mgmtCLI, hcpNamespace)
+	if err != nil {
+		return false, err
+	}
+
+	fipsValue, _, err := mgmtCLI.AsAdmin().WithoutNamespace().Run("get").Args(
+		"hostedcluster", hcName, "-n", hcNS,
+		"--request-timeout=30s",
+		"-ojsonpath={.spec.fips}",
+	).Outputs()
+	if err != nil {
+		return false, fmt.Errorf("failed to get .spec.fips from HostedCluster %s/%s: %v", hcNS, hcName, err)
+	}
+
+	return strconv.ParseBool(fipsValue)
+}
+
+// External topology also includes clusters without a HyperShift HostedCluster.
+// Use the HostedCluster FIPS setting only when management-cluster access is configured.
+func useHostedClusterFIPS(topology configv1.TopologyMode, kubeconfig, namespace string) (bool, error) {
+	if topology != configv1.ExternalTopologyMode {
+		return false, nil
+	}
+	if (kubeconfig == "") != (namespace == "") {
+		return false, fmt.Errorf("HYPERSHIFT_MANAGEMENT_CLUSTER_KUBECONFIG and HYPERSHIFT_MANAGEMENT_CLUSTER_NAMESPACE must be set together")
+	}
+	return kubeconfig != "", nil
+}
+
 var _ = g.Describe("[sig-arch] [Conformance] FIPS", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithPodSecurityLevel("fips", admissionapi.LevelPrivileged)
@@ -56,12 +118,20 @@ var _ = g.Describe("[sig-arch] [Conformance] FIPS", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		clusterAdminKubeClientset := oc.AdminKubeClient()
-		isFIPS, err := exutil.IsFIPS(clusterAdminKubeClientset.CoreV1())
+
+		useHostedCluster, err := useHostedClusterFIPS(*controlPlaneTopology,
+			os.Getenv("HYPERSHIFT_MANAGEMENT_CLUSTER_KUBECONFIG"),
+			os.Getenv("HYPERSHIFT_MANAGEMENT_CLUSTER_NAMESPACE"))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		// fetch one control plane and one worker, and validate FIPS state on it.
-		// skip the controlplane node verification when external controlPlaneTopology as
-		// there are no controlplane nodes.
+		var isFIPS bool
+		if useHostedCluster {
+			isFIPS, err = isHostedClusterFIPS()
+		} else {
+			isFIPS, err = exutil.IsFIPS(clusterAdminKubeClientset.CoreV1())
+		}
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		if *controlPlaneTopology != configv1.ExternalTopologyMode {
 			masterNodes, err := clusterAdminKubeClientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 				LabelSelector: "node-role.kubernetes.io/master",
@@ -69,8 +139,9 @@ var _ = g.Describe("[sig-arch] [Conformance] FIPS", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			masterNode := &masterNodes.Items[0]
 			err = validateFIPSOnNode(oc, isFIPS, masterNode)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		}
-		o.Expect(err).NotTo(o.HaveOccurred())
+
 		workerNodes, err := clusterAdminKubeClientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 			LabelSelector: "node-role.kubernetes.io/worker",
 		})
