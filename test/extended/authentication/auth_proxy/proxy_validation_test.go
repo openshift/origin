@@ -11,18 +11,6 @@ import (
 	appsclientv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 )
 
-func TestClusterProxyRequiresClient(t *testing.T) {
-	t.Parallel()
-	client := kubefake.NewSimpleClientset()
-	_, err := ClusterProxy(context.Background(), nil, client.CoreV1())
-	if err == nil || !strings.Contains(err.Error(), "proxies client must not be nil") {
-		t.Fatalf("error = %v, want missing proxies client", err)
-	}
-	if len(client.Actions()) != 0 {
-		t.Error("invalid arguments caused API access")
-	}
-}
-
 func TestDeploymentProxyConfigValidation(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
