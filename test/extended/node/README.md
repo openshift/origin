@@ -54,6 +54,47 @@ This directory contains OpenShift end-to-end tests for node-related features.
   - Duplicate path detection within store types
   - Combined store configurations with invalid paths
 
+### Suite: openshift/conformance/parallel
+
+- **Additional Storage Support API Validation** - API validation tests for additionalArtifactStores, additionalImageStores, and additionalLayerStores CRI-O configuration
+  
+  **Availability:**
+  - **OCP 4.22:** TechPreview (requires TechPreviewNoUpgrade feature gate)
+  - **OCP 4.23+/5.0+:** GA (Generally Available)
+  
+  **Suite:** `openshift/conformance/parallel`  
+  **Feature Tag:** `[Feature:AdditionalStorageSupport]`  
+  **Sig Tag:** `[sig-node]`  
+  **OCPFeatureGate:** `AdditionalStorageConfig`
+  
+  **Test File:**
+  - **additional_storage_api.go** - 13 API validation tests using DryRun (non-disruptive, parallel execution)
+    - Combined Additional Stores (3 tests): invalid paths, max count enforcement, duplicate detection
+    - Additional Layer Stores (8 tests): comprehensive path validation (empty, relative, spaces, special chars, length, max count, consecutive slashes, duplicates)
+    - Additional Image Stores (1 smoke test): path validation wiring
+    - Additional Artifact Stores (1 smoke test): path validation wiring
+  
+  **Requirements:**
+  - AdditionalStorageConfig feature gate must be enabled
+  - API tests are non-disruptive (use DryRun)
+  - Run in parallel with other conformance tests
+  - Skip on MicroShift (no MachineConfig support)
+  - Skip on Microsoft Azure (known platform issues)
+  
+  **Running API validation tests:**
+  ```bash
+  # Run only Additional Storage API validation tests (fast, non-disruptive)
+  ./openshift-tests run "openshift/conformance/parallel" --dry-run | \
+    grep "\[Feature:AdditionalStorageSupport\]" | \
+    ./openshift-tests run -f -
+  ```
+  
+  **Test Coverage (13 tests, ~2-3 min total):**
+  - Path format validation (absolute paths, character restrictions, length limits)
+  - Count limits enforcement (5 for artifact/layer stores, 10 for image stores)
+  - Duplicate path detection within store types
+  - Combined store configurations with invalid paths
+
 ### Suite: openshift/usernamespace
 
 - **nested_container.go** - Tests running nested containers (podman-in-pod) with user namespaces and nested-container SCC
