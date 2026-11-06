@@ -49,10 +49,11 @@ func validateFIPSOnNode(oc *exutil.CLI, fipsExpected bool, node *corev1.Node) er
 // discoverHostedCluster finds the HostedCluster name and namespace on the
 // management cluster that corresponds to the given hosted control plane namespace.
 func discoverHostedCluster(mgmtCLI *exutil.CLI, hcpNS string) (string, string, error) {
-	output, err := mgmtCLI.AsAdmin().WithoutNamespace().Run("get").Args(
+	output, _, err := mgmtCLI.AsAdmin().WithoutNamespace().Run("get").Args(
 		"hostedclusters", "-A",
+		"--request-timeout=30s",
 		"-o", `jsonpath={range .items[*]}{.metadata.namespace},{.metadata.name}{"\n"}{end}`,
-	).Output()
+	).Outputs()
 	if err != nil {
 		return "", "", fmt.Errorf("failed to list HostedClusters: %v", err)
 	}
@@ -85,10 +86,11 @@ func isHostedClusterFIPS() (bool, error) {
 		return false, err
 	}
 
-	fipsValue, err := mgmtCLI.AsAdmin().WithoutNamespace().Run("get").Args(
+	fipsValue, _, err := mgmtCLI.AsAdmin().WithoutNamespace().Run("get").Args(
 		"hostedcluster", hcName, "-n", hcNS,
+		"--request-timeout=30s",
 		"-ojsonpath={.spec.fips}",
-	).Output()
+	).Outputs()
 	if err != nil {
 		return false, fmt.Errorf("failed to get .spec.fips from HostedCluster %s/%s: %v", hcNS, hcName, err)
 	}
