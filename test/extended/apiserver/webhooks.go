@@ -15,6 +15,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	ote "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
+	"github.com/openshift/origin/test/extended/apiserverauth"
 	exutil "github.com/openshift/origin/test/extended/util"
 	compat_otp "github.com/openshift/origin/test/extended/util/compat_otp"
 	"github.com/openshift/origin/test/extended/util/compat_otp/architecture"
@@ -144,7 +145,7 @@ EOF`, serverconf)
 		compat_otp.AssertWaitPollNoErr(opaPodsReadyErr, "OPA deployment not ready")
 	}
 
-	g.It("[OTP][OCP-55494] When using webhooks fails to rollout latest deploymentconfig [Disruptive][apigroup:apps.openshift.io]",
+	g.It("[OTP][OCP-55494] When using webhooks fails to rollout latest deploymentconfig [APIServer_Disruptive][Disruptive][apigroup:apps.openshift.io]",
 		ote.Informing(), func() {
 			randomStr := compat_otp.GetRandomString()
 			dcpolicyrepo := tmpdir + "/dc-policy.repo"
@@ -200,7 +201,7 @@ EOF`, dcpolicyrepo)
 			compat_otp.AssertWaitPollNoErr(waiterrRollout, "deploymentconfig not rolled out with new policy")
 		})
 
-	g.It("[OTP][OCP-77919] HPA/oc scale and DeploymentConfig should be working with OPA webhooks [Disruptive][apigroup:apps.openshift.io]",
+	g.It("[OTP][OCP-77919] HPA/oc scale and DeploymentConfig should be working with OPA webhooks [APIServer_Disruptive][Disruptive][apigroup:apps.openshift.io]",
 		ote.Informing(), func() {
 			randomStr := compat_otp.GetRandomString()
 
@@ -498,7 +499,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			compareAPIServerWebhookConditions(oc, "", "False", webhookConditionErrors)
 		})
 
-	g.It("[OTP][OCP-50188] Prepare upgrade cluster under APF stress [Slow][Disruptive][apigroup:config.openshift.io][Timeout:40m]",
+	g.It("[OTP][OCP-50188] Prepare upgrade cluster under APF stress [APIServer_Disruptive][Slow][Disruptive][apigroup:config.openshift.io][Timeout:40m]",
 		ote.Informing(), func() {
 			dirname := "/tmp/-OCP-40667/"
 			exceptions := "panicked: false"
@@ -824,4 +825,359 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			}
 		})
 
+	// OCP-50362 Pre-upgrade: Create bad webhooks and leave them for post-upgrade validation
+	g.It("[OTP][OCP-50362][PreChkUpgrade] should create bad admission webhooks before upgrade [Serial][apigroup:config.openshift.io][apigroup:admissionregistration.k8s.io][apigroup:apiextensions.k8s.io]",
+		ote.Informing(), func() {
+			var (
+				namespace                    = "ocp-50362-upgrade"
+				serviceName                  = "example-service"
+				serviceNamespace             = "example-namespace"
+				badValidatingWebhookName     = "test-validating-upgrade-cfg"
+				badMutatingWebhookName       = "test-mutating-upgrade-cfg"
+				badCrdWebhookName            = "testcrdwebhooks-upgrade.tests-upgrade.com"
+				kubeApiserverCoStatus        = map[string]string{"Available": "True", "Progressing": "False", "Degraded": "False"}
+				kasRolloutStatus             = map[string]string{"Available": "True", "Progressing": "True", "Degraded": "False"}
+				webHookErrorConditionTypes   = []string{"ValidatingAdmissionWebhookConfigurationError", "MutatingAdmissionWebhookConfigurationError", "CRDConversionWebhookConfigurationError"}
+				status                       = "True"
+				webhookServiceFailureReasons = []string{"WebhookServiceNotFound", "WebhookServiceNotReady", "WebhookServiceConnectionError"}
+			)
+
+			validatingWebHook := admissionWebhook{
+				name: badValidatingWebhookName, webhookname: "test.validating.upgrade.com",
+				servicenamespace: serviceNamespace, servicename: serviceName, namespace: namespace,
+				apigroups: "", apiversions: "v1", operations: "CREATE", resources: "pods",
+				template: apiserverAuthFixture("ValidatingWebhookConfigurationTemplate.yaml"),
+			}
+			mutatingWebHook := admissionWebhook{
+				name: badMutatingWebhookName, webhookname: "test.mutating.upgrade.com",
+				servicenamespace: serviceNamespace, servicename: serviceName, namespace: namespace,
+				apigroups: "authorization.k8s.io", apiversions: "v1", operations: "*", resources: "subjectaccessreviews",
+				template: apiserverAuthFixture("MutatingWebhookConfigurationTemplate.yaml"),
+			}
+			crdWebHook := admissionWebhook{
+				name: badCrdWebhookName, webhookname: "tests-upgrade.com",
+				servicenamespace: serviceNamespace, servicename: serviceName, namespace: namespace,
+				apigroups: "", apiversions: "v1", operations: "CREATE", resources: "pods",
+				singularname: "testcrdwebhooks-upgrade", pluralname: "testcrdwebhooks-upgrade", kind: "TestCrdWebhook", shortname: "tcw", version: "v1beta1",
+				template: apiserverAuthFixture("CRDWebhookConfigurationTemplate.yaml"),
+			}
+
+			kasStatusBefore := getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
+			if !reflect.DeepEqual(kasStatusBefore, kubeApiserverCoStatus) && !reflect.DeepEqual(kasStatusBefore, kasRolloutStatus) {
+				g.Skip("kube-apiserver operator is not in a stable status")
+			}
+
+			g.By("1 - Create custom namespace for admission hook references")
+			// Clean up any existing namespace from previous runs
+			oc.WithoutNamespace().Run("delete").Args("project", namespace, "--ignore-not-found").Execute()
+			// Wait a bit for namespace deletion to complete
+			time.Sleep(5 * time.Second)
+			o.Expect(oc.WithoutNamespace().Run("new-project").Args(namespace).Execute()).To(o.Succeed())
+
+			g.By("2 - Create bad ValidatingWebhookConfiguration with invalid service and namespace references")
+			validatingWebHook.createAdmissionWebhookFromTemplate(oc)
+			_, isAvailable := checkIfResourceAvailable(oc, "ValidatingWebhookConfiguration", []string{badValidatingWebhookName}, "")
+			o.Expect(isAvailable).To(o.BeTrue())
+
+			g.By("3 - Create bad MutatingWebhookConfiguration with invalid service and namespace references")
+			mutatingWebHook.createAdmissionWebhookFromTemplate(oc)
+			_, isAvailable = checkIfResourceAvailable(oc, "MutatingWebhookConfiguration", []string{badMutatingWebhookName}, "")
+			o.Expect(isAvailable).To(o.BeTrue())
+
+			g.By("4 - Create bad CRDWebhookConfiguration with invalid service and namespace references")
+			crdWebHook.createAdmissionWebhookFromTemplate(oc)
+			_, isAvailable = checkIfResourceAvailable(oc, "crd", []string{badCrdWebhookName}, "")
+			o.Expect(isAvailable).To(o.BeTrue())
+
+			g.By("5 - Check for information error message on kube-apiserver cluster w.r.t bad resource reference for admission webhooks")
+			compareAPIServerWebhookConditions(oc, webhookServiceFailureReasons, status, webHookErrorConditionTypes)
+			compareAPIServerWebhookConditions(oc, "AdmissionWebhookMatchesVirtualResource", status, []string{"VirtualResourceAdmissionError"})
+
+			g.By("6 - Check for kube-apiserver operator status after bad validating webhook added")
+			currentKAStatus := getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
+			if !(reflect.DeepEqual(currentKAStatus, kasStatusBefore) || reflect.DeepEqual(currentKAStatus, kubeApiserverCoStatus)) {
+				e2e.Failf("kube-apiserver operator status changed after creating bad admission webhooks")
+			}
+
+			e2e.Logf("Pre-upgrade test passed. Bad webhooks created and will persist through upgrade.")
+		})
+
+	// OCP-50362 Post-upgrade: Verify bad webhooks survived upgrade
+	g.It("[OTP][OCP-50362][PstChkUpgrade] should verify bad admission webhooks persisted through upgrade [Serial][apigroup:config.openshift.io][apigroup:admissionregistration.k8s.io][apigroup:apiextensions.k8s.io]",
+		ote.Informing(), func() {
+			var (
+				namespace                  = "ocp-50362-upgrade"
+				badValidatingWebhookName   = "test-validating-upgrade-cfg"
+				badMutatingWebhookName     = "test-mutating-upgrade-cfg"
+				badCrdWebhookName          = "testcrdwebhooks-upgrade.tests-upgrade.com"
+				kubeApiserverCoStatus      = map[string]string{"Available": "True", "Progressing": "False", "Degraded": "False"}
+				kasRolloutStatus           = map[string]string{"Available": "True", "Progressing": "True", "Degraded": "False"}
+				webHookErrorConditionTypes = []string{"ValidatingAdmissionWebhookConfigurationError", "MutatingAdmissionWebhookConfigurationError", "CRDConversionWebhookConfigurationError", "VirtualResourceAdmissionError"}
+				status                     = "True"
+			)
+
+			defer func() {
+				_ = oc.Run("delete").Args("ValidatingWebhookConfiguration", badValidatingWebhookName, "--ignore-not-found").Execute()
+				_ = oc.Run("delete").Args("MutatingWebhookConfiguration", badMutatingWebhookName, "--ignore-not-found").Execute()
+				_ = oc.Run("delete").Args("crd", badCrdWebhookName, "--ignore-not-found").Execute()
+				_ = oc.WithoutNamespace().Run("delete").Args("project", namespace, "--ignore-not-found").Execute()
+			}()
+
+			kasStatusBefore := getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
+			if !reflect.DeepEqual(kasStatusBefore, kubeApiserverCoStatus) && !reflect.DeepEqual(kasStatusBefore, kasRolloutStatus) {
+				g.Skip("kube-apiserver operator is not in a stable status")
+			}
+
+			g.By("1 - Check presence of admission webhooks created in pre-upgrade steps")
+			output, available := checkIfResourceAvailable(oc, "ValidatingWebhookConfiguration", []string{badValidatingWebhookName}, "")
+			if !available && strings.Contains(output, "not found") {
+				g.Skip(fmt.Sprintf("Resources not found in PstChk when PreChk may have failed :: %s", output))
+			}
+
+			output, available = checkIfResourceAvailable(oc, "MutatingWebhookConfiguration", []string{badMutatingWebhookName}, "")
+			if !available && strings.Contains(output, "not found") {
+				g.Skip(fmt.Sprintf("Resources not found in PstChk when PreChk may have failed :: %s", output))
+			}
+
+			output, available = checkIfResourceAvailable(oc, "crd", []string{badCrdWebhookName}, "")
+			if !available && strings.Contains(output, "not found") {
+				g.Skip(fmt.Sprintf("Resources not found in PstChk when PreChk may have failed :: %s", output))
+			}
+
+			g.By("2 - Check for information message after upgrade on kube-apiserver cluster when bad admission webhooks are present")
+			webhookServiceFailureReasons := []string{"WebhookServiceNotFound", "WebhookServiceNotReady", "WebhookServiceConnectionError", "AdmissionWebhookMatchesVirtualResource"}
+			compareAPIServerWebhookConditions(oc, webhookServiceFailureReasons, status, webHookErrorConditionTypes)
+
+			g.By("3 - Check for kube-apiserver operator status after upgrade when cluster has bad webhooks present")
+			currentKAStatus := getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
+			if !(reflect.DeepEqual(currentKAStatus, kasStatusBefore) || reflect.DeepEqual(currentKAStatus, kubeApiserverCoStatus)) {
+				e2e.Failf("kube-apiserver operator status changed post-upgrade with bad webhooks")
+			}
+
+			g.By("4 - Delete all bad webhooks from upgraded cluster")
+			_ = oc.Run("delete").Args("ValidatingWebhookConfiguration", badValidatingWebhookName, "--ignore-not-found").Execute()
+			_ = oc.Run("delete").Args("MutatingWebhookConfiguration", badMutatingWebhookName, "--ignore-not-found").Execute()
+			_ = oc.Run("delete").Args("crd", badCrdWebhookName, "--ignore-not-found").Execute()
+
+			g.By("5 - Check for informational error message presence after deletion of bad webhooks in upgraded cluster")
+			compareAPIServerWebhookConditions(oc, "", "False", webHookErrorConditionTypes)
+
+			g.By("6 - Check for kube-apiserver operator status after deletion of bad webhooks in upgraded cluster")
+			currentKAStatus = getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
+			if !(reflect.DeepEqual(currentKAStatus, kasStatusBefore) || reflect.DeepEqual(currentKAStatus, kubeApiserverCoStatus)) {
+				e2e.Failf("kube-apiserver operator status changed after deleting bad webhooks post-upgrade")
+			}
+
+			e2e.Logf("Post-upgrade test passed. Bad webhooks persisted through upgrade and cleaned up successfully.")
+		})
+
+	// OCP-54745 Pre-upgrade: Create ClusterResourceQuota and leave resources for post-upgrade validation
+	g.It("[OTP][OCP-54745][PreChkUpgrade] should create ClusterResourceQuota before upgrade [apigroup:quota.openshift.io][apigroup:monitoring.coreos.com]",
+		ote.Informing(), func() {
+			const caseID = "ocp-54745"
+			namespace := caseID + "-quota-upgrade-test"
+			clusterQuotaName := caseID + "-crq-upgrade-test"
+			crqLimits := map[string]string{
+				"pods": "4", "secrets": "10", "cpu": "7", "memory": "5Gi",
+				"requests.cpu": "6", "requests.memory": "6Gi", "limits.cpu": "6", "limits.memory": "6Gi",
+				"configmaps": "5", "count/deployments.apps": "1",
+				"count/templates.template.openshift.io": "3", "count/servicemonitors.monitoring.coreos.com": "1",
+			}
+
+			g.By("1 - Create custom project for Pre & Post Upgrade ClusterResourceQuota test")
+			o.Expect(oc.WithoutNamespace().AsAdmin().Run("create").Args("ns", namespace).Execute()).To(o.Succeed())
+
+			g.By("2 - Create ClusterResourceQuota resource")
+			o.Expect(oc.WithoutNamespace().AsAdmin().Run("create").Args("-n", namespace, "-f", apiserverAuthFixture("clusterresourcequota.yaml")).Execute()).To(o.Succeed())
+			params := []string{"-n", namespace, "clusterresourequotaremplate", "-p",
+				"NAME=" + clusterQuotaName, "LABEL=" + namespace,
+				"PODS_LIMIT=" + crqLimits["pods"], "SECRETS_LIMIT=" + crqLimits["secrets"],
+				"CPU_LIMIT=" + crqLimits["cpu"], "MEMORY_LIMIT=" + crqLimits["memory"],
+				"REQUESTS_CPU=" + crqLimits["requests.cpu"], "REQUEST_MEMORY=" + crqLimits["requests.memory"],
+				"LIMITS_CPU=" + crqLimits["limits.cpu"], "LIMITS_MEMORY=" + crqLimits["limits.memory"],
+				"CONFIGMAPS_LIMIT=" + crqLimits["configmaps"],
+				"TEMPLATE_COUNT=" + crqLimits["count/templates.template.openshift.io"],
+				"SERVICE_MONITOR=" + crqLimits["count/servicemonitors.monitoring.coreos.com"],
+				"DEPLOYMENT=" + crqLimits["count/deployments.apps"],
+			}
+			quotaConfigFile := compat_otp.ProcessTemplate(oc, params...)
+			o.Expect(oc.WithoutNamespace().AsAdmin().Run("create").Args("-n", namespace, "-f", quotaConfigFile).Execute()).To(o.Succeed())
+
+			g.By("3 - Create multiple secrets to test ClusterResourceQuota")
+			createSecretsWithQuotaValidation(oc, namespace, clusterQuotaName, crqLimits, caseID)
+
+			g.By("4 - Create pods before upgrade (remaining will be created post-upgrade)")
+			podsCount, err := oc.Run("get").Args("-n", namespace, "clusterresourcequota", clusterQuotaName, "-o", `jsonpath={.status.namespaces[*].status.used.pods}`).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			existingPodCount, _ := strconv.Atoi(strings.TrimSpace(podsCount))
+			limits, _ := strconv.Atoi(crqLimits["pods"])
+			podTemplate := apiserverAuthFixture("ocp54745-pod.yaml")
+			for i := existingPodCount; i < limits-2; i++ {
+				podname := fmt.Sprintf("%s-pod-%d", caseID, i)
+				params := []string{"-n", namespace, "-f", podTemplate, "-p", "NAME=" + podname, "REQUEST_MEMORY=1Gi", "REQUEST_CPU=1", "LIMITS_MEMORY=1Gi", "LIMITS_CPU=1"}
+				podConfigFile := compat_otp.ProcessTemplate(oc, params...)
+				o.Expect(oc.AsAdmin().WithoutNamespace().Run("-n", namespace, "create").Args("-f", podConfigFile).Execute()).To(o.Succeed())
+			}
+
+			e2e.Logf("Pre-upgrade test passed. ClusterResourceQuota created with resources and will persist through upgrade.")
+		})
+
+	// OCP-54745 Post-upgrade: Verify ClusterResourceQuota and resources survived, create more to validate limits
+	g.It("[OTP][OCP-54745][PstChkUpgrade] should verify ClusterResourceQuota persisted through upgrade [apigroup:quota.openshift.io][apigroup:monitoring.coreos.com]",
+		ote.Informing(), func() {
+			const caseID = "ocp-54745"
+			namespace := caseID + "-quota-upgrade-test"
+			clusterQuotaName := caseID + "-crq-upgrade-test"
+			crqLimits := map[string]string{
+				"pods": "4", "secrets": "10", "cpu": "7", "memory": "5Gi",
+				"configmaps": "5",
+			}
+
+			defer func() {
+				_ = oc.AsAdmin().WithoutNamespace().Run("delete", "project").Args(namespace, "--ignore-not-found").Execute()
+				_ = oc.WithoutNamespace().AsAdmin().Run("delete").Args("clusterresourcequota", clusterQuotaName, "--ignore-not-found").Execute()
+			}()
+
+			g.By("1 - Verify ClusterResourceQuota exists from pre-upgrade")
+			_, isAvailable := checkIfResourceAvailable(oc, "clusterresourcequota", []string{clusterQuotaName}, "")
+			if !isAvailable {
+				g.Skip("ClusterResourceQuota not found - PreChk may have failed")
+			}
+
+			g.By("2 - Create remaining pods post-upgrade to validate quota limits")
+			podsCount, err := oc.Run("get").Args("-n", namespace, "clusterresourcequota", clusterQuotaName, "-o", `jsonpath={.status.namespaces[*].status.used.pods}`).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			existingPodCount, _ := strconv.Atoi(strings.TrimSpace(podsCount))
+			limits, _ := strconv.Atoi(crqLimits["pods"])
+			podTemplate := apiserverAuthFixture("ocp54745-pod.yaml")
+			for i := existingPodCount; i <= limits; i++ {
+				podname := fmt.Sprintf("%s-pod-%d", caseID, i)
+				params := []string{"-n", namespace, "-f", podTemplate, "-p", "NAME=" + podname, "REQUEST_MEMORY=1Gi", "REQUEST_CPU=1", "LIMITS_MEMORY=1Gi", "LIMITS_CPU=1"}
+				podConfigFile := compat_otp.ProcessTemplate(oc, params...)
+				output, err := oc.AsAdmin().WithoutNamespace().Run("-n", namespace, "create").Args("-f", podConfigFile).Output()
+				if i < limits {
+					o.Expect(err).NotTo(o.HaveOccurred())
+				} else {
+					o.Expect(output).To(o.MatchRegexp("pods.*forbidden: exceeded quota"))
+				}
+			}
+
+			g.By("3 - Create configmaps to test quota limits post-upgrade")
+			cmCount, err := oc.Run("get").Args("-n", namespace, "clusterresourcequota", clusterQuotaName, "-o", `jsonpath={.status.namespaces[*].status.used.configmaps}`).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			cmUsedCount, _ := strconv.Atoi(strings.TrimSpace(cmCount))
+			cmLimits, _ := strconv.Atoi(crqLimits["configmaps"])
+			for i := cmUsedCount; i <= cmLimits; i++ {
+				configmapName := fmt.Sprintf("%s-configmap-%d", caseID, i)
+				output, err := oc.Run("create").Args("-n", namespace, "configmap", configmapName).Output()
+				if i < cmLimits {
+					o.Expect(err).NotTo(o.HaveOccurred())
+				} else {
+					o.Expect(output).To(o.MatchRegexp("configmaps.*forbidden: exceeded quota"))
+				}
+			}
+
+			e2e.Logf("Post-upgrade test passed. ClusterResourceQuota persisted and quota limits still enforced.")
+		})
+
+	// OCP-50188: An informational error on kube-apiserver in case an admission webhook is installed for a virtual resource
+	g.It("[OTP][OCP-50188] should show informational error when admission webhook is installed for a virtual resource [Serial]", ote.Informing(), func() {
+		var (
+			validatingWebhookName = "test-validating-cfg"
+			mutatingWebhookName   = "test-mutating-cfg"
+			validatingWebhook     = apiserverAuthFixture("ValidatingWebhookConfigurationTemplate.yaml")
+			mutatingWebhook       = apiserverAuthFixture("MutatingWebhookConfigurationTemplate.yaml")
+			kubeApiserverCoStatus = map[string]string{"Available": "True", "Progressing": "False", "Degraded": "False"}
+			serviceName           = "testservice"
+			serviceNamespace      = "testnamespace"
+			reason                = "AdmissionWebhookMatchesVirtualResource"
+		)
+
+		compat_otp.By("Pre-requisities step : Create new namespace for the tests.")
+		oc.SetupProject()
+
+		validatingWebHook := admissionWebhook{
+			name:             validatingWebhookName,
+			webhookname:      "test.validating.com",
+			servicenamespace: serviceNamespace,
+			servicename:      serviceName,
+			namespace:        oc.Namespace(),
+			apigroups:        "authorization.k8s.io",
+			apiversions:      "v1",
+			operations:       "*",
+			resources:        "subjectaccessreviews",
+			template:         validatingWebhook,
+		}
+
+		mutatingWebHook := admissionWebhook{
+			name:             mutatingWebhookName,
+			webhookname:      "test.mutating.com",
+			servicenamespace: serviceNamespace,
+			servicename:      serviceName,
+			namespace:        oc.Namespace(),
+			apigroups:        "authorization.k8s.io",
+			apiversions:      "v1",
+			operations:       "*",
+			resources:        "subjectaccessreviews",
+			template:         mutatingWebhook,
+		}
+
+		compat_otp.By("1) Create a ValidatingWebhookConfiguration with virtual resource reference.")
+		defer func() {
+			oc.AsAdmin().WithoutNamespace().Run("delete").Args("ValidatingWebhookConfiguration", validatingWebhookName, "--ignore-not-found").Execute()
+		}()
+		preConfigKasStatus := getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
+		validatingWebHook.createAdmissionWebhookFromTemplate(oc)
+		_, isAvailable := apiserverauth.CheckIfResourceAvailable(oc, "ValidatingWebhookConfiguration", []string{validatingWebhookName}, "")
+		o.Expect(isAvailable).Should(o.BeTrue())
+		e2e.Logf("Test step-1 has passed : Creation of ValidatingWebhookConfiguration with virtual resource reference succeeded.")
+
+		compat_otp.By("2) Check for kube-apiserver operator status after virtual resource reference for a validating webhook added.")
+		kasOperatorCheckForStep(oc, preConfigKasStatus, "2", "virtual resource reference for a validating webhook added")
+		e2e.Logf("Test step-2 has passed : Kube-apiserver operator are in normal after virtual resource reference for a validating webhook added.")
+
+		compat_otp.By("3) Check for information message on kube-apiserver cluster w.r.t virtual resource reference for a validating webhook")
+		compareAPIServerWebhookConditions(oc, reason, "True", []string{`VirtualResourceAdmissionError`})
+		validatingDelErr := oc.AsAdmin().WithoutNamespace().Run("delete").Args("ValidatingWebhookConfiguration", validatingWebhookName).Execute()
+		o.Expect(validatingDelErr).NotTo(o.HaveOccurred())
+		e2e.Logf("Test step-3 has passed : Kube-apiserver reports expected informational errors after virtual resource reference for a validating webhook added.")
+
+		compat_otp.By("4) Create a MutatingWebhookConfiguration with a virtual resource reference.")
+		defer func() {
+			oc.AsAdmin().WithoutNamespace().Run("delete").Args("MutatingWebhookConfiguration", mutatingWebhookName, "--ignore-not-found").Execute()
+		}()
+		preConfigKasStatus = getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
+		mutatingWebHook.createAdmissionWebhookFromTemplate(oc)
+		_, isAvailable = apiserverauth.CheckIfResourceAvailable(oc, "MutatingWebhookConfiguration", []string{mutatingWebhookName}, "")
+		o.Expect(isAvailable).Should(o.BeTrue())
+		e2e.Logf("Test step-4 has passed : Creation of MutatingWebhookConfiguration with virtual resource reference succeeded.")
+
+		compat_otp.By("5) Check for kube-apiserver operator status after virtual resource reference for a Mutating webhook added.")
+		kasOperatorCheckForStep(oc, preConfigKasStatus, "5", "virtual resource reference for a Mutating webhook added")
+		e2e.Logf("Test step-5 has passed : Kube-apiserver operators are in normal after virtual resource reference for a mutating webhook added.")
+
+		compat_otp.By("6) Check for information message on kube-apiserver cluster w.r.t virtual resource reference for mutating webhook")
+		compareAPIServerWebhookConditions(oc, reason, "True", []string{`VirtualResourceAdmissionError`})
+		preConfigKasStatus = getCoStatus(oc, "kube-apiserver", kubeApiserverCoStatus)
+		mutatingDelErr := oc.AsAdmin().WithoutNamespace().Run("delete").Args("MutatingWebhookConfiguration", mutatingWebhookName).Execute()
+		o.Expect(mutatingDelErr).NotTo(o.HaveOccurred())
+		e2e.Logf("Test step-6 has passed : Kube-apiserver reports expected informational errors after deleting webhooks.")
+
+		compat_otp.By("7) Check for webhook admission error free kube-apiserver cluster after deleting webhooks.")
+		compareAPIServerWebhookConditions(oc, "", "False", []string{`VirtualResourceAdmissionError`})
+		kasOperatorCheckForStep(oc, preConfigKasStatus, "7", "deleting webhooks")
+		e2e.Logf("Test step-7 has passed : No webhook admission error seen after purging webhooks.")
+		e2e.Logf("All test case steps are passed.!")
+	})
+
+	// OCP-53095: RapiDAST API Security Scan for OpenShift and Kubernetes API endpoints
+	g.It("[OTP][OCP-53095] should perform RapiDAST API security scan for OpenShift and Kubernetes API endpoints [Slow]", ote.Informing(), func() {
+		tmpdir := filepath.Join(os.TempDir(), "rapidast-"+compat_otp.GetRandomString())
+		defer os.RemoveAll(tmpdir)
+		o.Expect(os.MkdirAll(tmpdir, 0755)).To(o.Succeed())
+
+		oc.SetupProject()
+		configFile := exutil.FixturePath("testdata", "oap", "certmanager", "rapidast-config.yaml")
+		apiserverauth.RapidastScan(oc, oc.Namespace(), configFile, tmpdir)
+	})
 })
