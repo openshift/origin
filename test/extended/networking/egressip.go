@@ -14,6 +14,7 @@ import (
 
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -185,6 +186,58 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 
 		g.By("Removing the temp directory")
 		os.RemoveAll(tmpDirEgressIP)
+	})
+
+	g.It("should skip nodes without host-cidrs annotation when assigning EgressIPs", func() {
+		g.By("Creating a bare node without host-cidrs annotation to simulate an orphan")
+		orphanNodeName := fmt.Sprintf("eip-orphan-%d", time.Now().UnixNano())
+		_, err := clientset.CoreV1().Nodes().Create(context.TODO(), &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: orphanNodeName,
+				Labels: map[string]string{
+					"k8s.ovn.org/egress-assignable": "",
+				},
+			},
+		}, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer func() {
+			err := clientset.CoreV1().Nodes().Delete(context.TODO(), orphanNodeName, metav1.DeleteOptions{})
+			if err != nil && !apierrors.IsNotFound(err) {
+				o.Expect(err).NotTo(o.HaveOccurred(), "Failed to clean up orphan node %s", orphanNodeName)
+			}
+		}()
+
+		g.By("Getting EgressIPs for two real nodes")
+		egressIPsPerNode := 1
+		nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesOrderedNames[:2], cloudType, egressIPsPerNode)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		framework.Logf("nodeEgressIPMap: %v", nodeEgressIPMap)
+
+		egressIPSet := make(map[string]string)
+		validNodes := make(map[string]bool)
+		for nodeName, eip := range nodeEgressIPMap {
+			egressIPSet[eip[0]] = nodeName
+			validNodes[nodeName] = true
+		}
+
+		g.By("Creating and applying the EgressIP object")
+		egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
+		egressIPObjectName := egressIPNamespace
+		createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
+		applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
+
+		g.By("Verifying both EgressIPs are assigned to valid nodes and none to the orphan node")
+		eip, err := getEgressIP(oc, egressIPObjectName)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(eip.Status.Items).To(o.HaveLen(2),
+			"Expected 2 EgressIP assignments despite orphan node presence")
+		for _, item := range eip.Status.Items {
+			framework.Logf("EgressIP %s assigned to node %s", item.EgressIP, item.Node)
+			o.Expect(item.Node).NotTo(o.Equal(orphanNodeName),
+				"EgressIP %s was incorrectly assigned to orphan node %s which has no host-cidrs annotation", item.EgressIP, orphanNodeName)
+			o.Expect(validNodes).To(o.HaveKey(item.Node),
+				"EgressIP %s assigned to unexpected node %s, valid nodes: %v", item.EgressIP, item.Node, validNodes)
+		}
 	})
 
 	g.Context("[internal-targets]", func() {
