@@ -42,18 +42,6 @@ var (
 	ErrProxyCertificateRotationIncomplete = errors.New("proxy certificate rotation incomplete: TLS Secret was updated")
 )
 
-// AuthenticationProxyConfig controls a forward proxy deployment. A nil ClusterProxy means
-// direct connections; a non-nil configuration must specify at least one proxy URL.
-type AuthenticationProxyConfig struct {
-	ClusterProxy *ProxyConfig
-}
-
-// squidProxyUpstreamConfig contains peer directives and the optional trust bundle.
-type squidProxyUpstreamConfig struct {
-	squidConfig       string
-	upstreamCACertPEM []byte
-}
-
 // AuthenticationProxyComponent identifies an allocated proxy namespace, its URLs,
 // and its current CA. A partial component returned on deployment failure can be
 // closed when Namespace is non-empty. Copies share URL pointers and CA bytes;
@@ -62,111 +50,8 @@ type AuthenticationProxyComponent struct {
 	oc        *exutil.CLI
 	Namespace string
 
-	config            AuthenticationProxyConfig
 	HttpUrl, HttpsUrl *url.URL
 	CACertPEM         []byte
-}
-
-// upstreamProxyConfig builds Squid peer and bypass directives without cluster access.
-// A nil upstream produces no directives. An invalid upstream returns an empty result.
-func (ac AuthenticationProxyConfig) upstreamProxyConfig() (squidProxyUpstreamConfig, error) {
-	g.GinkgoHelper()
-	var squidAdditionalConfig strings.Builder
-	if ac.ClusterProxy != nil {
-		if !ac.ClusterProxy.HasProxy() {
-			return squidProxyUpstreamConfig{}, fmt.Errorf("either HttpsProxy or HttpProxy in ClusterProxy must be non-empty")
-		}
-
-		httpsProxy, httpProxy := ac.ClusterProxy.HttpsProxy, ac.ClusterProxy.HttpProxy
-		squidAdditionalConfig.WriteString("acl upstream_connect method CONNECT\n")
-		peers := []struct {
-			url       *url.URL
-			name, acl string
-		}{
-			{
-				name: "upstream_http",
-				url:  httpProxy,
-				acl:  "!upstream_connect",
-			},
-			{
-				name: "upstream_https",
-				url:  httpsProxy,
-				acl:  "upstream_connect",
-			},
-		}
-
-		if proxyURLsEqual(httpProxy, httpsProxy) {
-			peers = peers[:1]
-			peers[0].acl = "all"
-		}
-
-		for _, peer := range peers {
-			if peer.url == nil {
-				fmt.Fprintf(&squidAdditionalConfig, "always_direct allow %s\n", peer.acl)
-				continue
-			}
-
-			if peer.url.Hostname() == "" ||
-				(peer.url.Scheme != "http" && peer.url.Scheme != "https") {
-				return squidProxyUpstreamConfig{}, fmt.Errorf("%s must be a valid HTTP or HTTPS proxy URL", peer.name)
-			}
-			port := peer.url.Port()
-			if port == "" {
-				port = "80"
-				if peer.url.Scheme == "https" {
-					port = "443"
-				}
-			}
-			peerOptions := "no-query name=" + peer.name
-			if peer.url.Scheme == "https" {
-				peerOptions += " tls"
-				if len(ac.ClusterProxy.UpstreamCACertPEM) > 0 {
-					peerOptions += " tls-cafile=" + upstreamCACertPath
-				}
-			}
-			if peer.url.User != nil {
-				proxyUsername := peer.url.User.Username()
-				proxyPassword, _ := peer.url.User.Password()
-
-				// Squid accepts URL escapes in login credentials, but not spaces.
-				username := strings.ReplaceAll(url.QueryEscape(proxyUsername), "+", "%20")
-				proxyPassword = strings.ReplaceAll(url.QueryEscape(proxyPassword), "+", "%20")
-				peerOptions += " login=" + username + ":" + proxyPassword
-			}
-			fmt.Fprintf(&squidAdditionalConfig, "cache_peer %s parent %s 0 %s\n", peer.url.Hostname(), port, peerOptions)
-			fmt.Fprintf(&squidAdditionalConfig, "cache_peer_access %s allow %s\ncache_peer_access %s deny all\n", peer.name, peer.acl, peer.name)
-		}
-
-		// Internal destinations must remain reachable without the global proxy.
-		for i, entry := range ac.ClusterProxy.NoProxy.UnsortedList() {
-			entry = strings.TrimSpace(entry)
-			if entry == "" {
-				continue
-			}
-			if entry == "*" {
-				squidAdditionalConfig.WriteString("always_direct allow all\n")
-				continue
-			}
-			aclType := "dstdomain -n"
-			if _, _, cidrErr := net.ParseCIDR(entry); cidrErr == nil || net.ParseIP(entry) != nil {
-				aclType = "dst"
-			} else {
-				// A bare noProxy domain also excludes its subdomains.
-				entry = "." + strings.TrimPrefix(strings.TrimPrefix(entry, "*."), ".")
-			}
-			aclName := fmt.Sprintf("global_no_proxy_%d", i)
-			fmt.Fprintf(&squidAdditionalConfig, "acl %s %s %s\nalways_direct allow %s\n", aclName, aclType, entry, aclName)
-		}
-		squidAdditionalConfig.WriteString("never_direct allow all\n")
-	}
-
-	result := squidProxyUpstreamConfig{
-		squidConfig: squidAdditionalConfig.String(),
-	}
-	if ac.ClusterProxy != nil {
-		result.upstreamCACertPEM = ac.ClusterProxy.UpstreamCACertPEM
-	}
-	return result, nil
 }
 
 // DeployAuthProxyComponent creates a namespace and deploys a proxy on HTTP port 3128
@@ -175,16 +60,12 @@ func (ac AuthenticationProxyConfig) upstreamProxyConfig() (squidProxyUpstreamCon
 // It stores the proxy configuration in a Secret because upstream settings can contain credentials.
 // oc must be initialized. Errors after namespace creation retain the namespace and
 // CLI in the returned component; the caller must Close it with an active context.
-func (ac AuthenticationProxyConfig) DeployAuthProxyComponent(ctx context.Context, oc *exutil.CLI) (authProxy AuthenticationProxyComponent, err error) {
+func DeployAuthProxyComponent(ctx context.Context, oc *exutil.CLI) (authProxy AuthenticationProxyComponent, err error) {
 	if oc == nil {
 		return authProxy, ErrInvalidCLI
 	}
 	if err := ctx.Err(); err != nil {
 		return authProxy, err
-	}
-	additionalUpstreamProxyConfig, err := ac.upstreamProxyConfig()
-	if err != nil {
-		return authProxy, fmt.Errorf("error creating configuration from cluster proxy: %w", err)
 	}
 
 	authProxy.oc = oc
@@ -241,8 +122,6 @@ cache_log stdio:/dev/stderr
 cache deny all
 buffered_logs off
 `, squidHTTPPort, squidHTTPSPort)
-
-	squidConfig += additionalUpstreamProxyConfig.squidConfig
 
 	_, err = kubeClient.CoreV1().
 		Secrets(authProxy.Namespace).
@@ -324,41 +203,6 @@ buffered_logs off
 				},
 			},
 		},
-	}
-
-	pemData := additionalUpstreamProxyConfig.upstreamCACertPEM
-	if len(pemData) > 0 {
-		_, err = kubeClient.CoreV1().
-			ConfigMaps(authProxy.Namespace).
-			Create(ctx, &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: upstreamCAConfigMap,
-				},
-				Data: map[string]string{
-					upstreamCAFile: string(pemData),
-				},
-			}, metav1.CreateOptions{})
-		if err != nil {
-			return authProxy, fmt.Errorf("error creating authentication proxy upstream CA ConfigMap: %w", err)
-		}
-
-		deploymentSpec := &deployment.Spec.Template.Spec
-		deploymentSpec.Containers[0].VolumeMounts = append(deploymentSpec.Containers[0].VolumeMounts, corev1.VolumeMount{
-			Name:      upstreamCAConfigMap,
-			MountPath: upstreamCACertPath,
-			SubPath:   upstreamCAFile,
-			ReadOnly:  true,
-		})
-		deploymentSpec.Volumes = append(deploymentSpec.Volumes, corev1.Volume{
-			Name: upstreamCAConfigMap,
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: upstreamCAConfigMap,
-					},
-				},
-			},
-		})
 	}
 
 	_, err = kubeClient.AppsV1().

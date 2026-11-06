@@ -10,8 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	configclientv1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -74,64 +72,6 @@ func EmptyProxyConfig() ProxyConfig {
 		NoProxy:           sets.New[string](),
 		UpstreamCACertPEM: []byte{},
 	}
-}
-
-// ClusterProxy reads endpoints and bypass entries from proxy/cluster status.
-// If spec.trustedCA is set, it reads ca-bundle.crt from the named ConfigMap in
-// openshift-config. The bundle must be non-empty; PEM contents are not validated.
-// proxies is required; configMaps is required only when a CA must be read.
-// Discard the returned configuration on error; it may contain partial results.
-func ClusterProxy(
-	ctx context.Context,
-	proxies configclientv1.ProxyInterface,
-	configMaps coreclientv1.ConfigMapsGetter,
-) (ProxyConfig, error) {
-	var toReturn ProxyConfig
-	if err := ctx.Err(); err != nil {
-		return toReturn, err
-	}
-	if proxies == nil {
-		return toReturn, fmt.Errorf("proxies client must not be nil")
-	}
-	proxy, err := proxies.Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
-		return toReturn, fmt.Errorf("fetching cluster proxy configuration: %w", err)
-	}
-
-	toReturn.HttpProxy, err = parseProxyField(proxy.Status.HTTPProxy)
-	if err != nil {
-		return toReturn, fmt.Errorf("error parsing http proxy field from cluster wide proxy configuration: %w", err)
-	}
-	toReturn.HttpsProxy, err = parseProxyField(proxy.Status.HTTPSProxy)
-	if err != nil {
-		return toReturn, fmt.Errorf("error parsing https proxy field from cluster wide proxy configuration: %w", err)
-	}
-	toReturn.NoProxy = sets.New[string]()
-	for v := range strings.SplitSeq(proxy.Status.NoProxy, ",") {
-		trimmed := strings.TrimSpace(v)
-		if trimmed != "" {
-
-			toReturn.NoProxy.Insert(trimmed)
-		}
-	}
-
-	if proxy.Spec.TrustedCA.Name != "" {
-		if configMaps == nil {
-			return toReturn, fmt.Errorf("configMaps client is required to read the cluster proxy CA")
-		}
-		cm, err := configMaps.ConfigMaps("openshift-config").
-			Get(ctx, proxy.Spec.TrustedCA.Name, metav1.GetOptions{})
-		if err != nil {
-			return toReturn, fmt.Errorf("fetching cluster proxy CA certificate config map: %w", err)
-		}
-
-		bundle := cm.Data[caCertConfigMapKey]
-		if strings.TrimSpace(bundle) == "" {
-			return toReturn, fmt.Errorf("ConfigMap %s/%s must contain non-empty %q", cm.Namespace, cm.Name, caCertConfigMapKey)
-		}
-		toReturn.UpstreamCACertPEM = []byte(bundle)
-	}
-	return toReturn, nil
 }
 
 // DeploymentProxyConfig reads literal HTTP_PROXY, HTTPS_PROXY, and NO_PROXY values

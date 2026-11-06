@@ -66,7 +66,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to capture the OAuth server proxy configuration")
 
 		g.By("Deploying authentication forward proxy")
-		authProxyComponent, err = (auth_proxy.AuthenticationProxyConfig{}).DeployAuthProxyComponent(ctx, oc)
+		authProxyComponent, err = auth_proxy.DeployAuthProxyComponent(ctx, oc)
 		if authProxyComponent.Namespace != "" {
 			cleanups = append(cleanups, func(ctx context.Context) error {
 				return authProxyComponent.Delete(ctx, 5*time.Minute)

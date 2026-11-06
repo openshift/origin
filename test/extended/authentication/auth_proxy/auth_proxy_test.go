@@ -3,7 +3,6 @@ package auth_proxy
 import (
 	"context"
 	"errors"
-	"net/url"
 	"reflect"
 	"strings"
 	"testing"
@@ -15,62 +14,6 @@ import (
 	kubefake "k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
 )
-
-func TestDeployAuthProxyComponentValidation(t *testing.T) {
-	t.Parallel()
-	canceledCtx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	// An unconfigured CLI ensures invalid inputs are rejected before client setup.
-	oc := &exutil.CLI{}
-	for _, tc := range []struct {
-		name    string
-		ctx     context.Context
-		oc      *exutil.CLI
-		config  AuthenticationProxyConfig
-		wantErr error
-		wantMsg string
-	}{
-		{name: "nil CLI", wantErr: ErrInvalidCLI},
-		{name: "canceled context", ctx: canceledCtx, oc: oc, wantErr: context.Canceled},
-		{
-			name: "empty upstream", oc: oc,
-			config:  AuthenticationProxyConfig{ClusterProxy: &ProxyConfig{}},
-			wantMsg: "must be non-empty",
-		},
-		{
-			name: "upstream missing hostname", oc: oc,
-			config:  AuthenticationProxyConfig{ClusterProxy: &ProxyConfig{HttpProxy: &url.URL{Scheme: "http"}}},
-			wantMsg: "upstream_http must be a valid HTTP or HTTPS proxy URL",
-		},
-		{
-			name: "unsupported upstream scheme", oc: oc,
-			config:  AuthenticationProxyConfig{ClusterProxy: &ProxyConfig{HttpsProxy: &url.URL{Scheme: "socks5", Host: "proxy"}}},
-			wantMsg: "upstream_https must be a valid HTTP or HTTPS proxy URL",
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			ctx := tc.ctx
-			if ctx == nil {
-				ctx = context.Background()
-			}
-			component, err := tc.config.DeployAuthProxyComponent(ctx, tc.oc)
-			if err == nil {
-				t.Fatal("expected validation error")
-			}
-			if tc.wantErr != nil && !errors.Is(err, tc.wantErr) {
-				t.Errorf("error = %v, want %v", err, tc.wantErr)
-			}
-			if tc.wantMsg != "" && !strings.Contains(err.Error(), tc.wantMsg) {
-				t.Errorf("error = %v, want message containing %q", err, tc.wantMsg)
-			}
-			if !reflect.DeepEqual(component, AuthenticationProxyComponent{}) {
-				t.Errorf("validation failure returned a nonzero component: %v", component)
-			}
-		})
-	}
-}
 
 func TestAuthenticationProxyComponentString(t *testing.T) {
 	t.Parallel()
