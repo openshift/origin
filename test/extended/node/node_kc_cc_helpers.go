@@ -60,9 +60,9 @@ func CleanupKubeletConfig(ctx context.Context, mcClient *machineconfigclient.Cli
 	return nil
 }
 
-// ApplyKubeletConfigAndWaitForMCP creates a KubeletConfig and waits for the MCP rollout to complete.
+// ApplyKubeletConfigAndWaitForMCP creates or updates a KubeletConfig and waits for the MCP rollout to complete.
 func ApplyKubeletConfigAndWaitForMCP(ctx context.Context, mcClient *machineconfigclient.Clientset, kubeletConfig *machineconfigv1.KubeletConfig, mcpName string, rolloutTimeout time.Duration) error {
-	_, err := CreateKubeletConfig(ctx, mcClient, kubeletConfig)
+	_, err := CreateOrUpdateKubeletConfig(ctx, mcClient, kubeletConfig)
 	if err != nil {
 		return err
 	}
@@ -106,14 +106,20 @@ func WaitForMCPUpdating(ctx context.Context, mcClient *machineconfigclient.Clien
 	}
 }
 
-// CreateContainerRuntimeConfig creates a ContainerRuntimeConfig resource.
-func CreateContainerRuntimeConfig(ctx context.Context, mcClient *machineconfigclient.Clientset, ctrcfg *machineconfigv1.ContainerRuntimeConfig) (*machineconfigv1.ContainerRuntimeConfig, error) {
-	framework.Logf("Creating ContainerRuntimeConfig %s", ctrcfg.Name)
-	created, err := mcClient.MachineconfigurationV1().ContainerRuntimeConfigs().Create(ctx, ctrcfg, metav1.CreateOptions{})
+// CreateOrUpdateContainerRuntimeConfig creates a ContainerRuntimeConfig or updates it if it already exists.
+func CreateOrUpdateContainerRuntimeConfig(ctx context.Context, mcClient *machineconfigclient.Clientset, ctrcfg *machineconfigv1.ContainerRuntimeConfig) (*machineconfigv1.ContainerRuntimeConfig, error) {
+	existing, err := mcClient.MachineconfigurationV1().ContainerRuntimeConfigs().Get(ctx, ctrcfg.Name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		framework.Logf("Creating ContainerRuntimeConfig %s", ctrcfg.Name)
+		return mcClient.MachineconfigurationV1().ContainerRuntimeConfigs().Create(ctx, ctrcfg, metav1.CreateOptions{})
+	}
 	if err != nil {
 		return nil, err
 	}
-	return created, nil
+
+	framework.Logf("Updating existing ContainerRuntimeConfig %s", ctrcfg.Name)
+	existing.Spec = ctrcfg.Spec
+	return mcClient.MachineconfigurationV1().ContainerRuntimeConfigs().Update(ctx, existing, metav1.UpdateOptions{})
 }
 
 // CleanupContainerRuntimeConfig deletes a ContainerRuntimeConfig. If mcpName is non-empty, waits for that MCP to stabilize.
@@ -137,9 +143,9 @@ func CleanupContainerRuntimeConfig(ctx context.Context, mcClient *machineconfigc
 	return nil
 }
 
-// ApplyContainerRuntimeConfigAndWaitForMCP creates a ContainerRuntimeConfig and waits for the MCP rollout to complete.
+// ApplyContainerRuntimeConfigAndWaitForMCP creates or updates a ContainerRuntimeConfig and waits for the MCP rollout to complete.
 func ApplyContainerRuntimeConfigAndWaitForMCP(ctx context.Context, mcClient *machineconfigclient.Clientset, ctrcfg *machineconfigv1.ContainerRuntimeConfig, mcpName string, rolloutTimeout time.Duration) error {
-	_, err := CreateContainerRuntimeConfig(ctx, mcClient, ctrcfg)
+	_, err := CreateOrUpdateContainerRuntimeConfig(ctx, mcClient, ctrcfg)
 	if err != nil {
 		return err
 	}
