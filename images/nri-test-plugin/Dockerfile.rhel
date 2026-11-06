@@ -1,0 +1,11 @@
+# NRI plugin for the extended tests in test/extended/nri, built from the
+# repository root context like images/tests/Dockerfile.rhel.
+FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.26-openshift-5.0 AS builder
+WORKDIR /go/src/github.com/openshift/origin/test/extended/nri/plugin
+COPY test/extended/nri/plugin/ ./
+RUN GOFLAGS=-mod=mod go test ./... && \
+    GOFLAGS=-mod=mod CGO_ENABLED=0 go build -o /out/nri-test-plugin .
+
+FROM scratch
+COPY --from=builder /out/nri-test-plugin /usr/bin/nri-test-plugin
+ENTRYPOINT ["/usr/bin/nri-test-plugin"]
