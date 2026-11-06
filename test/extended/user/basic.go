@@ -4,15 +4,16 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
+	authenticationv1 "k8s.io/api/authentication/v1"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
@@ -45,34 +46,38 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 		})
 
 		g.By("make sure that user/~ returns groups for unbacked users", func() {
+			// Most admin identities have no backing User resource, so user/~ returns a
+			// virtual User built from the identity the kube-apiserver resolved for the
+			// request. The contract under test is that mirroring -- not any particular
+			// group membership, which varies with how the caller authenticated (client
+			// certificate, ServiceAccount token, OIDC, ...). Asserting a fixed group set
+			// here would only encode one cluster's default admin configuration.
+			//
+			// SelfSubjectReview reports what the kube-apiserver resolved; user/~ must
+			// agree. Both clients are built from oc.AdminConfig(), so they are the same
+			// caller.
+			ssr, err := oc.AdminKubeClient().AuthenticationV1().SelfSubjectReviews().Create(
+				context.Background(), &authenticationv1.SelfSubjectReview{}, metav1.CreateOptions{})
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
 			clusterAdminUser, err := clusterAdminUserClient.Users().Get(context.Background(), "~", metav1.GetOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			// All authenticated callers must have system:authenticated
-			if !containsGroup(clusterAdminUser.Groups, "system:authenticated") {
-				t.Errorf("expected system:authenticated in groups, got %v", clusterAdminUser.Groups)
+			if clusterAdminUser.Name != ssr.Status.UserInfo.Username {
+				t.Errorf("user/~ returned name %q, but the request was authenticated as %q",
+					clusterAdminUser.Name, ssr.Status.UserInfo.Username)
 			}
 
-			// Validate identity-specific groups based on the caller type
-			if strings.HasPrefix(clusterAdminUser.Name, "system:serviceaccount:") {
-				// ServiceAccount-based admin (e.g. OPCT runner)
-				if !containsGroup(clusterAdminUser.Groups, "system:serviceaccounts") {
-					t.Errorf("expected system:serviceaccounts in groups for SA caller, got %v", clusterAdminUser.Groups)
-				}
-				parts := strings.SplitN(clusterAdminUser.Name, ":", 4)
-				if len(parts) >= 3 {
-					expectedNSGroup := "system:serviceaccounts:" + parts[2]
-					if !containsGroup(clusterAdminUser.Groups, expectedNSGroup) {
-						t.Errorf("expected %s in groups for SA caller, got %v", expectedNSGroup, clusterAdminUser.Groups)
-					}
-				}
-			} else {
-				// Cert-based admin: expect system:masters or system:cluster-admins
-				if !containsGroup(clusterAdminUser.Groups, "system:masters") && !containsGroup(clusterAdminUser.Groups, "system:cluster-admins") {
-					t.Errorf("expected system:masters or system:cluster-admins in groups, got %v", clusterAdminUser.Groups)
-				}
+			// user/~ sorts and deduplicates the groups it returns, so compare as sets.
+			gotGroups := sets.NewString(clusterAdminUser.Groups...)
+			expectedGroups := sets.NewString(ssr.Status.UserInfo.Groups...)
+			if !gotGroups.Equal(expectedGroups) {
+				t.Errorf("user/~ returned groups %v, but the request was authenticated with groups %v",
+					gotGroups.List(), expectedGroups.List())
 			}
 		})
 
@@ -222,12 +227,3 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 		})
 	})
 })
-
-func containsGroup(groups []string, target string) bool {
-	for _, group := range groups {
-		if group == target {
-			return true
-		}
-	}
-	return false
-}
