@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -44,26 +45,34 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 		})
 
 		g.By("make sure that user/~ returns groups for unbacked users", func() {
-			// Compatible with some setups use system:cluster-admins instead of system:masters
-			allowedGroups := [][]string{
-				{"system:authenticated", "system:masters"},
-				{"system:authenticated", "system:cluster-admins"},
-			}
-
 			clusterAdminUser, err := clusterAdminUserClient.Users().Get(context.Background(), "~", metav1.GetOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			matched := false
-			for _, expectedGroups := range allowedGroups {
-				if reflect.DeepEqual(clusterAdminUser.Groups, expectedGroups) {
-					matched = true
-					break
-				}
+			// All authenticated callers must have system:authenticated
+			if !containsGroup(clusterAdminUser.Groups, "system:authenticated") {
+				t.Errorf("expected system:authenticated in groups, got %v", clusterAdminUser.Groups)
 			}
-			if !matched {
-				t.Errorf("unexpected groups returned for user/~: got %v, expected one of %v", clusterAdminUser.Groups, allowedGroups)
+
+			// Validate identity-specific groups based on the caller type
+			if strings.HasPrefix(clusterAdminUser.Name, "system:serviceaccount:") {
+				// ServiceAccount-based admin (e.g. OPCT runner)
+				if !containsGroup(clusterAdminUser.Groups, "system:serviceaccounts") {
+					t.Errorf("expected system:serviceaccounts in groups for SA caller, got %v", clusterAdminUser.Groups)
+				}
+				parts := strings.SplitN(clusterAdminUser.Name, ":", 4)
+				if len(parts) >= 3 {
+					expectedNSGroup := "system:serviceaccounts:" + parts[2]
+					if !containsGroup(clusterAdminUser.Groups, expectedNSGroup) {
+						t.Errorf("expected %s in groups for SA caller, got %v", expectedNSGroup, clusterAdminUser.Groups)
+					}
+				}
+			} else {
+				// Cert-based admin: expect system:masters or system:cluster-admins
+				if !containsGroup(clusterAdminUser.Groups, "system:masters") && !containsGroup(clusterAdminUser.Groups, "system:cluster-admins") {
+					t.Errorf("expected system:masters or system:cluster-admins in groups, got %v", clusterAdminUser.Groups)
+				}
 			}
 		})
 
@@ -213,3 +222,12 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 		})
 	})
 })
+
+func containsGroup(groups []string, target string) bool {
+	for _, group := range groups {
+		if group == target {
+			return true
+		}
+	}
+	return false
+}
