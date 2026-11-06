@@ -223,6 +223,32 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 				Reason("SuccessfulCreate").Build(),
 			expectedAllowName: "PacemakerStatusCollectorCronJobEvents",
 		},
+		{
+			name: "NetworkNotReady with lowercase no from ocicni",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-multus",
+					monitorapi.LocatorPodKey:       "network-metrics-daemon-4snn9",
+					monitorapi.LocatorNodeKey:      "ip-10-0-124-97.us-west-1.compute.internal",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?").
+				Reason("NetworkNotReady").Build(),
+			expectedAllowName: "NetworkNotReady",
+		},
+		{
+			name: "NetworkNotReady with uppercase No",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-network-diagnostics",
+					monitorapi.LocatorPodKey:       "network-check-target-pf5mx",
+					monitorapi.LocatorNodeKey:      "ip-10-0-80-8.us-west-1.compute.internal",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?").
+				Reason("NetworkNotReady").Build(),
+			expectedAllowName: "NetworkNotReady",
+		},
 	}
 	for _, test := range tests {
 		registry := NewUpgradePathologicalEventMatchers(nil, nil)
