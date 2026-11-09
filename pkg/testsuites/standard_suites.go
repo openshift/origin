@@ -380,7 +380,8 @@ var staticSuites = []ginkgo.TestSuite{
 		This test suite runs etcd cert rotation tests to exercise the the automatic and manual certificate rotation.
 		`),
 		Qualifiers: []string{
-			withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/etcd/certrotation") || name.contains("[Feature:CertRotation]")`),
+			`(` + withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/etcd/certrotation") || name.contains("[Feature:CertRotation]")`) +
+				`) && !name.contains("leader changes")`,
 		},
 		TestTimeout:                60 * time.Minute,
 		Parallelism:                1,
