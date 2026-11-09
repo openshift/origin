@@ -19,23 +19,28 @@ import (
 var _ = g.Describe("[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/certrotation] etcd", func() {
 	defer g.GinkgoRecover()
 
-	ctx := context.TODO()
+	var deadline time.Time
 	oc := exutil.NewCLIWithoutNamespace("etcd-certs").AsAdmin()
 
-	g.BeforeEach(func() {
+	g.BeforeEach(func(specCtx g.SpecContext) {
+		deadline = time.Now().Add(certRotationTimeout)
+		ctx, cancel := context.WithDeadline(specCtx, deadline)
+		defer cancel()
 		// we need to ensure this test always begins with a stable revision for api and etcd
 		g.GinkgoT().Log("waiting for api servers to stabilize on the same revision")
-		err := waitForApiServerToStabilizeOnTheSameRevisionLonger(g.GinkgoT(), oc)
+		err := waitForApiServerToStabilizeOnTheSameRevisionLonger(ctx, g.GinkgoT(), oc)
 		err = errors.Wrap(err, "cleanup timed out waiting for APIServer pods to stabilize on the same revision")
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.GinkgoT().Log("waiting for etcd to stabilize on the same revision")
-		err = waitForEtcdToStabilizeOnTheSameRevisionLonger(g.GinkgoT(), oc)
+		err = waitForEtcdToStabilizeOnTheSameRevisionLonger(ctx, g.GinkgoT(), oc)
 		err = errors.Wrap(err, "cleanup timed out waiting for etcd pods to stabilize on the same revision")
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
-	g.It("can manually rotate signer certificates [Timeout:30m]", func() {
+	g.It("can manually rotate signer certificates [Timeout:60m]", g.SpecTimeout(certRotationTimeout), func(specCtx g.SpecContext) {
+		ctx, cancel := context.WithDeadline(specCtx, deadline)
+		defer cancel()
 		kasSecretsClient := oc.AdminKubeClient().CoreV1().Secrets("openshift-kube-apiserver")
 		etcdSecretsClient := oc.AdminKubeClient().CoreV1().Secrets("openshift-etcd")
 
@@ -51,11 +56,11 @@ var _ = g.Describe("[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/certro
 
 		g.GinkgoT().Log("waiting for etcd/apiserver to stabilize on the same revision")
 		// await all rollouts, then assert the leaf certs all successfully changed
-		err = waitForEtcdToStabilizeOnTheSameRevisionLonger(g.GinkgoT(), oc)
+		err = waitForEtcdToStabilizeOnTheSameRevisionLonger(ctx, g.GinkgoT(), oc)
 		err = errors.Wrap(err, "timed out waiting for etcd pods to stabilize on the same revision")
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		err = waitForApiServerToStabilizeOnTheSameRevisionLonger(g.GinkgoT(), oc)
+		err = waitForApiServerToStabilizeOnTheSameRevisionLonger(ctx, g.GinkgoT(), oc)
 		err = errors.Wrap(err, "timed out waiting for APIServer pods to stabilize on the same revision")
 		o.Expect(err).ToNot(o.HaveOccurred())
 
@@ -68,7 +73,9 @@ var _ = g.Describe("[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/certro
 		o.Expect(rotatedEtcdLeafCerts.Data).ToNot(o.Equal(currentEtcdLeafCerts.Data))
 	})
 
-	g.It("can manually rotate metrics signer certificates [Timeout:45m]", func() {
+	g.It("can manually rotate metrics signer certificates [Timeout:60m]", g.SpecTimeout(certRotationTimeout), func(specCtx g.SpecContext) {
+		ctx, cancel := context.WithDeadline(specCtx, deadline)
+		defer cancel()
 		etcdSecretsClient := oc.AdminKubeClient().CoreV1().Secrets("openshift-etcd")
 		prometheus, err := client.NewE2EPrometheusRouterClient(ctx, oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
@@ -83,7 +90,7 @@ var _ = g.Describe("[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/certro
 
 		g.GinkgoT().Log("waiting for etcd to stabilize on the same revision")
 		// await all rollouts, then assert the leaf client cert has successfully changed
-		err = waitForEtcdToStabilizeOnTheSameRevisionLonger(g.GinkgoT(), oc)
+		err = waitForEtcdToStabilizeOnTheSameRevisionLonger(ctx, g.GinkgoT(), oc)
 
 		err = errors.Wrap(err, "timed out waiting for etcd pods to stabilize on the same revision")
 		o.Expect(err).ToNot(o.HaveOccurred())
@@ -94,7 +101,7 @@ var _ = g.Describe("[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/certro
 
 		err = wait.Poll(30*time.Second, 40*time.Minute, func() (bool, error) {
 			// ensure that prometheus has etcd metrics again
-			result, _, err := prometheus.Query(context.Background(), "sum(up{job=\"etcd\"})", time.Now())
+			result, _, err := prometheus.Query(ctx, "sum(up{job=\"etcd\"})", time.Now())
 			if err != nil {
 				return false, err
 			}
@@ -116,14 +123,16 @@ var _ = g.Describe("[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/certro
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
-	g.It("can recreate dynamic certificates [Timeout:30m]", func() {
+	g.It("can recreate dynamic certificates [Timeout:60m]", g.SpecTimeout(certRotationTimeout), func(specCtx g.SpecContext) {
+		ctx, cancel := context.WithDeadline(specCtx, deadline)
+		defer cancel()
 		nodes := masterNodes(oc)
 		etcdSecretsClient := oc.AdminKubeClient().CoreV1().Secrets("openshift-etcd")
 
 		var currentSecretName string
 		var currentSecretData map[string][]byte
 		for _, node := range nodes {
-			s, err := etcdSecretsClient.Get(context.Background(), fmt.Sprintf("etcd-peer-%s", node.Name), v1.GetOptions{})
+			s, err := etcdSecretsClient.Get(ctx, fmt.Sprintf("etcd-peer-%s", node.Name), v1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 			currentSecretName = s.Name
 			currentSecretData = s.Data
@@ -147,12 +156,14 @@ var _ = g.Describe("[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/certro
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.GinkgoT().Log("waiting for etcd to stabilize on the same revision")
-		err = waitForEtcdToStabilizeOnTheSameRevisionLonger(g.GinkgoT(), oc)
+		err = waitForEtcdToStabilizeOnTheSameRevisionLonger(ctx, g.GinkgoT(), oc)
 		err = errors.Wrap(err, "timed out waiting for etcd pods to stabilize on the same revision")
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
-	g.It("can recreate trust bundle [Timeout:15m]", func() {
+	g.It("can recreate trust bundle [Timeout:60m]", g.SpecTimeout(certRotationTimeout), func(specCtx g.SpecContext) {
+		ctx, cancel := context.WithDeadline(specCtx, deadline)
+		defer cancel()
 		etcdConfigMapClient := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-etcd")
 		bundleName := "etcd-ca-bundle"
 
@@ -182,7 +193,7 @@ var _ = g.Describe("[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/certro
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.GinkgoT().Log("waiting for etcd to stabilize on the same revision")
-		err = waitForEtcdToStabilizeOnTheSameRevisionLonger(g.GinkgoT(), oc)
+		err = waitForEtcdToStabilizeOnTheSameRevisionLonger(ctx, g.GinkgoT(), oc)
 		err = errors.Wrap(err, "timed out waiting for etcd pods to stabilize on the same revision")
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
