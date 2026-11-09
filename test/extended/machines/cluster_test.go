@@ -20,34 +20,102 @@ func Test_parseBootInstances(t *testing.T) {
 		listBootsOutput string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    []bootTimelineEntry
-		wantErr bool
+		name            string
+		args            args
+		want            []bootTimelineEntry
+		wantDiagnostics []string
+		wantErr         bool
 	}{
 		{
 			name: "david's laptop",
-			args: args{listBootsOutput: `IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY                 
- -2 ac57799232d2499cbfac9c0e2e6d4d60 Wed 2024-03-13 10:20:26 EDT Sun 2024-04-07 23:27:26 EDT
- -1 a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 08:30:52 EDT Wed 2024-04-24 11:46:08 EDT
-  0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 EDT Thu 2024-06-06 16:32:24 EDT
+			args: args{listBootsOutput: `IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
+ -2 ac57799232d2499cbfac9c0e2e6d4d60 Wed 2024-03-13 14:20:26 UTC Mon 2024-04-08 03:27:26 UTC
+ -1 a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 12:30:52 UTC Wed 2024-04-24 15:46:08 UTC
+  0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 15:46:29 UTC Thu 2024-06-06 20:32:24 UTC
 `},
 			want: []bootTimelineEntry{
-				{action: "Boot", time: mustTime("2024-03-13T10:20:26-04:00")},
-				{action: "Boot", time: mustTime("2024-04-10T08:30:52-04:00")},
-				{action: "Boot", time: mustTime("2024-04-24T11:46:29-04:00")},
+				{action: "Boot", time: mustTime("2024-03-13T14:20:26Z")},
+				{action: "Boot", time: mustTime("2024-04-10T12:30:52Z")},
+				{action: "Boot", time: mustTime("2024-04-24T15:46:29Z")},
 			},
+		},
+		{
+			name: "diagnostics and invalid records are skipped",
+			args: args{listBootsOutput: `Journal file /var/log/journal/example/system.journal is truncated, ignoring file.
+Journal file /var/log/journal/example/system.journal uses an unsupported feature, ignoring file.
+Use SYSTEMD_LOG_LEVEL=debug journalctl --file=/var/log/journal/example/system.journal to see the details.
+IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
+invalid a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
+  0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 UTC Thu 2024-06-06 16:32:24 UTC
+`},
+			want: []bootTimelineEntry{
+				{action: "Boot", time: mustTime("2024-04-24T11:46:29Z")},
+			},
+			wantDiagnostics: []string{
+				"Journal file /var/log/journal/example/system.journal is truncated, ignoring file.",
+				"Journal file /var/log/journal/example/system.journal uses an unsupported feature, ignoring file.",
+				"Use SYSTEMD_LOG_LEVEL=debug journalctl --file=/var/log/journal/example/system.journal to see the details.",
+				"invalid a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC",
+			},
+		},
+		{
+			name: "no valid boot records fails",
+			args: args{listBootsOutput: `Journal file /var/log/journal/example/system.journal corrupted, ignoring file.
+`},
+			wantDiagnostics: []string{"Journal file /var/log/journal/example/system.journal corrupted, ignoring file."},
+			wantErr:         true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseBootInstances(tt.args.listBootsOutput)
+			got, diagnostics, err := parseBootInstances(tt.args.listBootsOutput)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("parseBootInstances() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("parseBootInstances() got = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(diagnostics, tt.wantDiagnostics) {
+				t.Errorf("parseBootInstances() diagnostics = %v, want %v", diagnostics, tt.wantDiagnostics)
+			}
+		})
+	}
+}
+
+func Test_parseBootInstance(t *testing.T) {
+	validFields := []string{"0", "a9d9a2901ab94a2f8ff8992565380105", "Wed", "2024-04-10", "08:30:52", "UTC", "Wed", "2024-04-24", "11:46:08", "UTC"}
+	tests := []struct {
+		name   string
+		fields []string
+		wantOK bool
+	}{
+		{
+			name:   "valid boot record",
+			fields: validFields,
+			wantOK: true,
+		},
+		{
+			name:   "invalid boot index",
+			fields: append([]string{"invalid"}, validFields[1:]...),
+		},
+		{
+			name:   "invalid boot ID",
+			fields: append([]string{validFields[0], "not-a-boot-id"}, validFields[2:]...),
+		},
+		{
+			name:   "invalid first timestamp",
+			fields: append([]string{validFields[0], validFields[1], "Wed", "not-a-date", "08:30:52", "UTC"}, validFields[6:]...),
+		},
+		{
+			name:   "invalid last timestamp",
+			fields: []string{"0", "a9d9a2901ab94a2f8ff8992565380105", "Wed", "2024-04-10", "08:30:52", "UTC", "Wed", "not-a-date", "11:46:08", "UTC"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, ok := parseBootInstance(tt.fields)
+			if ok != tt.wantOK {
+				t.Errorf("parseBootInstance() ok = %v, want %v", ok, tt.wantOK)
 			}
 		})
 	}
@@ -105,10 +173,10 @@ func Test_parseRebootInstances(t *testing.T) {
 		rebootsOutput string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    []bootTimelineEntry
-		wantErr bool
+		name            string
+		args            args
+		want            []bootTimelineEntry
+		wantDiagnostics []string
 	}{
 		{
 			name: "david's laptop",
@@ -122,16 +190,56 @@ func Test_parseRebootInstances(t *testing.T) {
 				{action: "RebootRequest", time: mustTime("2024-04-24T11:45:58-04:00")},
 			},
 		},
+		{
+			name: "diagnostics and other logind actions are skipped",
+			args: args{rebootsOutput: `Journal file /var/log/journal/example/system.journal corrupted, ignoring file.
+2024-03-13T10:20:01-0400 fedora systemd-logind[1404]: System is rebooting with kexec.
+2024-03-13T10:20:02-0400 fedora systemd-logind[1404]: System userspace is rebooting.
+2024-04-24T11:45:58-0400 fedora systemd-logind[1460]: System is rebooting.
+`},
+			want: []bootTimelineEntry{
+				{action: "RebootRequest", time: mustTime("2024-04-24T11:45:58-04:00")},
+			},
+			wantDiagnostics: []string{
+				"Journal file /var/log/journal/example/system.journal corrupted, ignoring file.",
+				"2024-03-13T10:20:01-0400 fedora systemd-logind[1404]: System is rebooting with kexec.",
+				"2024-03-13T10:20:02-0400 fedora systemd-logind[1404]: System userspace is rebooting.",
+			},
+		},
+		{
+			name: "empty output means no reboot requests",
+			args: args{rebootsOutput: ""},
+			want: []bootTimelineEntry{},
+		},
+		{
+			name: "diagnostics without reboot requests succeed",
+			args: args{rebootsOutput: `An error was encountered while opening journal file or directory /var/log/journal, ignoring file: Input/output error
+`},
+			want: []bootTimelineEntry{},
+			wantDiagnostics: []string{
+				"An error was encountered while opening journal file or directory /var/log/journal, ignoring file: Input/output error",
+			},
+		},
+		{
+			name: "invalid reboot records are skipped",
+			args: args{rebootsOutput: `not-a-time fedora systemd-logind[1404]: System is rebooting.
+2024-03-13T10:20:01-0400 fedora journalctl[1404]: System is rebooting.
+`},
+			want: []bootTimelineEntry{},
+			wantDiagnostics: []string{
+				"not-a-time fedora systemd-logind[1404]: System is rebooting.",
+				"2024-03-13T10:20:01-0400 fedora journalctl[1404]: System is rebooting.",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseRebootInstances(tt.args.rebootsOutput)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("parseRebootInstances() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+			got, diagnostics := parseRebootInstances(tt.args.rebootsOutput)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("parseRebootInstances() got = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(diagnostics, tt.wantDiagnostics) {
+				t.Errorf("parseRebootInstances() diagnostics = %v, want %v", diagnostics, tt.wantDiagnostics)
 			}
 		})
 	}
