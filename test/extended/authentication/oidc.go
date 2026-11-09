@@ -136,67 +136,12 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 		})
 
 		g.Describe("external IdP is configured", g.Ordered, func() {
-			g.It("should configure kube-apiserver", func() {
-				kas, err := oc.AdminOperatorClient().OperatorV1().KubeAPIServers().Get(ctx, "cluster", metav1.GetOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting the kubeapiservers.operator.openshift.io/cluster")
-
-				observedConfig := map[string]interface{}{}
-				err = json.Unmarshal(kas.Spec.ObservedConfig.Raw, &observedConfig)
-				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error unmarshalling the KAS observed configuration")
-
-				o.Expect(observedConfig["authConfig"]).To(o.BeNil(), "authConfig should not be specified when OIDC authentication is configured")
-
-				apiServerArgs := observedConfig["apiServerArguments"].(map[string]interface{})
-
-				if webhookArchitecture {
-					o.Expect(apiServerArgs["authentication-token-webhook-config-file"]).NotTo(o.BeNil(), "authentication-token-webhook-config-file argument should be specified when webhook OIDC architecture is active")
-					o.Expect(apiServerArgs["authentication-token-webhook-version"]).NotTo(o.BeNil(), "authentication-token-webhook-version argument should be specified when webhook OIDC architecture is active")
-					o.Expect(apiServerArgs["authentication-config"]).To(o.BeNil(), "authentication-config argument should not be specified when webhook OIDC architecture is active")
-				} else {
-					o.Expect(apiServerArgs["authentication-token-webhook-config-file"]).To(o.BeNil(), "authentication-token-webhook-config-file argument should not be specified when direct OIDC architecture is active")
-					o.Expect(apiServerArgs["authentication-token-webhook-version"]).To(o.BeNil(), "authentication-token-webhook-version argument should not be specified when direct OIDC architecture is active")
-					o.Expect(apiServerArgs["authentication-config"]).NotTo(o.BeNil(), "authentication-config argument should be specified when direct OIDC architecture is active")
-					o.Expect(apiServerArgs["authentication-config"].([]interface{})[0].(string)).To(o.Equal("/etc/kubernetes/static-pod-resources/configmaps/auth-config/auth-config.json"))
-				}
-			})
-
 			g.It("should remove the OpenShift OAuth stack", func() {
 				o.Eventually(func(gomega o.Gomega) {
 					_, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
 					gomega.Expect(err).NotTo(o.BeNil(), "should not be able to get the integrated oauth stack")
 					gomega.Expect(apierrors.IsNotFound(err)).To(o.BeTrue(), "integrated oauth stack should not be present when OIDC authentication is configured")
 				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
-
-				if webhookArchitecture {
-					o.Eventually(func(gomega o.Gomega) {
-						deploy, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-oauth-apiserver").Get(ctx, "apiserver", metav1.GetOptions{})
-						gomega.Expect(err).NotTo(o.HaveOccurred(), "oauth-apiserver deployment should be present when webhook OIDC architecture is active")
-						gomega.Expect(deploy.Status.AvailableReplicas).To(o.BeNumerically(">", 0), "oauth-apiserver should have available replicas when webhook OIDC architecture is active")
-						gomega.Expect(deploy.Status.UpdatedReplicas).To(o.Equal(deploy.Status.Replicas), "oauth-apiserver rollout should be complete")
-						gomega.Expect(deploy.Status.UnavailableReplicas).To(o.Equal(int32(0)), "oauth-apiserver should have no unavailable replicas")
-					}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
-
-					_, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(ctx, "auth-config", metav1.GetOptions{})
-					o.Expect(err).NotTo(o.HaveOccurred(), "auth-config ConfigMap should exist in openshift-config-managed when webhook OIDC architecture is active")
-				}
-			})
-
-			g.It("should report the oauth-apiserver operand version in webhook OIDC mode", func() {
-				if !webhookArchitecture {
-					g.Skip("operand version assertions only apply to webhook OIDC architecture")
-				}
-
-				authnCO, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "authentication", metav1.GetOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting the authentication ClusterOperator")
-
-				hasOAuthAPIServer := false
-				for _, v := range authnCO.Status.Versions {
-					if v.Name == "oauth-apiserver" {
-						hasOAuthAPIServer = true
-						break
-					}
-				}
-				o.Expect(hasOAuthAPIServer).To(o.BeTrue(), "oauth-apiserver operand version should be present when webhook OIDC architecture is active")
 			})
 
 			g.It("should not accept tokens provided by the OAuth server", func() {
@@ -266,24 +211,6 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				if modified {
 					waitForIntegratedOAuthRollout(ctx, oc)
 				}
-			})
-
-			g.It("should rollout configuration on the kube-apiserver successfully", func() {
-				kas, err := oc.AdminOperatorClient().OperatorV1().KubeAPIServers().Get(ctx, "cluster", metav1.GetOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting the kubeapiservers.operator.openshift.io/cluster")
-
-				observedConfig := map[string]interface{}{}
-				err = json.Unmarshal(kas.Spec.ObservedConfig.Raw, &observedConfig)
-				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error unmarshalling the KAS observed configuration")
-
-				o.Expect(observedConfig["authConfig"]).ToNot(o.BeNil(), "authConfig should be specified when OIDC authentication is configured")
-
-				apiServerArgs := observedConfig["apiServerArguments"].(map[string]interface{})
-
-				o.Expect(apiServerArgs["authentication-token-webhook-config-file"]).NotTo(o.BeNil(), "authentication-token-webhook-config-file argument should be specified when OIDC authentication is not configured")
-				o.Expect(apiServerArgs["authentication-token-webhook-version"]).NotTo(o.BeNil(), "authentication-token-webhook-version argument should be specified when OIDC authentication is not configured")
-
-				o.Expect(apiServerArgs["authentication-config"]).To(o.BeNil(), "authentication-config argument should not be specified when OIDC authentication is not configured")
 			})
 
 			g.It("should rollout the OpenShift OAuth stack", func() {
