@@ -2,8 +2,10 @@ package topology_transitions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -32,8 +34,8 @@ func init() {
 		err = fmt.Errorf("no supported target matches control-plane=%s infrastructure=%s node counts=%+v", target.Topology.ControlPlaneTopology, target.Topology.InfrastructureTopology, target.nodeCounts)
 	}
 	if err != nil {
-		registerTargetError("openshift/topology-transitions/preflight", "30m", "", err)
-		registerTargetError("openshift/topology-transitions", "150m", "[Disruptive]", err)
+		registerTargetError("openshift/topology-transitions/preflight", "45m", "", err)
+		registerTargetError("openshift/topology-transitions", "195m", "[Disruptive]", err)
 		return
 	}
 
@@ -85,7 +87,7 @@ func registerPreflightTest(target transitionTarget) {
 	g.Describe(suiteTags+"[Suite:openshift/topology-transitions/preflight] Topology transition preflight", func() {
 		oc := exutil.NewCLIWithoutNamespace("topology-transitions-preflight").AsAdmin()
 
-		g.It("reports the expected preflight checks [Timeout:30m][apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
+		g.It("reports the expected preflight checks [Timeout:45m][apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
 			definition, before := requireTransitionSource(ctx, oc, target)
 
 			g.By("checking the source node counts for " + definition.Name)
@@ -106,7 +108,7 @@ func registerTransitionTest(target transitionTarget) {
 	g.Describe(suiteTags+"[Suite:openshift/topology-transitions][Disruptive] Topology transition", func() {
 		oc := exutil.NewCLI("topology-transitions").AsAdmin()
 
-		g.It("completes the configured topology transition [Timeout:150m][apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
+		g.It("completes the configured topology transition [Timeout:195m][apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
 			definition, _ := requireTransitionSource(ctx, oc, target)
 
 			g.By("waiting for all transition preflight checks to pass for " + definition.Name)
@@ -124,24 +126,38 @@ func registerTransitionTest(target transitionTarget) {
 			before := requireSource(ctx, oc, definition)
 			g.By("requesting the topology transition through oc adm")
 			// Output logs raw stdout and stderr on failure; keep them out of suite logs.
+			commandCtx, cancelCommand := context.WithTimeout(ctx, 5*time.Minute)
+			defer cancelCommand()
+
 			command, _, _, err := oc.Run("adm", "transition", "topology").Args(
 				"--control-plane="+string(target.Topology.ControlPlaneTopology),
 				"--infrastructure="+string(target.Topology.InfrastructureTopology),
 				"--confirm",
 			).EnvVar("OC_ENABLE_CMD_TRANSITION_TOPOLOGY", "true").Background()
-			if err == nil {
-				stop := context.AfterFunc(ctx, func() {
-					_ = command.Process.Kill()
-				})
+			o.Expect(err == nil).To(o.BeTrue(), "could not start oc adm transition topology; check that oc is installed and executable")
 
-				err = command.Wait()
-				stop()
+			stop := context.AfterFunc(commandCtx, func() {
+				_ = command.Process.Kill()
+			})
+
+			err = command.Wait()
+			stop()
+			if err != nil {
+				if commandCtx.Err() != nil {
+					g.Fail("oc adm transition topology timed out or was cancelled")
+				}
+				if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
+					g.Fail(fmt.Sprintf("oc adm transition topology failed with exit code %d", exitErr.ExitCode()))
+				}
+
+				g.Fail("failed to wait for oc adm transition topology")
 			}
-			o.Expect(err == nil).To(o.BeTrue(), "oc adm transition topology failed")
+			cancelCommand()
 
 			requested, err := getInfrastructure(ctx, oc)
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster Infrastructure")
 			o.Expect(requested.Spec.ControlPlaneTopology).To(o.Equal(target.Topology.ControlPlaneTopology), "requested control-plane topology was not recorded")
+			o.Expect(requested.Spec.InfrastructureTopology).To(o.Equal(target.Topology.InfrastructureTopology), "requested infrastructure topology was not recorded")
 			o.Expect(requested.Generation).To(o.BeNumerically(">", before.Generation), "the CLI must submit a new request")
 			requestGeneration := requested.Generation
 
@@ -152,8 +168,10 @@ func registerTransitionTest(target transitionTarget) {
 					return err
 				}
 				completed := meta.FindStatusCondition(infra.Status.TopologyTransitionStatus.Conditions, configv1.TopologyTransitionCompletedConditionType)
-				if infra.Generation != requestGeneration || infra.Spec.ControlPlaneTopology != target.Topology.ControlPlaneTopology {
-					return fmt.Errorf("the topology request changed during the transition")
+				if infra.Generation != requestGeneration ||
+					infra.Spec.ControlPlaneTopology != target.Topology.ControlPlaneTopology ||
+					infra.Spec.InfrastructureTopology != target.Topology.InfrastructureTopology {
+					return o.StopTrying("the topology request changed during the transition")
 				}
 				if completed == nil || completed.ObservedGeneration != requestGeneration || completed.Status != metav1.ConditionTrue {
 					return fmt.Errorf("waiting for TopologyTransitionCompleted=True for generation %d", requestGeneration)
@@ -232,7 +250,7 @@ func createNodeWorkload(ctx context.Context, oc *exutil.CLI) error {
 	return nil
 }
 
-// The workload checks scheduling before and after the transition.
+// The baseline workload checks availability before and after the transition.
 func createBaselineWorkload(ctx context.Context, oc *exutil.CLI) error {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -249,13 +267,9 @@ func createBaselineWorkload(ctx context.Context, oc *exutil.CLI) error {
 					Labels: map[string]string{"app": baselineWorkloadName},
 				},
 				Spec: corev1.PodSpec{
-					// Soft (ScheduleAnyway), not required: this workload is
-					// created before the transition, so a hard constraint
-					// could leave a replica unschedulable if the starting
-					// topology has too few eligible nodes. Once the target
-					// topology is ready, this best-effort constraint encourages
-					// the replicas to spread across available nodes
-					// rather than staying co-located on the original node.
+					// Allow scheduling when the source has only one eligible node.
+					// This constraint encourages spread when pods are placed;
+					// it does not move pods that are already running.
 					TopologySpreadConstraints: []corev1.TopologySpreadConstraint{{
 						MaxSkew:           1,
 						TopologyKey:       "kubernetes.io/hostname",

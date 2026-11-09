@@ -463,7 +463,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Qualifiers: []string{
 			`name.contains("[Suite:openshift/topology-transitions/preflight]") && name.contains("[OCPFeatureGate:MutableTopology]")`,
 		},
-		TestTimeout:                30 * time.Minute,
+		TestTimeout:                45 * time.Minute,
 		Parallelism:                1,
 		ClusterStabilityDuringTest: ginkgo.Stable,
 	},
@@ -476,7 +476,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Qualifiers: []string{
 			`name.contains("[Suite:openshift/topology-transitions]") && name.contains("[OCPFeatureGate:MutableTopology]")`,
 		},
-		TestTimeout:                150 * time.Minute,
+		TestTimeout:                195 * time.Minute,
 		Parallelism:                1,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},

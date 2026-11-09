@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
@@ -43,13 +44,13 @@ func checkTransitionEvaluation(infra *configv1.Infrastructure, definition *trans
 		transition := &infra.Status.TopologyTransitionStatus.Transitions[i]
 		if transition.Source == definition.sourceTopology() && transition.Target == definition.Target {
 			if matching != nil {
-				return fmt.Errorf("multiple entries match the source and target topologies")
+				return o.StopTrying("multiple entries match the source and target topologies")
 			}
 			matching = transition
 		}
 	}
 	if matching == nil {
-		return fmt.Errorf("no transition entry matches source=%+v target=%+v", definition.sourceTopology(), definition.Target)
+		return o.StopTrying("no transition entry matches the source and target topologies")
 	}
 
 	available := meta.FindStatusCondition(matching.Evaluations, configv1.TopologyTransitionAvailableConditionType)

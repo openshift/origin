@@ -27,7 +27,6 @@ export TARGET_CONTROL_PLANE_NODES_SCHEDULABLE=3
 
 Counts are required non-negative integers. Zero means exactly zero.
 The schedulable count cannot exceed the control-plane count.
-`TARGET_HA_COMPACT` and `TARGET_TRANSITION` are no longer used.
 
 ## Four-step workflow
 
@@ -52,7 +51,7 @@ The schedulable count cannot exceed the control-plane count.
    It checks that only one node and one voting member exist. It makes no
    transition request, changes no nodes, and checks that the Infrastructure
    spec stays unchanged. It runs serially with stable monitoring and a
-   30-minute limit.
+   45-minute limit.
 
 3. Provision and join two more control-plane nodes. Node provisioning happens
    outside origin. All three nodes must be ready, uncordoned workers.
@@ -72,12 +71,14 @@ The schedulable count cannot exceed the control-plane count.
      --confirm
    ```
 
-   It requires `TopologyTransitionCompleted=True` for the current request,
+   The CLI call has a five-minute limit. It requires both requested topologies
+   in spec and `TopologyTransitionCompleted=True` for the current request,
    both target topologies, settled operators, exact node counts, healthy etcd
    with the expected voting members, and a ready baseline workload. It then
    creates a DaemonSet and requires a ready pod on every target node. It runs
-   serially with disruptive monitoring and a 150-minute limit. The transition
-   is one-way.
+   serially with disruptive monitoring and a 195-minute limit. The transition
+   is one-way. A changed request or a current evaluation with missing or
+   duplicate transition entries fails immediately.
 
 Both suites fail on missing or invalid configuration. Neither suite selects
 tests from the other. To list their tests without running them:
