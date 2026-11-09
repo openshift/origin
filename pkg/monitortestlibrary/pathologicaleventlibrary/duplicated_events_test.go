@@ -313,6 +313,68 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 				Reason("ProbeError").WithAnnotation(monitorapi.AnnotationCount, "200").Build(),
 			expectedAllowName: "",
 		},
+		{
+			name: "cluster-capi-operator upgradeable extractor backoff pulling a synthetic payload image",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-cluster-api-operator",
+					monitorapi.LocatorPodKey:       "upgradeable-payload-images-extractor",
+					monitorapi.LocatorNodeKey:      "ip-10-0-116-62.us-east-2.compute.internal",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Back-off pulling image \"example.com/test@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\"").
+				Reason("BackOff").Build(),
+			expectedAllowName: "ClusterCAPIUpgradeablePreflightSyntheticPayloadBackOff",
+		},
+		{
+			name: "cluster-capi-operator upgradeable extractor failed pulling a synthetic payload image",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-cluster-api-operator",
+					monitorapi.LocatorPodKey:       "upgradeable-payload-images-extractor",
+					monitorapi.LocatorNodeKey:      "ip-10-0-116-62.us-east-2.compute.internal",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Error: ImagePullBackOff").
+				Reason("Failed").Build(),
+			expectedAllowName: "ClusterCAPIUpgradeablePreflightSyntheticPayloadPullFailed",
+		},
+		{
+			name: "cluster-capi-operator upgradeable extractor backoff pulling a real payload image is NOT allowed",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-cluster-api-operator",
+					monitorapi.LocatorPodKey:       "upgradeable-payload-images-extractor",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Back-off pulling image \"quay.io/openshift-release-dev/ocp-release@sha256:0123456789abcdef\"").
+				Reason("BackOff").Build(),
+			expectedAllowName: "",
+		},
+		{
+			name: "synthetic payload image backoff outside the cluster-capi-operator namespace is NOT allowed",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-etcd",
+					monitorapi.LocatorPodKey:       "etcd-ip-10-0-116-62.us-east-2.compute.internal",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Back-off pulling image \"example.com/test@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\"").
+				Reason("BackOff").Build(),
+			expectedAllowName: "",
+		},
+		{
+			name: "image pull failure outside the cluster-capi-operator namespace is NOT allowed",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-controller-manager",
+					monitorapi.LocatorPodKey:       "doesntmatter",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Error: ImagePullBackOff").
+				Reason("Failed").Build(),
+			expectedAllowName: "",
+		},
 	}
 	for _, test := range tests {
 		registry := NewUpgradePathologicalEventMatchers(nil, nil)

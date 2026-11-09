@@ -184,6 +184,7 @@ func init() {
 	utilruntime.Must(addNamespaceMapping("openshift-cloud-controller-manager-operator", "Cloud Compute"))
 	utilruntime.Must(addNamespaceMapping("openshift-cloud-credential-operator", "Cloud Credential Operator"))
 	utilruntime.Must(addNamespaceMapping("openshift-cloud-network-config-controller", "Networking"))
+	utilruntime.Must(addNamespaceMapping("openshift-cluster-api-operator", "Cloud Compute"))
 	utilruntime.Must(addNamespaceMapping("openshift-cluster-csi-drivers", "Storage"))
 	utilruntime.Must(addNamespaceMapping("openshift-cluster-machine-approver", "Cloud Compute"))
 	utilruntime.Must(addNamespaceMapping("openshift-cluster-node-tuning-operator", "Node Tuning Operator"))

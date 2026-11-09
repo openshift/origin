@@ -600,6 +600,37 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		jira:               "https://issues.redhat.com/browse/OCPBUGS-84659",
 	})
 
+	// The cluster-capi-operator upgradeability preflight mounts the next minor release payload
+	// as an image volume so it can read the CRDs that payload ships. The update graph fixtures
+	// used by e2e tests (cluster-version-operator test/util/update_service.go and
+	// test/extended/cli/adm_upgrade/recommend.go) advertise a synthetic next minor release whose
+	// payload is example.com/test@sha256:cccc…, so the extractor pod retries an unresolvable pull
+	// for as long as the fixture graph is installed. example.com never appears in a real payload,
+	// so this cannot hide a genuine failure to pull a release image.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "ClusterCAPIUpgradeablePreflightSyntheticPayloadBackOff",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-cluster-api-operator$`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^upgradeable-payload-images-extractor$`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^BackOff$`),
+		messageHumanRegex:  regexp.MustCompile(`Back-off pulling image "example\.com/test@sha256:`),
+	})
+
+	// The kubelet's companion Failed event for a failed image pull carries no image reference, so
+	// it is scoped by namespace and pod instead. The extractor pod has a fixed name and exists only
+	// while an assessment runs, and it only ever mounts the target payload, whose pull failure the
+	// operator reports through its own Upgradeable condition.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "ClusterCAPIUpgradeablePreflightSyntheticPayloadPullFailed",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-cluster-api-operator$`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^upgradeable-payload-images-extractor$`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^Failed$`),
+		messageHumanRegex:  regexp.MustCompile(`^Error: (ImagePullBackOff|ErrImagePull)$`),
+	})
+
 	registry.AddPathologicalEventMatcherOrDie(AllowBackOffRestartingFailedContainer)
 
 	registry.AddPathologicalEventMatcherOrDie(AllowOVNReadiness)
