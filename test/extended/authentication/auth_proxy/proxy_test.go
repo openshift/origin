@@ -244,7 +244,7 @@ func TestProxyConfigHasProxy(t *testing.T) {
 		{
 			name: "CA without URLs",
 			config: ProxyConfig{
-				UpstreamCACertPEM: []byte("test CA"),
+				CACertPEM: []byte("test CA"),
 			},
 		},
 	} {
@@ -365,17 +365,17 @@ func TestProxyConfigMatches(t *testing.T) {
 		{
 			name: "different CA ignored",
 			a: ProxyConfig{
-				UpstreamCACertPEM: []byte("CA A"),
+				CACertPEM: []byte("CA A"),
 			},
 			b: ProxyConfig{
-				UpstreamCACertPEM: []byte("CA B"),
+				CACertPEM: []byte("CA B"),
 			},
 			want: true,
 		},
 		{
 			name: "missing CA ignored",
 			a: ProxyConfig{
-				UpstreamCACertPEM: []byte("CA A"),
+				CACertPEM: []byte("CA A"),
 			},
 			want: true,
 		},
@@ -453,7 +453,7 @@ func TestReadDeploymentProxyConfig(t *testing.T) {
 				}},
 			}},
 			caData: map[string]string{"custom-ca.pem": "test CA"},
-			want:   ProxyConfig{HttpsProxy: MustParse("https://b:3129"), UpstreamCACertPEM: []byte("test CA")},
+			want:   ProxyConfig{HttpsProxy: MustParse("https://b:3129"), CACertPEM: []byte("test CA")},
 		},
 		{
 			name: "ignore unrelated CA volume",
@@ -561,7 +561,7 @@ func assertReadProxyConfig(t *testing.T, got, want ProxyConfig) {
 	if !reflect.DeepEqual(got.HttpProxy, want.HttpProxy) || !reflect.DeepEqual(got.HttpsProxy, want.HttpsProxy) || !got.NoProxy.Equal(want.NoProxy) {
 		t.Errorf("proxy configuration = %+v, want %+v", got, want)
 	}
-	if !bytes.Equal(got.UpstreamCACertPEM, want.UpstreamCACertPEM) {
-		t.Errorf("CA PEM = %q, want %q", got.UpstreamCACertPEM, want.UpstreamCACertPEM)
+	if !bytes.Equal(got.CACertPEM, want.CACertPEM) {
+		t.Errorf("CA PEM = %q, want %q", got.CACertPEM, want.CACertPEM)
 	}
 }

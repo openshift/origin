@@ -11,7 +11,6 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -360,7 +359,7 @@ func verifyOAuthServerDeploymentProxyConfig(
 	expectedAuthProxyConfig auth_proxy.ProxyConfig,
 ) error {
 	kubeClient := oc.AdminKubeClient()
-	hasUpstreamCACert := len(expectedAuthProxyConfig.UpstreamCACertPEM) > 0
+	hasCACert := len(expectedAuthProxyConfig.CACertPEM) > 0
 
 	return wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
 		deployment, err := kubeClient.AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
@@ -386,8 +385,8 @@ func verifyOAuthServerDeploymentProxyConfig(
 		}
 
 		foundVolume, foundMount := trustedCAVolumeState(deployment)
-		if hasUpstreamCACert != (foundVolume && foundMount) {
-			g.GinkgoWriter.Printf("trustedCA volume=%v mount=%v (want present=%v)\n", foundVolume, foundMount, hasUpstreamCACert)
+		if hasCACert != (foundVolume && foundMount) {
+			g.GinkgoWriter.Printf("trustedCA volume=%v mount=%v (want present=%v)\n", foundVolume, foundMount, hasCACert)
 			return false, nil
 		}
 		return true, nil
@@ -430,31 +429,5 @@ func verifyTrustedCAConfigMapSynced(ctx context.Context, oc *exutil.CLI) error {
 			return false, nil
 		}
 		return len(cm.Data) > 0, nil
-	})
-}
-
-// deleteNamespaceSync deletes a namespace and polls until it is fully removed.
-// Foreground delete propagation is being used, so all namespace resources are deleted by the time this function unblocks.
-func deleteNamespaceSync(ctx context.Context, oc *exutil.CLI, namespace string, timeout time.Duration) error {
-	kubeClient := oc.AdminKubeClient()
-	if err := kubeClient.CoreV1().Namespaces().Delete(ctx, namespace, metav1.DeleteOptions{
-		PropagationPolicy: new(metav1.DeletePropagationForeground),
-	}); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("deleting namespace %s: %w", namespace, err)
-	}
-
-	g.GinkgoWriter.Printf("waiting up to %s for namespace %s to be fully deleted\n", timeout, namespace)
-	return wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
-		_, err := kubeClient.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			return true, nil
-		}
-		if err != nil {
-			g.GinkgoWriter.Printf("error checking namespace %s: %v\n", namespace, err)
-		}
-		return false, nil
 	})
 }

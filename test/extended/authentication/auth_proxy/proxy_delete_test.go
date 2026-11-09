@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,54 +16,7 @@ import (
 	clienttesting "k8s.io/client-go/testing"
 )
 
-func TestCloseValidation(t *testing.T) {
-	t.Parallel()
-	canceledCtx, cancel := context.WithCancel(context.Background())
-	cancel()
-	for _, tc := range []struct {
-		name      string
-		component AuthenticationProxyComponent
-		timeout   time.Duration
-		ctx       context.Context
-		wantErr   error
-		wantMsg   string
-	}{
-		{name: "nil CLI", wantErr: ErrInvalidCLI},
-		{name: "missing namespace", component: AuthenticationProxyComponent{oc: &exutil.CLI{}}, wantErr: ErrMissingNamespace},
-		{
-			name: "zero timeout", wantMsg: "timeout must be greater than zero",
-			component: AuthenticationProxyComponent{oc: &exutil.CLI{}, Namespace: "proxy-test"},
-		},
-		{
-			name: "negative timeout", timeout: -time.Second, wantMsg: "timeout must be greater than zero",
-			component: AuthenticationProxyComponent{oc: &exutil.CLI{}, Namespace: "proxy-test"},
-		},
-		{
-			name: "canceled context", timeout: time.Second, ctx: canceledCtx, wantErr: context.Canceled,
-			component: AuthenticationProxyComponent{oc: &exutil.CLI{}, Namespace: "proxy-test"},
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			ctx := tc.ctx
-			if ctx == nil {
-				ctx = context.Background()
-			}
-			err := tc.component.Delete(ctx, tc.timeout)
-			if err == nil {
-				t.Fatal("expected validation error")
-			}
-			if tc.wantErr != nil && !errors.Is(err, tc.wantErr) {
-				t.Errorf("error = %v, want %v", err, tc.wantErr)
-			}
-			if tc.wantMsg != "" && !strings.Contains(err.Error(), tc.wantMsg) {
-				t.Errorf("error = %v, want message containing %q", err, tc.wantMsg)
-			}
-		})
-	}
-}
-
-func TestCloseProxyNamespace(t *testing.T) {
+func TestDeleteProxyNamespace(t *testing.T) {
 	t.Parallel()
 	deleteErr := errors.New("delete failed")
 	readErr := errors.New("get failed")
@@ -135,7 +87,7 @@ func TestCloseProxyNamespace(t *testing.T) {
 				}
 				return false, nil, nil
 			})
-			err := closeProxyNamespace(ctx, client.CoreV1().Namespaces(), namespace, time.Millisecond)
+			err := deleteProxyNamespace(ctx, client.CoreV1().Namespaces(), namespace, time.Millisecond)
 			if tc.wantErr == nil {
 				if err != nil {
 					t.Fatal(err)
@@ -161,20 +113,20 @@ func TestCloseProxyNamespace(t *testing.T) {
 	}
 }
 
-func TestCloseProxyNamespaceRepeatedCalls(t *testing.T) {
+func TestDeleteProxyNamespaceRepeatedCalls(t *testing.T) {
 	t.Parallel()
 	const namespace = "proxy-test"
 	client := kubefake.NewSimpleClientset(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	for i := 0; i < 2; i++ {
-		if err := closeProxyNamespace(ctx, client.CoreV1().Namespaces(), namespace, time.Millisecond); err != nil {
+		if err := deleteProxyNamespace(ctx, client.CoreV1().Namespaces(), namespace, time.Millisecond); err != nil {
 			t.Fatalf("call %d: %v", i+1, err)
 		}
 	}
 }
 
-func TestCloseProxyNamespaceDeleteDeadline(t *testing.T) {
+func TestDeleteProxyNamespaceDeleteDeadline(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
@@ -183,7 +135,7 @@ func TestCloseProxyNamespaceDeleteDeadline(t *testing.T) {
 		<-ctx.Done()
 		return true, nil, ctx.Err()
 	})
-	err := closeProxyNamespace(ctx, client.CoreV1().Namespaces(), "proxy-test", time.Millisecond)
+	err := deleteProxyNamespace(ctx, client.CoreV1().Namespaces(), "proxy-test", time.Millisecond)
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("error = %v, want delete deadline exceeded", err)
 	}

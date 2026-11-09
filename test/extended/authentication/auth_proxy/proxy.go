@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"path"
 	"strconv"
 	"strings"
 
@@ -22,20 +21,10 @@ const (
 	squidHTTPPort    = int32(3128)
 	squidHTTPSPort   = int32(3129)
 	squidServiceName = "auth-proxy"
-
-	upstreamCAFile       = "upstream-ca-bundle.crt"
-	upstreamCACertFolder = "/etc/squid/upstream-ca/"
-	upstreamCAConfigMap  = "upstream-ca-config"
-
-	caCertConfigMapKey = "ca-bundle.crt"
 )
 
-var (
-	upstreamCACertPath = path.Join(upstreamCACertFolder, upstreamCAFile)
-)
-
-// DefaultNoProxy returns a new set of the default OAuth component proxy exclusions.
-// The caller can modify the set without affecting subsequent calls.
+// DefaultNoProxy returns a fresh set so callers can mutate it without affecting
+// other tests.
 func DefaultNoProxy() sets.Set[string] {
 	return sets.New(
 		".cluster.local",
@@ -45,45 +34,38 @@ func DefaultNoProxy() sets.Set[string] {
 	)
 }
 
-// ComponentProxyTestLabels returns a new map of labels for authentication proxy
-// test resources. The caller can add or remove labels.
+// ComponentProxyTestLabels returns a fresh map so callers can mutate it without
+// affecting other tests.
 func ComponentProxyTestLabels() map[string]string {
 	return map[string]string{
 		"e2e-test": "openshift-authentication-operator",
 	}
 }
 
-// ProxyConfig holds proxy endpoints, bypass entries, and an optional upstream CA
-// bundle. Nil URLs mean no proxy for the corresponding destination protocol.
-// The URL scheme specifies the transport to the proxy, independently of that protocol.
-// Copying a ProxyConfig shares its URLs, NoProxy set, and CA bytes.
+// ProxyConfig separates the transport to the proxy (the URL scheme) from the protocol
+// it serves (the field name). Copies share URLs, NoProxy, and CA bytes.
 type ProxyConfig struct {
 	HttpProxy, HttpsProxy *url.URL
 	NoProxy               sets.Set[string]
-	UpstreamCACertPEM     []byte
+	CACertPEM             []byte
 }
 
-// EmptyProxyConfig returns settings without proxies or a CA, with an initialized
-// NoProxy set that the caller can insert into. A zero ProxyConfig is safe to read.
+// EmptyProxyConfig returns an initialized NoProxy set for callers to fill in; a zero
+// ProxyConfig is also safe to read.
 func EmptyProxyConfig() ProxyConfig {
 	return ProxyConfig{
-		HttpProxy:         nil,
-		HttpsProxy:        nil,
-		NoProxy:           sets.New[string](),
-		UpstreamCACertPEM: []byte{},
+		HttpProxy:  nil,
+		HttpsProxy: nil,
+		NoProxy:    sets.New[string](),
+		CACertPEM:  []byte{},
 	}
 }
 
-// DeploymentProxyConfig reads literal HTTP_PROXY, HTTPS_PROXY, and NO_PROXY values
-// from the named container in a deployment. ValueFrom and EnvFrom are not resolved.
-// namespace, name, containerName, and deployments are required.
-//
-// An empty CA selector disables CA lookup; otherwise both Name and Key are required.
-// The CA is read only when a deployment volume references the selected ConfigMap;
-// a mount in the selected container is not checked. configMaps is required only for
-// that lookup. The selected key must contain a non-empty bundle; PEM is not validated.
-// Optional is ignored: a missing selected ConfigMap or key is always an error.
-// On error, the returned configuration is zero.
+// DeploymentProxyConfig reads literal values only: ValueFrom and EnvFrom are not
+// resolved, so a deployment that injects proxies indirectly reads as empty. The CA is
+// read only when a volume references the ConfigMap, since a container mount alone does
+// not prove the deployment consumes it. Optional is ignored, so a missing ConfigMap or
+// key is always an error. On error the configuration is zero.
 func DeploymentProxyConfig(
 	ctx context.Context,
 	namespace, name, containerName string,
@@ -114,9 +96,8 @@ func DeploymentProxyConfig(
 		return zero, err
 	}
 
-	// A cluster without a global proxy does not add these environment variables.
-	// Start with that baseline, then replace only the values present on the
-	// existing deployment.
+	// A cluster without a global proxy omits these variables, so the zero configuration
+	// is the correct baseline and only values the deployment sets replace it.
 	config := EmptyProxyConfig()
 	for _, volume := range deployment.Spec.Template.Spec.Volumes {
 		if caConfigMap.Name != "" && volume.ConfigMap != nil && volume.ConfigMap.Name == caConfigMap.Name {
@@ -133,7 +114,7 @@ func DeploymentProxyConfig(
 			if strings.TrimSpace(bundle) == "" {
 				return zero, fmt.Errorf("ConfigMap %s/%s must contain non-empty %q", cm.Namespace, cm.Name, caConfigMap.Key)
 			}
-			config.UpstreamCACertPEM = []byte(bundle)
+			config.CACertPEM = []byte(bundle)
 			break
 		}
 	}
@@ -176,8 +157,7 @@ func DeploymentProxyConfig(
 	return config, nil
 }
 
-// String describes proxy endpoints and sorted bypass entries without URL
-// credentials or CA contents. It does not modify the configuration.
+// String omits credentials and CA contents, so the value is safe to log.
 func (pC ProxyConfig) String() string {
 	noProxy := strings.Join(sets.List(pC.NoProxy), ",")
 
@@ -188,14 +168,13 @@ func (pC ProxyConfig) String() string {
 	)
 }
 
-// HasProxy reports whether either proxy URL is non-nil. It does not validate URLs.
+// HasProxy does not validate URLs, so a malformed proxy still reports true.
 func (pC ProxyConfig) HasProxy() bool {
 	return pC.HttpProxy != nil || pC.HttpsProxy != nil
 }
 
-// Matches compares URL strings, including credentials, and ignores CA bundles.
-// Non-empty expected bypass entries must be a subset of actual entries; an empty
-// expected set requires an empty actual set. The comparison can be asymmetric.
+// Matches ignores CA bundles and requires expected bypass entries to be a subset of
+// the actual ones, so the comparison is asymmetric.
 func (actual ProxyConfig) Matches(expected ProxyConfig) bool {
 	return proxyURLsEqual(expected.HttpProxy, actual.HttpProxy) &&
 		proxyURLsEqual(expected.HttpsProxy, actual.HttpsProxy) &&
@@ -203,7 +182,8 @@ func (actual ProxyConfig) Matches(expected ProxyConfig) bool {
 		(expected.NoProxy.Len() > 0 || actual.NoProxy.Len() == 0)
 }
 
-// stripCredentials formats a copy of proxy without user information; nil yields "".
+// stripCredentials strips the User from the URL.
+// A nil proxy yields an empty string.
 func stripCredentials(proxy *url.URL) string {
 	if proxy == nil {
 		return ""
@@ -213,8 +193,8 @@ func stripCredentials(proxy *url.URL) string {
 	return clean.String()
 }
 
-// parseProxyField accepts an absolute HTTP or HTTPS proxy URL with a hostname and
-// an optional port in the range 1..65535. An empty field yields nil without error.
+// parseProxyField rejects a port outside 1..65535 and yields nil for an empty field,
+// which disables that proxy.
 func parseProxyField(field string) (*url.URL, error) {
 	if field == "" {
 		return nil, nil
@@ -248,10 +228,9 @@ func parseProxyField(field string) (*url.URL, error) {
 	return proxyURL, nil
 }
 
-// proxyURLsEqual compares URL strings without userinfo, then compares serialized
-// userinfo with ConstantTimeCompare. Only the byte comparison is constant-time
-// for equal lengths. Absent and empty userinfo or passwords remain distinct.
-// Two nil URLs are equal. Neither input is modified.
+// proxyURLsEqual compares the two URLs.
+// Only the byte comparison for equal-length userinfo is constant-time, and absent and
+// empty userinfo stay distinct so a missing password cannot match an empty one.
 func proxyURLsEqual(a, b *url.URL) bool {
 	if a == nil || b == nil {
 		return a == b

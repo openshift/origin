@@ -67,11 +67,9 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 
 		g.By("Deploying authentication forward proxy")
 		authProxyComponent, err = auth_proxy.DeployAuthProxyComponent(ctx, oc)
-		if authProxyComponent.Namespace != "" {
-			cleanups = append(cleanups, func(ctx context.Context) error {
-				return authProxyComponent.Delete(ctx, 5*time.Minute)
-			})
-		}
+		cleanups = append(cleanups, func(ctx context.Context) error {
+			return authProxyComponent.Delete(ctx, 5*time.Minute)
+		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Deploying Keycloak (without registering IdP yet)")
@@ -403,10 +401,10 @@ func testBypassProxyNoProxyHost(ctx context.Context, oc *exutil.CLI, cleanups *[
 
 	g.By("Verifying oauth-server has HTTP_PROXY, HTTPS_PROXY, and NO_PROXY with custom entry")
 	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, auth_proxy.ProxyConfig{
-		HttpProxy:         authProxy.HttpUrl,
-		HttpsProxy:        authProxy.HttpsUrl,
-		NoProxy:           auth_proxy.DefaultNoProxy().Insert(keycloakHost),
-		UpstreamCACertPEM: authProxy.CACertPEM,
+		HttpProxy:  authProxy.HttpUrl,
+		HttpsProxy: authProxy.HttpsUrl,
+		NoProxy:    auth_proxy.DefaultNoProxy().Insert(keycloakHost),
+		CACertPEM:  authProxy.CACertPEM,
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -486,10 +484,10 @@ func testOIDCIdPThroughComponentProxy(ctx context.Context, oc *exutil.CLI, kcSet
 
 	g.By("Verifying OAuth server deployment has proxy env vars and trustedCA volume/mount")
 	authProxyConfig := auth_proxy.ProxyConfig{
-		HttpProxy:         nil,
-		HttpsProxy:        proxyURL,
-		NoProxy:           auth_proxy.DefaultNoProxy(),
-		UpstreamCACertPEM: proxyCACert,
+		HttpProxy:  nil,
+		HttpsProxy: proxyURL,
+		NoProxy:    auth_proxy.DefaultNoProxy(),
+		CACertPEM:  proxyCACert,
 	}
 	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, authProxyConfig)
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -509,7 +507,7 @@ func testOIDCIdPThroughComponentProxy(ctx context.Context, oc *exutil.CLI, kcSet
 }
 
 func testFallbackOnProxyRemoval(ctx context.Context, oc *exutil.CLI,
-	cleanups *[]removalFunc, kcSetup *keycloakProxySetup, authProxy auth_proxy.AuthenticationProxyComponent, oauthServerProxyConfig auth_proxy.ProxyConfig) { //httpProxyURL string, proxyNamespace string
+	cleanups *[]removalFunc, kcSetup *keycloakProxySetup, authProxy auth_proxy.AuthenticationProxyComponent, oauthServerProxyConfig auth_proxy.ProxyConfig) {
 	const namespace, name = "openshift-authentication", "oauth-openshift"
 	o.Expect(authProxy.HttpUrl).
 		NotTo(o.BeNil(), "authentication proxy component http url should be not nil")
@@ -581,7 +579,7 @@ func testFallbackOnProxyRemoval(ctx context.Context, oc *exutil.CLI,
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Deleting the authentication proxy to prove the operator no longer routes through it")
-	err = deleteNamespaceSync(ctx, oc, authProxy.Namespace, 5*time.Minute)
+	err = authProxy.Delete(ctx, 5*time.Minute)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Waiting for operator to remain stable after authentication proxy deletion")

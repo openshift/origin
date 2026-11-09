@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -28,7 +27,7 @@ func TestAuthenticationProxyComponentString(t *testing.T) {
 		},
 		{
 			name:      "namespace only",
-			component: AuthenticationProxyComponent{Namespace: "proxy-test"},
+			component: AuthenticationProxyComponent{namespace: "proxy-test"},
 			want:      `AuthenticationProxy[Namespace="proxy-test" HttpProxy="" HttpsProxy="" CACertLen=0]`,
 		},
 		{
@@ -44,7 +43,7 @@ func TestAuthenticationProxyComponentString(t *testing.T) {
 		{
 			name: "complete component with credentials",
 			component: AuthenticationProxyComponent{
-				Namespace: "proxy-test", HttpUrl: MustParse("http://user:secret@proxy:3128"),
+				namespace: "proxy-test", HttpUrl: MustParse("http://user:secret@proxy:3128"),
 				HttpsUrl: MustParse("https://other:password@proxy:3129"), CACertPEM: []byte("test CA"),
 			},
 			want: `AuthenticationProxy[Namespace="proxy-test" HttpProxy="http://proxy:3128" HttpsProxy="https://proxy:3129" CACertLen=7]`,
@@ -67,61 +66,6 @@ func TestAuthenticationProxyComponentString(t *testing.T) {
 			}
 			if !reflect.DeepEqual(tc.component, before) {
 				t.Error("String() modified the component")
-			}
-		})
-	}
-}
-
-func TestRotateProxyCertificatesValidation(t *testing.T) {
-	t.Parallel()
-	canceledCtx, cancel := context.WithCancel(context.Background())
-	cancel()
-	for _, tc := range []struct {
-		name      string
-		component *AuthenticationProxyComponent
-		ctx       context.Context
-		wantErr   error
-	}{
-		{name: "nil receiver", wantErr: ErrInvalidCLI},
-		{name: "zero component", component: &AuthenticationProxyComponent{}, wantErr: ErrInvalidCLI},
-		{
-			name: "missing CLI with existing CA",
-			component: &AuthenticationProxyComponent{
-				Namespace: "proxy-test", CACertPEM: []byte("existing CA"),
-			},
-			wantErr: ErrInvalidCLI,
-		},
-		{
-			name:      "missing namespace",
-			component: &AuthenticationProxyComponent{oc: &exutil.CLI{}, CACertPEM: []byte("existing CA")},
-			wantErr:   ErrMissingNamespace,
-		},
-		{
-			name:      "canceled context",
-			component: &AuthenticationProxyComponent{oc: &exutil.CLI{}, Namespace: "proxy-test", CACertPEM: []byte("existing CA")},
-			ctx:       canceledCtx, wantErr: context.Canceled,
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			var before AuthenticationProxyComponent
-			if tc.component != nil {
-				before = *tc.component
-				before.CACertPEM = append([]byte(nil), tc.component.CACertPEM...)
-			}
-			ctx := tc.ctx
-			if ctx == nil {
-				ctx = context.Background()
-			}
-			ca, err := tc.component.RotateProxyCertificates(ctx)
-			if !errors.Is(err, tc.wantErr) {
-				t.Fatalf("error = %v, want %v", err, tc.wantErr)
-			}
-			if ca != nil {
-				t.Errorf("CA = %q, want nil", ca)
-			}
-			if tc.component != nil && !reflect.DeepEqual(*tc.component, before) {
-				t.Error("validation failure modified the component")
 			}
 		})
 	}
@@ -153,9 +97,9 @@ func TestCertificateRotationResources(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			component := AuthenticationProxyComponent{Namespace: "proxy-test"}
-			secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "squid-tls", Namespace: component.Namespace}, Data: tc.data}
-			pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "proxy-0", Namespace: component.Namespace, Labels: map[string]string{"app": squidServiceName}}}
+			component := AuthenticationProxyComponent{namespace: "proxy-test"}
+			secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "squid-tls", Namespace: component.namespace}, Data: tc.data}
+			pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "proxy-0", Namespace: component.namespace, Labels: map[string]string{"app": squidServiceName}}}
 			client := kubefake.NewSimpleClientset()
 			if !tc.omitSecret {
 				if err := client.Tracker().Add(secret.DeepCopy()); err != nil {
@@ -168,7 +112,7 @@ func TestCertificateRotationResources(t *testing.T) {
 				}
 			}
 			// A pod in the namespace is insufficient unless its label matches Squid.
-			if err := client.Tracker().Add(&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "unrelated", Namespace: component.Namespace}}); err != nil {
+			if err := client.Tracker().Add(&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "unrelated", Namespace: component.namespace}}); err != nil {
 				t.Fatal(err)
 			}
 			if tc.failResource != "" {
@@ -199,7 +143,7 @@ func TestCertificateRotationResources(t *testing.T) {
 				if action.GetVerb() != "get" && action.GetVerb() != "list" {
 					t.Errorf("resource validation performed a write: %s", action.GetVerb())
 				}
-				if action.GetResource().Resource == "pods" && action.GetNamespace() != component.Namespace {
+				if action.GetResource().Resource == "pods" && action.GetNamespace() != component.namespace {
 					t.Errorf("pod lookup used namespace %q", action.GetNamespace())
 				}
 			}

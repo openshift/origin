@@ -68,7 +68,7 @@ func TestDefaultCollectionsAreIndependent(t *testing.T) {
 	}
 	config := EmptyProxyConfig()
 	config.NoProxy.Insert("changed.example")
-	if got := EmptyProxyConfig(); got.HasProxy() || len(got.UpstreamCACertPEM) != 0 || got.NoProxy.Len() != 0 {
+	if got := EmptyProxyConfig(); got.HasProxy() || len(got.CACertPEM) != 0 || got.NoProxy.Len() != 0 {
 		t.Errorf("modifying an empty config changed subsequent configs: %v", got)
 	}
 }
