@@ -381,7 +381,7 @@ var staticSuites = []ginkgo.TestSuite{
 		`),
 		Qualifiers: []string{
 			`(` + withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/etcd/certrotation") || name.contains("[Feature:CertRotation]")`) +
-				`) && !name.contains("[sig-etcd] etcd leader changes are not excessive [Late]")`,
+				`) && !name.contains("leader changes")`,
 		},
 		TestTimeout:                60 * time.Minute,
 		Parallelism:                1,

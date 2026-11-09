@@ -227,7 +227,8 @@ func TestEtcdCertRotationSuiteSelection(t *testing.T) {
 		{name: "[sig-etcd] cert rotation can recreate trust bundle [Suite:openshift/etcd/certrotation]", want: true},
 		{name: "[sig-node] node checks [Early] [Suite:openshift/conformance/parallel]", want: true},
 		{name: "[sig-node] node checks [Late] [Suite:openshift/conformance/parallel]", want: true},
-		{name: "[sig-etcd] other leader changes coverage [Feature:CertRotation]", want: true},
+		{name: "[sig-etcd] other leader changes coverage [Feature:CertRotation]"},
+		{name: "[sig-etcd] other certificate coverage [Feature:CertRotation]", want: true},
 		{name: "[sig-etcd] unrelated test"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
