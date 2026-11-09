@@ -2,6 +2,7 @@ package internalreleaseimage
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
@@ -23,7 +25,11 @@ import (
 )
 
 const (
-	IRIResourceName = "cluster"
+	IRIResourceName             = "cluster"
+	iriDeletionGuardBindingName = "internalreleaseimage-deletion-guard-binding"
+	iriMasterMachineConfigName  = "02-master-internalreleaseimage"
+	iriRegistryPort             = 22625
+	iriRegistryServiceName      = "iri-registry.service"
 )
 
 // IRITestHelper is a helper class for InternalReleaseImage tests
@@ -36,6 +42,64 @@ type IRITestHelper struct {
 type MCInfo struct {
 	UID               string
 	CreationTimestamp metav1.Time
+}
+
+type iriIgnitionConfig struct {
+	Systemd struct {
+		Units []struct {
+			Name     string  `json:"name"`
+			Contents *string `json:"contents"`
+		} `json:"units"`
+	} `json:"systemd"`
+	Storage struct {
+		Files []json.RawMessage `json:"files"`
+	} `json:"storage"`
+}
+
+func waitForIRIRegistryPortState(ctx context.Context, oc *exutil.CLI, nodeName string, wantClosed bool) error {
+	return wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
+		output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-machine-config-operator", "bash", "-c",
+			fmt.Sprintf("ss -tlnp | grep ':%d ' || echo PORT_CLOSED", iriRegistryPort))
+		if err != nil {
+			e2e.Logf("Failed to check IRI registry port (will retry): %v", err)
+			return false, nil
+		}
+		return strings.Contains(output, "PORT_CLOSED") == wantClosed, nil
+	})
+}
+
+func (h *IRITestHelper) waitForDisabledIRIMachineConfig(ctx context.Context) error {
+	return wait.PollUntilContextTimeout(
+		ctx, 5*time.Second, 5*time.Minute, true,
+		func(ctx context.Context) (bool, error) {
+			mc, err := h.McClientV1.MachineConfigs().Get(ctx, iriMasterMachineConfigName, metav1.GetOptions{})
+			if err != nil {
+				return false, nil
+			}
+
+			var ign iriIgnitionConfig
+			if err := json.Unmarshal(mc.Spec.Config.Raw, &ign); err != nil {
+				return false, nil
+			}
+
+			if len(ign.Systemd.Units) != 1 {
+				return false, nil
+			}
+
+			unit := ign.Systemd.Units[0]
+			if unit.Name != iriRegistryServiceName || unit.Contents == nil {
+				return false, nil
+			}
+
+			contents := *unit.Contents
+			disabled := strings.Contains(contents, "ExecStart=/bin/true") &&
+				strings.Contains(contents, "Type=oneshot") &&
+				!strings.Contains(contents, "podman") &&
+				len(ign.Storage.Files) == 0
+
+			return disabled, nil
+		},
+	)
 }
 
 // NewIRITestHelper creates a new test helper instance
