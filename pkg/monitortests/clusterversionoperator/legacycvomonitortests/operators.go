@@ -854,10 +854,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			if reason == "Reconciling" {
 				return "https://issues.redhat.com/browse/OCPBUGS-62627"
 			}
-		case "kube-storage-version-migrator":
-			if reason == "KubeStorageVersionMigrator_Deploying" {
-				return "https://issues.redhat.com/browse/OCPBUGS-62629"
-			}
 		case "openshift-controller-manager":
 			// _DesiredStateNotYetAchieved
 			// RouteControllerManager_DesiredStateNotYetAchieved
