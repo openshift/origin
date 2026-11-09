@@ -38,6 +38,15 @@ const (
 	labelNodeRoleControlPlane = "node-role.kubernetes.io/control-plane"
 )
 
+// gcpFamiliesWithoutPDStandard lists GCP machine families that cannot attach a
+// pd-standard Persistent Disk, including the regional pd-standard volume this
+// test provisions. C4/C4A/C4D and N4 are Hyperdisk-only; C3/C3D support
+// pd-ssd/pd-balanced but not pd-standard. On these families the attach fails with
+// "Regional disks is not supported for <type> machine type", so the test is
+// skipped rather than run to a deterministic failure. Keep this in sync with
+// GCP's machine-family disk-support matrix.
+var gcpFamiliesWithoutPDStandard = []string{"c3", "c3d", "c4", "c4a", "c4d", "n4"}
+
 var _ = g.Describe(`[sig-storage][Jira:"Storage"][Driver: pd.csi.storage.gke.io]`, func() {
 	defer g.GinkgoRecover()
 
@@ -67,6 +76,13 @@ var _ = g.Describe(`[sig-storage][Jira:"Storage"][Driver: pd.csi.storage.gke.io]
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if zones.Len() < 2 {
 			g.Skip("skipping, cluster has fewer than 2 zones")
+		}
+
+		// The regional pd-standard volume must attach to the worker that runs the
+		// test pod. Some GCP families (e.g. N4) cannot attach pd-standard at all, so
+		// skip rather than fail deterministically on such clusters.
+		if anyNodeLacksPDStandard(ctx, oc.AdminKubeClient(), labelNodeRoleWorker) {
+			g.Skip("skipping, worker nodes use a GCP machine family (e.g. n4) that cannot attach regional Persistent Disk (pd-standard)")
 		}
 	})
 
@@ -129,12 +145,12 @@ var _ = g.Describe(`[sig-storage][Jira:"Storage"][Driver: pd.csi.storage.gke.io]
 		o.Expect(volZones).To(o.HaveLen(2), "regional PD should list 2 zones in PV nodeAffinity, got %v", volZones)
 
 		// Cross-zone attach may land on a control-plane node; skip when that
-		// node type cannot attach pd-standard (hyperdisk-oriented families).
+		// node type cannot attach pd-standard.
 		if len(workers) < 2 {
 			e2e.Logf("Skipping cross-zone sync verification: need workers in >=2 zones, got %d", len(workers))
 			return
 		}
-		if controlPlaneIsHyperDiskFamily(ctx, client) {
+		if anyNodeLacksPDStandard(ctx, client, labelNodeRoleControlPlane, labelNodeRoleMaster) {
 			e2e.Logf("Skipping cross-zone sync verification: control-plane instance type may not attach pd-standard")
 			return
 		}
@@ -216,24 +232,40 @@ func schedulableWorkersPerZone(ctx context.Context, client clientset.Interface) 
 	return workers, nil
 }
 
-// controlPlaneIsHyperDiskFamily reports whether a control-plane node uses a machine
-// family that may not support attaching pd-standard volumes.
-func controlPlaneIsHyperDiskFamily(ctx context.Context, client clientset.Interface) bool {
-	for _, selector := range []string{labelNodeRoleControlPlane, labelNodeRoleMaster} {
+// anyNodeLacksPDStandard reports whether any node matching one of the given role
+// label selectors uses a GCP machine family that cannot attach a pd-standard
+// Persistent Disk (see gcpFamiliesWithoutPDStandard). A List error for a selector
+// is treated as "not found" so the caller falls back to running the test.
+func anyNodeLacksPDStandard(ctx context.Context, client clientset.Interface, roleSelectors ...string) bool {
+	for _, selector := range roleSelectors {
 		nodes, err := client.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: selector})
 		if err != nil {
 			continue
 		}
-		for _, node := range nodes.Items {
-			t := node.Labels[v1.LabelInstanceTypeStable]
-			if t == "" {
-				t = node.Labels[v1.LabelInstanceType]
+		for i := range nodes.Items {
+			if familyLacksPDStandard(nodeInstanceType(&nodes.Items[i])) {
+				return true
 			}
-			for _, family := range []string{"c3", "c3d", "c4", "c4a", "n4"} {
-				if t == family || strings.HasPrefix(t, family+"-") {
-					return true
-				}
-			}
+		}
+	}
+	return false
+}
+
+// nodeInstanceType returns the node's GCP machine type from its well-known labels,
+// preferring the stable label and falling back to the beta label.
+func nodeInstanceType(node *v1.Node) string {
+	if t := node.Labels[v1.LabelInstanceTypeStable]; t != "" {
+		return t
+	}
+	return node.Labels[v1.LabelInstanceType]
+}
+
+// familyLacksPDStandard reports whether instanceType belongs to a GCP machine
+// family that cannot attach a pd-standard Persistent Disk.
+func familyLacksPDStandard(instanceType string) bool {
+	for _, family := range gcpFamiliesWithoutPDStandard {
+		if instanceType == family || strings.HasPrefix(instanceType, family+"-") {
+			return true
 		}
 	}
 	return false
