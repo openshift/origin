@@ -147,19 +147,21 @@ var _ = g.Describe("[sig-auth][Feature:ControlPlaneSecurity]", func() {
 
 			g.By("Verifying init container securityContext.privileged")
 
-			// Verify all init containers have privileged=true
+			// Require privileged=true for init containers, except KMS plugins and their health reporter,
+			// which require false to keep third-party plugins unprivileged.
 			o.Expect(pod.Spec.InitContainers).NotTo(o.BeEmpty(),
 				"Expected to find at least one init container in pod %s", pod.Name)
 
 			for _, initContainer := range pod.Spec.InitContainers {
+				expectedPrivileged := initContainer.Name != "kms-health-reporter" && !strings.Contains(initContainer.Name, "kms-plugin")
 				o.Expect(initContainer.SecurityContext).NotTo(o.BeNil(),
 					"Init container %s in pod %s does not have securityContext", initContainer.Name, pod.Name)
 				o.Expect(initContainer.SecurityContext.Privileged).NotTo(o.BeNil(),
 					"Init container %s in pod %s does not have securityContext.privileged set", initContainer.Name, pod.Name)
-				o.Expect(*initContainer.SecurityContext.Privileged).To(o.BeTrue(),
-					"Init container %s in pod %s should have securityContext.privileged=true", initContainer.Name, pod.Name)
+				o.Expect(*initContainer.SecurityContext.Privileged).To(o.Equal(expectedPrivileged),
+					"Init container %s in pod %s should have securityContext.privileged=%t", initContainer.Name, pod.Name, expectedPrivileged)
 
-				e2e.Logf("Init container %s has securityContext.privileged=true", initContainer.Name)
+				e2e.Logf("Init container %s has securityContext.privileged=%t", initContainer.Name, expectedPrivileged)
 			}
 		}
 	})
