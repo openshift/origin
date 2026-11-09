@@ -206,6 +206,61 @@ func TestTwoNodeSuiteExcludesDedicatedTNFMetricsTests(t *testing.T) {
 	}
 }
 
+func TestEtcdCertRotationSuiteSelection(t *testing.T) {
+	t.Parallel()
+	suites := InternalTestSuites()
+	suite := findSuite(suites, "openshift/etcd/certrotation")
+	if suite == nil {
+		t.Fatal("openshift/etcd/certrotation suite not found")
+	}
+	leaderChanges := "[sig-etcd] etcd leader changes are not excessive [Late] [Suite:openshift/conformance/parallel]"
+	for _, test := range []struct {
+		name string
+		want bool
+	}{
+		{name: leaderChanges},
+		{name: leaderChanges + " [Feature:CertRotation]"},
+		{name: leaderChanges + " [Suite:openshift/etcd/certrotation]"},
+		{name: "[sig-etcd] cert rotation can manually rotate signer certificates [Feature:CertRotation]", want: true},
+		{name: "[sig-etcd] cert rotation can manually rotate metrics signer certificates [Feature:CertRotation]", want: true},
+		{name: "[sig-etcd] cert rotation can recreate dynamic certificates [Suite:openshift/etcd/certrotation]", want: true},
+		{name: "[sig-etcd] cert rotation can recreate trust bundle [Suite:openshift/etcd/certrotation]", want: true},
+		{name: "[sig-node] node checks [Early] [Suite:openshift/conformance/parallel]", want: true},
+		{name: "[sig-node] node checks [Late] [Suite:openshift/conformance/parallel]", want: true},
+		{name: "[sig-etcd] other leader changes coverage [Feature:CertRotation]", want: true},
+		{name: "[sig-etcd] unrelated test"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			candidates := extensiontests.ExtensionTestSpecs{{Name: test.name, Source: "openshift:payload:origin"}}
+			selected, err := candidates.Filter(suite.Qualifiers)
+			if err != nil {
+				t.Fatalf("failed to filter: %v", err)
+			}
+			if got := len(selected) == 1; got != test.want {
+				t.Errorf("selected=%t, want %t", got, test.want)
+			}
+		})
+	}
+	for _, suiteName := range []string{"openshift/conformance/parallel", "openshift/etcd/recovery", "openshift/kube-apiserver/rollout"} {
+		t.Run(suiteName, func(t *testing.T) {
+			t.Parallel()
+			otherSuite := findSuite(suites, suiteName)
+			if otherSuite == nil {
+				t.Fatalf("%s suite not found", suiteName)
+			}
+			candidates := extensiontests.ExtensionTestSpecs{{Name: leaderChanges, Source: "openshift:payload:origin"}}
+			selected, err := candidates.Filter(otherSuite.Qualifiers)
+			if err != nil {
+				t.Fatalf("failed to filter: %v", err)
+			}
+			if len(selected) != 1 {
+				t.Error("leader-changes invariant must remain selected outside certrotation")
+			}
+		})
+	}
+}
+
 func TestEtcdScalingSuiteSelection(t *testing.T) {
 	var suite *ginkgo.TestSuite
 	for i := range staticSuites {
