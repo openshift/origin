@@ -97,7 +97,7 @@ var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigrou
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Pre-populate test image in image store
-			testImage := image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.63.0")
+			testImage := image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.66.1")
 			framework.Logf("Pre-populating test image to %s on node %s", imageStorePath, testNode)
 
 			_, err = ExecOnNodeWithChroot(ctx, oc, testNode, "podman", "--root", imageStorePath, "pull", testImage)

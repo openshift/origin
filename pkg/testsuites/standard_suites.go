@@ -370,6 +370,9 @@ var staticSuites = []ginkgo.TestSuite{
 		Parallelism:                1,
 		TestTimeout:                120 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
+		// Recovery deliberately removes static pods. Temporarily exclude the legacy monitor rather than
+		// change its recovery detection, accepting the loss of its other invariants for this suite only.
+		DisableMonitorTests: []string{"legacy-kube-apiserver-invariants"},
 	},
 	{
 		Name: "openshift/etcd/certrotation",
@@ -377,7 +380,8 @@ var staticSuites = []ginkgo.TestSuite{
 		This test suite runs etcd cert rotation tests to exercise the the automatic and manual certificate rotation.
 		`),
 		Qualifiers: []string{
-			withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/etcd/certrotation") || name.contains("[Feature:CertRotation]")`),
+			`(` + withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/etcd/certrotation") || name.contains("[Feature:CertRotation]")`) +
+				`) && !name.contains("leader changes")`,
 		},
 		TestTimeout:                60 * time.Minute,
 		Parallelism:                1,
@@ -475,6 +479,28 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout:                150 * time.Minute,
 		Parallelism:                1,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
+	{
+		Name: "openshift/workload-scheduling",
+		Description: templates.LongDesc(`
+		This test suite validates the workload-aware scheduling feature gates:
+		the Workload and PodGroup APIs, gang scheduling, workload-aware
+		preemption, and DRA resource claims shared across a PodGroup.
+
+		These gates are Tech Preview, so the suite is empty on a cluster running
+		the default feature set.
+		`),
+		Qualifiers: []string{
+			withStandardEarlyOrLateTests(
+				`name.contains("[Suite:openshift/workload-scheduling]") ||
+				 name.contains("[FeatureGate:GenericWorkload]") ||
+				 name.contains("[FeatureGate:DRAWorkloadResourceClaims]") ||
+				 name.contains("[FeatureGate:TopologyAwareWorkloadScheduling]")`),
+		},
+		// The topology tests label nodes and add extended resources to them, so they
+		// cannot share a cluster with each other.
+		Parallelism: 1,
+		TestTimeout: 45 * time.Minute,
 	},
 	{
 		Name: "openshift/auth/external-oidc",

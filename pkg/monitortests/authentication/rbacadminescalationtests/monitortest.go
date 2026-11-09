@@ -512,6 +512,10 @@ type escalationCheck struct {
 // escalationChecks is the curated, tunable set of escalation paths we audit. Broadening this set
 // (e.g. cluster-wide secrets read, pod/exec, node proxy) will expand findings and the allowlist, so
 // it is deliberately conservative.
+//
+// Every check currently enforces (flake is false). flake remains available per check for a newly
+// added check that first needs to gather its real exception set without blocking CI; see
+// escalationCheck.flake for the mode semantics.
 var escalationChecks = []escalationCheck{
 	{
 		// All verbs on all resources in all API groups IS cluster-admin: the subject can read every
@@ -522,7 +526,6 @@ var escalationChecks = []escalationCheck{
 		rules: []rbacv1.PolicyRule{
 			{Verbs: []string{rbacv1.VerbAll}, APIGroups: []string{rbacv1.APIGroupAll}, Resources: []string{rbacv1.ResourceAll}},
 		},
-		flake: true, // temporary: downgrade to flake while we burn down findings.
 	},
 	{
 		// The `escalate` and `bind` verbs are the two ways to bypass Kubernetes' built-in RBAC
@@ -543,7 +546,6 @@ var escalationChecks = []escalationCheck{
 			rbacv1helpers.NewRule("escalate").Groups(rbacv1.GroupName).Resources("clusterroles", "roles").RuleOrDie(),
 			rbacv1helpers.NewRule("bind").Groups(rbacv1.GroupName).Resources("clusterroles", "roles").RuleOrDie(),
 		},
-		flake: true, // temporary: downgrade to flake while we burn down findings.
 	},
 	{
 		// Impersonation lets the subject send requests AS another user or group without needing that
@@ -563,7 +565,6 @@ var escalationChecks = []escalationCheck{
 			rbacv1helpers.NewRule("impersonate").Groups("").Resources("users", "groups", "serviceaccounts").RuleOrDie(),
 			rbacv1helpers.NewRule("create").Groups("").Resources("serviceaccounts/token").RuleOrDie(),
 		},
-		flake: true, // temporary: downgrade to flake while we burn down findings.
 	},
 	{
 		// Webhook configurations intercept every write to the API server. Whoever can create or modify
@@ -583,7 +584,6 @@ var escalationChecks = []escalationCheck{
 		rules: []rbacv1.PolicyRule{
 			rbacv1helpers.NewRule("create", "update", "patch").Groups("admissionregistration.k8s.io").Resources("mutatingwebhookconfigurations", "validatingwebhookconfigurations").RuleOrDie(),
 		},
-		flake: true, // temporary: downgrade to flake while we burn down findings.
 	},
 	{
 		// Control over certificate issuance is control over identity. A subject that can approve a CSR
@@ -595,7 +595,6 @@ var escalationChecks = []escalationCheck{
 			rbacv1helpers.NewRule("approve").Groups("certificates.k8s.io").Resources("certificatesigningrequests").RuleOrDie(),
 			rbacv1helpers.NewRule("sign").Groups("certificates.k8s.io").Resources("signers").RuleOrDie(),
 		},
-		flake: true, // temporary: downgrade to flake while we burn down findings.
 	},
 	// Intentionally omitted for noise: `create` on pods/pods/exec (token theft via any mounted SA).
 	// Add here if the escalation surface should be widened.

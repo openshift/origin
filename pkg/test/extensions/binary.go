@@ -257,6 +257,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/cluster-control-plane-machine-set-operator-ext.gz",
 	},
 	{
+		imageTag:   "cluster-dns-operator",
+		binaryPath: "/usr/bin/cluster-dns-operator-tests-ext.gz",
+	},
+	{
 		imageTag:   "cluster-etcd-operator",
 		binaryPath: "/usr/bin/cluster-etcd-operator-tests-ext.gz",
 	},
@@ -321,6 +325,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/k8s-tests-ext.gz",
 	},
 	{
+		imageTag:   "keepalived-ipfailover",
+		binaryPath: "/usr/bin/ipfailover-tests-ext.gz",
+	},
+	{
 		imageTag:   "machine-api-operator",
 		binaryPath: "/machine-api-tests-ext.gz",
 	},
@@ -351,6 +359,10 @@ var extensionBinaries = []TestBinary{
 	{
 		imageTag:   "ovn-kubernetes",
 		binaryPath: "/usr/bin/ovn-kubernetes-tests-ext.gz",
+	},
+	{
+		imageTag:   "haproxy-router",
+		binaryPath: "/usr/bin/router-tests-ext.gz",
 	},
 	{
 		imageTag:   "service-ca-operator",
@@ -1094,6 +1106,11 @@ func (binaries TestBinaries) ListTests(ctx context.Context, parallelism int, env
 	}
 	if len(errs) > 0 {
 		return nil, fmt.Errorf("encountered errors while listing tests: %s", strings.Join(errs, ";"))
+	}
+
+	allTests, err := filterDiscoveredSpecsByROSA(allTests, envFlags)
+	if err != nil {
+		return nil, fmt.Errorf("failed applying ROSA exclusions to discovered tests: %w", err)
 	}
 
 	return allTests, nil

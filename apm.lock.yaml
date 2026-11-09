@@ -1,6 +1,178 @@
 lockfile_version: '1'
-generated_at: '2026-07-07T20:27:44.537553+00:00'
+generated_at: '2026-11-04T17:28:36.540461+00:00'
 dependencies: []
+deployments:
+- kind: project-relative
+  target: claude
+  value: .claude/commands/origin-dev-setup.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:a51cc171a9bbccf3db364502252b9e66c03665d1d88c8c8ec46511042c551afa
+- kind: project-relative
+  target: claude
+  value: .claude/rules/general.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:304b11a95a04f9c30423e8d6c8b26e77e946bd296377ecc3bd073407d2164436
+- kind: project-relative
+  target: claude
+  value: .claude/rules/test-shared.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:a78c426dbe65457c5952ddaa52686c83b8bd3a55cc97ec832ff3977e1ade57ec
+- kind: project-relative
+  target: claude
+  value: .claude/rules/testing.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:94c29715374ee577d7186bf98ce951b8ee289eb217ddb809f7d6655be6ccbd67
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/general.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:716c9b7918ce264ee59559202403737f3d00569c0c1bdc9fefeefcc2ffa93f42
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/test-shared.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:82eb48ba606ba12b4c1978a68a2ba57bfddc22273c9a69840bae41eda965948f
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/testing.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:2c2997958dfa15b61c01cd1141132f27afe458a758c0234b943ca407b20b1624
+- kind: project-relative
+  target: copilot
+  value: .github/prompts/origin-dev-setup.prompt.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:28392a906ba6c7c09fb25e0cdca5dae13d8b75c188d668783d49e0070c35f576
+- kind: project-relative
+  target: cursor
+  value: .cursor/commands/origin-dev-setup.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:a51cc171a9bbccf3db364502252b9e66c03665d1d88c8c8ec46511042c551afa
+- kind: project-relative
+  target: cursor
+  value: .cursor/rules/general.mdc
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:ddd4fec37bf6eed956756d78b7f5115bb493715e83cc8eab81231cd7d01317e2
+- kind: project-relative
+  target: cursor
+  value: .cursor/rules/test-shared.mdc
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:42325f7ca153348a7d08d86cc7cc935be616d06ab2e5a6778a7cd36491a576f8
+- kind: project-relative
+  target: cursor
+  value: .cursor/rules/testing.mdc
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:b10be78a61c5a1b6ea7692cfb3b711d73545311bfd2ffe83a66a903316cf17f9
+- kind: project-relative
+  target: gemini
+  value: .gemini/commands/origin-dev-setup.toml
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:e4a97d7e09502197d1fa9408b3550a3a9b1744adfba343753126c6c11e9f0aba
+- kind: uri
+  target: mcp
+  value: atlassian
+  runtime: claude
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: atlassian
+  runtime: cursor
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: atlassian
+  runtime: gemini
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: atlassian
+  runtime: opencode
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: atlassian
+  runtime: vscode
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: project-relative
+  target: opencode
+  value: .opencode/commands/origin-dev-setup.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:a51cc171a9bbccf3db364502252b9e66c03665d1d88c8c8ec46511042c551afa
 mcp_servers:
 - atlassian
 mcp_configs:
@@ -9,6 +181,17 @@ mcp_configs:
     transport: http
     registry: false
     url: https://mcp.atlassian.com/v1/mcp
+mcp_target_servers:
+  claude:
+  - atlassian
+  cursor:
+  - atlassian
+  gemini:
+  - atlassian
+  opencode:
+  - atlassian
+  vscode:
+  - atlassian
 local_deployed_files:
 - .claude/commands/origin-dev-setup.md
 - .claude/rules/general.md
@@ -30,9 +213,9 @@ local_deployed_file_hashes:
   .claude/rules/test-shared.md: sha256:a78c426dbe65457c5952ddaa52686c83b8bd3a55cc97ec832ff3977e1ade57ec
   .claude/rules/testing.md: sha256:94c29715374ee577d7186bf98ce951b8ee289eb217ddb809f7d6655be6ccbd67
   .cursor/commands/origin-dev-setup.md: sha256:a51cc171a9bbccf3db364502252b9e66c03665d1d88c8c8ec46511042c551afa
-  .cursor/rules/general.mdc: sha256:7090114a6095fa0788b613aa1dc823a23884938806e127c146abf618d74ab945
-  .cursor/rules/test-shared.mdc: sha256:e7361c5f6e926d26dea2fc767b3a97079d9996ba5fc1e45278a6a9f58bdbecdf
-  .cursor/rules/testing.mdc: sha256:b4f932578d11a234c1aac452e1f1e07d2b3bf4cc7ae14f7a344d8fe9b6bf2488
+  .cursor/rules/general.mdc: sha256:ddd4fec37bf6eed956756d78b7f5115bb493715e83cc8eab81231cd7d01317e2
+  .cursor/rules/test-shared.mdc: sha256:42325f7ca153348a7d08d86cc7cc935be616d06ab2e5a6778a7cd36491a576f8
+  .cursor/rules/testing.mdc: sha256:b10be78a61c5a1b6ea7692cfb3b711d73545311bfd2ffe83a66a903316cf17f9
   .gemini/commands/origin-dev-setup.toml: sha256:e4a97d7e09502197d1fa9408b3550a3a9b1744adfba343753126c6c11e9f0aba
   .github/instructions/general.instructions.md: sha256:716c9b7918ce264ee59559202403737f3d00569c0c1bdc9fefeefcc2ffa93f42
   .github/instructions/test-shared.instructions.md: sha256:82eb48ba606ba12b4c1978a68a2ba57bfddc22273c9a69840bae41eda965948f

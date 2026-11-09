@@ -1,6 +1,6 @@
 ---
 description: Content and dependency rules for the test/shared module
-globs: "test/shared/**"
+globs: test/shared/**
 ---
 
 ### test/shared module scope

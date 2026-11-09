@@ -48,6 +48,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/node/dra/nvidia"
 	_ "github.com/openshift/origin/test/extended/node/dra/partitionable"
 	_ "github.com/openshift/origin/test/extended/node/node_e2e"
+	_ "github.com/openshift/origin/test/extended/node/workload"
 	_ "github.com/openshift/origin/test/extended/node_tuning"
 	_ "github.com/openshift/origin/test/extended/oauth"
 	_ "github.com/openshift/origin/test/extended/olm"

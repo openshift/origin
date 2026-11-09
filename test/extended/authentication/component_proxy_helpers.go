@@ -46,9 +46,9 @@ func componentProxyTestLabels() map[string]string {
 	}
 }
 
-// saveAndRestoreAuthState snapshots the Authentication operator CR and
-// oauth/cluster, returning a cleanup function that restores both.
-// If either resource was modified, it waits for the operator to stabilize.
+// saveAndRestoreAuthState snapshots the proxy and identity providers changed by
+// these tests, returning a cleanup function that restores them without replacing
+// operator-owned configuration. If either changed, it waits for stabilization.
 func saveAndRestoreAuthState(ctx context.Context, oc *exutil.CLI) (removalFunc, error) {
 	operatorClient := oc.AdminOperatorClient()
 	oauthClient := oc.AdminConfigClient().ConfigV1().OAuths()
@@ -57,13 +57,13 @@ func saveAndRestoreAuthState(ctx context.Context, oc *exutil.CLI) (removalFunc, 
 	if err != nil {
 		return nil, fmt.Errorf("getting authentication/cluster: %w", err)
 	}
-	originalAuthSpec := auth.Spec.DeepCopy()
+	originalProxy := auth.Spec.DeepCopy().Proxy
 
 	oauth, err := oauthClient.Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("getting oauth/cluster: %w", err)
 	}
-	originalOAuthSpec := oauth.Spec.DeepCopy()
+	originalIdentityProviders := oauth.Spec.DeepCopy().IdentityProviders
 
 	return func(ctx context.Context) error {
 		var changed bool
@@ -74,11 +74,11 @@ func saveAndRestoreAuthState(ctx context.Context, oc *exutil.CLI) (removalFunc, 
 			if err != nil {
 				return err
 			}
-			if reflect.DeepEqual(fresh.Spec, *originalAuthSpec) {
+			if reflect.DeepEqual(fresh.Spec.Proxy, originalProxy) {
 				return nil
 			}
 			changed = true
-			fresh.Spec = *originalAuthSpec
+			fresh.Spec.Proxy = originalProxy
 			_, err = operatorClient.OperatorV1().Authentications().Update(ctx, fresh, metav1.UpdateOptions{})
 			return err
 		}); err != nil {
@@ -91,11 +91,11 @@ func saveAndRestoreAuthState(ctx context.Context, oc *exutil.CLI) (removalFunc, 
 			if err != nil {
 				return err
 			}
-			if reflect.DeepEqual(fresh.Spec, *originalOAuthSpec) {
+			if reflect.DeepEqual(fresh.Spec.IdentityProviders, originalIdentityProviders) {
 				return nil
 			}
 			changed = true
-			fresh.Spec = *originalOAuthSpec
+			fresh.Spec.IdentityProviders = originalIdentityProviders
 			_, err = oauthClient.Update(ctx, fresh, metav1.UpdateOptions{})
 			return err
 		}); err != nil {

@@ -6,6 +6,16 @@ targets:
   - cursor
   - gemini
   - opencode
+  # 'vscode' resolves to the GitHub Copilot target that writes .github/instructions/
+  # and .github/prompts/. Those files are committed, so keep generating them.
+  - vscode
+
+compilation:
+  # vendor/ is ~92% of this repo's files and holds no primitives; walking it
+  # dominates apm compile (and, before apm-cli 0.16.1, apm install too).
+  exclude:
+    - "vendor/**"
+    - "test/shared/vendor/**"
 
 dependencies:
   apm: []

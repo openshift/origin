@@ -55,6 +55,26 @@ var legacyCRDSsWithUnstableVersions = map[string]sets.String{
 	"veleroinstalls.managed.openshift.io":                           sets.NewString("v1alpha2"),
 }
 
+// testComponentCRDs lists CRDs that belong to components deployed by test
+// infrastructure rather than to OpenShift product APIs. They live in
+// *.openshift.io API groups so this test sees them, but their versioning is
+// not governed by OpenShift API compatibility policies, so unstable versions
+// are tolerated there.
+var testComponentCRDs = map[string]sets.String{
+	// TODO: this is a temporary exception. The vault-kube-kms plugin and its
+	// vaultkmsconfigs.kms.openshift.io CRD are test-only stand-ins used for
+	// etcd encryption-at-rest coverage and will eventually be replaced by an
+	// official provider from HashiCorp/IBM. Drop this entry once the tests
+	// below no longer use this CRD.
+	//
+	// Where the CRD is used:
+	//   - the KMS test library in library-go creates vaultkmsconfigs resources:
+	//   -  https://github.com/openshift/library-go/blob/master/test/e2e-encryption/encryption_test.go#L1012-L1012
+	//   - the cluster-authentication-operator KMS encryption e2e suites run those scenarios:
+	//     https://github.com/openshift/cluster-authentication-operator/tree/master/test/e2e-encryption-kms
+	"vaultkmsconfigs.kms.openshift.io": sets.NewString("v1alpha1"),
+}
+
 var _ = g.Describe("[sig-arch][Early]", func() {
 	defer g.GinkgoRecover()
 
@@ -86,6 +106,11 @@ var _ = g.Describe("[sig-arch][Early]", func() {
 				for _, versionSpec := range crd.Spec.Versions {
 					// existing violations are enumerated and restricted to prevent further slipping
 					if legacyViolatingVersions, ok := legacyCRDSsWithUnstableVersions[crd.Name]; ok && legacyViolatingVersions.Has(versionSpec.Name) {
+						continue
+					}
+
+					// CRDs from test components are not OpenShift product APIs
+					if allowedVersions, ok := testComponentCRDs[crd.Name]; ok && allowedVersions.Has(versionSpec.Name) {
 						continue
 					}
 

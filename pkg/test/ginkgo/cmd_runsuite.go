@@ -41,6 +41,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortests/testframework/singletonplacementcollector"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/pkg/test/filters"
@@ -523,12 +524,24 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// verification may be unnecessary and time-consuming.
 	var stableClusterTestResults []*junitapi.JUnitTestCase
 	if os.Getenv("OPENSHIFT_TESTS_SKIP_STABLE_CLUSTER") == "" {
+		// Experiment for OCPBUGS-131892: spread singleton operator pods across the masters before
+		// monitors start, then let the stability wait below cover the operators settling.
+		if os.Getenv("OPENSHIFT_TESTS_SKIP_SINGLETON_REBALANCE") == "" {
+			logrus.Infof("Rebalancing singleton pods across masters")
+			rebalanceStart := time.Now()
+			if err := singletonplacementcollector.RebalanceSingletons(ctx, restConfig); err != nil {
+				logrus.Errorf("Error rebalancing singleton pods: %v", err)
+			}
+			logrus.Infof("Singleton rebalance took %s", time.Since(rebalanceStart).Round(time.Second))
+		}
 		logrus.Infof("Waiting for all cluster operators to become stable")
+		stableStart := time.Now()
 		var err error
 		stableClusterTestResults, err = clusterinfo.WaitForStableCluster(ctx, restConfig)
 		if err != nil {
 			logrus.Errorf("Error waiting for stable cluster: %v", err)
 		}
+		logrus.Infof("Waiting for stable cluster took %s", time.Since(stableStart).Round(time.Second))
 	} else {
 		logrus.Infof("Skipping stable cluster check due to OPENSHIFT_TESTS_SKIP_STABLE_CLUSTER environment variable")
 	}
@@ -1376,6 +1389,10 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 	if clusterState != nil {
 		envFlagBuilder.AddAPIGroups(clusterState.APIGroups.UnsortedList()...).
 			AddFeatureGates(clusterState.EnabledFeatureGates.UnsortedList()...)
+
+		if extensions.IsROSACluster(clusterState.PlatformStatus) {
+			envFlagBuilder.AddFact("product=ROSA")
+		}
 
 		upgradeType := "None"
 		if upgrade {

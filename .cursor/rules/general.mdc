@@ -1,6 +1,6 @@
 ---
 description: Origin repository overview, architecture, and coding guidelines
-globs: "**"
+globs: **
 ---
 
 ### APM context generation

@@ -2194,6 +2194,22 @@ func SkipIfExternalControlplaneTopology(oc *CLI, reason string) {
 	}
 }
 
+// IsFeatureGateEnabled reports whether featureGate is enabled in the cluster.
+func IsFeatureGateEnabled(ctx context.Context, configClient configv1client.Interface, featureGate configv1.FeatureGateName) (bool, error) {
+	clusterFeatureGate, err := configClient.ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+	for _, details := range clusterFeatureGate.Status.FeatureGates {
+		for _, enabled := range details.Enabled {
+			if enabled.Name == featureGate {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
 // IsTechPreviewNoUpgrade checks if a cluster is a TechPreviewNoUpgrade cluster
 func IsTechPreviewNoUpgrade(ctx context.Context, configClient configv1client.Interface) bool {
 	featureGate, err := configClient.ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})

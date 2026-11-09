@@ -2,11 +2,40 @@ package testsuites
 
 import (
 	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	"github.com/openshift/origin/pkg/test/ginkgo"
 )
+
+// TestSuiteMonitorExclusions confines the legacy monitor exclusion to etcd recovery
+// while preserving the existing exclusions for every other suite.
+func TestSuiteMonitorExclusions(t *testing.T) {
+	t.Parallel()
+	foundRecovery := false
+	for _, suite := range append(InternalTestSuites(), UpgradeTestSuites()...) {
+		if suite.Name == "openshift/etcd/recovery" {
+			foundRecovery = true
+		}
+		t.Run(suite.Name, func(t *testing.T) {
+			t.Parallel()
+			var expected []string
+			switch suite.Name {
+			case "openshift/etcd/recovery":
+				expected = []string{"legacy-kube-apiserver-invariants"}
+			case "openshift/etcd/scaling":
+				expected = []string{"node-lifecycle"}
+			}
+			if !slices.Equal(suite.DisableMonitorTests, expected) {
+				t.Errorf("expected disabled monitors %v, got %v", expected, suite.DisableMonitorTests)
+			}
+		})
+	}
+	if !foundRecovery {
+		t.Fatal("openshift/etcd/recovery suite not found")
+	}
+}
 
 // TestSuiteQualifiersValidCEL validates that all CEL expressions in suite qualifiers
 // are syntactically valid
@@ -174,6 +203,62 @@ func TestTwoNodeSuiteExcludesDedicatedTNFMetricsTests(t *testing.T) {
 		if test.Name == candidates[2].Name {
 			t.Fatalf("dedicated TNF metrics test leaked into broad two-node suite: %s", test.Name)
 		}
+	}
+}
+
+func TestEtcdCertRotationSuiteSelection(t *testing.T) {
+	t.Parallel()
+	suites := InternalTestSuites()
+	suite := findSuite(suites, "openshift/etcd/certrotation")
+	if suite == nil {
+		t.Fatal("openshift/etcd/certrotation suite not found")
+	}
+	leaderChanges := "[sig-etcd] etcd leader changes are not excessive [Late] [Suite:openshift/conformance/parallel]"
+	for _, test := range []struct {
+		name string
+		want bool
+	}{
+		{name: leaderChanges},
+		{name: leaderChanges + " [Feature:CertRotation]"},
+		{name: leaderChanges + " [Suite:openshift/etcd/certrotation]"},
+		{name: "[sig-etcd] cert rotation can manually rotate signer certificates [Feature:CertRotation]", want: true},
+		{name: "[sig-etcd] cert rotation can manually rotate metrics signer certificates [Feature:CertRotation]", want: true},
+		{name: "[sig-etcd] cert rotation can recreate dynamic certificates [Suite:openshift/etcd/certrotation]", want: true},
+		{name: "[sig-etcd] cert rotation can recreate trust bundle [Suite:openshift/etcd/certrotation]", want: true},
+		{name: "[sig-node] node checks [Early] [Suite:openshift/conformance/parallel]", want: true},
+		{name: "[sig-node] node checks [Late] [Suite:openshift/conformance/parallel]", want: true},
+		{name: "[sig-etcd] other leader changes coverage [Feature:CertRotation]"},
+		{name: "[sig-etcd] other certificate coverage [Feature:CertRotation]", want: true},
+		{name: "[sig-etcd] unrelated test"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			candidates := extensiontests.ExtensionTestSpecs{{Name: test.name, Source: "openshift:payload:origin"}}
+			selected, err := candidates.Filter(suite.Qualifiers)
+			if err != nil {
+				t.Fatalf("failed to filter: %v", err)
+			}
+			if got := len(selected) == 1; got != test.want {
+				t.Errorf("selected=%t, want %t", got, test.want)
+			}
+		})
+	}
+	for _, suiteName := range []string{"openshift/conformance/parallel", "openshift/etcd/recovery", "openshift/kube-apiserver/rollout"} {
+		t.Run(suiteName, func(t *testing.T) {
+			t.Parallel()
+			otherSuite := findSuite(suites, suiteName)
+			if otherSuite == nil {
+				t.Fatalf("%s suite not found", suiteName)
+			}
+			candidates := extensiontests.ExtensionTestSpecs{{Name: leaderChanges, Source: "openshift:payload:origin"}}
+			selected, err := candidates.Filter(otherSuite.Qualifiers)
+			if err != nil {
+				t.Fatalf("failed to filter: %v", err)
+			}
+			if len(selected) != 1 {
+				t.Error("leader-changes invariant must remain selected outside certrotation")
+			}
+		})
 	}
 }
 

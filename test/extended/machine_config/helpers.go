@@ -97,30 +97,12 @@ func IsMetal(oc *exutil.CLI) bool {
 	return infra.Status.Platform == osconfigv1.BareMetalPlatformType
 }
 
-// `isFeatureGateEnabled` checks if the desired feature gate provided as a parameter is enabled in
-// the test cluster. It returns true if the feature gate is enabled and false otherwise.
-func isFeatureGateEnabled(configClient configv1client.Interface, featureGate osconfigv1.FeatureGateName) bool {
-	// Get the FeatureGates resource
-	fgs, err := configClient.ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting clsuter FeatureGates.")
-
-	// Loop through the feature gates to see if the desired one is enabled
-	fgEnabled := false
-	for _, fg := range fgs.Status.FeatureGates {
-		for _, enabledFG := range fg.Enabled {
-			if enabledFG.Name == featureGate {
-				fgEnabled = true
-				break
-			}
-		}
-	}
-	return fgEnabled
-}
-
 // `SkipWhenFeatureGateEnabled` skips a test if the desired feature gate provided as a parameter is
 // enabled in the test cluster.
 func SkipWhenFeatureGateEnabled(configClient configv1client.Interface, featureGate osconfigv1.FeatureGateName) {
-	if isFeatureGateEnabled(configClient, featureGate) {
+	enabled, err := exutil.IsFeatureGateEnabled(context.TODO(), configClient, featureGate)
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting cluster FeatureGates.")
+	if enabled {
 		e2eskipper.Skipf("Skipping this test since the `%v` FeatureGate is enabled.", featureGate)
 	}
 }
@@ -350,6 +332,77 @@ func getRandomNode(oc *exutil.CLI, role string) corev1.Node {
 	// #nosec
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	return nodes[rnd.Intn(len(nodes))]
+}
+
+// `GetRandomSchedulableWorkerNode` gets a random ready schedulable worker node.
+// Unlike `GetRandomNode`, it excludes nodes with NoSchedule/NoExecute taints
+// (such as dedicated nodes) and nodes with control-plane/master roles, so tests
+// that move a node into a custom MachineConfigPool do not disrupt dedicated hosts.
+func GetRandomSchedulableWorkerNode(oc *exutil.CLI) corev1.Node {
+	// List worker nodes directly instead of using
+	// exutil.GetReadySchedulableWorkerNodes: the underlying
+	// e2enode.GetReadySchedulableNodes returns an error when the cluster has
+	// no ready schedulable nodes at all, which would fail the test instead of
+	// skipping it on clusters where every worker node is tainted. Listing
+	// errors still fail the test; eligibility is handled below.
+	nodes, err := GetNodesByRole(oc, "worker")
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	var readyNodes []corev1.Node
+	for _, node := range nodes {
+		// Exclude nodes carrying any node-role label besides "worker": a
+		// worker-labeled node with an extra role (control-plane, master, or a
+		// custom role such as infra) already belongs to another
+		// MachineConfigPool, and moving it between pools breaks
+		// CleanupCustomMCP, which waits for the node to return to the worker
+		// configuration after the custom label is removed.
+		if hasExtraNodeRole(node) {
+			continue
+		}
+		// Exclude tainted nodes (dedicated hosts such as the OPCT execution
+		// node) and keep the cordoned and MCD-state guards from IsNodeReady.
+		if hasBlockingTaint(node) || !IsNodeReady(node) {
+			continue
+		}
+		readyNodes = append(readyNodes, node)
+	}
+
+	// Skip when no eligible node exists: this is an environmental constraint
+	// (e.g. SNO, compact, or heavily tainted clusters), not a test failure.
+	if len(readyNodes) == 0 {
+		e2eskipper.Skipf("No ready schedulable worker nodes without NoSchedule/NoExecute taints found")
+	}
+
+	// Disable gosec here to avoid throwing
+	// G404: Use of weak random number generator (math/rand instead of crypto/rand)
+	// #nosec
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return readyNodes[rnd.Intn(len(readyNodes))]
+}
+
+// `hasBlockingTaint` reports whether a node carries a NoSchedule or NoExecute
+// taint, which marks it as a dedicated host for specific workloads
+func hasBlockingTaint(node corev1.Node) bool {
+	for _, taint := range node.Spec.Taints {
+		if taint.Effect == corev1.TaintEffectNoSchedule || taint.Effect == corev1.TaintEffectNoExecute {
+			return true
+		}
+	}
+
+	return false
+}
+
+// `hasExtraNodeRole` reports whether a node carries a node-role label other
+// than "worker" (control-plane, master, or a custom role such as infra); such
+// nodes belong to another MachineConfigPool
+func hasExtraNodeRole(node corev1.Node) bool {
+	for label := range node.Labels {
+		if strings.HasPrefix(label, "node-role.kubernetes.io/") && label != "node-role.kubernetes.io/worker" {
+			return true
+		}
+	}
+
+	return false
 }
 
 // `GetNodesByRole` gets all nodes labeled with the desired role

@@ -1,6 +1,6 @@
 ---
 description: Testing guidelines and patterns for origin
-globs: "**/*_test.go"
+globs: **/*_test.go
 ---
 
 * Use `go vet ./...` and `go test ./pkg/...` to validate changes before committing. For changes under `test/shared` (a separate Go module), use `go vet ./...`, `go test ./...`, and `make -C test/shared lint` inside that directory.
