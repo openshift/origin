@@ -93,8 +93,9 @@ tests from the other. To list their tests without running them:
 Add an entry to `transitionDefinitions` in `transition_definitions.go`:
 
 - `Name`: a label for test progress messages.
-- `Source`: control-plane and infrastructure topology, plus an optional platform type.
+- `Source`: both source topology values.
 - `Target`: both target topology values.
+- `SourcePlatform`: optional source platform type; empty matches any platform.
 - `SourceNodes`: exact node counts expected during the preflight suite.
 - `TargetNodes`: exact node counts supported for the target topology.
 - `ExpectedPreflightChecks`: each named check's expected preflight result (`true` or `false`).

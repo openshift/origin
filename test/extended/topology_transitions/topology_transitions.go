@@ -51,36 +51,34 @@ func registerTargetError(suite, timeout, extraTags string, err error) {
 	})
 }
 
-func requireTransitionSource(ctx context.Context, oc *exutil.CLI, target transitionTarget) (*transitionDefinition, *configv1.Infrastructure) {
+func selectTransitionForCluster(ctx context.Context, oc *exutil.CLI, target transitionTarget) (*transitionDefinition, *configv1.Infrastructure) {
 	infra, err := getInfrastructure(ctx, oc)
 	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster Infrastructure")
 
 	definition, err := selectTransitionDefinition(infra, target)
 	o.Expect(err).NotTo(o.HaveOccurred(), "source and target must match one supported transition definition")
 
-	return definition, requireSource(ctx, oc, definition)
+	requireIdleSource(infra, definition)
+
+	return definition, infra
 }
 
-func requireSource(ctx context.Context, oc *exutil.CLI, definition *transitionDefinition) *configv1.Infrastructure {
-	infra, err := getInfrastructure(ctx, oc)
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster Infrastructure")
+func requireIdleSource(infra *configv1.Infrastructure, definition *transitionDefinition) {
 	o.Expect(definition.matchesSource(infra)).To(o.BeTrue(), "cluster must match the source for %s", definition.Name)
 
 	// Do not run against a pending request: preflight must not admit a transition.
 	o.Expect(infra.Spec.ControlPlaneTopology == "" || infra.Spec.ControlPlaneTopology == definition.Source.ControlPlaneTopology).To(o.BeTrue(), "a topology transition request is already pending")
-
-	return infra
 }
 
-func waitForEvaluation(ctx context.Context, oc *exutil.CLI, definition *transitionDefinition, preflight bool) {
+func waitForEvaluation(ctx context.Context, oc *exutil.CLI, definition *transitionDefinition, expectation evaluationExpectation) {
 	o.Eventually(func() error {
 		infra, err := getInfrastructure(ctx, oc)
 		if err != nil {
 			return err
 		}
 
-		return checkTransitionEvaluation(infra, definition, preflight)
-	}).WithContext(ctx).WithTimeout(preconditionWaitTimeout).WithPolling(15*time.Second).Should(o.Succeed(), "transition evaluation did not reach the expected current preflight results")
+		return checkTransitionEvaluation(infra, definition, expectation)
+	}).WithContext(ctx).WithTimeout(preconditionWaitTimeout).WithPolling(15*time.Second).Should(o.Succeed(), "transition evaluation did not reach the expected current results")
 }
 
 func registerPreflightTest(target transitionTarget) {
@@ -88,7 +86,7 @@ func registerPreflightTest(target transitionTarget) {
 		oc := exutil.NewCLIWithoutNamespace("topology-transitions-preflight").AsAdmin()
 
 		g.It("reports the expected preflight checks [Timeout:45m][apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
-			definition, before := requireTransitionSource(ctx, oc, target)
+			definition, before := selectTransitionForCluster(ctx, oc, target)
 
 			g.By("checking the source node counts for " + definition.Name)
 			o.Expect(checkNodeCounts(ctx, oc, definition.SourceNodes)).To(o.Succeed(), "source node counts do not match the transition definition")
@@ -96,9 +94,11 @@ func registerPreflightTest(target transitionTarget) {
 			o.Expect(etcdhelpers.EnsureVotingMembersCount(ctx, g.GinkgoT(), factory, oc.AdminKubeClient(), definition.SourceNodes.ControlPlaneNodes+definition.SourceNodes.ArbiterNodes)).To(o.Succeed(), "source etcd voting member count does not match the transition definition")
 
 			g.By("waiting for the expected preflight results for " + definition.Name)
-			waitForEvaluation(ctx, oc, definition, true)
+			waitForEvaluation(ctx, oc, definition, expectConfiguredPreflightResults)
 
-			after := requireSource(ctx, oc, definition)
+			after, err := getInfrastructure(ctx, oc)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster Infrastructure")
+			requireIdleSource(after, definition)
 			o.Expect(equality.Semantic.DeepEqual(after.Spec, before.Spec)).To(o.BeTrue(), "preflight must leave the topology request unchanged")
 		})
 	})
@@ -109,10 +109,13 @@ func registerTransitionTest(target transitionTarget) {
 		oc := exutil.NewCLI("topology-transitions").AsAdmin()
 
 		g.It("completes the configured topology transition [Timeout:195m][apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
-			definition, _ := requireTransitionSource(ctx, oc, target)
+			definition, _ := selectTransitionForCluster(ctx, oc, target)
+
+			g.By("checking the exact target node counts before the transition")
+			o.Expect(checkNodeCounts(ctx, oc, target.nodeCounts)).To(o.Succeed(), "target node counts do not match before the transition")
 
 			g.By("waiting for all transition preflight checks to pass for " + definition.Name)
-			waitForEvaluation(ctx, oc, definition, false)
+			waitForEvaluation(ctx, oc, definition, expectAllChecksToPass)
 
 			g.By("creating and checking the baseline workload")
 			o.Expect(createBaselineWorkload(ctx, oc)).To(o.Succeed(), "failed to create the baseline workload")
@@ -120,10 +123,12 @@ func registerTransitionTest(target transitionTarget) {
 				return checkBaselineWorkloadReady(ctx, oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()))
 			}).WithContext(ctx).WithTimeout(5*time.Minute).WithPolling(2*time.Second).Should(o.Succeed(), "baseline deployment did not become ready before the transition")
 
-			g.By("checking the exact target node counts before the transition")
-			o.Expect(checkNodeCounts(ctx, oc, target.nodeCounts)).To(o.Succeed(), "target node counts do not match before the transition")
+			// Refresh the generation and recheck the source and absence of a pending
+			// request after the waits, just before submitting our own request.
+			before, err := getInfrastructure(ctx, oc)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster Infrastructure")
+			requireIdleSource(before, definition)
 
-			before := requireSource(ctx, oc, definition)
 			g.By("requesting the topology transition through oc adm")
 			// Output logs raw stdout and stderr on failure; keep them out of suite logs.
 			commandCtx, cancelCommand := context.WithTimeout(ctx, 5*time.Minute)

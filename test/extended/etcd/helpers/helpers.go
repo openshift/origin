@@ -660,6 +660,10 @@ func EnsureVotingMembersCount(ctx context.Context, t TestingT, etcdClientFactory
 	})
 }
 
+// checkVotingMembersCount checks once whether the voting etcd member count and
+// unique IP count in the etcd-endpoints ConfigMap both match expectedMembersCount.
+// It returns false, nil for count mismatches or etcd client/read failures, and an
+// error if the ConfigMap cannot be read. It does not check member health.
 func checkVotingMembersCount(ctx context.Context, t TestingT, etcdClientFactory EtcdClientCreator, kubeClient kubernetes.Interface, expectedMembersCount int) (bool, error) {
 	etcdClient, closeFn, err := etcdClientFactory.NewEtcdClient()
 	if err != nil {

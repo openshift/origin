@@ -23,6 +23,13 @@ const (
 	etcdMembersProgressingCondition = "EtcdMembersProgressing"
 )
 
+type evaluationExpectation int
+
+const (
+	expectAllChecksToPass evaluationExpectation = iota
+	expectConfiguredPreflightResults
+)
+
 func getInfrastructure(ctx context.Context, oc *exutil.CLI) (*configv1.Infrastructure, error) {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, infraName, metav1.GetOptions{})
 	if err != nil {
@@ -33,7 +40,9 @@ func getInfrastructure(ctx context.Context, oc *exutil.CLI) (*configv1.Infrastru
 }
 
 // Check the report and every check against the current Infrastructure generation.
-func checkTransitionEvaluation(infra *configv1.Infrastructure, definition *transitionDefinition, preflight bool) error {
+// ExpectedPreflightChecks values apply only during preflight; transition runs
+// require every check to be True.
+func checkTransitionEvaluation(infra *configv1.Infrastructure, definition *transitionDefinition, expectation evaluationExpectation) error {
 	evaluated := meta.FindStatusCondition(infra.Status.TopologyTransitionStatus.Conditions, configv1.TopologyTransitionsEvaluatedConditionType)
 	if evaluated == nil || evaluated.Status != metav1.ConditionTrue || evaluated.ObservedGeneration != infra.Generation {
 		return fmt.Errorf("waiting for a current TopologyTransitionsEvaluated=True result")
@@ -42,7 +51,7 @@ func checkTransitionEvaluation(infra *configv1.Infrastructure, definition *trans
 	var matching *configv1.TopologyTransition
 	for i := range infra.Status.TopologyTransitionStatus.Transitions {
 		transition := &infra.Status.TopologyTransitionStatus.Transitions[i]
-		if transition.Source == definition.sourceTopology() && transition.Target == definition.Target {
+		if transition.Source == definition.Source && transition.Target == definition.Target {
 			if matching != nil {
 				return o.StopTrying("multiple entries match the source and target topologies")
 			}
@@ -55,9 +64,9 @@ func checkTransitionEvaluation(infra *configv1.Infrastructure, definition *trans
 
 	available := meta.FindStatusCondition(matching.Evaluations, configv1.TopologyTransitionAvailableConditionType)
 	wantAvailable := metav1.ConditionTrue
-	if preflight {
-		for _, passes := range definition.ExpectedPreflightChecks {
-			if !passes {
+	if expectation == expectConfiguredPreflightResults {
+		for _, expectedToPass := range definition.ExpectedPreflightChecks {
+			if !expectedToPass {
 				wantAvailable = metav1.ConditionFalse
 				break
 			}
@@ -70,10 +79,10 @@ func checkTransitionEvaluation(infra *configv1.Infrastructure, definition *trans
 		return fmt.Errorf("expected availability reason PreflightCheckFailed")
 	}
 
-	for name, passes := range definition.ExpectedPreflightChecks {
+	for name, expectedToPass := range definition.ExpectedPreflightChecks {
 		condition := meta.FindStatusCondition(matching.Evaluations, name)
 		want := metav1.ConditionTrue
-		if preflight && !passes {
+		if expectation == expectConfiguredPreflightResults && !expectedToPass {
 			want = metav1.ConditionFalse
 		}
 		if condition == nil || condition.ObservedGeneration != infra.Generation || condition.Status != want {
@@ -96,16 +105,16 @@ func checkTransitionEvaluation(infra *configv1.Infrastructure, definition *trans
 	return nil
 }
 
-func checkNodeCounts(ctx context.Context, oc *exutil.CLI, target nodeCounts) error {
+func checkNodeCounts(ctx context.Context, oc *exutil.CLI, expected nodeCounts) error {
 	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to list nodes for role counts")
 	}
 
-	return checkNodeRolesAndCounts(nodes.Items, target)
+	return checkNodeRolesAndCounts(nodes.Items, expected)
 }
 
-func checkNodeRolesAndCounts(nodes []corev1.Node, target nodeCounts) error {
+func checkNodeRolesAndCounts(nodes []corev1.Node, expected nodeCounts) error {
 	controlPlane, compute, arbiter, schedulable := 0, 0, 0, 0
 	for _, node := range nodes {
 		_, isArbiter := node.Labels["node-role.kubernetes.io/arbiter"]
@@ -124,9 +133,9 @@ func checkNodeRolesAndCounts(nodes []corev1.Node, target nodeCounts) error {
 			return fmt.Errorf("a node has no control-plane, worker, or arbiter role")
 		}
 	}
-	if controlPlane != target.ControlPlaneNodes || compute != target.ComputeNodes || arbiter != target.ArbiterNodes || schedulable != target.SchedulableControlPlaneNodes {
+	if controlPlane != expected.ControlPlaneNodes || compute != expected.ComputeNodes || arbiter != expected.ArbiterNodes || schedulable != expected.SchedulableControlPlaneNodes {
 		return fmt.Errorf("node counts control-plane=%d compute=%d arbiter=%d schedulable-control-plane=%d; want %d/%d/%d/%d",
-			controlPlane, compute, arbiter, schedulable, target.ControlPlaneNodes, target.ComputeNodes, target.ArbiterNodes, target.SchedulableControlPlaneNodes)
+			controlPlane, compute, arbiter, schedulable, expected.ControlPlaneNodes, expected.ComputeNodes, expected.ArbiterNodes, expected.SchedulableControlPlaneNodes)
 	}
 
 	return nil

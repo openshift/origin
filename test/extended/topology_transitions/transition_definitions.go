@@ -10,8 +10,9 @@ import (
 // before the lane provisions the extra nodes.
 type transitionDefinition struct {
 	Name                    string
-	Source                  configv1.InfrastructureStatus
+	Source                  configv1.TopologyState
 	Target                  configv1.TopologyState
+	SourcePlatform          configv1.PlatformType
 	SourceNodes             nodeCounts
 	TargetNodes             nodeCounts
 	ExpectedPreflightChecks map[string]bool
@@ -20,15 +21,15 @@ type transitionDefinition struct {
 var transitionDefinitions = []transitionDefinition{
 	{
 		Name: "SNO to compact HA",
-		Source: configv1.InfrastructureStatus{
+		Source: configv1.TopologyState{
 			ControlPlaneTopology:   configv1.SingleReplicaTopologyMode,
 			InfrastructureTopology: configv1.SingleReplicaTopologyMode,
-			PlatformStatus:         &configv1.PlatformStatus{Type: configv1.NonePlatformType},
 		},
 		Target: configv1.TopologyState{
 			ControlPlaneTopology:   configv1.HighlyAvailableTopologyMode,
 			InfrastructureTopology: configv1.HighlyAvailableTopologyMode,
 		},
+		SourcePlatform: configv1.NonePlatformType,
 		SourceNodes: nodeCounts{
 			ControlPlaneNodes:            1,
 			SchedulableControlPlaneNodes: 1,
@@ -52,20 +53,13 @@ var transitionDefinitions = []transitionDefinition{
 	},
 }
 
-func (definition transitionDefinition) sourceTopology() configv1.TopologyState {
-	return configv1.TopologyState{
-		ControlPlaneTopology:   definition.Source.ControlPlaneTopology,
-		InfrastructureTopology: definition.Source.InfrastructureTopology,
-	}
-}
-
 func (definition transitionDefinition) matchesSource(infra *configv1.Infrastructure) bool {
 	if infra.Status.ControlPlaneTopology != definition.Source.ControlPlaneTopology ||
 		infra.Status.InfrastructureTopology != definition.Source.InfrastructureTopology {
 		return false
 	}
-	if platform := definition.Source.PlatformStatus; platform != nil && platform.Type != "" {
-		return infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type == platform.Type
+	if definition.SourcePlatform != "" {
+		return infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type == definition.SourcePlatform
 	}
 
 	return true
