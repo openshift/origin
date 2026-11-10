@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/pod-security-admission/api"
 	utilpointer "k8s.io/utils/pointer"
 
@@ -30,7 +31,10 @@ import (
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
-const timeoutSeconds = 3 * 60
+const (
+	timeoutSeconds             = 3 * 60
+	configManagerRouterPodName = "router-haproxy-cfgmgr"
+)
 
 var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]", func() {
 	defer g.GinkgoRecover()
@@ -385,9 +389,9 @@ http {
 		routerPods := []corev1.Pod{
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "router-haproxy-cfgmgr",
+					Name: configManagerRouterPodName,
 					Labels: map[string]string{
-						"test": "router-haproxy-cfgmgr",
+						"test": configManagerRouterPodName,
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -684,18 +688,17 @@ http {
 
 				expectedBackendServers.Insert(podName)
 				allBackendServers := sets.New[string]()
+				stats := replicaRequestStats{iteration: i + 1, expected: expectedBackendServers.Len()}
 				err = wait.PollUntilContextTimeout(context.Background(), time.Second, timeoutSeconds*time.Second, true, func(ctx context.Context) (bool, error) {
-					output, err := readURL(ns, execPod.Name, hostName, "/", routerIP)
+					output, err := readURLWithReplicaStats(ns, execPod.Name, hostName, "/", routerIP, &stats)
 					if err != nil {
 						// possible 503 due to the first pod still missing, just try again
 						return false, nil
 					}
-					if !expectedBackendServers.Has(output) {
-						return false, fmt.Errorf("unexpected backend %q", output)
-					}
-					allBackendServers.Insert(output)
-
-					return allBackendServers.Equal(expectedBackendServers), nil
+					return stats.observeBackend(output, expectedBackendServers, allBackendServers)
+				})
+				reportReplicaFailure(context.Background(), err, stats, kubeClient, ns, serviceName, execPod.Name, func(output string) {
+					e2e.Logf("%s", output)
 				})
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
@@ -797,7 +800,7 @@ func waitForRouter(oc *exutil.CLI, execPod *corev1.Pod) (routerIP string) {
 	ns := oc.KubeFramework().Namespace.Name
 
 	err := wait.PollUntilContextTimeout(context.Background(), time.Second, timeoutSeconds*time.Second, true, func(ctx context.Context) (bool, error) {
-		pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get(ctx, "router-haproxy-cfgmgr", metav1.GetOptions{})
+		pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get(ctx, configManagerRouterPodName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -844,6 +847,10 @@ func createRoute(oc *exutil.CLI, routeType routeType, routeName, serviceName, ho
 }
 
 func readURL(ns, execPodName, host, abspath, ipaddr string) (string, error) {
+	return readURLWithReplicaStats(ns, execPodName, host, abspath, ipaddr, nil)
+}
+
+func readURLWithReplicaStats(ns, execPodName, host, abspath, ipaddr string, stats *replicaRequestStats) (string, error) {
 	execPod := execPodRef{
 		NamespacedName: types.NamespacedName{
 			Namespace: ns,
@@ -853,6 +860,13 @@ func readURL(ns, execPodName, host, abspath, ipaddr string) (string, error) {
 	}
 	secure := false
 	code, output, err := execPodReadURL(execPod, host, secure, abspath)
+	return replicaReadURLResult(code, output, err, stats)
+}
+
+func replicaReadURLResult(code int, output string, err error, stats *replicaRequestStats) (string, error) {
+	if stats != nil {
+		stats.record(code, err)
+	}
 	if err != nil {
 		return "", err
 	}
