@@ -68,6 +68,7 @@ func requireIdleSource(infra *configv1.Infrastructure, definition *transitionDef
 
 	// Do not run against a pending request: preflight must not admit a transition.
 	o.Expect(infra.Spec.ControlPlaneTopology == "" || infra.Spec.ControlPlaneTopology == definition.Source.ControlPlaneTopology).To(o.BeTrue(), "a topology transition request is already pending")
+	o.Expect(infra.Spec.InfrastructureTopology == "" || infra.Spec.InfrastructureTopology == definition.Source.InfrastructureTopology).To(o.BeTrue(), "a topology transition request is already pending")
 }
 
 func waitForEvaluation(ctx context.Context, oc *exutil.CLI, definition *transitionDefinition, expectation evaluationExpectation) {
