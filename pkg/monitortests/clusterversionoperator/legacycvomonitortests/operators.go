@@ -139,9 +139,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, topol
 			if operator == "kube-controller-manager" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38662"
 			}
-			if operator == "kube-scheduler" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38663"
-			}
 			return ""
 		}
 		return "We are not worried about other operator condition blips for stable-system tests yet."
@@ -490,14 +487,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 					condition.Reason == "NodeController_MasterNodesReady::StaticPods_Error" ||
 					condition.Reason == "StaticPods_Error") {
 				return "https://issues.redhat.com/browse/OCPBUGS-38662"
-			}
-		case "kube-scheduler":
-			if condition.Type == configv1.OperatorDegraded &&
-				condition.Status == configv1.ConditionTrue &&
-				(condition.Reason == "NodeController_MasterNodesReady" ||
-					condition.Reason == "NodeController_MasterNodesReady::StaticPods_Error" ||
-					condition.Reason == "GuardController_SyncError::NodeController_MasterNodesReady") {
-				return "https://issues.redhat.com/browse/OCPBUGS-38663"
 			}
 		}
 		return ""
