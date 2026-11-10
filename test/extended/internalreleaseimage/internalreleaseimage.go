@@ -148,6 +148,54 @@ var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall] InternalRe
 	})
 })
 
+var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall][Disruptive] InternalReleaseImage deletion disables the registry", func() {
+	defer g.GinkgoRecover()
+
+	var oc = exutil.NewCLIWithoutNamespace("no-registry")
+	var helper *IRITestHelper
+
+	g.BeforeEach(func() {
+		skipIfNoRegistryFeatureUnsupported(oc)
+		helper = NewIRITestHelper(oc)
+	})
+
+	g.Context("when the deletion guard is removed", func() {
+		g.It("should disable the master registry and reclaim its storage [apigroup:machineconfiguration.openshift.io]", func() {
+			ctx := context.Background()
+
+			g.By("Removing the deletion guard binding to simulate a previous upgrade, which permits IRI deletion")
+			err := wait.PollUntilContextTimeout(ctx, 2*time.Second, time.Minute, true, func(ctx context.Context) (bool, error) {
+				delErr := oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Delete(ctx, iriDeletionGuardBindingName, metav1.DeleteOptions{})
+				if delErr != nil && !apierrors.IsNotFound(delErr) {
+					e2e.Logf("Failed to delete VAP binding (will retry): %v", delErr)
+					return false, nil
+				}
+
+				delErr = helper.McClientV1.InternalReleaseImages().Delete(ctx, IRIResourceName, metav1.DeleteOptions{})
+				if delErr == nil {
+					return true, nil
+				}
+				e2e.Logf("Failed to delete IRI (will retry): %v", delErr)
+				return false, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to delete IRI after VAP binding removal")
+
+			g.By("Verifying the master MachineConfig contains only the disabled registry service")
+			err = helper.waitForDisabledIRIMachineConfig(ctx)
+			o.Expect(err).NotTo(o.HaveOccurred(),
+				"Master MachineConfig should contain disabled registry content after IRI deletion")
+
+			g.By("Verifying the registry port is no longer listening on a master node")
+			masterNodeNames, err := exutil.GetClusterNodesByRole(oc, "master")
+			o.Expect(err).NotTo(o.HaveOccurred(), "Failed to list master nodes")
+			o.Expect(masterNodeNames).NotTo(o.BeEmpty())
+			masterNodeName := masterNodeNames[0]
+			err = waitForIRIRegistryPortState(ctx, oc, masterNodeName, true)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Registry port should no longer be listening after IRI deletion")
+		})
+	})
+})
+
 var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall] Cluster operates without external registry using managed OCP release bundle images", func() {
 	defer g.GinkgoRecover()
 
