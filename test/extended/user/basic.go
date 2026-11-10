@@ -56,10 +56,12 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 			// SelfSubjectReview reports what the kube-apiserver resolved; user/~ must
 			// agree. Both clients are built from oc.AdminConfig(), so they are the same
 			// caller.
+			ssrCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
 			ssr, err := oc.AdminKubeClient().AuthenticationV1().SelfSubjectReviews().Create(
-				context.Background(), &authenticationv1.SelfSubjectReview{}, metav1.CreateOptions{})
+				ssrCtx, &authenticationv1.SelfSubjectReview{}, metav1.CreateOptions{})
 			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
+				t.Fatalf("SelfSubjectReview request failed: %v", err)
 			}
 
 			clusterAdminUser, err := clusterAdminUserClient.Users().Get(context.Background(), "~", metav1.GetOptions{})
@@ -68,8 +70,7 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 			}
 
 			if clusterAdminUser.Name != ssr.Status.UserInfo.Username {
-				t.Errorf("user/~ returned name %q, but the request was authenticated as %q",
-					clusterAdminUser.Name, ssr.Status.UserInfo.Username)
+				t.Errorf("user/~ name does not match the name the kube-apiserver resolved for the request")
 			}
 
 			// user/~ sorts and deduplicates the groups it returns, so compare as sets.
