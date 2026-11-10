@@ -252,7 +252,7 @@ func (t podLifecycleTimeBounder) getEndTime(inLocator monitorapi.Locator) time.T
 	}
 	for _, event := range podEvents {
 		if event.Message.Reason == monitorapi.PodReasonDeleted {
-			// if the last possible pod delete is before the delete from teh watch stream, it just means our watch was delayed.
+			// if the last possible pod delete is before the delete from the watch stream, it just means our watch was delayed.
 			// use the pod time instead.
 			if lastPossiblePodDelete != nil && lastPossiblePodDelete.Before(event.From) {
 				return *lastPossiblePodDelete
