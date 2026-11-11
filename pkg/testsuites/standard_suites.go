@@ -454,6 +454,30 @@ var staticSuites = []ginkgo.TestSuite{
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
+		Name: "openshift/bgp-vip",
+		Description: templates.LongDesc(`
+		Non-disruptive tests for BGP-based API and ingress VIP management on bare metal.
+		`),
+		Qualifiers: []string{
+			`source == "openshift:payload:origin" && name.contains("[OCPFeatureGate:BGPBasedVIPManagement]") && !name.contains("[Disruptive]")`,
+		},
+		TestTimeout: 20 * time.Minute,
+	},
+	{
+		Name: "openshift/bgp-vip/disruptive",
+		Description: templates.LongDesc(`
+		Disruptive tests for BGP-based API and ingress VIP management on bare metal:
+		they cut one control plane node off its BGP peer and change the cluster-wide
+		BGP peer configuration.
+		`),
+		Qualifiers: []string{
+			`source == "openshift:payload:origin" && name.contains("[OCPFeatureGate:BGPBasedVIPManagement]") && name.contains("[Disruptive]")`,
+		},
+		TestTimeout:                30 * time.Minute,
+		Parallelism:                1,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
+	{
 		Name: "openshift/workload-scheduling",
 		Description: templates.LongDesc(`
 		This test suite validates the workload-aware scheduling feature gates:
