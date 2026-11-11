@@ -156,17 +156,17 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		// List test images from all available binaries
 		listContext, listContextCancel := context.WithTimeout(context.Background(), time.Minute)
 		defer listContextCancel()
-		imageSetsFromBinaries, err := externalBinaries.ListImages(listContext, 10)
+		imagesFromBinaries, err := externalBinaries.ListImages(listContext, 10)
 		if err != nil {
 			return nil, err
 		}
-		if len(imageSetsFromBinaries) == 0 {
+		if len(imagesFromBinaries) == 0 {
 			return nil, fmt.Errorf("no test images were reported by external binaries")
 		}
 		initialImageSets = nil
 		initialUpdatedImageSets = nil
 		// Indexes may repeat even within a binary; keep each image in its own set.
-		for _, image := range imageSetsFromBinaries {
+		for _, image := range imagesFromBinaries {
 			original, mapped := imageSetsForImage(image, ref)
 			initialImageSets = append(initialImageSets, original)
 			initialUpdatedImageSets = append(initialUpdatedImageSets, mapped)
