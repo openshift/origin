@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -40,6 +41,7 @@ func keycloakClientFor(keycloakURL string) (*keycloakClient, error) {
 		realm: "master",
 		client: &http.Client{
 			Transport: transport,
+			Timeout:   time.Minute,
 		},
 		adminURL: baseURL.JoinPath("admin", "realms", "master"),
 	}, nil

@@ -27,6 +27,8 @@ import (
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/util/retry"
 
+	"github.com/openshift/origin/test/extended/authentication/component_proxy"
+	"github.com/openshift/origin/test/extended/authentication/operator_wait"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 )
@@ -36,11 +38,9 @@ const (
 	squidHTTPPort    = int32(3128)
 	squidHTTPSPort   = int32(3129)
 	squidServiceName = "squid-proxy"
-
-	componentProxyCAConfigMapName = "v4-0-config-system-auth-proxy-ca"
 )
 
-func componentProxyTestLabels() map[string]string {
+func component_proxyTestLabels() map[string]string {
 	return map[string]string{
 		"e2e-test": "openshift-authentication-operator",
 	}
@@ -104,7 +104,7 @@ func saveAndRestoreAuthState(ctx context.Context, oc *exutil.CLI) (removalFunc, 
 
 		if changed {
 			g.GinkgoWriter.Println("cleanup: waiting for operator to stabilize")
-			if err := waitForOperatorToPickUpChanges(ctx, oc, "authentication"); err != nil {
+			if err := operator_wait.WaitForOperatorToPickUpChanges(ctx, oc, "authentication"); err != nil {
 				g.GinkgoWriter.Printf("cleanup: operator did not recover: %v\n", err)
 			}
 		}
@@ -118,7 +118,7 @@ func createTrustedCAConfigMap(ctx context.Context, oc *exutil.CLI, caCertPEM []b
 	_, err := kubeClient.CoreV1().ConfigMaps("openshift-config").Create(ctx, &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   configMapName,
-			Labels: componentProxyTestLabels(),
+			Labels: component_proxyTestLabels(),
 		},
 		Data: map[string]string{
 			"ca-bundle.crt": string(caCertPEM),
@@ -142,7 +142,7 @@ func createTrustedCAConfigMap(ctx context.Context, oc *exutil.CLI, caCertPEM []b
 func deploySquidProxy(ctx context.Context, oc *exutil.CLI) (httpProxyURL, httpsProxyURL string, caCertPEM []byte, namespace string, cleanup removalFunc, err error) {
 	kubeClient := oc.AdminKubeClient()
 
-	nsLabels := componentProxyTestLabels()
+	nsLabels := component_proxyTestLabels()
 	nsLabels["pod-security.kubernetes.io/enforce"] = "baseline"
 	nsLabels["security.openshift.io/scc.podSecurityLabelSync"] = "false"
 	ns := &corev1.Namespace{
@@ -545,7 +545,7 @@ func addKeycloakOIDCIdPForProxy(ctx context.Context, oc *exutil.CLI, setup *keyc
 	_, err := kubeClient.CoreV1().Secrets("openshift-config").Create(ctx, &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   secretName,
-			Labels: componentProxyTestLabels(),
+			Labels: component_proxyTestLabels(),
 		},
 		Data: map[string][]byte{
 			"clientSecret": []byte(setup.clientSecret),
@@ -607,7 +607,7 @@ func syncDefaultIngressCAToConfig(ctx context.Context, oc *exutil.CLI, name stri
 	_, err = kubeClient.CoreV1().ConfigMaps("openshift-config").Create(ctx, &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
-			Labels: componentProxyTestLabels(),
+			Labels: component_proxyTestLabels(),
 		},
 		Data: map[string]string{
 			"ca.crt": ca.Data["ca-bundle.crt"],
@@ -647,85 +647,23 @@ func addIdentityProvider(ctx context.Context, oc *exutil.CLI, idp configv1.Ident
 }
 
 func verifyOAuthServerDeploymentProxyConfig(ctx context.Context, oc *exutil.CLI, expectedHTTPProxy, expectedHTTPSProxy, expectedNoProxy string, expectTrustedCAVolume bool) error {
+	proxyVerifier := component_proxy.ProxyVerifier{
+		Namespace: "openshift-authentication",
+		Name:      "oauth-openshift",
+
+		CLI:             oc,
+		PollingInterval: 10 * time.Second,
+		PollingTimeout:  5 * time.Minute,
+	}
+
+	return proxyVerifier.AssertProxyConfig(ctx, expectedHTTPProxy, expectedHTTPSProxy, expectedNoProxy, expectTrustedCAVolume)
+}
+
+func verifyTrustedCAConfigMapSynced(ctx context.Context, oc *exutil.CLI, namespace string) error {
 	kubeClient := oc.AdminKubeClient()
 
 	return wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
-		deployment, err := kubeClient.AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
-		if err != nil {
-			g.GinkgoWriter.Printf("failed to get oauth-openshift deployment: %v\n", err)
-			return false, nil
-		}
-
-		envVars := make(map[string]string)
-		for _, container := range deployment.Spec.Template.Spec.Containers {
-			for _, env := range container.Env {
-				switch env.Name {
-				case "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY":
-					envVars[env.Name] = env.Value
-				}
-			}
-		}
-
-		if envVars["HTTP_PROXY"] != expectedHTTPProxy || envVars["HTTPS_PROXY"] != expectedHTTPSProxy {
-			g.GinkgoWriter.Printf("proxy env mismatch: HTTP_PROXY=%q (want %q), HTTPS_PROXY=%q (want %q)\n",
-				envVars["HTTP_PROXY"], expectedHTTPProxy, envVars["HTTPS_PROXY"], expectedHTTPSProxy)
-			return false, nil
-		}
-		if expectedNoProxy == "" {
-			if envVars["NO_PROXY"] != "" {
-				g.GinkgoWriter.Printf("proxy env mismatch: NO_PROXY=%q (want empty)\n", envVars["NO_PROXY"])
-				return false, nil
-			}
-		} else {
-			// Use IsSuperset rather than exact match because the operator appends
-			// the apiserver IP to NO_PROXY beyond the entries we configure.
-			actualNoProxy := sets.New(strings.Split(envVars["NO_PROXY"], ",")...)
-			expectedNoProxyEntries := sets.New(strings.Split(expectedNoProxy, ",")...)
-			if !actualNoProxy.IsSuperset(expectedNoProxyEntries) {
-				g.GinkgoWriter.Printf("proxy env mismatch: NO_PROXY=%q does not contain all of %q\n", envVars["NO_PROXY"], expectedNoProxy)
-				return false, nil
-			}
-		}
-
-		foundVolume, foundMount := trustedCAVolumeState(deployment)
-		if expectTrustedCAVolume != (foundVolume && foundMount) {
-			g.GinkgoWriter.Printf("trustedCA volume=%v mount=%v (want present=%v)\n", foundVolume, foundMount, expectTrustedCAVolume)
-			return false, nil
-		}
-		return true, nil
-	})
-}
-
-func trustedCAVolumeState(deployment *appsv1.Deployment) (foundVolume, foundMount bool) {
-	var volumeName string
-	for _, vol := range deployment.Spec.Template.Spec.Volumes {
-		if vol.ConfigMap != nil && vol.ConfigMap.Name == componentProxyCAConfigMapName {
-			foundVolume = true
-			volumeName = vol.Name
-			break
-		}
-	}
-	if !foundVolume {
-		return false, false
-	}
-
-	for _, container := range deployment.Spec.Template.Spec.Containers {
-		for _, mount := range container.VolumeMounts {
-			if mount.Name == volumeName {
-				foundMount = true
-				break
-			}
-		}
-	}
-
-	return foundVolume, foundMount
-}
-
-func verifyTrustedCAConfigMapSynced(ctx context.Context, oc *exutil.CLI) error {
-	kubeClient := oc.AdminKubeClient()
-
-	return wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
-		cm, err := kubeClient.CoreV1().ConfigMaps("openshift-authentication").Get(ctx, componentProxyCAConfigMapName, metav1.GetOptions{})
+		cm, err := kubeClient.CoreV1().ConfigMaps(namespace).Get(ctx, component_proxy.ComponentProxyCAConfigMapName, metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}

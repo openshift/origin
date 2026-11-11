@@ -1,4 +1,4 @@
-package authentication
+package operator_wait
 
 import (
 	"context"
@@ -14,7 +14,10 @@ import (
 	operator "github.com/openshift/origin/test/extended/util/operator"
 )
 
-func waitForOperatorToPickUpChanges(ctx context.Context, oc *exutil.CLI, name string) error {
+// WaitForOperatorToPickUpChanges waits for the named operator to show Progressing=True
+// after a mutation and then for all operators to settle. A missed Progressing=True window
+// (fast reconcile) is tolerated and only logged.
+func WaitForOperatorToPickUpChanges(ctx context.Context, oc *exutil.CLI, name string) error {
 	progressCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 	if err := exutil.WaitForOperatorProgressingTrue(progressCtx, oc.AdminConfigClient(), name); err != nil {
@@ -23,10 +26,10 @@ func waitForOperatorToPickUpChanges(ctx context.Context, oc *exutil.CLI, name st
 	return operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
 }
 
-// waitForDeploymentRollout waits for a new Deployment generation and its complete
+// WaitForDeploymentRollout waits for a new Deployment generation and its complete
 // rollout. Capture previousGeneration before changing configuration that triggers
 // a rollout so that ready replicas from the previous configuration cannot satisfy it.
-func waitForDeploymentRollout(
+func WaitForDeploymentRollout(
 	ctx context.Context,
 	oc *exutil.CLI,
 	name, namespace string,
