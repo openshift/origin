@@ -231,3 +231,76 @@ func TestBGPVIPProbeAnalysis(t *testing.T) {
 		t.Errorf("v6: %+v", got)
 	}
 }
+
+func TestParseHypervisorClock(t *testing.T) {
+	for _, test := range []struct {
+		name, in string
+		want     float64
+		wantErr  bool
+	}{
+		{name: "date only", in: "1794397490.709199123\n", want: 1794397490.709199123},
+		{name: "after other output", in: "some nft warning\n1794397490.5\n", want: 1794397490.5},
+		{name: "empty", in: "", wantErr: true},
+		{name: "garbage", in: "nope\n", wantErr: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := parseHypervisorClock(test.in)
+			if (err != nil) != test.wantErr {
+				t.Fatalf("err = %v, wantErr %v", err, test.wantErr)
+			}
+			if !test.wantErr && got != test.want {
+				t.Errorf("got %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestPickBGPVIPDay2Timers(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		peers    []bgpVIPPeer
+		hold, ka int64
+		ok       bool
+	}{
+		{name: "unset timers", peers: []bgpVIPPeer{{}}, hold: 30, ka: 10, ok: true},
+		{name: "first pair in use", peers: []bgpVIPPeer{{HoldTimeSeconds: 90}, {HoldTimeSeconds: 30, KeepaliveTimeSeconds: 10}}, hold: 24, ka: 8, ok: true},
+		{name: "first hold in use", peers: []bgpVIPPeer{{HoldTimeSeconds: 30, KeepaliveTimeSeconds: 5}}, hold: 24, ka: 8, ok: true},
+		{name: "all in use", peers: []bgpVIPPeer{{HoldTimeSeconds: 30}, {HoldTimeSeconds: 24}, {KeepaliveTimeSeconds: 12}}, ok: false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			hold, ka, ok := pickBGPVIPDay2Timers(test.peers)
+			if hold != test.hold || ka != test.ka || ok != test.ok {
+				t.Errorf("got %d/%d %v, want %d/%d %v", hold, ka, ok, test.hold, test.ka, test.ok)
+			}
+		})
+	}
+}
+
+func TestCheckBGPVIPNegotiatedTimers(t *testing.T) {
+	session := func(cfgHold, negHold, cfgKA, negKA int64) frrNeighbor {
+		return frrNeighbor{BGPState: "Established", ConfiguredHoldTimeMsecs: cfgHold, NegotiatedHoldTimeMsecs: negHold, ConfiguredKeepAliveMsecs: cfgKA, NegotiatedKeepAliveMsecs: negKA}
+	}
+	for _, test := range []struct {
+		name      string
+		n, prior  frrNeighbor
+		havePrior bool
+		ok        bool
+	}{
+		{name: "lowered below a known peer proposal", prior: session(180000, 90000, 60000, 30000), havePrior: true, n: session(30000, 30000, 10000, 10000), ok: true},
+		{name: "stale after lowering", prior: session(180000, 90000, 60000, 30000), havePrior: true, n: session(30000, 90000, 10000, 10000), ok: false},
+		{name: "peer proposes less than the new value", prior: session(180000, 20000, 60000, 6000), havePrior: true, n: session(30000, 20000, 10000, 6000), ok: true},
+		{name: "peer proposal below new value but equality expected", prior: session(180000, 20000, 60000, 6000), havePrior: true, n: session(30000, 30000, 10000, 10000), ok: false},
+		{name: "raised with unknown peer proposal", prior: session(30000, 30000, 10000, 10000), havePrior: true, n: session(180000, 30000, 60000, 10000), ok: true},
+		{name: "raised beyond configured", prior: session(30000, 30000, 10000, 10000), havePrior: true, n: session(90000, 180000, 30000, 60000), ok: false},
+		{name: "keepalive from a third of the hold time", prior: session(180000, 90000, 60000, 30000), havePrior: true, n: session(30000, 30000, 60000, 10000), ok: true},
+		{name: "keepalive mismatch", prior: session(180000, 90000, 60000, 30000), havePrior: true, n: session(30000, 30000, 10000, 30000), ok: false},
+		{name: "no prior session", n: session(30000, 20000, 10000, 6000), ok: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			problems := checkBGPVIPNegotiatedTimers("master-0", "192.168.111.1", test.n, test.prior, test.havePrior)
+			if (len(problems) == 0) != test.ok {
+				t.Errorf("problems %v, want ok=%v", problems, test.ok)
+			}
+		})
+	}
+}
