@@ -528,8 +528,8 @@ func GetRandomSchedulableWorkerNode(oc *exutil.CLI) corev1.Node {
 			continue
 		}
 		// Exclude tainted nodes (dedicated hosts such as the OPCT execution
-		// node) and keep the cordoned and MCD-state guards from IsNodeReady.
-		if hasBlockingTaint(node) || !IsNodeReady(node) {
+		// node) and keep the cordoned and MCD-state guards from isNodeReady.
+		if hasBlockingTaint(node) || !isNodeReady(node) {
 			continue
 		}
 		readyNodes = append(readyNodes, node)
