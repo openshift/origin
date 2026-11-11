@@ -7,6 +7,7 @@ import (
 
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/test/extensions"
 )
@@ -176,4 +177,66 @@ func deduplicatedMirrorLines(prefix string, defaultImageSets, updatedImageSets [
 	}
 
 	return lines
+}
+
+func TestImageSetsForImageOverlappingIndexes(t *testing.T) {
+	ref, err := reference.Parse("private.example.com/tests/images")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []struct {
+		name string
+		tags []string
+	}{
+		{name: "fallback tags", tags: []string{"", "", "", ""}},
+		{name: "mixed reported and fallback tags", tags: []string{"agnhost-tag", "fedora-tag", "", ""}},
+		{name: "reported tags", tags: []string{"agnhost-tag", "fedora-tag", "netshoot-tag", "pause-tag"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// The first three records are from the OVN binary; pause is from CSO.
+			images := []extension.Image{
+				{Index: 2, Registry: "registry.k8s.io", Name: "e2e-test-images/agnhost", Version: "2.63.0"},
+				{Index: 0, Registry: "quay.io", Name: "kubevirt/fedora-with-test-tooling-container-disk", Version: "v1.8.2"},
+				{Index: 0, Registry: "ghcr.io", Name: "nicolaka/netshoot", Version: "v0.16"},
+				{Index: 0, Registry: "k8s.gcr.io", Name: "pause", Version: "3.2"},
+			}
+			for i, tag := range tc.tags {
+				if tag != "" {
+					images[i].Mapped = &extension.Image{Version: tag}
+				}
+			}
+			for _, order := range [][]int{{0, 1, 2, 3}, {3, 2, 1, 0}} {
+				var originals, mapped []extensions.ImageSet
+				wantLines := map[string]bool{}
+				for _, i := range order {
+					original, updated := imageSetsForImage(images[i], ref)
+					originals = append(originals, original)
+					mapped = append(mapped, updated)
+
+					id := k8simage.ImageID(images[i].Index)
+					source := images[i].Registry + "/" + images[i].Name + ":" + images[i].Version
+					config := original[id]
+					if config.GetE2EImage() != source {
+						t.Fatalf("unexpected original: %s, want %s", config.GetE2EImage(), source)
+					}
+					fallback := k8simage.GetMappedImageConfigs(original, ref.Exact())[id]
+					dest := fallback.GetE2EImage()
+					if tc.tags[i] != "" {
+						dest = ref.Exact() + ":" + tc.tags[i]
+					}
+					wantLines[source+" "+dest] = true
+				}
+				lines := deduplicatedMirrorLines("", originals, mapped, nil)
+				if len(lines) != len(images) {
+					t.Fatalf("got %d mirror lines, want %d:\n%s", len(lines), len(images), strings.Join(lines, "\n"))
+				}
+				for _, line := range lines {
+					if !wantLines[line] {
+						t.Errorf("unexpected mirror line: %s", line)
+					}
+				}
+			}
+		})
+	}
 }

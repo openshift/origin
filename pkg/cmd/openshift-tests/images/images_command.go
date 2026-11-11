@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 	k8simage "k8s.io/kubernetes/test/utils/image"
@@ -137,6 +138,10 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		k8simage.GetOriginalImageConfigs(),
 	}
 
+	initialUpdatedImageSets := []extensions.ImageSet{
+		k8simage.GetMappedImageConfigs(initialImageSets[0], ref.Exact()),
+	}
+
 	// If ENV is not set, the list of images should come from external binaries
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
 		// Extract all test binaries
@@ -158,30 +163,35 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		if len(imageSetsFromBinaries) == 0 {
 			return nil, fmt.Errorf("no test images were reported by external binaries")
 		}
-		initialImageSets = imageSetsFromBinaries
+		initialImageSets = nil
+		initialUpdatedImageSets = nil
+		// Indexes may repeat even within a binary; keep each image in its own set.
+		for _, image := range imageSetsFromBinaries {
+			original, mapped := imageSetsForImage(image, ref)
+			initialImageSets = append(initialImageSets, original)
+			initialUpdatedImageSets = append(initialUpdatedImageSets, mapped)
+		}
 	}
 
 	// Take the initial images coming from external binaries and remove any exceptions that might exist.
 	exceptions := image.Exceptions.List()
 	defaultImageSets := []extensions.ImageSet{}
+	updatedImageSets := []extensions.ImageSet{}
 	for i := range initialImageSets {
 		filtered := extensions.ImageSet{}
+		filteredUpdated := extensions.ImageSet{}
 		for imageID, imageConfig := range initialImageSets[i] {
 			if !slices.ContainsFunc(exceptions, func(e string) bool {
 				return strings.Contains(imageConfig.GetE2EImage(), e)
 			}) {
 				filtered[imageID] = imageConfig
+				filteredUpdated[imageID] = initialUpdatedImageSets[i][imageID]
 			}
 		}
 		if len(filtered) > 0 {
 			defaultImageSets = append(defaultImageSets, filtered)
+			updatedImageSets = append(updatedImageSets, filteredUpdated)
 		}
-	}
-
-	// Created a new slice with the updatedImageSets addresses for the images
-	updatedImageSets := []extensions.ImageSet{}
-	for i := range defaultImageSets {
-		updatedImageSets = append(updatedImageSets, k8simage.GetMappedImageConfigs(defaultImageSets[i], ref.Exact()))
 	}
 
 	openshiftDefaults := image.OriginalImages()
@@ -280,6 +290,28 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 
 	sort.Strings(lines)
 	return lines, nil
+}
+
+// imageSetsForImage converts an image reported by an external binary into an
+// original/mapped ImageSet pair. When the binary reports a Mapped tag, that
+// tag is preferred over the locally computed mapping and is retargeted to the
+// requested repository.
+func imageSetsForImage(image extension.Image, ref reference.DockerImageReference) (map[k8simage.ImageID]k8simage.Config, map[k8simage.ImageID]k8simage.Config) {
+	id := k8simage.ImageID(image.Index)
+	config := k8simage.Config{}
+	config.SetName(image.Name)
+	config.SetVersion(image.Version)
+	config.SetRegistry(image.Registry)
+	original := map[k8simage.ImageID]k8simage.Config{id: config}
+
+	if image.Mapped == nil {
+		return original, k8simage.GetMappedImageConfigs(original, ref.Exact())
+	}
+	// Use the binary's tag generator, but retarget to the requested repository.
+	config.SetRegistry(ref.Registry)
+	config.SetName(ref.RepositoryName())
+	config.SetVersion(image.Mapped.Version)
+	return original, map[k8simage.ImageID]k8simage.Config{id: config}
 }
 
 // extractSourceImages extracts source images from mirror list lines.
