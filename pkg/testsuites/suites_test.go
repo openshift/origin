@@ -324,3 +324,57 @@ func TestEtcdScalingSuiteSelection(t *testing.T) {
 		}
 	}
 }
+
+func TestBGPVIPSuiteSelection(t *testing.T) {
+	t.Parallel()
+	const tags = `[sig-network][Jira:"Networking / On-Prem Load Balancer"][OCPFeatureGate:BGPBasedVIPManagement][Feature:BGPVIPManagement][apigroup:config.openshift.io][apigroup:machineconfiguration.openshift.io] BGP VIP management`
+	nonDisruptive := []string{
+		tags + " rendered [Suite:openshift/conformance/parallel]",
+		tags + " frr-k8s [Suite:openshift/conformance/parallel]",
+		tags + " sessions [Suite:openshift/conformance/parallel]",
+		tags + " advertised [Suite:openshift/conformance/parallel]",
+		tags + " ingress move [Serial][Requires:HypervisorSSHConfig] [Suite:openshift/conformance/serial]",
+		tags + " traffic [Requires:HypervisorSSHConfig] [Suite:openshift/conformance/parallel]",
+	}
+	disruptive := []string{
+		tags + " [Disruptive][Serial] failover [Requires:HypervisorSSHConfig]",
+		tags + " [Disruptive][Serial] timers",
+	}
+	var candidates extensiontests.ExtensionTestSpecs
+	for _, name := range append(slices.Clone(nonDisruptive), disruptive...) {
+		candidates = append(candidates, &extensiontests.ExtensionTestSpec{Name: name, Source: "openshift:payload:origin"})
+	}
+	candidates = append(candidates,
+		&extensiontests.ExtensionTestSpec{Name: "[sig-node] node checks [Early] [Suite:openshift/conformance/parallel]", Source: "openshift:payload:origin"},
+		&extensiontests.ExtensionTestSpec{Name: nonDisruptive[0], Source: "openshift:payload:cluster-network-operator"},
+		&extensiontests.ExtensionTestSpec{Name: disruptive[0], Source: "openshift:payload:cluster-network-operator"},
+	)
+
+	suites := InternalTestSuites()
+	for suiteName, want := range map[string][]string{
+		"openshift/bgp-vip":            nonDisruptive,
+		"openshift/bgp-vip/disruptive": disruptive,
+	} {
+		t.Run(suiteName, func(t *testing.T) {
+			t.Parallel()
+			suite := findSuite(suites, suiteName)
+			if suite == nil {
+				t.Fatalf("%s suite not found", suiteName)
+			}
+			selected, err := candidates.Filter(suite.Qualifiers)
+			if err != nil {
+				t.Fatalf("failed to filter: %v", err)
+			}
+			var got []string
+			for _, spec := range selected {
+				if spec.Source != "openshift:payload:origin" {
+					t.Errorf("selected a test from another binary: %s (%s)", spec.Name, spec.Source)
+				}
+				got = append(got, spec.Name)
+			}
+			if !slices.Equal(got, want) {
+				t.Errorf("selected %q, want %q", got, want)
+			}
+		})
+	}
+}
