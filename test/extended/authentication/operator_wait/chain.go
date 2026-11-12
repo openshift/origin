@@ -2,6 +2,7 @@ package operator_wait
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -37,8 +38,24 @@ func Chain(wrappers ...Wrapper) Wrapper {
 // OperatorChangesWaiter is a Wrapper source that applies a mutation and then waits for
 // the named cluster operator to pick the change up and settle.
 type OperatorChangesWaiter struct {
-	CLI          *exutil.CLI
-	OperatorName string
+	cli          *exutil.CLI
+	operatorName string
+}
+
+// NewOperatorChangesWaiter builds the waiter for the named cluster operator. It fails
+// only when cli is nil.
+func NewOperatorChangesWaiter(
+	operatorName string,
+	cli *exutil.CLI,
+) (OperatorChangesWaiter, error) {
+	toReturn := OperatorChangesWaiter{}
+	if cli == nil {
+		return toReturn, errors.New("no cli") //TODO use the Err defined into pr 31837
+	}
+
+	toReturn.cli = cli
+	toReturn.operatorName = operatorName
+	return toReturn, nil
 }
 
 // WaitChanges runs mutate, then waits for the operator to reconcile and settle. As a
@@ -49,21 +66,38 @@ func (ow OperatorChangesWaiter) WaitChanges(
 	mutate func() error,
 ) error {
 	g.GinkgoHelper()
-	g.By("Applying changes to operator " + ow.OperatorName)
+	g.By("Applying changes to operator " + ow.operatorName)
 	err := mutate()
 	if err != nil {
 		return fmt.Errorf("mutation error: %w", err)
 	}
 
-	g.By("Waiting for operator " + ow.OperatorName + " to pick up changes and stabilize")
-	return WaitForOperatorToPickUpChanges(ctx, ow.CLI, ow.OperatorName)
+	g.By("Waiting for operator " + ow.operatorName + " to pick up changes and stabilize")
+	return WaitForOperatorToPickUpChanges(ctx, ow.cli, ow.operatorName)
 }
 
 // RolloutWaiter is a Wrapper source that captures a Deployment's generation before a
 // mutation and then waits for that Deployment to complete a new rollout.
 type RolloutWaiter struct {
-	CLI                                 *exutil.CLI
-	DeploymentNamespace, DeploymentName string
+	cli                                 *exutil.CLI
+	deploymentNamespace, deploymentName string
+}
+
+// NewRolloutWaiter builds the waiter for the named Deployment. It fails only when cli
+// is nil.
+func NewRolloutWaiter(
+	deploymentNamespace, deploymentName string,
+	cli *exutil.CLI,
+) (RolloutWaiter, error) {
+	toReturn := RolloutWaiter{}
+	if cli == nil {
+		return toReturn, errors.New("no cli") //TODO use the Err defined into pr 31837
+	}
+
+	toReturn.cli = cli
+	toReturn.deploymentNamespace = deploymentNamespace
+	toReturn.deploymentName = deploymentName
+	return toReturn, nil
 }
 
 // MutateAndWaitForDeploymentRollout captures the Deployment generation before mutate
@@ -76,12 +110,12 @@ func (rw RolloutWaiter) MutateAndWaitForDeploymentRollout(
 ) error {
 	g.GinkgoHelper()
 
-	deployment, err := rw.CLI.AdminKubeClient().
+	deployment, err := rw.cli.AdminKubeClient().
 		AppsV1().
-		Deployments(rw.DeploymentNamespace).
-		Get(ctx, rw.DeploymentName, metav1.GetOptions{})
+		Deployments(rw.deploymentNamespace).
+		Get(ctx, rw.deploymentName, metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("getting deployment %s/%s before mutation: %w", rw.DeploymentNamespace, rw.DeploymentName, err)
+		return fmt.Errorf("getting deployment %s/%s before mutation: %w", rw.deploymentNamespace, rw.deploymentName, err)
 	}
 	previousGeneration := deployment.Generation
 
@@ -89,5 +123,5 @@ func (rw RolloutWaiter) MutateAndWaitForDeploymentRollout(
 		return fmt.Errorf("applying mutation: %w", err)
 	}
 
-	return WaitForDeploymentRollout(ctx, rw.CLI, rw.DeploymentName, rw.DeploymentNamespace, previousGeneration)
+	return WaitForDeploymentRollout(ctx, rw.cli, rw.deploymentName, rw.deploymentNamespace, previousGeneration)
 }

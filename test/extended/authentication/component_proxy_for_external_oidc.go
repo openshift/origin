@@ -46,6 +46,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 		proxyNamespace string
 
 		externalOIDCComponentProxyTests ExternalOIDCComponentProxyTests
+		consoleComponentProxyTests      ConsoleComponentProxyTests
 	)
 
 	g.BeforeAll(func() {
@@ -113,6 +114,10 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 		o.Expect(err).
 			NotTo(o.HaveOccurred(), "should instantiate external oidc component proxy tests")
 
+		consoleComponentProxyTests, err = NewConsoleComponentProxyTests(oc)
+		o.Expect(err).
+			NotTo(o.HaveOccurred(), "should instantiate console component proxy tests")
+
 		g.By("Saving auth state for restore after test")
 		authRestore, err := saveAndRestoreAuthState(ctx, oc)
 		proxyForExternalOIDCCleanUps = append(proxyForExternalOIDCCleanUps, authRestore)
@@ -128,6 +133,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 		o.Expect(err).
 			NotTo(o.HaveOccurred(), "operator should reconcile after clearing component proxy")
 
+		// TODO: this Squid part changes with PR 31837; adapt to its helpers when it lands.
 		g.By("Deploying Squid forward proxy")
 		var proxyCleanup removalFunc
 		httpProxyURL, httpsProxyURL, caCertPEM, proxyNamespace, proxyCleanup, err = deploySquidProxy(ctx, oc)
@@ -188,6 +194,37 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 	})
 	g.It("oauth-apiserver should bypass proxy by directly connecting to idp to perform OIDC login flow when spec.proxy.noProxy contains idp", func() {
 		externalOIDCComponentProxyTests.testExternalOIDCBypassNoProxyHost(ctx, keycloakCli, keycloakNamespace, proxyNamespace, username, password, group, httpProxyURL, httpsProxyURL, caCertPEM)
+	})
+
+	g.It("console-operator should propagate auth proxy configuration to the console operand", func() {
+		consoleComponentProxyTests.testConsoleOperandProxyConfiguration(ctx, httpProxyURL, nil)
+	})
+	g.It("console-operator should propagate auth proxy configuration and trustedCA to the console operand", func() {
+		consoleComponentProxyTests.testConsoleOperandProxyConfiguration(ctx, httpsProxyURL, caCertPEM)
+	})
+	g.It("console-operator should remove auth proxy configuration on spec.authProxy removal", func() {
+		consoleComponentProxyTests.testConsoleFallbackOnProxyRemoval(ctx, httpProxyURL)
+	})
+	g.It("console-operator should go Degraded when spec.authProxy.trustedCA references a missing ConfigMap", func() {
+		consoleComponentProxyTests.testConsoleOperatorDegradedOnMissingCA(ctx, httpsProxyURL, caCertPEM)
+	})
+	g.It("console-operator should re-sync trustedCA ConfigMap content to the console operand when the source changes", func() {
+		consoleComponentProxyTests.testConsoleOperatorResyncsTrustedCA(ctx, httpsProxyURL, caCertPEM)
+	})
+	g.It("console should perform OIDC discovery through the proxy when auth proxy config is applied", func() {
+		consoleComponentProxyTests.testConsoleOIDCTrafficThroughProxy(ctx, keycloakNamespace, proxyNamespace, httpProxyURL, nil)
+	})
+	g.It("console should perform OIDC discovery through the HTTPS proxy with trustedCA when auth proxy config is applied", func() {
+		consoleComponentProxyTests.testConsoleOIDCTrafficThroughProxy(ctx, keycloakNamespace, proxyNamespace, httpsProxyURL, caCertPEM)
+	})
+	g.It("console should perform OIDC discovery when the proxy URL carries credentials", func() {
+		consoleComponentProxyTests.testConsoleCredentialsInProxyURL(ctx, keycloakNamespace, proxyNamespace, httpProxyURL)
+	})
+	g.It("console/operator should hot-reload mounted CA file on change when spec.authProxy.trustedCA is set", func() {
+		consoleComponentProxyTests.testConsoleHotReloadCAFileChange(ctx, keycloakNamespace, proxyNamespace, httpsProxyURL, caCertPEM)
+	})
+	g.It("console should bypass proxy by directly connecting to idp for OIDC discovery when spec.authProxy.noProxy contains idp", func() {
+		consoleComponentProxyTests.testConsoleBypassNoProxyHost(ctx, keycloakNamespace, proxyNamespace, httpProxyURL, httpsProxyURL, caCertPEM)
 	})
 
 	g.AfterAll(func() {

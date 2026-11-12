@@ -5,6 +5,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/yaml"
 )
 
 func containerWithMount(volumeName string) corev1.Container {
@@ -54,6 +55,105 @@ func deploymentWithUnrelatedVolume() *appsv1.Deployment {
 				},
 			},
 		},
+	}
+}
+
+// TestNoProxyMatches pins the NO_PROXY comparison contract: superset matching for a
+// non-empty expectation, exact emptiness otherwise.
+func TestNoProxyMatches(t *testing.T) {
+	tests := []struct {
+		name     string
+		actual   string
+		expected string
+		want     bool
+	}{
+		{
+			name:     "empty expectation matches only empty actual",
+			actual:   "",
+			expected: "",
+			want:     true,
+		},
+		{
+			// AssertNoConfig must fail while stale entries remain, not only while the
+			// env var is still set.
+			name:     "empty expectation rejects stale entries",
+			actual:   ".svc",
+			expected: "",
+			want:     false,
+		},
+		{
+			name:     "superset actual matches",
+			actual:   ".svc,.cluster.local,10.3.0.1",
+			expected: ".svc,.cluster.local",
+			want:     true,
+		},
+		{
+			name:     "missing entry fails",
+			actual:   ".svc",
+			expected: ".svc,.cluster.local",
+			want:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := noProxyMatches(tt.actual, tt.expected); got != tt.want {
+				t.Fatalf("noProxyMatches(actual=%q, expected=%q) = %v, want %v", tt.actual, tt.expected, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestParseAuthProxyConfigFile pins that the auth.proxy block is detected only when
+// present, with its trustedCAFilePath and noProxy entries readable.
+func TestParseAuthProxyConfigFile(t *testing.T) {
+	withProxy := `auth:
+  authType: oidc
+  proxy:
+    httpProxy: http://proxy:3128
+    noProxy:
+    - .cluster.local
+    - .svc
+    trustedCAFilePath: /var/auth-proxy-ca/ca-bundle.crt
+`
+
+	tests := []struct {
+		name      string
+		data      string
+		wantProxy bool
+	}{
+		{
+			name:      "auth.proxy block present",
+			data:      withProxy,
+			wantProxy: true,
+		},
+		{
+			name: "no auth.proxy block",
+			data: `auth:
+  authType: oidc
+`,
+			wantProxy: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var cfg authProxyConfigFile
+			if err := yaml.Unmarshal([]byte(tt.data), &cfg); err != nil {
+				t.Fatalf("parsing config: %v", err)
+			}
+			if (cfg.Auth.Proxy != nil) != tt.wantProxy {
+				t.Fatalf("auth.proxy presence = %v, want %v", cfg.Auth.Proxy != nil, tt.wantProxy)
+			}
+			if tt.wantProxy {
+				if cfg.Auth.Proxy.TrustedCAFilePath != "/var/auth-proxy-ca/ca-bundle.crt" {
+					t.Fatalf("trustedCAFilePath = %q, want the rendered path", cfg.Auth.Proxy.TrustedCAFilePath)
+				}
+				if len(cfg.Auth.Proxy.NoProxy) != 2 {
+					t.Fatalf("noProxy entries = %v, want 2", cfg.Auth.Proxy.NoProxy)
+				}
+			}
+		})
 	}
 }
 
