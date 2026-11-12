@@ -67,7 +67,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/openshift-eng/openshift-tests-extension v0.0.0-20260812190735-a8b44e9f9fed
 	github.com/openshift-kni/commatrix v0.0.5-0.20251111204857-e5a931eff73f
-	github.com/openshift/api v0.0.0-20261013084449-5a61bfba6d60
+	github.com/openshift/api v0.0.0-20261016190134-6a1201c52677
 	github.com/openshift/apiserver-library-go v0.0.0-20261001145254-218f2c488d90
 	github.com/openshift/build-machinery-go v0.0.0-20250530140348-dc5b2804eeee
 	github.com/openshift/client-go v0.0.0-20261014115618-03a1e773ff3d
@@ -97,6 +97,7 @@ require (
 	go.etcd.io/etcd/api/v3 v3.7.0
 	go.etcd.io/etcd/client/pkg/v3 v3.7.0
 	go.etcd.io/etcd/client/v3 v3.7.0
+	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.58.0
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
 	golang.org/x/mod v0.42.0
@@ -393,7 +394,6 @@ require (
 	go.uber.org/goleak v1.3.0 // indirect
 	go.uber.org/mock v0.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.1 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/image v0.11.0 // indirect

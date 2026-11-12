@@ -35,6 +35,19 @@ type Console struct {
 // ConsoleSpec is the specification of the desired behavior of the Console.
 type ConsoleSpec struct {
 	OperatorSpec `json:",inline"`
+
+	// authProxy configures proxy settings for outbound connections made by
+	// Console's OIDC login clients, including discovery, JWKS retrieval,
+	// code exchange, and token refresh. When set, it replaces the cluster-wide
+	// proxy (proxy.config.openshift.io/cluster) entirely for these connections;
+	// individual fields are not inherited from the cluster-wide configuration.
+	// At least one of httpProxy or httpsProxy must be specified.
+	// When omitted, the cluster-wide proxy is used if configured; otherwise no
+	// proxy is used. Other Console clients retain their existing proxy settings.
+	// +openshift:enable:FeatureGate=AuthenticationComponentProxyExternalOIDC
+	// +optional
+	AuthProxy ConsoleAuthProxyConfig `json:"authProxy,omitzero"`
+
 	// customization is used to optionally provide a small set of
 	// customization options to the web console.
 	// +optional
@@ -54,6 +67,7 @@ type ConsoleSpec struct {
 	// +optional
 	Route ConsoleConfigRoute `json:"route"`
 	// plugins defines a list of enabled console plugin names.
+	// +listType=atomic
 	// +optional
 	Plugins []string `json:"plugins,omitempty"`
 	// ingress allows to configure the alternative ingress for the console.
@@ -61,6 +75,82 @@ type ConsoleSpec struct {
 	// where access to routes is not possible.
 	// +optional
 	Ingress ConsoleIngress `json:"ingress"`
+}
+
+// ConsoleAuthProxyConfig holds proxy configuration scoped to Console's OIDC login clients.
+// At least one of httpProxy or httpsProxy must be specified.
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:XValidation:rule="has(self.httpProxy) || has(self.httpsProxy)",message="at least one of httpProxy or httpsProxy must be specified"
+type ConsoleAuthProxyConfig struct {
+	// httpProxy is the URL of the proxy for HTTP requests.
+	// Must be a valid URL with http or https scheme, a non-empty
+	// hostname, and no path, query parameters, or fragment.
+	// Userinfo (e.g. user:password@host) is allowed for proxy
+	// authentication. Maximum length is 2048 characters.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2048
+	// +kubebuilder:validation:XValidation:rule="isURL(self)",message="httpProxy must be a valid URL"
+	// +kubebuilder:validation:XValidation:rule="!isURL(self) || url(self).getScheme() in ['http', 'https']",message="httpProxy must use http or https scheme"
+	// +kubebuilder:validation:XValidation:rule="!isURL(self) || size(url(self).getHostname()) > 0",message="httpProxy must contain a hostname"
+	// +kubebuilder:validation:XValidation:rule="!isURL(self) || url(self).getEscapedPath() == '' || url(self).getEscapedPath() == '/'",message="httpProxy must not contain a path"
+	// +kubebuilder:validation:XValidation:rule="!isURL(self) || url(self).getQuery().size() == 0",message="httpProxy must not contain query parameters"
+	// +kubebuilder:validation:XValidation:rule="!self.matches('.*#.*')",message="httpProxy must not contain a fragment"
+	// +optional
+	HTTPProxy string `json:"httpProxy,omitempty"`
+
+	// httpsProxy is the URL of the proxy for HTTPS requests.
+	// Must be a valid URL with http or https scheme, a non-empty
+	// hostname, and no path, query parameters, or fragment.
+	// Userinfo (e.g. user:password@host) is allowed for proxy
+	// authentication. Maximum length is 2048 characters.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2048
+	// +kubebuilder:validation:XValidation:rule="isURL(self)",message="httpsProxy must be a valid URL"
+	// +kubebuilder:validation:XValidation:rule="!isURL(self) || url(self).getScheme() in ['http', 'https']",message="httpsProxy must use http or https scheme"
+	// +kubebuilder:validation:XValidation:rule="!isURL(self) || size(url(self).getHostname()) > 0",message="httpsProxy must contain a hostname"
+	// +kubebuilder:validation:XValidation:rule="!isURL(self) || url(self).getEscapedPath() == '' || url(self).getEscapedPath() == '/'",message="httpsProxy must not contain a path"
+	// +kubebuilder:validation:XValidation:rule="!isURL(self) || url(self).getQuery().size() == 0",message="httpsProxy must not contain query parameters"
+	// +kubebuilder:validation:XValidation:rule="!self.matches('.*#.*')",message="httpsProxy must not contain a fragment"
+	// +optional
+	HTTPSProxy string `json:"httpsProxy,omitempty"`
+
+	// noProxy is a list of hostnames and/or CIDRs and/or IPs for which
+	// the proxy should not be used. Must contain at least one entry
+	// when set. Each entry must be between 1 and 253 characters long
+	// and at most 64 entries are allowed. Duplicate
+	// entries are not permitted. Entries that are not valid hostnames,
+	// CIDRs, or IPs are silently ignored. Cluster-internal defaults
+	// (.cluster.local, .svc, 127.0.0.1, localhost) are always appended
+	// automatically and do not need to be included.
+	// +listType=set
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=64
+	// +kubebuilder:validation:items:MinLength=1
+	// +kubebuilder:validation:items:MaxLength=253
+	// +optional
+	NoProxy []string `json:"noProxy,omitempty"`
+
+	// trustedCA is a reference to a ConfigMap in the openshift-config
+	// namespace containing a CA certificate bundle under the key
+	// "ca-bundle.crt". This bundle is appended to the system trust store
+	// used by Console's OIDC login clients for proxy TLS connections.
+	// When omitted, only the system trust store is used.
+	// +optional
+	TrustedCA ConsoleAuthProxyTrustedCAConfigMapReference `json:"trustedCA,omitzero"`
+}
+
+// ConsoleAuthProxyTrustedCAConfigMapReference references a ConfigMap in the
+// openshift-config namespace.
+type ConsoleAuthProxyTrustedCAConfigMapReference struct {
+	// name is the metadata.name of the referenced ConfigMap.
+	// Must be a valid DNS subdomain name (RFC 1123): at most 253
+	// characters, only lowercase alphanumeric characters, '-' or
+	// '.', starting and ending with an alphanumeric character.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:XValidation:rule="!format.dns1123Subdomain().validate(self).hasValue()",message="name must be a valid DNS subdomain name: contain no more than 253 characters, contain only lowercase alphanumeric characters, '-' or '.', and start and end with an alphanumeric character"
+	// +required
+	Name string `json:"name,omitempty"`
 }
 
 // ConsoleConfigRoute holds information on external route access to console.
@@ -344,6 +434,7 @@ type ConsoleCustomization struct {
 type ProjectAccess struct {
 	// availableClusterRoles is the list of ClusterRole names that are assignable to users
 	// through the project access tab.
+	// +listType=atomic
 	// +optional
 	AvailableClusterRoles []string `json:"availableClusterRoles,omitempty"`
 }
@@ -390,6 +481,7 @@ type DeveloperConsoleCatalogTypes struct {
 // DeveloperConsoleCatalogCustomization allow cluster admin to configure developer catalog.
 type DeveloperConsoleCatalogCustomization struct {
 	// categories which are shown in the developer catalog.
+	// +listType=atomic
 	// +optional
 	Categories []DeveloperConsoleCatalogCategory `json:"categories,omitempty"`
 	// types allows enabling or disabling of sub-catalog types that user can see in the Developer catalog.
@@ -414,6 +506,7 @@ type DeveloperConsoleCatalogCategoryMeta struct {
 	Label string `json:"label"`
 	// tags is a list of strings that will match the category. A selected category
 	// show all items which has at least one overlapping tag between category and item.
+	// +listType=atomic
 	// +optional
 	Tags []string `json:"tags,omitempty"`
 }
@@ -423,6 +516,7 @@ type DeveloperConsoleCatalogCategory struct {
 	// defines top level category ID, label and filter tags.
 	DeveloperConsoleCatalogCategoryMeta `json:",inline"`
 	// subcategories defines a list of child categories.
+	// +listType=atomic
 	// +optional
 	Subcategories []DeveloperConsoleCatalogCategoryMeta `json:"subcategories,omitempty"`
 }
@@ -430,6 +524,7 @@ type DeveloperConsoleCatalogCategory struct {
 // QuickStarts allow cluster admins to customize available ConsoleQuickStart resources.
 type QuickStarts struct {
 	// disabled is a list of ConsoleQuickStart resource names that are not shown to users.
+	// +listType=atomic
 	// +optional
 	Disabled []string `json:"disabled,omitempty"`
 }
@@ -439,6 +534,7 @@ type AddPage struct {
 	// disabledActions is a list of actions that are not shown to users.
 	// Each action in the list is represented by its ID.
 	// +kubebuilder:validation:MinItems=1
+	// +listType=atomic
 	// +optional
 	DisabledActions []string `json:"disabledActions,omitempty"`
 }
@@ -460,9 +556,11 @@ const (
 // +kubebuilder:validation:MinProperties:=1
 type ResourceAttributesAccessReview struct {
 	// required defines a list of permission checks. The perspective will only be shown when all checks are successful. When omitted, the access review is skipped and the perspective will not be shown unless it is required to do so based on the configuration of the missing access review list.
+	// +listType=atomic
 	// +optional
 	Required []authorizationv1.ResourceAttributes `json:"required"`
 	// missing defines a list of permission checks. The perspective will only be shown when at least one check fails. When omitted, the access review is skipped and the perspective will not be shown unless it is required to do so based on the configuration of the required access review list.
+	// +listType=atomic
 	// +optional
 	Missing []authorizationv1.ResourceAttributes `json:"missing"`
 }
@@ -498,6 +596,7 @@ type Perspective struct {
 	// The console will also provide a configuration UI and a YAML snippet that will list the available resources that can be pinned to the navigation.
 	// Incorrect or unknown resources will be ignored.
 	// +kubebuilder:validation:MaxItems=100
+	// +listType=atomic
 	// +optional
 	PinnedResources *[]PinnedResourceReference `json:"pinnedResources,omitempty"`
 }
