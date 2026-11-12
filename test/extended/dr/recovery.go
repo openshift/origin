@@ -3,11 +3,14 @@ package dr
 import (
 	"context"
 	"fmt"
+	"time"
+
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -158,6 +161,142 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 
 		framework.Logf("asserting post backup resources are not found anymore...")
 		assertPostBackupResourcesAreNotFound(oc)
+	})
+})
+
+var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery][Timeout:3h]", func() {
+	defer g.GinkgoRecover()
+
+	f := framework.NewDefaultFramework("recovery")
+	f.SkipNamespaceCreation = true
+	oc := exutil.NewCLIWithoutNamespace("recovery")
+
+	var recoveryCleanupNeeded bool
+	g.AfterEach(func() {
+		if !recoveryCleanupNeeded {
+			return
+		}
+		defer func() { recoveryCleanupNeeded = false }()
+		defer func() {
+			if err := removePostBackupResources(oc); err != nil && !apierrors.IsNotFound(err) {
+				g.GinkgoT().Errorf("could not clean up post-backup resources: %v", err)
+			}
+		}()
+
+		g.GinkgoT().Log("turning the quorum guard back on")
+		data := fmt.Sprintf(`{"spec": {"unsupportedConfigOverrides": {"useUnsupportedUnsafeNonHANonProductionUnstableEtcd": false}}}`)
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		_, err := oc.AdminOperatorClient().OperatorV1().Etcds().Patch(ctx, "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
+		cancel()
+		o.Expect(err).ToNot(o.HaveOccurred(), "disable recovery quorum guard override")
+
+		g.GinkgoT().Log("waiting for api servers to stabilize on the same revision")
+		err = waitForApiServerToStabilizeOnTheSameRevision(g.GinkgoT(), oc)
+		err = errors.Wrap(err, "cleanup timed out waiting for APIServer pods to stabilize on the same revision")
+		o.Expect(err).ToNot(o.HaveOccurred(), "wait for API server stability during recovery cleanup")
+
+		g.GinkgoT().Log("waiting for etcd to stabilize on the same revision")
+		err = waitForEtcdToStabilizeOnTheSameRevision(g.GinkgoT(), oc)
+		err = errors.Wrap(err, "cleanup timed out waiting for etcd pods to stabilize on the same revision")
+		o.Expect(err).ToNot(o.HaveOccurred(), "wait for etcd stability during recovery cleanup")
+	})
+
+	g.It("[Feature:EtcdRecovery][OCPFeatureGate:AutomatedEtcdBackup][apigroup:operator.openshift.io][Skipped:SingleReplicaTopology][Disruptive] Recover from EtcdBackup with two unhealthy nodes and lost quorum", func() {
+		supported, err := supportsEtcdBackupRecoveryAPI(oc)
+		o.Expect(err).ToNot(o.HaveOccurred(), "inspect EtcdBackup API")
+		if !supported {
+			g.Skip("the EtcdBackup CRD is absent or uses the legacy PVC API without local recovery backups")
+		}
+
+		recoveryCleanupNeeded = true
+		data := fmt.Sprintf(`{"spec": {"unsupportedConfigOverrides": {"useUnsupportedUnsafeNonHANonProductionUnstableEtcd": true}}}`)
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		_, err = oc.AdminOperatorClient().OperatorV1().Etcds().Patch(ctx, "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
+		cancel()
+		o.Expect(err).ToNot(o.HaveOccurred(), "enable recovery quorum guard override")
+
+		err = waitForApiServerToStabilizeOnTheSameRevision(g.GinkgoT(), oc)
+		o.Expect(err).ToNot(o.HaveOccurred(), "wait for API server stability")
+		err = waitForEtcdToStabilizeOnTheSameRevision(g.GinkgoT(), oc)
+		o.Expect(err).ToNot(o.HaveOccurred(), "wait for etcd stability")
+
+		g.DeferCleanup(func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			err := oc.AdminKubeClient().CoreV1().Pods(openshiftEtcdNamespace).Delete(ctx, "dr-ssh", metav1.DeleteOptions{})
+			cancel()
+			if err != nil && !apierrors.IsNotFound(err) {
+				g.GinkgoT().Errorf("could not clean up SSH test pod: %v", err)
+			}
+
+			ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+			err = oc.AdminKubeClient().AppsV1().DaemonSets(openshiftEtcdNamespace).Delete(ctx, "dr-ssh", metav1.DeleteOptions{})
+			cancel()
+			if err != nil && !apierrors.IsNotFound(err) {
+				g.GinkgoT().Errorf("could not clean up SSH installer DaemonSet: %v", err)
+			}
+
+			ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+			err = oc.AdminKubeClient().CoreV1().Secrets(openshiftEtcdNamespace).Delete(ctx, "dr-ssh", metav1.DeleteOptions{})
+			cancel()
+			if err != nil && !apierrors.IsNotFound(err) {
+				g.GinkgoT().Errorf("could not clean up SSH key Secret: %v", err)
+			}
+		})
+		err = InstallSSHKeyOnControlPlaneNodes(oc)
+		o.Expect(err).ToNot(o.HaveOccurred(), "prepare SSH access to control plane nodes")
+
+		masters := masterNodes(oc)
+		o.Expect(len(masters)).To(o.BeNumerically(">=", 3), "recovery requires at least three control plane nodes")
+		backupNode := masters[0]
+		recoveryNode := masters[1]
+		nonRecoveryNodes := make([]*corev1.Node, 0, len(masters)-1)
+		for _, node := range masters {
+			if node.Name != recoveryNode.Name {
+				nonRecoveryNodes = append(nonRecoveryNodes, node)
+			}
+		}
+
+		backupName, err := createEtcdBackup(oc, backupNode)
+		g.DeferCleanup(func() {
+			if err := deleteEtcdBackup(oc, backupName); err != nil {
+				framework.Logf("could not clean up EtcdBackup %q: %v", backupName, err)
+			}
+		})
+		o.Expect(err).ToNot(o.HaveOccurred(), "create EtcdBackup")
+
+		files, err := waitForEtcdBackup(oc, backupName, backupNode)
+		o.Expect(err).ToNot(o.HaveOccurred(), "wait for EtcdBackup files")
+		g.DeferCleanup(func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if err := oc.AdminKubeClient().CoreV1().Pods(openshiftEtcdNamespace).Delete(ctx, etcdBackupStagePodName, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+				g.GinkgoT().Errorf("could not clean up backup staging pod: %v", err)
+			}
+		})
+		err = stageEtcdBackupFiles(oc, backupNode, files)
+		o.Expect(err).ToNot(o.HaveOccurred(), "stage EtcdBackup files")
+
+		err = createPostBackupResources(oc)
+		o.Expect(err).ToNot(o.HaveOccurred(), "create post-backup resources")
+
+		g.DeferCleanup(func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if err := oc.AdminKubeClient().CoreV1().Pods(openshiftEtcdNamespace).Delete(ctx, "bumping-etcd-restore-pod", metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+				g.GinkgoT().Errorf("could not clean up recovery pod: %v", err)
+			}
+		})
+		err = runClusterRestoreScript(oc, recoveryNode, backupNode, nonRecoveryNodes)
+		o.Expect(err).ToNot(o.HaveOccurred(), "start cluster restore")
+
+		waitForReadyEtcdStaticPods(oc.AdminKubeClient(), 1)
+		forceOperandRedeployment(oc.AdminOperatorClient().OperatorV1())
+		waitForReadyEtcdStaticPods(oc.AdminKubeClient(), len(masters))
+		waitForOperatorsToSettle()
+		assertPostBackupResourcesAreNotFound(oc)
+
+		err = deleteEtcdBackup(oc, backupName)
+		o.Expect(err).ToNot(o.HaveOccurred(), "delete EtcdBackup")
 	})
 })
 
