@@ -588,22 +588,26 @@ var _ = g.Describe("[sig-api-machinery] Kube APIServer Error Checking", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		masterName := strings.Fields(masterNode)
 		cmd = fmt.Sprintf(`grep -rhiE '%s' /var/log/pods/openshift-kube-apiserver_kube-apiserver*/*/* | grep -iEv '%s' | grep -oiE '%s' | sed -E 's/%s/../g'`, regexToGrep2, exceptions, regexToGrep2, format)
+		var kasPodLogFiles []string
 		for i := 0; i < len(masterName); i++ {
-			_, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args("-n", "openshift-kube-apiserver", "node/"+masterName[i], "--", "chroot", "/host", "bash", "-c", cmd).OutputToFile("OCP-43889/kas_pod.log." + masterName[i])
+			logfile, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args("-n", "openshift-kube-apiserver", "node/"+masterName[i], "--", "chroot", "/host", "bash", "-c", cmd).OutputToFile("OCP-43889/kas_pod.log." + masterName[i])
 			o.Expect(err).NotTo(o.HaveOccurred())
+			kasPodLogFiles = append(kasPodLogFiles, logfile)
 		}
-		cmd = fmt.Sprintf(`cat %v| sort | uniq -c | sort -rh | awk '$1 >5000 {print}'`, dirname+"kas_pod.log.*")
+		cmd = fmt.Sprintf(`cat %s | sort | uniq -c | sort -rh | awk '$1 >5000 {print}'`, strings.Join(kasPodLogFiles, " "))
 		kasPodlogs, err := exec.Command("bash", "-c", cmd).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("%s", kasPodlogs)
 
 		g.By("3) Check the audit log files of KAS")
 		cmd = fmt.Sprintf(`grep -rhiE '%s' /var/log/kube-apiserver/audit*.log | grep -iEv '%s' | grep -oiE '%s' | sed -E 's/%s/../g'`, regexToGrep2, exceptions, regexToGrep2, format)
+		var kasAuditLogFiles []string
 		for i := 0; i < len(masterName); i++ {
-			_, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args("-n", "openshift-kube-apiserver", "node/"+masterName[i], "--", "chroot", "/host", "bash", "-c", cmd).OutputToFile("OCP-43889/kas_audit.log." + masterName[i])
+			logfile, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args("-n", "openshift-kube-apiserver", "node/"+masterName[i], "--", "chroot", "/host", "bash", "-c", cmd).OutputToFile("OCP-43889/kas_audit.log." + masterName[i])
 			o.Expect(err).NotTo(o.HaveOccurred())
+			kasAuditLogFiles = append(kasAuditLogFiles, logfile)
 		}
-		cmd = fmt.Sprintf(`cat %v| sort | uniq -c | sort -rh | awk '$1 >5000 {print}'`, dirname+"kas_audit.log.*")
+		cmd = fmt.Sprintf(`cat %s | sort | uniq -c | sort -rh | awk '$1 >5000 {print}'`, strings.Join(kasAuditLogFiles, " "))
 		kasAuditlogs, err := exec.Command("bash", "-c", cmd).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("%s", kasAuditlogs)

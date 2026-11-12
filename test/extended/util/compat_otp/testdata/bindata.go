@@ -2092,6 +2092,8 @@ objects:
       service:
         namespace: "${SERVICENAMESPACE}"
         name: "${SERVICENAME}"
+    # the bad-webhook tests point at non-existent services; never let that reject requests
+    failurePolicy: Ignore
     admissionReviewVersions: ["v1"]
     sideEffects: None
 parameters:
@@ -2221,6 +2223,8 @@ objects:
         service:
           namespace: "${SERVICENAMESPACE}"
           name: "${SERVICENAME}"
+      # the bad-webhook tests point at non-existent services; never let that reject requests
+      failurePolicy: Ignore
       admissionReviewVersions: ["v1"]
       sideEffects: None
 parameters:

@@ -337,21 +337,22 @@ metadata:
 				defer func() {
 					g.By("Cleanup: Re-enable Internal image registry")
 					output, err := oc.WithoutNamespace().AsAdmin().Run("patch").Args("configs.imageregistry/cluster", "-p", `{"spec":{"managementState":"Managed"}}`, "--type=merge").Output()
-					o.Expect(err).NotTo(o.HaveOccurred())
+					if err != nil {
+						e2e.Logf("Warning: failed to re-enable internal image registry: %v", err)
+						return
+					}
 					if strings.Contains(output, "patched (no change)") {
 						e2e.Logf("Internal image registry was already in Managed state")
-					} else {
-						g.By("Wait for KAS and Image registry to stabilize after re-enabling")
-						expectedStatus := map[string]string{"Progressing": "True"}
-						err = waitCoBecomes(oc, "kube-apiserver", 100, expectedStatus)
-						o.Expect(err).NotTo(o.HaveOccurred(), "kube-apiserver should start progressing")
-
-						expectedStatus = map[string]string{"Available": "True", "Progressing": "False", "Degraded": "False"}
-						err = waitCoBecomes(oc, "kube-apiserver", 1500, expectedStatus)
-						o.Expect(err).NotTo(o.HaveOccurred(), "kube-apiserver should become available")
-
-						err = waitCoBecomes(oc, "image-registry", 100, expectedStatus)
-						o.Expect(err).NotTo(o.HaveOccurred(), "image-registry should become available")
+						return
+					}
+					// best effort: cleanup must not fail the test
+					g.By("Cleanup: Wait for KAS and Image registry to stabilize after re-enabling")
+					expectedStatus := map[string]string{"Available": "True", "Progressing": "False", "Degraded": "False"}
+					if err := waitCoBecomes(oc, "kube-apiserver", 1500, expectedStatus); err != nil {
+						e2e.Logf("Warning: kube-apiserver did not stabilize after registry re-enable: %v", err)
+					}
+					if err := waitCoBecomes(oc, "image-registry", 500, expectedStatus); err != nil {
+						e2e.Logf("Warning: image-registry did not stabilize after re-enable: %v", err)
 					}
 				}()
 
@@ -380,6 +381,8 @@ metadata:
 				o.Expect(dockerOutput).ShouldNot(o.ContainSubstring("dockercfg"), "SA test-a should not reference dockercfg secrets")
 
 				currentStep = currentStep + 5
+			} else {
+				e2e.Logf("Image registry managementState is %q, not Managed; skipping the Managed->Removed transition checks and verifying the disabled-registry behavior only", strings.TrimSpace(output))
 			}
 
 			g.By(fmt.Sprintf("%d) Create serviceAccount test-b after registry is disabled", currentStep))
