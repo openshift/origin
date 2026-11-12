@@ -709,7 +709,7 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	// authentication namespaces to exceed the default threshold of 20.
 	if windows := eligibleWindows(
 		finalIntervals,
-		authenticationComponentProxyEligibleTestNames,
+		authenticationComponentProxyEligibleTestNames(),
 		authenticationComponentProxyPostTestGrace,
 	); len(windows) > 0 {
 		for _, delegate := range []*SimplePathologicalEventMatcher{
@@ -753,6 +753,64 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 			}
 
 			// Other serial tests (e.g. the OAuthServer IdP ones) also roll oauth-openshift after
+			// the proxy tests; they must not be charged for the occurrences the proxy tests produced.
+			matcher.discountInWindowOccurrences(finalIntervals)
+			registry.AddPathologicalEventMatcherOrDie(matcher)
+		}
+	}
+
+	// AuthenticationComponentProxyExternalOIDC tests intentionally trigger multiple
+	// openshift-oauth-apiserver rollouts (set proxy → operator rolls out → restore → operator
+	// rolls out again), repeated for each test in the suite. This causes DeploymentUpdated,
+	// OperatorStatusChanged, and ScalingReplicaSet events in the authentication namespaces to
+	// exceed the default threshold of 20. The DeploymentUpdated and OperatorStatusChanged
+	// locators are the same authentication-operator deployment as the integrated gate above;
+	// AllowedByAny combines matchers with OR semantics, so an event is allowed when either its
+	// window set matches, and the two gates never widen each other's windows.
+	if windows := eligibleWindows(
+		finalIntervals,
+		authenticationComponentProxyExternalOIDCEligibleTestNames(),
+		authenticationComponentProxyExternalOIDCPostTestGrace,
+	); len(windows) > 0 {
+		for _, delegate := range []*SimplePathologicalEventMatcher{
+			{
+				name: "AuthenticationComponentProxyExternalOIDCDeploymentUpdated",
+				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication-operator$`),
+					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^authentication-operator$`),
+				},
+				messageReasonRegex: regexp.MustCompile(`^DeploymentUpdated$`),
+				// XXX: No live run observed yet; mirrors the integrated suite's bound until one is.
+				repeatThresholdOverride: 70,
+			},
+			{
+				name: "AuthenticationComponentProxyExternalOIDCOperatorStatusChanged",
+				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication-operator$`),
+					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^authentication-operator$`),
+				},
+				messageReasonRegex: regexp.MustCompile(`^OperatorStatusChanged$`),
+				// XXX: No live run observed yet; mirrors the integrated suite's bound until one is.
+				repeatThresholdOverride: 30,
+			},
+			{
+				name: "AuthenticationComponentProxyExternalOIDCScalingReplicaSet",
+				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-oauth-apiserver$`),
+					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^apiserver$`),
+				},
+				messageReasonRegex: regexp.MustCompile(`^ScalingReplicaSet$`),
+				// XXX: No live run observed yet
+				repeatThresholdOverride: authenticationComponentProxyExternalOIDCScalingReplicaSetRepeatLimit,
+			},
+		} {
+			matcher := &OverlapOtherIntervalsPathologicalEventMatcher{
+				delegate:               delegate,
+				allowIfWithinIntervals: windows,
+				useLastTimestamp:       true,
+			}
+
+			// Other serial tests (e.g. the OAuthServer IdP ones) also roll oauth-apiserver after
 			// the proxy tests; they must not be charged for the occurrences the proxy tests produced.
 			matcher.discountInWindowOccurrences(finalIntervals)
 			registry.AddPathologicalEventMatcherOrDie(matcher)
