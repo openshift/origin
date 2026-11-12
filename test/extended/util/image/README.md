@@ -1,6 +1,6 @@
 # Images used by e2e tests
 
-We limit the set of images used by conformance e2e to reduce duplication and to allow us to provide offline mirroring of images for customers and restricted test environments. Every image used in e2e must be part of this utility package or referenced by the upstream `k8s.io/kubernetes/test/utils/image` package.
+We limit the set of images used by conformance e2e to reduce duplication and to allow us to provide offline mirroring of images for customers and restricted test environments. Every image used in e2e must be part of this utility package, referenced by the upstream `k8s.io/kubernetes/test/utils/image` package, or registered by an external test extension (`*-tests-ext`).
 
 All images used by e2e tests that are part of the `conformance` suite are mirrored to:
 
@@ -34,6 +34,40 @@ digests due to switching the layer format.  This command will mirror the `regist
     skopeo copy --all --format oci docker://registry.k8s.io/pause:3.9 docker://quay.io/openshift/community-e2e-images:e2e-27-registry-k8s-io-pause-3-9-p9APyPDU5GsW02Rk
 
 To become an OWNER in this directory you must be given permission to push to this repo by another OWNER.
+
+## Images owned by external test extensions (OTE binaries)
+
+Images used by external test extensions (OVN, storage, kubevirt, etc.) are reported by their `*-tests-ext` binaries at runtime, not by the static list in this package. They are also mirrored to `quay.io/openshift/community-e2e-images`, but the flow differs.
+
+### Adding a new extension image
+
+1. Register the image in your extension via `RegisterImage`. If your component computes its own mirror tag, populate `Mapped` (JSON `mapped`) with that tag in `Mapped.Version`; otherwise `openshift-tests images` computes the tag automatically.
+2. Verify that `openshift-tests images` lists your image with the expected destination tag (using a cluster or `EXTENSIONS_PAYLOAD_OVERRIDE` payload containing your PR's binary; do **not** set `OPENSHIFT_SKIP_EXTERNAL_TESTS`, which restricts the list to built-in/static images):
+
+       EXTENSIONS_PAYLOAD_OVERRIDE=<payload-pullspec> ./openshift-tests images --upstream --to-repository quay.io/openshift/community-e2e-images
+
+3. Have an OWNER of this directory mirror the image to `quay.io/openshift/community-e2e-images:<tag>` before merge (see below; a component's CI may also be granted push access for automated mirroring). The same review criteria as for static images apply (see "When reviewing" below).
+
+Disconnected-cluster users need no new steps: `openshift-tests images --to-repository <private-repo>` (without `--upstream`) already includes extension images, preferring their reported `mapped` tags.
+
+### Mirroring extension images before the PR is merged
+
+As with static images, the new image must be mirrored before the PR's tests can pass. Ensure you are logged in to `quay.io` with write access to `quay.io/openshift/community-e2e-images` (e.g. `oc registry login --registry=quay.io` or `skopeo login quay.io`).
+
+1. The PR author triggers a payload build from their PR with [cluster-bot](https://github.com/openshift/ci-chat-bot) and sends the payload pullspec to an OWNER.
+2. The OWNER verifies the output with `EXTENSIONS_PAYLOAD_OVERRIDE` (`KUBECONFIG` is still required by the `oc` client, and the cluster's `openshift-config/pull-secret` is used for registry auth unless `REGISTRY_AUTH_FILE` is set):
+
+       EXTENSIONS_PAYLOAD_OVERRIDE=<payload-pullspec> ./openshift-tests images --upstream --to-repository quay.io/openshift/community-e2e-images
+
+3. After reviewing against the criteria in "When reviewing", the OWNER mirrors:
+
+       EXTENSIONS_PAYLOAD_OVERRIDE=<payload-pullspec> ./openshift-tests images --upstream --to-repository quay.io/openshift/community-e2e-images | oc image mirror -f - --filter-by-os=.*
+
+For a single image, the PR author may instead provide the exact source image and destination tag, and the OWNER can mirror it directly (add `--format oci` if quay.io rejects uncompressed layers, as in the `skopeo` note above):
+
+    skopeo copy --all docker://<source-image> docker://quay.io/openshift/community-e2e-images:<tag>
+
+The tag must exactly match what `openshift-tests images` outputs (i.e. the extension's `mapped` tag if set), otherwise tests will not be able to pull the mirrored image.
 
 ## Multi-Architecture Manifest List Verification
 
@@ -111,7 +145,7 @@ New images should be added when:
 
 ### Mirroring images for approved changes before the PR is merged
 
-In order to merge the PR, the tests have to pass, which means the new image has to be mirrored prior to merge.
+In order to merge the PR, the tests have to pass, which means the new image has to be mirrored prior to merge. This section covers images used by tests in this repository (the static list in this package); for images introduced by an external test binary, see "Images owned by external test extensions" above.
 
 When mirroring from a PR (granting access), you should check out the PR in question and build locally. You should probably rebase the local PR to ensure you don't stomp changes in master (checking out a PR doesn't exactly match what is tested).
 
