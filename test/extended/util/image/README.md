@@ -35,6 +35,41 @@ digests due to switching the layer format.  This command will mirror the `regist
 
 To become an OWNER in this directory you must be given permission to push to this repo by another OWNER.
 
+## Images owned by external test extensions (OTE binaries)
+
+Images used by external test extensions (OVN, storage, kubevirt, etc.) are reported by their `*-tests-ext` binaries at runtime, not by the static list in this package. They are also mirrored to `quay.io/openshift/community-e2e-images`, but the flow differs.
+
+### To add a new image
+
+1. Register the image in your extension via `RegisterImage`, including a `mapped` entry whose tag your component computes with its own tooling.
+2. Have an OWNER of this directory mirror the image to `quay.io/openshift/community-e2e-images:<mapped-tag>` (push access to the repository is granted by OWNERS; a component's CI may also be granted push access for automated mirroring). The same review criteria as for static images apply (versioned, reproducible, published to a secured location; see "When reviewing" below).
+3. Verify against a cluster:
+
+       ./openshift-tests images --upstream --to-repository quay.io/openshift/community-e2e-images
+
+   Your source image must appear in the output with the destination tag from step 1. Do not set `OPENSHIFT_SKIP_EXTERNAL_TESTS` — that restricts the list to the static images in this package.
+
+Disconnected-cluster users need no new steps: the same command's output already includes extension images, preferring their reported `mapped` tags.
+
+### Mirroring images for approved changes before the PR is merged
+
+As with static images, the new image must be mirrored before the PR's tests can pass. The PR author cannot push to the mirror, so an OWNER of this directory does the mirroring:
+
+1. The PR author triggers a payload build from their PR with the [cluster-bot](https://github.com/openshift/release/blob/master/docs/clusterbot.md) and sends the payload pullspec to an OWNER.
+2. The OWNER runs `openshift-tests images` with the payload substituted via `EXTENSIONS_PAYLOAD_OVERRIDE` (a kubeconfig is still needed for the oc client, but the cluster itself is irrelevant — the binaries, including the PR's extension binary with its new images and `mapped` tags, are extracted from the given payload):
+
+       EXTENSIONS_PAYLOAD_OVERRIDE=<payload-pullspec> ./openshift-tests images --upstream --to-repository quay.io/openshift/community-e2e-images
+
+3. The OWNER reviews the output against the criteria in "When reviewing", then mirrors:
+
+       EXTENSIONS_PAYLOAD_OVERRIDE=<payload-pullspec> ./openshift-tests images --upstream --to-repository quay.io/openshift/community-e2e-images | oc image mirror -f - --filter-by-os=.*
+
+For a single image, the PR author may instead provide the exact source and `mapped` tag, and the OWNER can mirror it directly (see the skopeo note above):
+
+    skopeo copy --all docker://<source-image> docker://quay.io/openshift/community-e2e-images:<mapped-tag>
+
+The tag must exactly match what the extension reports in its `mapped` field, otherwise tests will not be able to pull the mirrored image.
+
 ## Multi-Architecture Manifest List Verification
 
 All images referenced in e2e tests must provide multi-architecture manifest lists to support testing across different architectures (amd64, arm64, ppc64le, s390x). The `openshift-tests images` command verifies that mirrored images include proper manifest lists when the `--verify-manifest-lists` flag is passed.
@@ -111,7 +146,7 @@ New images should be added when:
 
 ### Mirroring images for approved changes before the PR is merged
 
-In order to merge the PR, the tests have to pass, which means the new image has to be mirrored prior to merge.
+In order to merge the PR, the tests have to pass, which means the new image has to be mirrored prior to merge. This section covers images used by tests in this repository (the static list in this package); for images introduced by an external test binary, see "Images owned by external test extensions" above.
 
 When mirroring from a PR (granting access), you should check out the PR in question and build locally. You should probably rebase the local PR to ensure you don't stomp changes in master (checking out a PR doesn't exactly match what is tested).
 
