@@ -23,7 +23,8 @@ import (
 // psa label syncer label.
 // New offenders need a ticket filed under https://redhat.atlassian.net/CNTRLPLANE-4584.
 var exceptedNamespaces = map[string]string{
-	// missing some/all pod-security.kubernetes.io/ labels
+	// these namespaces do not have some/all
+	// pod-security.kubernetes.io/ labels set
 	"openshift":                                        "CNTRLPLANE-4616",
 	"openshift-apiserver-operator":                     "CNTRLPLANE-4617",
 	"openshift-cloud-credential-operator":              "CNTRLPLANE-4618",
@@ -54,13 +55,18 @@ var exceptedNamespaces = map[string]string{
 	"openshift-user-workload-monitoring":               "CNTRLPLANE-4638",
 	"openshift-operator-lifecycle-manager":             "CNTRLPLANE-4636",
 	"openshift-operators":                              "CNTRLPLANE-4636",
-	// still set security.openshift.io/scc.podSecurityLabelSync
+	// these namespaces set
+	// security.openshift.io/scc.podSecurityLabelSync = false
 	"openshift-cloud-platform-infra": "CNTRLPLANE-4848",
 	"openshift-kni-infra":            "CNTRLPLANE-4848",
 	"openshift-nutanix-infra":        "CNTRLPLANE-4848",
 	"openshift-openstack-infra":      "CNTRLPLANE-4848",
 	"openshift-ovirt-infra":          "CNTRLPLANE-4848",
 	"openshift-vsphere-infra":        "CNTRLPLANE-4848",
+	// caught outside testing - these namespaces set
+	// security.openshift.io/scc.podSecurityLabelSync = true
+	"openshift-kube-descheduler-operator":           "CNTRLPLANE-4987",
+	"openshift-run-once-duration-override-operator": "CNTRLPLANE-4988",
 }
 
 // microshiftExceptedNamespaces covers namespaces MicroShift ships its own manifests
@@ -106,16 +112,32 @@ func generateTestCase(namespace corev1.Namespace, isMicroShift bool, isHyperShif
 
 	problems := []string{}
 	for _, key := range []string{psapi.EnforceLevelLabel, psapi.AuditLevelLabel, psapi.WarnLevelLabel} {
-		if _, ok := namespace.Labels[key]; !ok {
+		labelVal, ok := namespace.Labels[key]
+		if !ok {
 			problems = append(problems, fmt.Sprintf("%s is not set", key))
+			continue
+		}
+		if labelVal != "restricted" {
+			problems = append(problems, fmt.Sprintf("%s should be set to restricted, observed value was %s",
+				key, labelVal))
 		}
 	}
 
 	// The syncer opt-in becomes a no-op once the syncer is disabled, so it has to be
 	// cleaned up rather than left behind as a false signal.
 	sccPsaLabelSyncPrefix := "security.openshift.io/scc.podSecurityLabelSync"
-	if _, ok := namespace.Labels[sccPsaLabelSyncPrefix]; ok {
-		problems = append(problems, fmt.Sprintf("%s is set and needs to be removed", sccPsaLabelSyncPrefix))
+	sccPsaLabelSyncValue := namespace.Labels[sccPsaLabelSyncPrefix]
+	if sccPsaLabelSyncValue == "false" {
+		problems = append(problems, fmt.Sprintf("%s is set to %s and needs to be removed", sccPsaLabelSyncPrefix, sccPsaLabelSyncValue))
+	}
+
+	// We must flag when sccPsaLabelSyncValue is true, as urgent.
+	// Even if pod-security.kubernetes.io/enforce is set, the PSa
+	// label syncer will override these values.
+	// ** Before the PSa label syncer is disabled, these exceptions
+	// must be dealt with to avoid unexpected workload failures. **
+	if sccPsaLabelSyncValue == "true" {
+		problems = append(problems, fmt.Sprintf("[URGENT] %s is set to %s and needs to be removed", sccPsaLabelSyncPrefix, sccPsaLabelSyncValue))
 	}
 
 	if len(problems) == 0 {
@@ -187,6 +209,17 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) CollectData(ctx context.Co
 		if ns.GenerateName != "" {
 			continue
 		}
+
+		podList, err := n.kubeClient.CoreV1().Pods(ns.Name).List(ctx, metav1.ListOptions{})
+
+		if err != nil {
+			return nil, nil, err
+		}
+		// We can ignore namespaces with no workloads
+		if len(podList.Items) == 0 {
+			continue
+		}
+
 		// Annotated namespaces are shipped to, but not created by, HyperShift.
 		isHyperShiftIncludedNamespace := ns.Annotations["include.release.openshift.io/hypershift"] == "true"
 
