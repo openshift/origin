@@ -249,7 +249,14 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		}
 	}
 
-	covered := sets.NewString()
+	return deduplicatedMirrorLines(prefix, defaultImageSets, updatedImageSets, openshiftUpdated), nil
+}
+
+// deduplicatedMirrorLines renders sorted 'oc image mirror' mapping lines from the
+// collected image sets. One source may legitimately map to several destinations,
+// so only destinations are deduplicated: each destination tag may only be
+// specified once in a mirror list.
+func deduplicatedMirrorLines(prefix string, defaultImageSets, updatedImageSets []extensions.ImageSet, openshiftUpdated map[string]string) []string {
 	coveredDestinations := sets.NewString()
 	var lines []string
 	for i := range updatedImageSets {
@@ -259,14 +266,10 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 			if from == to {
 				continue
 			}
-			if covered.Has(from) {
-				continue
-			}
 			dest := fmt.Sprintf("%s%s", prefix, to)
 			if coveredDestinations.Has(dest) {
 				continue
 			}
-			covered.Insert(from)
 			coveredDestinations.Insert(dest)
 			lines = append(lines, fmt.Sprintf("%s %s", from, dest))
 		}
@@ -276,20 +279,16 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		if from == to {
 			continue
 		}
-		if covered.Has(from) {
-			continue
-		}
 		dest := fmt.Sprintf("%s%s", prefix, to)
 		if coveredDestinations.Has(dest) {
 			continue
 		}
-		covered.Insert(from)
 		coveredDestinations.Insert(dest)
 		lines = append(lines, fmt.Sprintf("%s %s", from, dest))
 	}
 
 	sort.Strings(lines)
-	return lines, nil
+	return lines
 }
 
 // imageSetsForImage converts an image reported by an external binary into an
