@@ -183,6 +183,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	if err != nil {
 		return fmt.Errorf("failed reading origin test suites: %w", err)
 	}
+	envFlags, err := determineEnvironmentFlags(upgrade, o.DryRun)
+	if err != nil {
+		return fmt.Errorf("could not determine environment flags: %w", err)
+	}
+	tests = filterTestsByROSA(tests, envFlags)
 
 	var sharder Sharder
 	switch o.ShardStrategy {
@@ -227,10 +232,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		listContext, listContextCancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer listContextCancel()
 
-		envFlags, err := determineEnvironmentFlags(upgrade, o.DryRun)
-		if err != nil {
-			return fmt.Errorf("could not determine environment flags: %w", err)
-		}
 		logrus.WithField("flags", envFlags.String()).Infof("Determined all potential environment flags")
 
 		externalTestSpecs, err := externalBinaries.ListTests(listContext, defaultBinaryParallelism, envFlags)
@@ -818,6 +819,10 @@ func determineEnvironmentFlags(upgrade bool, dryRun bool) (extensions.Environmen
 
 	//Additional flags can only be determined if we are able to obtain the clusterState
 	if clusterState != nil {
+		if extensions.IsROSACluster(clusterState.PlatformStatus) {
+			envFlagBuilder.AddFact("product=ROSA")
+		}
+
 		upgradeType := "None"
 		if upgrade {
 			upgradeType = determineUpgradeType(clusterState.Version.Status)
