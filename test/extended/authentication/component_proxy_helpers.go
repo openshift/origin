@@ -647,13 +647,13 @@ func addIdentityProvider(ctx context.Context, oc *exutil.CLI, idp configv1.Ident
 }
 
 func verifyOAuthServerDeploymentProxyConfig(ctx context.Context, oc *exutil.CLI, expectedHTTPProxy, expectedHTTPSProxy, expectedNoProxy string, expectTrustedCAVolume bool) error {
-	proxyVerifier := component_proxy.ProxyVerifier{
-		Namespace: "openshift-authentication",
-		Name:      "oauth-openshift",
-
-		CLI:             oc,
-		PollingInterval: 10 * time.Second,
-		PollingTimeout:  5 * time.Minute,
+	proxyVerifier, err := component_proxy.NewDeploymentProxyVerifier(
+		"openshift-authentication",
+		"oauth-openshift",
+		oc,
+	)
+	if err != nil {
+		return fmt.Errorf("error on creating deployment proxy verifier: %w", err)
 	}
 
 	return proxyVerifier.AssertProxyConfig(ctx, expectedHTTPProxy, expectedHTTPSProxy, expectedNoProxy, expectTrustedCAVolume)

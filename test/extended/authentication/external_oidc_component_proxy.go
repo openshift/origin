@@ -34,41 +34,15 @@ const (
 	oauthAPIServerName                = "apiserver"
 	oauthAPIServerContainerName       = "oauth-apiserver"
 
-	// componentProxyCAMountPath mirrors the (unvendored) cluster-authentication-operator
+	// componentProxyCAMountPath mirrors the cluster-authentication-operator
 	// common.ComponentProxyCAMountPath: the directory where authentication workloads mount
 	// the proxy trustedCA ConfigMap (component_proxy.ComponentProxyCAConfigMapName).
 	componentProxyCAMountPath = "/var/config/system/configmaps/" + component_proxy.ComponentProxyCAConfigMapName
-
-	// componentProxyBaseNoProxy is a subset of the NO_PROXY entries the operator always
-	// injects; AssertProxyConfig compares NO_PROXY with superset semantics.
-	componentProxyBaseNoProxy = ".cluster.local,.svc,127.0.0.1,::1,localhost"
 )
 
 // NoProxyConfig is the empty component-proxy config used to clear spec.proxy.
-var NoProxyConfig = operatorv1.AuthenticationProxyConfig{}
-
-// ExternalOIDCComponentProxyTestsOption customizes an ExternalOIDCComponentProxyTests at
-// construction time (functional-options pattern).
-type ExternalOIDCComponentProxyTestsOption func(*ExternalOIDCComponentProxyTests) error
-
-// WithProxyVerifierPollingInterval overrides the polling interval of the proxy verifier
-// (the AssertProxyConfig/AssertNoConfig checks). It does not affect the operator-settle or
-// deployment-rollout waits.
-func WithProxyVerifierPollingInterval(interval time.Duration) ExternalOIDCComponentProxyTestsOption {
-	return func(eopt *ExternalOIDCComponentProxyTests) error {
-		eopt.proxyVerifier.PollingInterval = interval
-		return nil
-	}
-}
-
-// WithProxyVerifierPollingTimeout overrides the polling timeout of the proxy verifier
-// (the AssertProxyConfig/AssertNoConfig checks). It does not affect the operator-settle or
-// deployment-rollout waits.
-func WithProxyVerifierPollingTimeout(timeout time.Duration) ExternalOIDCComponentProxyTestsOption {
-	return func(eopt *ExternalOIDCComponentProxyTests) error {
-		eopt.proxyVerifier.PollingTimeout = timeout
-		return nil
-	}
+func NoProxyConfig() operatorv1.AuthenticationProxyConfig {
+	return operatorv1.AuthenticationProxyConfig{}
 }
 
 // ExternalOIDCComponentProxyTests groups the external-OIDC component-proxy test cases and
@@ -77,26 +51,20 @@ func WithProxyVerifierPollingTimeout(timeout time.Duration) ExternalOIDCComponen
 type ExternalOIDCComponentProxyTests struct {
 	oc                                          *exutil.CLI
 	waitForOperatorToSettleAndDeploymentRollout operator_wait.Wrapper
-	proxyVerifier                               component_proxy.ProxyVerifier
+	proxyVerifier                               component_proxy.DeploymentProxyVerifier
 }
 
 // NewExternalOIDCComponentProxyTests builds the test group for oc. It touches no cluster
 // state, so the returned error only reflects option failures.
-func NewExternalOIDCComponentProxyTests(
-	oc *exutil.CLI,
-	opts ...ExternalOIDCComponentProxyTestsOption,
-) (ExternalOIDCComponentProxyTests, error) {
-	var zero ExternalOIDCComponentProxyTests
-
-	clusterAuthenticationOperatorWaiter := operator_wait.OperatorChangesWaiter{
-		CLI:          oc,
-		OperatorName: clusterAuthenticationOperatorName,
+func NewExternalOIDCComponentProxyTests(oc *exutil.CLI) (ExternalOIDCComponentProxyTests, error) {
+	clusterAuthenticationOperatorWaiter, err := operator_wait.NewOperatorChangesWaiter(clusterAuthenticationOperatorName, oc)
+	if err != nil {
+		return ExternalOIDCComponentProxyTests{}, fmt.Errorf("error creating the authentication operator waiter: %w", err)
 	}
 
-	oauthAPIServerRolloutWaiter := operator_wait.RolloutWaiter{
-		CLI:                 oc,
-		DeploymentName:      oauthAPIServerName,
-		DeploymentNamespace: oauthAPIServerNamespace,
+	oauthAPIServerRolloutWaiter, err := operator_wait.NewRolloutWaiter(oauthAPIServerNamespace, oauthAPIServerName, oc)
+	if err != nil {
+		return ExternalOIDCComponentProxyTests{}, fmt.Errorf("error creating the oauth-apiserver rollout waiter: %w", err)
 	}
 
 	toReturn := ExternalOIDCComponentProxyTests{
@@ -108,23 +76,14 @@ func NewExternalOIDCComponentProxyTests(
 			oauthAPIServerRolloutWaiter.MutateAndWaitForDeploymentRollout,
 			clusterAuthenticationOperatorWaiter.WaitChanges,
 		),
-		proxyVerifier: component_proxy.ProxyVerifier{
-			Namespace: oauthAPIServerNamespace,
-			Name:      oauthAPIServerName,
-
-			CLI:             oc,
-			PollingInterval: 10 * time.Second,
-			PollingTimeout:  5 * time.Minute,
-		},
 	}
 
-	for _, anOpt := range opts {
-		err := anOpt(&toReturn)
-		if err != nil {
-			return zero, fmt.Errorf("setting option: %w", err)
-		}
+	proxyVerifier, err := component_proxy.NewDeploymentProxyVerifier(oauthAPIServerNamespace, oauthAPIServerName, oc)
+	if err != nil {
+		return toReturn, fmt.Errorf("error creating proxy verifier: %w", err)
 	}
 
+	toReturn.proxyVerifier = proxyVerifier
 	return toReturn, nil
 }
 
@@ -134,7 +93,7 @@ func NewExternalOIDCComponentProxyTests(
 // rollout wait would block until timeout.
 func (t ExternalOIDCComponentProxyTests) deferResetProxy() {
 	g.DeferCleanup(func(ctx context.Context) error {
-		if err := updateAuthenticationProxy(ctx, t.oc, NoProxyConfig); err != nil {
+		if err := updateAuthenticationProxy(ctx, t.oc, NoProxyConfig()); err != nil {
 			return err
 		}
 		return operator_wait.WaitForOperatorToPickUpChanges(ctx, t.oc, clusterAuthenticationOperatorName)
@@ -196,13 +155,14 @@ func (t ExternalOIDCComponentProxyTests) testExternalOIDCOperandProxyConfigurati
 
 	g.By("Verifying operator propagated proxy env vars (and trustedCA volume/mount) to the oauth-apiserver operand")
 	err = t.proxyVerifier.
-		AssertProxyConfig(ctx, "", proxyURL, componentProxyBaseNoProxy, withTrustedCA)
+		AssertProxyConfig(ctx, "", proxyURL, component_proxy.DefaultNoProxy, withTrustedCA)
 	o.Expect(err).NotTo(o.HaveOccurred(), "proxy env vars should propagate")
 }
 
 // testExternalOIDCFallbackOnProxyRemoval verifies the operand gets the proxy env vars when
-// spec.proxy is set and loses them when spec.proxy is cleared. The Squid namespace is not
-// deleted (Keycloak is co-located there); clearing the env vars is the proof.
+// spec.proxy is set and loses them when spec.proxy is cleared. The shared Squid instance
+// is not deleted to prove non-use (the tests run unordered and all share it); clearing
+// the env vars is the proof.
 func (t ExternalOIDCComponentProxyTests) testExternalOIDCFallbackOnProxyRemoval(
 	ctx context.Context,
 	proxyURL string,
@@ -219,13 +179,13 @@ func (t ExternalOIDCComponentProxyTests) testExternalOIDCFallbackOnProxyRemoval(
 
 	g.By("Verifying proxy env vars are set on the oauth-apiserver deployment")
 	err = t.proxyVerifier.
-		AssertProxyConfig(ctx, "", proxyURL, componentProxyBaseNoProxy, false)
+		AssertProxyConfig(ctx, "", proxyURL, component_proxy.DefaultNoProxy, false)
 	o.Expect(err).
 		NotTo(o.HaveOccurred(), "proxy env vars should be set")
 
 	g.By("Removing spec.proxy from Authentication CR")
 	err = t.waitForOperatorToSettleAndDeploymentRollout(ctx, func() error {
-		return updateAuthenticationProxy(ctx, t.oc, NoProxyConfig)
+		return updateAuthenticationProxy(ctx, t.oc, NoProxyConfig())
 	})
 	o.Expect(err).
 		NotTo(o.HaveOccurred(), "should remove proxy config")
@@ -279,7 +239,7 @@ func (t ExternalOIDCComponentProxyTests) testExternalOIDCOperatorDegradedOnMissi
 	assertExternalOIDCLoginGroups(ctx, t.oc, keycloakCli, externalClaimsKeycloakClientID, username, password, fmt.Sprintf("%s@payload.openshift.io", username))
 
 	g.By("Removing the proxy configuration")
-	err = updateAuthenticationProxy(ctx, t.oc, NoProxyConfig)
+	err = updateAuthenticationProxy(ctx, t.oc, NoProxyConfig())
 	o.Expect(err).
 		NotTo(o.HaveOccurred(), "should clear proxy config")
 
@@ -350,6 +310,7 @@ func (t ExternalOIDCComponentProxyTests) testExternalOIDCOperatorResyncsTrustedC
 // testExternalOIDCClaimsSourcingThroughProxy verifies that, with the proxy set, the
 // oauth-apiserver sources external groups from the Keycloak /userinfo endpoint through the
 // Squid proxy during an external-OIDC login.
+// TODO: this Squid part changes with PR 31837; adapt to its helpers when it lands.
 func (t ExternalOIDCComponentProxyTests) testExternalOIDCClaimsSourcingThroughProxy(
 	ctx context.Context,
 	keycloakCli *keycloakClient,
@@ -381,7 +342,7 @@ func (t ExternalOIDCComponentProxyTests) testExternalOIDCClaimsSourcingThroughPr
 
 	g.By("Verifying oauth-apiserver deployment has proxy env vars")
 	err = t.proxyVerifier.
-		AssertProxyConfig(ctx, "", proxyURL, componentProxyBaseNoProxy, withTrustedCA)
+		AssertProxyConfig(ctx, "", proxyURL, component_proxy.DefaultNoProxy, withTrustedCA)
 	o.Expect(err).
 		NotTo(o.HaveOccurred(), "proxy env vars should be set")
 
@@ -414,6 +375,7 @@ func (t ExternalOIDCComponentProxyTests) testExternalOIDCClaimsSourcingThroughPr
 // testExternalOIDCHotReloadCAFileChange verifies a rotated proxy CA is picked up from the
 // mounted file without rolling the oauth-apiserver Deployment: it asserts the Deployment
 // generation is unchanged across the CA rotation while login keeps working.
+// TODO: this Squid part changes with PR 31837; adapt to its helpers when it lands.
 func (t ExternalOIDCComponentProxyTests) testExternalOIDCHotReloadCAFileChange(
 	ctx context.Context,
 	keycloakCli *keycloakClient,
@@ -460,7 +422,7 @@ func (t ExternalOIDCComponentProxyTests) testExternalOIDCHotReloadCAFileChange(
 
 	g.By("Verifying oauth-apiserver deployment has proxy env vars and trustedCA volume/mount")
 	err = t.proxyVerifier.
-		AssertProxyConfig(ctx, "", httpsProxyURL, componentProxyBaseNoProxy, true)
+		AssertProxyConfig(ctx, "", httpsProxyURL, component_proxy.DefaultNoProxy, true)
 	o.Expect(err).NotTo(o.HaveOccurred(), "proxy config should be present")
 
 	g.By("Verifying login works before CA rotation")
@@ -599,6 +561,7 @@ func (t ExternalOIDCComponentProxyTests) testExternalOIDCHotReloadCAFileChange(
 // testExternalOIDCBypassNoProxyHost verifies that when spec.proxy.noProxy contains the IdP
 // host, external-OIDC login still works and the oauth-apiserver reaches Keycloak directly
 // (no Squid CONNECT for that host).
+// TODO: this Squid part changes with PR 31837; adapt to its helpers when it lands.
 func (t ExternalOIDCComponentProxyTests) testExternalOIDCBypassNoProxyHost(
 	ctx context.Context,
 	keycloakCli *keycloakClient,
@@ -632,7 +595,7 @@ func (t ExternalOIDCComponentProxyTests) testExternalOIDCBypassNoProxyHost(
 	t.deferResetProxy()
 
 	g.By("Verifying oauth-apiserver has HTTP_PROXY, HTTPS_PROXY, and NO_PROXY with the IdP host")
-	err = t.proxyVerifier.AssertProxyConfig(ctx, httpProxyURL, httpsProxyURL, componentProxyBaseNoProxy+","+hostname, true)
+	err = t.proxyVerifier.AssertProxyConfig(ctx, httpProxyURL, httpsProxyURL, component_proxy.DefaultNoProxy+","+hostname, true)
 	o.Expect(err).
 		NotTo(o.HaveOccurred(), "proxy config should include IdP in NO_PROXY")
 
@@ -822,7 +785,8 @@ func waitForTrustedCAConfigMapContent(ctx context.Context, oc *exutil.CLI, names
 }
 
 // assertNoProxyTrafficFromTo waits a settle period and then confirms the Squid access log contains
-// no CONNECT from any of the given source IPs to destHost since the given time. The settle period
+// no CONNECT from any of the given source IPs to destHost since the given time.
+// TODO: this Squid part changes with PR 31837; adapt to its helpers when it lands. The settle period
 // is part of the assertion: traffic appearing during it still fails the check.
 func assertNoProxyTrafficFromTo(ctx context.Context, oc *exutil.CLI, proxyNamespace string, sourceIPs []string, destHost string, since time.Time, settle time.Duration) error {
 	g.GinkgoHelper()

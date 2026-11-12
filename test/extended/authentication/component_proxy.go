@@ -109,6 +109,23 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 	})
 })
 
+// oauthServerRolloutChain returns the integrated-suite wait chain: the oauth-openshift
+// Deployment rollout outside the authentication operator settle (see operator_wait.Chain
+// ordering).
+// TODO: replace the constructor error handling with the Err defined in PR 31837 when it
+// lands, the same way the operator_wait and component_proxy constructors will.
+func oauthServerRolloutChain(oc *exutil.CLI) operator_wait.Wrapper {
+	g.GinkgoHelper()
+	rolloutWaiter, err := operator_wait.NewRolloutWaiter("openshift-authentication", "oauth-openshift", oc)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should create the oauth-openshift rollout waiter")
+	operatorChangesWaiter, err := operator_wait.NewOperatorChangesWaiter("authentication", oc)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should create the authentication operator waiter")
+	return operator_wait.Chain(
+		rolloutWaiter.MutateAndWaitForDeploymentRollout,
+		operatorChangesWaiter.WaitChanges,
+	)
+}
+
 func testProxyConfigPerformOIDCLogin(ctx context.Context, oc *exutil.CLI, cleanups *[]removalFunc, kcSetup *keycloakProxySetup, httpProxyURL, proxyNamespace string) {
 	g.By("Setting direct access grant for oauth flow")
 	err := enableDirectAccessGrant(kcSetup)
@@ -119,17 +136,7 @@ func testProxyConfigPerformOIDCLogin(ctx context.Context, oc *exutil.CLI, cleanu
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Setting component-scoped proxy and waiting for the OAuth server rollout")
-	err = operator_wait.Chain(
-		operator_wait.RolloutWaiter{
-			CLI:                 oc,
-			DeploymentName:      "oauth-openshift",
-			DeploymentNamespace: "openshift-authentication",
-		}.MutateAndWaitForDeploymentRollout,
-		operator_wait.OperatorChangesWaiter{
-			CLI:          oc,
-			OperatorName: "authentication",
-		}.WaitChanges,
-	)(ctx, func() error {
+	err = oauthServerRolloutChain(oc)(ctx, func() error {
 		return updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{
 			HTTPSProxy: httpProxyURL,
 		})
@@ -137,17 +144,7 @@ func testProxyConfigPerformOIDCLogin(ctx context.Context, oc *exutil.CLI, cleanu
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Registering Keycloak as OIDC IdP")
-	err = operator_wait.Chain(
-		operator_wait.RolloutWaiter{
-			CLI:                 oc,
-			DeploymentName:      "oauth-openshift",
-			DeploymentNamespace: "openshift-authentication",
-		}.MutateAndWaitForDeploymentRollout,
-		operator_wait.OperatorChangesWaiter{
-			CLI:          oc,
-			OperatorName: "authentication",
-		}.WaitChanges,
-	)(ctx, func() error {
+	err = oauthServerRolloutChain(oc)(ctx, func() error {
 		idpCleanups, err := addKeycloakOIDCIdPForProxy(ctx, oc, kcSetup)
 		*cleanups = append(*cleanups, idpCleanups...)
 		return err
@@ -191,17 +188,7 @@ func testHotReloadCAFileChange(ctx context.Context, oc *exutil.CLI, cleanups *[]
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Setting component-scoped proxy with trustedCA and waiting for the OAuth server rollout")
-	err = operator_wait.Chain(
-		operator_wait.RolloutWaiter{
-			CLI:                 oc,
-			DeploymentName:      "oauth-openshift",
-			DeploymentNamespace: "openshift-authentication",
-		}.MutateAndWaitForDeploymentRollout,
-		operator_wait.OperatorChangesWaiter{
-			CLI:          oc,
-			OperatorName: "authentication",
-		}.WaitChanges,
-	)(ctx, func() error {
+	err = oauthServerRolloutChain(oc)(ctx, func() error {
 		return updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{
 			HTTPSProxy: httpsProxyURL,
 			TrustedCA: operatorv1.AuthenticationConfigMapReference{
@@ -212,17 +199,7 @@ func testHotReloadCAFileChange(ctx context.Context, oc *exutil.CLI, cleanups *[]
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Registering Keycloak as OIDC IdP")
-	err = operator_wait.Chain(
-		operator_wait.RolloutWaiter{
-			CLI:                 oc,
-			DeploymentName:      "oauth-openshift",
-			DeploymentNamespace: "openshift-authentication",
-		}.MutateAndWaitForDeploymentRollout,
-		operator_wait.OperatorChangesWaiter{
-			CLI:          oc,
-			OperatorName: "authentication",
-		}.WaitChanges,
-	)(ctx, func() error {
+	err = oauthServerRolloutChain(oc)(ctx, func() error {
 		idpCleanups, err := addKeycloakOIDCIdPForProxy(ctx, oc, kcSetup)
 		*cleanups = append(*cleanups, idpCleanups...)
 		return err
@@ -361,17 +338,7 @@ func testBypassProxyNoProxyHost(ctx context.Context, oc *exutil.CLI, cleanups *[
 
 	keycloakHost := issuerURL.Hostname()
 	g.By("Setting component-scoped proxy with noProxy and waiting for the OAuth server rollout")
-	err = operator_wait.Chain(
-		operator_wait.RolloutWaiter{
-			CLI:                 oc,
-			DeploymentName:      "oauth-openshift",
-			DeploymentNamespace: "openshift-authentication",
-		}.MutateAndWaitForDeploymentRollout,
-		operator_wait.OperatorChangesWaiter{
-			CLI:          oc,
-			OperatorName: "authentication",
-		}.WaitChanges,
-	)(ctx, func() error {
+	err = oauthServerRolloutChain(oc)(ctx, func() error {
 		return updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{
 			HTTPProxy:  httpProxyURL,
 			HTTPSProxy: httpsProxyURL,
@@ -384,17 +351,7 @@ func testBypassProxyNoProxyHost(ctx context.Context, oc *exutil.CLI, cleanups *[
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Registering Keycloak as OIDC IdP")
-	err = operator_wait.Chain(
-		operator_wait.RolloutWaiter{
-			CLI:                 oc,
-			DeploymentName:      "oauth-openshift",
-			DeploymentNamespace: "openshift-authentication",
-		}.MutateAndWaitForDeploymentRollout,
-		operator_wait.OperatorChangesWaiter{
-			CLI:          oc,
-			OperatorName: "authentication",
-		}.WaitChanges,
-	)(ctx, func() error {
+	err = oauthServerRolloutChain(oc)(ctx, func() error {
 		idpCleanups, err := addKeycloakOIDCIdPForProxy(ctx, oc, kcSetup)
 		*cleanups = append(*cleanups, idpCleanups...)
 		return err
@@ -435,17 +392,7 @@ func testOIDCIdPThroughComponentProxy(ctx context.Context, oc *exutil.CLI, kcSet
 	if withTrustedCA {
 		proxyConfig.TrustedCA = operatorv1.AuthenticationConfigMapReference{Name: trustedCAConfigMapName}
 	}
-	err := operator_wait.Chain(
-		operator_wait.RolloutWaiter{
-			CLI:                 oc,
-			DeploymentName:      "oauth-openshift",
-			DeploymentNamespace: "openshift-authentication",
-		}.MutateAndWaitForDeploymentRollout,
-		operator_wait.OperatorChangesWaiter{
-			CLI:          oc,
-			OperatorName: "authentication",
-		}.WaitChanges,
-	)(ctx, func() error {
+	err := oauthServerRolloutChain(oc)(ctx, func() error {
 		return updateAuthenticationProxy(ctx, oc, proxyConfig)
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -457,17 +404,7 @@ func testOIDCIdPThroughComponentProxy(ctx context.Context, oc *exutil.CLI, kcSet
 	}
 
 	g.By("Registering Keycloak as OIDC IdP (operator discovers it through the proxy)")
-	err = operator_wait.Chain(
-		operator_wait.RolloutWaiter{
-			CLI:                 oc,
-			DeploymentName:      "oauth-openshift",
-			DeploymentNamespace: "openshift-authentication",
-		}.MutateAndWaitForDeploymentRollout,
-		operator_wait.OperatorChangesWaiter{
-			CLI:          oc,
-			OperatorName: "authentication",
-		}.WaitChanges,
-	)(ctx, func() error {
+	err = oauthServerRolloutChain(oc)(ctx, func() error {
 		idpCleanups, err := addKeycloakOIDCIdPForProxy(ctx, oc, kcSetup)
 		g.DeferCleanup(func(ctx context.Context) error {
 			return removeResources(ctx, idpCleanups...)
@@ -504,17 +441,7 @@ func testFallbackOnProxyRemoval(ctx context.Context, oc *exutil.CLI, cleanups *[
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Setting component-scoped proxy and waiting for the OAuth server rollout")
-	err = operator_wait.Chain(
-		operator_wait.RolloutWaiter{
-			CLI:                 oc,
-			DeploymentName:      "oauth-openshift",
-			DeploymentNamespace: "openshift-authentication",
-		}.MutateAndWaitForDeploymentRollout,
-		operator_wait.OperatorChangesWaiter{
-			CLI:          oc,
-			OperatorName: "authentication",
-		}.WaitChanges,
-	)(ctx, func() error {
+	err = oauthServerRolloutChain(oc)(ctx, func() error {
 		return updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{
 			HTTPSProxy: httpProxyURL,
 		})
@@ -522,17 +449,7 @@ func testFallbackOnProxyRemoval(ctx context.Context, oc *exutil.CLI, cleanups *[
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Registering Keycloak as OIDC IdP")
-	err = operator_wait.Chain(
-		operator_wait.RolloutWaiter{
-			CLI:                 oc,
-			DeploymentName:      "oauth-openshift",
-			DeploymentNamespace: "openshift-authentication",
-		}.MutateAndWaitForDeploymentRollout,
-		operator_wait.OperatorChangesWaiter{
-			CLI:          oc,
-			OperatorName: "authentication",
-		}.WaitChanges,
-	)(ctx, func() error {
+	err = oauthServerRolloutChain(oc)(ctx, func() error {
 		idpCleanups, err := addKeycloakOIDCIdPForProxy(ctx, oc, kcSetup)
 		g.DeferCleanup(func() error {
 			return removeResources(ctx, idpCleanups...)
@@ -542,17 +459,7 @@ func testFallbackOnProxyRemoval(ctx context.Context, oc *exutil.CLI, cleanups *[
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Removing spec.proxy from Authentication CR and waiting for the OAuth server rollout")
-	err = operator_wait.Chain(
-		operator_wait.RolloutWaiter{
-			CLI:                 oc,
-			DeploymentName:      "oauth-openshift",
-			DeploymentNamespace: "openshift-authentication",
-		}.MutateAndWaitForDeploymentRollout,
-		operator_wait.OperatorChangesWaiter{
-			CLI:          oc,
-			OperatorName: "authentication",
-		}.WaitChanges,
-	)(ctx, func() error {
+	err = oauthServerRolloutChain(oc)(ctx, func() error {
 		return updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{})
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
