@@ -25,7 +25,7 @@ specific image binaries:
 ```
 export EXTENSIONS_PAYLOAD_OVERRIDE=registry.ci.openshift.org/ocp-arm64/release-arm64:4.18.0-0.nightly-arm64-2024-11-15-135718
 export EXTENSION_BINARY_OVERRIDE_INCLUDE_TAGS=tests,hyperkube
-export EXTENSION_BINARY_OVERRIDE_HYPERKUBE=$HOME/go/src/github.com/kubernetes/kubernetes/_output/bin/k8s-tests-ext"
+export EXTENSION_BINARY_OVERRIDE_HYPERKUBE=$HOME/go/src/github.com/kubernetes/kubernetes/_output/bin/k8s-tests-ext
 ```
 
 ## Environment Variables
