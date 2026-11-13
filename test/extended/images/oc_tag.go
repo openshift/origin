@@ -4,16 +4,20 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
@@ -42,6 +46,9 @@ var _ = g.Describe("[sig-imageregistry][Feature:Image] oc tag", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = exutil.WaitForAnImageStreamTag(oc, oc.Namespace(), isName, "latest")
+		if err != nil {
+			e2e.Logf("%s", imageStreamTagImportDiagnostics(ctx, oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()), isName, "latest"))
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// check that the created image stream references the external registry
@@ -59,6 +66,9 @@ var _ = g.Describe("[sig-imageregistry][Feature:Image] oc tag", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = exutil.WaitForAnImageStreamTag(oc, oc.Namespace(), isName2, "latest")
+		if err != nil {
+			e2e.Logf("%s", imageStreamTagImportDiagnostics(ctx, oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()), isName2, "latest"))
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// check that the new image stream references the still uses the external registry
@@ -178,3 +188,50 @@ RUN touch /test-image
 		o.Expect(tags).To(o.ContainElement("copy"), "testis spec.tags should contain the tag copy")
 	})
 })
+
+func imageStreamTagImportDiagnostics(ctx context.Context, streams imagev1client.ImageStreamInterface, name, tag string) string {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	stream, err := streams.Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Sprintf("ImageStream %s:%s import diagnostics unavailable (fetch error details omitted)", name, tag)
+	}
+
+	var diagnostics strings.Builder
+	fmt.Fprintf(&diagnostics, "ImageStream %s:%s import diagnostics (messages and references omitted): generation=%d", name, tag, stream.Generation)
+	for _, specTag := range stream.Spec.Tags {
+		if specTag.Name == tag {
+			if specTag.Generation != nil {
+				fmt.Fprintf(&diagnostics, "; requested tag generation=%d", *specTag.Generation)
+			}
+			break
+		}
+	}
+	for _, statusTag := range stream.Status.Tags {
+		if statusTag.Tag != tag {
+			continue
+		}
+		fmt.Fprintf(&diagnostics, "; tag status: events=%d conditions=%d", len(statusTag.Items), len(statusTag.Conditions))
+		if len(statusTag.Items) > 0 {
+			fmt.Fprintf(&diagnostics, "; latest event generation=%d", statusTag.Items[0].Generation)
+		}
+		const maxConditions = 10
+		for conditionIndex, condition := range statusTag.Conditions {
+			if conditionIndex == maxConditions {
+				diagnostics.WriteString("; remaining conditions omitted")
+				break
+			}
+			if condition.Type != imagev1.ImportSuccess {
+				continue
+			}
+			status := corev1.ConditionUnknown
+			if condition.Status == corev1.ConditionTrue || condition.Status == corev1.ConditionFalse {
+				status = condition.Status
+			}
+			fmt.Fprintf(&diagnostics, "; ImportSuccess=%s generation=%d lastTransitionTime=%s", status, condition.Generation, condition.LastTransitionTime.UTC().Format(time.RFC3339))
+		}
+		return diagnostics.String()
+	}
+	diagnostics.WriteString("; tag status absent")
+	return diagnostics.String()
+}
