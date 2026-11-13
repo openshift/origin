@@ -202,6 +202,19 @@ func filterSSMatrix(mat *types.ComMatrix) (*types.ComMatrix, error) {
 			continue
 		}
 
+		// Skip the HyperShift node-local kube-apiserver-proxy haproxy DNS resolver
+		// sockets. The kube-apiserver-proxy static pod re-resolves the kube-apiserver
+		// backend via DNS (haproxy "resolvers" section), which keeps outbound UDP
+		// client sockets on random ephemeral ports. These are DNS client sockets, not
+		// ingress service listeners, so they have no EndpointSlice and must not be
+		// reported in the matrix diff. They are matched by their stable identity
+		// (haproxy UDP sockets on the kube-apiserver-proxy pod) rather than by port,
+		// since the port is ephemeral. The real kube-apiserver-proxy frontend is TCP
+		// and is unaffected by this filter.
+		if cd.Service == "haproxy" && cd.Protocol == "UDP" && strings.HasPrefix(cd.Pod, "kube-apiserver-proxy-") {
+			continue
+		}
+
 		res = append(res, cd)
 	}
 
