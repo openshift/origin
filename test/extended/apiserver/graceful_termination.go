@@ -11,7 +11,6 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	ote "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -152,7 +151,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 		}
 	})
 
-	g.It("API LBs follow /readyz of kube-apiserver and don't send request early", ote.Informing(), func() {
+	g.It("API LBs follow /readyz of kube-apiserver and don't send request early", func() {
 		t := g.GinkgoT()
 
 		client, err := kubernetes.NewForConfig(oc.AdminConfig())
