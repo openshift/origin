@@ -23,7 +23,7 @@ import (
 // Exercises the NRI path from CRI-O to a plugin to a workload through the
 // Kubernetes API: the plugin is a DaemonSet and the workloads are pods. The
 // scenarios map to the cases in CRI-O's test/nri.bats, see README.md.
-var _ = g.Describe("[Suite:openshift/nri][sig-node] Node Resource Interface", g.Ordered, func() {
+var _ = g.Describe("[Suite:openshift/nri][sig-node] Node Resource Interface", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLIWithoutNamespace("nri").AsAdmin()
@@ -45,11 +45,12 @@ var _ = g.Describe("[Suite:openshift/nri][sig-node] Node Resource Interface", g.
 		return annotations
 	}
 
-	g.BeforeAll(func(ctx context.Context) {
+	g.BeforeEach(func(ctx context.Context) {
 		nodeutils.SkipOnMicroShift(oc)
 
-		// The e2e framework deletes namespaces created by SetupProject after
-		// every spec, which would take the plugin down between our specs.
+		// Every spec deploys its own plugin into its own namespace: run-tests
+		// runs each spec in a separate process, so there is no setup to share
+		// and no ordering to rely on.
 		var err error
 		namespace, err = createTestNamespace(ctx, oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create the test namespace")
@@ -83,30 +84,18 @@ var _ = g.Describe("[Suite:openshift/nri][sig-node] Node Resource Interface", g.
 		}
 	})
 
-	// The framework also clears the CLI namespace after every spec.
-	g.JustBeforeEach(func() {
-		oc.SetNamespace(namespace)
-	})
-
-	g.AfterAll(func(ctx context.Context) {
+	g.AfterEach(func(ctx context.Context) {
 		deletePlugin(ctx, oc, pluginName)
 	})
 
 	g.It("enables NRI in CRI-O and registers the plugin", func(ctx context.Context) {
-		events, err := readEvents(ctx, oc, pluginName)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		_, err := waitForEvent(ctx, oc, pluginName, func(ev event) bool { return ev.Kind == "configure" })
+		o.Expect(err).NotTo(o.HaveOccurred(), "plugin never received a Configure request from CRI-O")
 
-		var configured, synced bool
-		for _, ev := range events {
-			switch ev.Kind {
-			case "configure":
-				configured = true
-			case "synchronize-pod", "synchronize-container":
-				synced = true
-			}
-		}
-		o.Expect(configured).To(o.BeTrue(), "plugin never received a Configure request from CRI-O")
-		o.Expect(synced).To(o.BeTrue(), "plugin never synchronized with CRI-O")
+		_, err = waitForEvent(ctx, oc, pluginName, func(ev event) bool {
+			return ev.Kind == "synchronize-pod" || ev.Kind == "synchronize-container"
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "plugin never synchronized with CRI-O")
 	})
 
 	g.It("relays pod and container lifecycle events to the plugin", func(ctx context.Context) {
@@ -297,7 +286,14 @@ var _ = g.Describe("[Suite:openshift/nri][sig-node] Node Resource Interface", g.
 		name := createPrivilegedDeployment(ctx, oc, noSCC, pluginImageName)
 		waitForDeploymentForbidden(ctx, oc, noSCC, name, "security context constraint")
 
-		restricted, err := createNamespace(ctx, oc, "e2e-test-nri-restricted-", nil)
+		// Only enforce is inherited from the cluster default: the privileged pod
+		// must be rejected there, but audit and warn stay off so the rejected
+		// Deployment does not trip the audit-log analyzer monitor.
+		restricted, err := createNamespace(ctx, oc, "e2e-test-nri-restricted-", map[string]string{
+			"pod-security.kubernetes.io/audit":               "privileged",
+			"pod-security.kubernetes.io/warn":                "privileged",
+			"security.openshift.io/scc.podSecurityLabelSync": "false",
+		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		g.DeferCleanup(func(ctx context.Context) {
 			deleteNamespace(ctx, oc, restricted)

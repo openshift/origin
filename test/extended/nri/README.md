@@ -39,8 +39,13 @@ opt in with `nri.openshift.io/test: "true"`:
 $ openshift-tests run openshift/nri
 ```
 
-On a cluster whose release image is not reachable with the local pull secret, add
-`--extension-local-binaries-only` to skip external test binary extraction.
+On a cluster whose release image is not reachable with the local pull secret, point
+`EXTENSION_BINARY_OVERRIDE_INCLUDE_TAGS` at origin's own `tests` extension so no
+external payload binary is extracted:
+
+```console
+$ EXTENSION_BINARY_OVERRIDE_INCLUDE_TAGS=tests openshift-tests run openshift/nri
+```
 
 `run-test` matches test names exactly, so a single case needs its full name:
 

@@ -55,9 +55,8 @@ type event struct {
 	Error       string   `json:"error,omitempty"`
 }
 
-// createTestNamespace creates the namespace the suite runs in. The e2e
-// framework deletes namespaces registered by SetupProject after every spec,
-// which would tear down the plugin between the specs of this ordered container.
+// createTestNamespace creates the namespace a spec's plugin and workloads run
+// in, with the PSA labels the privileged plugin needs.
 func createTestNamespace(ctx context.Context, oc *exutil.CLI) (string, error) {
 	return createNamespace(ctx, oc, "e2e-test-nri-", map[string]string{
 		"pod-security.kubernetes.io/enforce":             "privileged",

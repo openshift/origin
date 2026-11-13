@@ -4,8 +4,10 @@ FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.26-openshift-5.0 AS b
 WORKDIR /go/src/github.com/openshift/origin/test/extended/nri/plugin
 COPY test/extended/nri/plugin/ ./
 RUN GOFLAGS=-mod=mod go test ./... && \
-    GOFLAGS=-mod=mod CGO_ENABLED=0 go build -o /out/nri-test-plugin .
+    GOFLAGS=-mod=mod go build -o /out/nri-test-plugin .
 
-FROM scratch
+# The builder's go wrapper re-enables cgo for FIPS compliance, so the plugin is
+# dynamically linked and needs glibc at runtime.
+FROM registry.ci.openshift.org/ocp/5.0:base-rhel9
 COPY --from=builder /out/nri-test-plugin /usr/bin/nri-test-plugin
 ENTRYPOINT ["/usr/bin/nri-test-plugin"]
