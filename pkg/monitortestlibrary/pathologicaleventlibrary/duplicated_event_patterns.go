@@ -615,6 +615,19 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	newRemoveSigtermProtectionEventMatcher := newRemoveSigtermProtectionEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(newRemoveSigtermProtectionEventMatcher)
 
+	// The daemonset-controller emits SuccessfulCreate for every pod it creates, so the
+	// (combined from similar events) count grows with every node added and every rollout for the
+	// lifetime of the cluster. Serial tests that scale MachineSets or roll out daemonsets push
+	// this well past the threshold, and none of it indicates a problem. A daemonset unable to
+	// keep its pods running surfaces through other events (BackOff, FailedCreate, etc).
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "DaemonSetSuccessfulCreate",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorDaemonSetKey: regexp.MustCompile(`.+`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^SuccessfulCreate$`),
+	})
+
 	// OVN-Kuberentes EVPN e2e tests running in parallel incorrectly create
 	// multiple VTEP resources with the same CIDR. No further consequence other
 	// than the Events themselves. Will be fixed with OCPBUGS-84917
