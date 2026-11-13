@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -252,6 +253,13 @@ func runTestsUntilDone(ctx context.Context, scheduler TestScheduler, testSuiteRu
 
 // tests are currently being mutated during the run process.
 func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase, parallelism int, testOutput testOutputConfig, maybeAbortOnFailureFn testAbortFunc) {
+	q.ExecuteWithStagger(ctx, tests, parallelism, testOutput, maybeAbortOnFailureFn, 0)
+}
+
+// ExecuteWithStagger is like Execute but staggers the start of parallel workers by the given
+// duration per worker. This smooths out the initial burst of test setup (namespace creation,
+// RBAC bindings, etc.) that can overwhelm the apiserver on small control plane nodes.
+func (q *parallelByFileTestQueue) ExecuteWithStagger(ctx context.Context, tests []*testCase, parallelism int, testOutput testOutputConfig, maybeAbortOnFailureFn testAbortFunc, workerStagger time.Duration) {
 	testSuiteProgress := newTestSuiteProgress(len(tests))
 	testSuiteRunner := &testSuiteRunnerImpl{
 		commandContext:        q.commandContext,
@@ -260,11 +268,11 @@ func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase
 		maybeAbortOnFailureFn: maybeAbortOnFailureFn,
 	}
 
-	execute(ctx, testSuiteRunner, tests, parallelism)
+	execute(ctx, testSuiteRunner, tests, parallelism, workerStagger)
 }
 
 // execute is a convenience for unit testing
-func execute(ctx context.Context, testSuiteRunner testSuiteRunner, tests []*testCase, parallelism int) {
+func execute(ctx context.Context, testSuiteRunner testSuiteRunner, tests []*testCase, parallelism int, workerStagger time.Duration) {
 	if ctx.Err() != nil {
 		return
 	}
@@ -283,10 +291,20 @@ func execute(ctx context.Context, testSuiteRunner testSuiteRunner, tests []*test
 		// Each worker polls the scheduler for the next runnable test in order
 		for i := 0; i < parallelism; i++ {
 			wg.Add(1)
-			go func(ctx context.Context) {
+			go func(ctx context.Context, workerID int) {
 				defer wg.Done()
+				// Stagger worker starts to smooth out the initial burst of test
+				// setup (namespace + RBAC creation) that can saturate the apiserver
+				// CPU on small control plane nodes.
+				if workerStagger > 0 && workerID > 0 {
+					select {
+					case <-time.After(time.Duration(workerID) * workerStagger):
+					case <-ctx.Done():
+						return
+					}
+				}
 				runTestsUntilDone(ctx, scheduler, testSuiteRunner)
-			}(ctx)
+			}(ctx, i)
 		}
 
 		wg.Wait()
