@@ -32,6 +32,19 @@ const (
 	// vpaOperatorNamespace is the namespace the VPA operator is expected to run in.
 	vpaOperatorNamespace = "openshift-vertical-pod-autoscaler"
 
+	// croOperatorLabelKey / croOperatorLabelValue identify the CRO operator pod.
+	croOperatorLabelKey   = "clusterresourceoverride.operator"
+	croOperatorLabelValue = "true"
+	// croOperatorNamespace is the namespace the CRO operator is expected to run in.
+	croOperatorNamespace = "openshift-cluster-resource-override"
+
+	// cmaOperatorLabelKey / cmaOperatorLabelValue identify the CMA operator pod.
+	cmaOperatorLabelKey   = "name"
+	cmaOperatorLabelValue = "custom-metrics-autoscaler-operator"
+
+	// cmaOperatorNamespace is the namespace the CMA operator is expected to run in.
+	cmaOperatorNamespace = "openshift-keda"
+
 	// standaloneEnvVar is the environment variable checked at start-up.
 	// It is injected by the downward API and reflects the namespace the
 	// kube-apiserver pod runs in.
@@ -93,14 +106,56 @@ func (p *nodeSelectorAdjuster) ValidateInitialization() error {
 
 // requiresNodeSelectorAdjustment returns true when the pod carries a label that
 // opts it in to control-plane node placement and lives in a namespace where that
-// label is expected. Currently the VPA operator pod opts in via its well-known
-// label. Future control-plane-adjacent Day 2 operators can be added here.
+// label is expected. Control-plane-adjacent Day 2 operators can be added here.
 func requiresNodeSelectorAdjustment(pod *coreapi.Pod) bool {
+	// for VPA, we only want to update if the node selector is the default from
+	// https://github.com/openshift/vertical-pod-autoscaler-operator/blob/main/config/manager/manager.yaml
 	if pod.Labels[vpaOperatorLabelKey] == vpaOperatorLabelValue &&
-		pod.Namespace == vpaOperatorNamespace {
+		pod.Namespace == vpaOperatorNamespace && len(pod.Spec.NodeSelector) == 1 &&
+		pod.Spec.NodeSelector["kubernetes.io/os"] == "linux" {
 		return true
 	}
+	// for CRO, we only want to update if the node selector empty
+	if pod.Labels[croOperatorLabelKey] == croOperatorLabelValue &&
+		pod.Namespace == croOperatorNamespace && len(pod.Spec.NodeSelector) == 0 {
+		return true
+	}
+	// for CMA, we want to update if the node selector is empty
+	// and if it has a toleration that would tolerate the master NoSchedule taint
+	if pod.Labels[cmaOperatorLabelKey] == cmaOperatorLabelValue &&
+		pod.Namespace == cmaOperatorNamespace && len(pod.Spec.NodeSelector) == 0 {
+		masterTaint := coreapi.Taint{
+			Key:    "node-role.kubernetes.io/master",
+			Effect: coreapi.TaintEffectNoSchedule,
+		}
+		for _, tol := range pod.Spec.Tolerations {
+			if toleratesTaint(tol, masterTaint) {
+				return true
+			}
+		}
+	}
 	return false
+}
+
+// toleratesTaint checks if a toleration tolerates a given taint, following the
+// same rules as corev1.Toleration.ToleratesTaint: an empty effect matches all
+// effects, the Exists operator matches any value, and an empty key with Exists
+// matches all keys.
+func toleratesTaint(tol coreapi.Toleration, taint coreapi.Taint) bool {
+	if len(tol.Effect) > 0 && tol.Effect != taint.Effect {
+		return false
+	}
+	if len(tol.Key) > 0 && tol.Key != taint.Key {
+		return false
+	}
+	switch tol.Operator {
+	case "", coreapi.TolerationOpEqual:
+		return tol.Value == taint.Value
+	case coreapi.TolerationOpExists:
+		return true
+	default:
+		return false
+	}
 }
 
 // addControlPlaneNodeSelector ensures spec.nodeSelector contains the control-plane role key.

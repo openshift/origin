@@ -606,6 +606,10 @@ func buildControllerRoles() ([]rbacv1.ClusterRole, []rbacv1.ClusterRoleBinding) 
 				rbacv1helpers.NewRule("get", "list", "watch").Groups(legacyGroup).Resources("persistentvolumeclaims").RuleOrDie(),
 				rbacv1helpers.NewRule("get", "list", "watch").Groups(legacyGroup).Resources("pods").RuleOrDie(),
 				rbacv1helpers.NewRule("get", "list", "watch").Groups(storageGroup).Resources("csidrivers").RuleOrDie(),
+				// RBAC cannot restrict `create` by resourceName, so adding a generic rule to allow creation of any ConfigMap
+				rbacv1helpers.NewRule("create").Groups(legacyGroup).Resources("configmaps").RuleOrDie(),
+				// ... and allow patching only of the selinux-conflicts ConfigMap
+				rbacv1helpers.NewRule("patch").Groups(legacyGroup).Resources("configmaps").Names("selinux-conflicts").RuleOrDie(),
 			},
 		})
 	}
