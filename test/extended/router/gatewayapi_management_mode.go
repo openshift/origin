@@ -66,7 +66,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		// Check platform support and skip conditions
 		noOLM, err := isNoOLMFeatureGateEnabled(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		skip, reason, err := shouldSkipGatewayAPITests(oc, noOLM)
+		skip, reason, err := shouldSkipGatewayAPIManagementModeTests(oc, noOLM)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if skip {
 			g.Skip(reason)
