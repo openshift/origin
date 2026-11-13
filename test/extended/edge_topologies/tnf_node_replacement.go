@@ -212,6 +212,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 		node, err := oc.AdminKubeClient().CoreV1().Nodes().Get(nodeGetCtx, testConfig.TargetNode.Name, metav1.GetOptions{})
 		nodeGetCancel()
 		o.Expect(err).To(o.BeNil(), "Expected to get replacement Node %s after Machine has nodeRef", testConfig.TargetNode.Name)
+		o.Expect(testConfig.Execution.PreReplacementNodeUID).NotTo(o.BeEmpty())
+		o.Expect(string(node.UID)).NotTo(o.Equal(testConfig.Execution.PreReplacementNodeUID), "Replacement must create a new Node identity")
 		nodeCreatedTime := node.CreationTimestamp.Time
 		e2e.Logf("Replacement Node %s created at %v (will use as minimum pod creation time for update-setup job)", testConfig.TargetNode.Name, nodeCreatedTime.UTC())
 
