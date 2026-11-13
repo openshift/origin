@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 	k8simage "k8s.io/kubernetes/test/utils/image"
@@ -124,6 +125,12 @@ type imagesOptions struct {
 	LogLevel            string
 }
 
+// imageMapping pairs an image with its mirror destination.
+type imageMapping struct {
+	original k8simage.Config
+	updated  k8simage.Config
+}
+
 // createImageMirrorForInternalImages returns a list of 'oc image mirror' mappings from source to
 // target or returns an error. If mirrored is true the images are assumed to have already been copied
 // from their upstream location into our official mirror, in the REPO:TAG format where TAG is a hash
@@ -131,155 +138,190 @@ type imagesOptions struct {
 // be set to mirror the location as defined in the test code into our official mirror, where the target
 // TAG is the hash described above.
 func createImageMirrorForInternalImages(prefix string, ref reference.DockerImageReference, mirrored bool) ([]string, error) {
-	source := ref.Exact()
-
-	initialImageSets := []extensions.ImageSet{
-		k8simage.GetOriginalImageConfigs(),
+	mappings, err := collectImageMappings(ref)
+	if err != nil {
+		return nil, err
 	}
+	mappings = applyExceptions(mappings, image.Exceptions.List())
 
-	// If ENV is not set, the list of images should come from external binaries
-	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
-		// Extract all test binaries
-		extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
-		defer extractionContextCancel()
-		cleanUpFn, externalBinaries, _, err := extensions.ExtractAllTestBinaries(extractionContext, 10, nil, false)
-		if err != nil {
-			return nil, err
-		}
-		defer cleanUpFn()
-
-		// List test images from all available binaries
-		listContext, listContextCancel := context.WithTimeout(context.Background(), time.Minute)
-		defer listContextCancel()
-		imageSetsFromBinaries, err := externalBinaries.ListImages(listContext, 10)
-		if err != nil {
-			return nil, err
-		}
-		if len(imageSetsFromBinaries) == 0 {
-			return nil, fmt.Errorf("no test images were reported by external binaries")
-		}
-		initialImageSets = imageSetsFromBinaries
-	}
-
-	// Take the initial images coming from external binaries and remove any exceptions that might exist.
-	exceptions := image.Exceptions.List()
-	defaultImageSets := []extensions.ImageSet{}
-	for i := range initialImageSets {
-		filtered := extensions.ImageSet{}
-		for imageID, imageConfig := range initialImageSets[i] {
-			if !slices.ContainsFunc(exceptions, func(e string) bool {
-				return strings.Contains(imageConfig.GetE2EImage(), e)
-			}) {
-				filtered[imageID] = imageConfig
-			}
-		}
-		if len(filtered) > 0 {
-			defaultImageSets = append(defaultImageSets, filtered)
-		}
-	}
-
-	// Created a new slice with the updatedImageSets addresses for the images
-	updatedImageSets := []extensions.ImageSet{}
-	for i := range defaultImageSets {
-		updatedImageSets = append(updatedImageSets, k8simage.GetMappedImageConfigs(defaultImageSets[i], ref.Exact()))
-	}
-
-	openshiftDefaults := image.OriginalImages()
-	openshiftUpdated := image.GetMappedImages(openshiftDefaults, imagesetup.DefaultTestImageMirrorLocation)
-
-	// if we've mirrored, then the source is going to be our repo, not upstream's
+	openshiftUpdated := image.GetMappedImages(image.OriginalImages(), imagesetup.DefaultTestImageMirrorLocation)
 	if mirrored {
-		baseRef, err := reference.Parse(imagesetup.DefaultTestImageMirrorLocation)
+		// if we've mirrored, then the source is going to be our repo, not upstream's
+		mappings, openshiftUpdated, err = remapSourcesToCommunityMirror(mappings, ref.Exact())
 		if err != nil {
-			return nil, fmt.Errorf("invalid default mirror location: %v", err)
-		}
-
-		// calculate the mapping of upstream images by setting defaults to baseRef
-		covered := sets.NewString()
-		for i := range updatedImageSets {
-			for imageID, imageConfig := range updatedImageSets[i] {
-				defaultConfig := defaultImageSets[i][imageID]
-				pullSpec := imageConfig.GetE2EImage()
-				if pullSpec == defaultConfig.GetE2EImage() {
-					continue
-				}
-				if covered.Has(pullSpec) {
-					continue
-				}
-				covered.Insert(pullSpec)
-				e2eRef, err := reference.Parse(pullSpec)
-				if err != nil {
-					return nil, fmt.Errorf("invalid test image: %s: %v", pullSpec, err)
-				}
-				if len(e2eRef.Tag) == 0 {
-					return nil, fmt.Errorf("invalid test image: %s: no tag", pullSpec)
-				}
-				imageConfig.SetRegistry(baseRef.Registry)
-				imageConfig.SetName(baseRef.RepositoryName())
-				imageConfig.SetVersion(e2eRef.Tag)
-				defaultImageSets[i][imageID] = imageConfig
-			}
-		}
-
-		// calculate the mapping for openshift images by populating openshiftUpdated
-		openshiftUpdated = make(map[string]string)
-		sourceMappings := image.GetMappedImages(openshiftDefaults, imagesetup.DefaultTestImageMirrorLocation)
-		targetMappings := image.GetMappedImages(openshiftDefaults, source)
-
-		for from, to := range targetMappings {
-			if from == to {
-				continue
-			}
-			if covered.Has(to) {
-				continue
-			}
-			covered.Insert(to)
-			from := sourceMappings[from]
-			openshiftUpdated[from] = to
+			return nil, err
 		}
 	}
 
+	return deduplicatedMirrorLines(prefix, mappings, openshiftUpdated), nil
+}
+
+// collectImageMappings gathers the original/mapped image pairs required by the
+// test suite. Images come from external binaries, or from the vendored
+// Kubernetes image list when OPENSHIFT_SKIP_EXTERNAL_TESTS is set.
+func collectImageMappings(ref reference.DockerImageReference) ([]imageMapping, error) {
+	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) > 0 {
+		originals := k8simage.GetOriginalImageConfigs()
+		updated := k8simage.GetMappedImageConfigs(originals, ref.Exact())
+		var mappings []imageMapping
+		for id, original := range originals {
+			mappings = append(mappings, imageMapping{original: original, updated: updated[id]})
+		}
+		return mappings, nil
+	}
+
+	// Extract all test binaries
+	extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	defer extractionContextCancel()
+	cleanUpFn, externalBinaries, _, err := extensions.ExtractAllTestBinaries(extractionContext, 10, nil, false)
+	if err != nil {
+		return nil, err
+	}
+	defer cleanUpFn()
+
+	// List test images from all available binaries
+	listContext, listContextCancel := context.WithTimeout(context.Background(), time.Minute)
+	defer listContextCancel()
+	imagesFromBinaries, err := externalBinaries.ListImages(listContext, 10)
+	if err != nil {
+		return nil, err
+	}
+	if len(imagesFromBinaries) == 0 {
+		return nil, fmt.Errorf("no test images were reported by external binaries")
+	}
+
+	var mappings []imageMapping
+	for _, img := range imagesFromBinaries {
+		mappings = append(mappings, imageSetsForImage(img, ref))
+	}
+	return mappings, nil
+}
+
+// applyExceptions drops mappings whose original image matches an exception.
+func applyExceptions(mappings []imageMapping, exceptions []string) []imageMapping {
+	filtered := make([]imageMapping, 0, len(mappings))
+	for _, m := range mappings {
+		if !slices.ContainsFunc(exceptions, func(e string) bool {
+			return strings.Contains(m.original.GetE2EImage(), e)
+		}) {
+			filtered = append(filtered, m)
+		}
+	}
+	return filtered
+}
+
+// remapSourcesToCommunityMirror rewrites the source of already-mirrored images
+// from their upstream location to the community mirror (keeping the mapped
+// tag), and computes the mappings for the static Origin images.
+func remapSourcesToCommunityMirror(mappings []imageMapping, source string) ([]imageMapping, map[string]string, error) {
+	baseRef, err := reference.Parse(imagesetup.DefaultTestImageMirrorLocation)
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid default mirror location: %v", err)
+	}
+
+	// Rewrite each mapping's source to the community mirror; every
+	// destination tag is only processed once.
 	covered := sets.NewString()
-	coveredDestinations := sets.NewString()
-	var lines []string
-	for i := range updatedImageSets {
-		for imageID := range updatedImageSets[i] {
-			a, b := defaultImageSets[i][imageID], updatedImageSets[i][imageID]
-			from, to := a.GetE2EImage(), b.GetE2EImage()
-			if from == to {
-				continue
-			}
-			if covered.Has(from) {
-				continue
-			}
-			dest := fmt.Sprintf("%s%s", prefix, to)
-			if coveredDestinations.Has(dest) {
-				continue
-			}
-			covered.Insert(from)
-			coveredDestinations.Insert(dest)
-			lines = append(lines, fmt.Sprintf("%s %s", from, dest))
+	for i, m := range mappings {
+		pullSpec := m.updated.GetE2EImage()
+		if pullSpec == m.original.GetE2EImage() {
+			continue
 		}
+		if covered.Has(pullSpec) {
+			continue
+		}
+		covered.Insert(pullSpec)
+		e2eRef, err := reference.Parse(pullSpec)
+		if err != nil {
+			return nil, nil, fmt.Errorf("invalid test image: %s: %v", pullSpec, err)
+		}
+		if len(e2eRef.Tag) == 0 {
+			return nil, nil, fmt.Errorf("invalid test image: %s: no tag", pullSpec)
+		}
+		m.original.SetRegistry(baseRef.Registry)
+		m.original.SetName(baseRef.RepositoryName())
+		m.original.SetVersion(e2eRef.Tag)
+		mappings[i] = m
 	}
 
-	for from, to := range openshiftUpdated {
+	// calculate the mapping for openshift images
+	openshiftDefaults := image.OriginalImages()
+	openshiftUpdated := make(map[string]string)
+	sourceMappings := image.GetMappedImages(openshiftDefaults, imagesetup.DefaultTestImageMirrorLocation)
+	targetMappings := image.GetMappedImages(openshiftDefaults, source)
+
+	for from, to := range targetMappings {
 		if from == to {
 			continue
 		}
-		if covered.Has(from) {
+		if covered.Has(to) {
+			continue
+		}
+		covered.Insert(to)
+		openshiftUpdated[sourceMappings[from]] = to
+	}
+
+	return mappings, openshiftUpdated, nil
+}
+
+// deduplicatedMirrorLines renders sorted 'oc image mirror' mapping lines from the
+// collected mappings. One source may legitimately map to several destinations,
+// so only destinations are deduplicated: each destination tag may only be
+// specified once in a mirror list.
+func deduplicatedMirrorLines(prefix string, mappings []imageMapping, openshiftUpdated map[string]string) []string {
+	coveredDestinations := sets.NewString()
+	var lines []string
+	for _, m := range mappings {
+		from, to := m.original.GetE2EImage(), m.updated.GetE2EImage()
+		if from == to {
 			continue
 		}
 		dest := fmt.Sprintf("%s%s", prefix, to)
 		if coveredDestinations.Has(dest) {
 			continue
 		}
-		covered.Insert(from)
+		coveredDestinations.Insert(dest)
+		lines = append(lines, fmt.Sprintf("%s %s", from, dest))
+	}
+
+	for from, to := range openshiftUpdated {
+		if from == to {
+			continue
+		}
+		dest := fmt.Sprintf("%s%s", prefix, to)
+		if coveredDestinations.Has(dest) {
+			continue
+		}
 		coveredDestinations.Insert(dest)
 		lines = append(lines, fmt.Sprintf("%s %s", from, dest))
 	}
 
 	sort.Strings(lines)
-	return lines, nil
+	return lines
+}
+
+// imageSetsForImage converts an image reported by an external binary into an
+// original/mapped pair. When the binary reports a Mapped tag, that tag is
+// preferred over the locally computed mapping and is retargeted to the
+// requested repository.
+func imageSetsForImage(img extension.Image, ref reference.DockerImageReference) imageMapping {
+	original := k8simage.Config{}
+	original.SetName(img.Name)
+	original.SetVersion(img.Version)
+	original.SetRegistry(img.Registry)
+
+	if img.Mapped == nil {
+		id := k8simage.ImageID(img.Index)
+		updated := k8simage.GetMappedImageConfigs(map[k8simage.ImageID]k8simage.Config{id: original}, ref.Exact())
+		return imageMapping{original: original, updated: updated[id]}
+	}
+
+	// Use the binary's tag, but retarget it to the requested repository.
+	updated := k8simage.Config{}
+	updated.SetRegistry(ref.Registry)
+	updated.SetName(ref.RepositoryName())
+	updated.SetVersion(img.Mapped.Version)
+	return imageMapping{original: original, updated: updated}
 }
 
 // extractSourceImages extracts source images from mirror list lines.

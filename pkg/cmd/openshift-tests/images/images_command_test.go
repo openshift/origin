@@ -1,26 +1,24 @@
 package images
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/openshift/library-go/pkg/image/reference"
-	"github.com/openshift/origin/pkg/test/extensions"
 )
 
 func TestCreateImageMirrorDeduplicatesByDestination(t *testing.T) {
-	// This test verifies that when multiple image sets contain images with
-	// DIFFERENT sources that map to the SAME destination tag, only the first
-	// one is included in the output. This prevents 'oc image mirror' from
-	// rejecting the mirror file with "each destination tag may only be
-	// specified once".
+	// This test verifies that when multiple mappings have DIFFERENT sources
+	// that map to the SAME destination tag, only the first one is included
+	// in the output. This prevents 'oc image mirror' from rejecting the
+	// mirror file with "each destination tag may only be specified once".
 	//
-	// Using distinct sources is critical: identical sources are already caught
-	// by the source-based dedup (covered[from]), so they would not exercise
-	// the destination-based dedup path at all.
+	// Using distinct sources is critical: identical sources may now map to
+	// different destinations, so only the destination dedup can suppress
+	// the duplicate.
 
 	ref, err := reference.Parse("quay.io/test/repo")
 	if err != nil {
@@ -29,7 +27,7 @@ func TestCreateImageMirrorDeduplicatesByDestination(t *testing.T) {
 
 	imageID := k8simage.ImageID(9999)
 
-	// Source for set 2: the upstream image.
+	// Source for mapping 2: the upstream image.
 	upstreamConfig := k8simage.Config{}
 	upstreamConfig.SetRegistry("registry.k8s.io")
 	upstreamConfig.SetName("e2e-test-images/agnhost")
@@ -37,11 +35,11 @@ func TestCreateImageMirrorDeduplicatesByDestination(t *testing.T) {
 
 	// Map the upstream config to derive the canonical destination.
 	mappedSet := k8simage.GetMappedImageConfigs(
-		extensions.ImageSet{imageID: upstreamConfig}, ref.Exact(),
+		map[k8simage.ImageID]k8simage.Config{imageID: upstreamConfig}, ref.Exact(),
 	)
 	destConfig := mappedSet[imageID]
 
-	// Source for set 1: a DIFFERENT source image (simulating a pre-mapped
+	// Source for mapping 1: a DIFFERENT source image (simulating a pre-mapped
 	// community mirror that resolves to the same destination tag).
 	communityConfig := k8simage.Config{}
 	communityConfig.SetRegistry("quay.io")
@@ -54,20 +52,14 @@ func TestCreateImageMirrorDeduplicatesByDestination(t *testing.T) {
 		t.Fatalf("test setup error: sources must differ but both are %q", from1)
 	}
 
-	// defaultImageSets: two sets with different sources.
-	defaultImageSets := []extensions.ImageSet{
-		{imageID: communityConfig},
-		{imageID: upstreamConfig},
-	}
-
-	// updatedImageSets: both map to the SAME destination.
-	updatedImageSets := []extensions.ImageSet{
-		{imageID: destConfig},
-		{imageID: destConfig},
+	// Both mappings resolve to the SAME destination.
+	mappings := []imageMapping{
+		{original: communityConfig, updated: destConfig},
+		{original: upstreamConfig, updated: destConfig},
 	}
 
 	dest := destConfig.GetE2EImage()
-	lines := deduplicatedMirrorLines("", defaultImageSets, updatedImageSets, nil)
+	lines := deduplicatedMirrorLines("", mappings, nil)
 
 	// Count how many times the destination appears.
 	destCount := 0
@@ -100,22 +92,21 @@ func TestCreateImageMirrorDeduplicatesOpenshiftUpdatedByDestination(t *testing.T
 	sourceConfig.SetName("e2e-test-images/agnhost")
 	sourceConfig.SetVersion("2.63.0")
 
-	defaultSet := extensions.ImageSet{imageID: sourceConfig}
-	defaultImageSets := []extensions.ImageSet{defaultSet}
-
-	updatedSet := k8simage.GetMappedImageConfigs(defaultSet, ref.Exact())
-	updatedImageSets := []extensions.ImageSet{updatedSet}
+	updatedSet := k8simage.GetMappedImageConfigs(
+		map[k8simage.ImageID]k8simage.Config{imageID: sourceConfig}, ref.Exact(),
+	)
+	mappings := []imageMapping{{original: sourceConfig, updated: updatedSet[imageID]}}
 
 	cfg := updatedSet[imageID]
 	destTag := cfg.GetE2EImage()
 
 	// Create an openshiftUpdated entry with a DIFFERENT source but the SAME
-	// destination as the image in updatedImageSets.
+	// destination as the mapping above.
 	openshiftUpdated := map[string]string{
 		"quay.io/openshift/community-e2e-images:different-source": destTag,
 	}
 
-	lines := deduplicatedMirrorLines("", defaultImageSets, updatedImageSets, openshiftUpdated)
+	lines := deduplicatedMirrorLines("", mappings, openshiftUpdated)
 
 	// Count destination occurrences
 	destCount := 0
@@ -131,49 +122,137 @@ func TestCreateImageMirrorDeduplicatesOpenshiftUpdatedByDestination(t *testing.T
 	}
 }
 
-// deduplicatedMirrorLines extracts the output loop logic from
-// createImageMirrorForInternalImages for testability. It applies the same
-// source-based AND destination-based deduplication used in production.
-func deduplicatedMirrorLines(prefix string, defaultImageSets, updatedImageSets []extensions.ImageSet, openshiftUpdated map[string]string) []string {
-	covered := make(map[string]bool)
-	coveredDestinations := make(map[string]bool)
-	var lines []string
-
-	for i := range updatedImageSets {
-		for imageID := range updatedImageSets[i] {
-			a, b := defaultImageSets[i][imageID], updatedImageSets[i][imageID]
-			from, to := a.GetE2EImage(), b.GetE2EImage()
-			if from == to {
-				continue
-			}
-			if covered[from] {
-				continue
-			}
-			dest := fmt.Sprintf("%s%s", prefix, to)
-			if coveredDestinations[dest] {
-				continue
-			}
-			covered[from] = true
-			coveredDestinations[dest] = true
-			lines = append(lines, fmt.Sprintf("%s %s", from, dest))
-		}
+func TestImageSetsForImageOverlappingIndexes(t *testing.T) {
+	ref, err := reference.Parse("private.example.com/tests/images")
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	for from, to := range openshiftUpdated {
-		if from == to {
-			continue
-		}
-		if covered[from] {
-			continue
-		}
-		dest := fmt.Sprintf("%s%s", prefix, to)
-		if coveredDestinations[dest] {
-			continue
-		}
-		covered[from] = true
-		coveredDestinations[dest] = true
-		lines = append(lines, fmt.Sprintf("%s %s", from, dest))
+	for _, tc := range []struct {
+		name string
+		tags []string
+	}{
+		{name: "fallback tags", tags: []string{"", "", "", ""}},
+		{name: "mixed reported and fallback tags", tags: []string{"agnhost-tag", "fedora-tag", "", ""}},
+		{name: "reported tags", tags: []string{"agnhost-tag", "fedora-tag", "netshoot-tag", "pause-tag"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// The first three records are from the OVN binary; pause is from CSO.
+			images := []extension.Image{
+				{Index: 2, Registry: "registry.k8s.io", Name: "e2e-test-images/agnhost", Version: "2.63.0"},
+				{Index: 0, Registry: "quay.io", Name: "kubevirt/fedora-with-test-tooling-container-disk", Version: "v1.8.2"},
+				{Index: 0, Registry: "ghcr.io", Name: "nicolaka/netshoot", Version: "v0.16"},
+				{Index: 0, Registry: "k8s.gcr.io", Name: "pause", Version: "3.2"},
+			}
+			for i, tag := range tc.tags {
+				if tag != "" {
+					images[i].Mapped = &extension.Image{Version: tag}
+				}
+			}
+			for _, order := range [][]int{{0, 1, 2, 3}, {3, 2, 1, 0}} {
+				var mappings []imageMapping
+				wantLines := map[string]bool{}
+				for _, i := range order {
+					m := imageSetsForImage(images[i], ref)
+					mappings = append(mappings, m)
+
+					source := images[i].Registry + "/" + images[i].Name + ":" + images[i].Version
+					if m.original.GetE2EImage() != source {
+						t.Fatalf("unexpected original: %s, want %s", m.original.GetE2EImage(), source)
+					}
+					id := k8simage.ImageID(images[i].Index)
+					fallback := k8simage.GetMappedImageConfigs(
+						map[k8simage.ImageID]k8simage.Config{id: m.original}, ref.Exact())[id]
+					dest := fallback.GetE2EImage()
+					if tc.tags[i] != "" {
+						dest = ref.Exact() + ":" + tc.tags[i]
+					}
+					wantLines[source+" "+dest] = true
+				}
+				lines := deduplicatedMirrorLines("", mappings, nil)
+				if len(lines) != len(images) {
+					t.Fatalf("got %d mirror lines, want %d:\n%s", len(lines), len(images), strings.Join(lines, "\n"))
+				}
+				for _, line := range lines {
+					if !wantLines[line] {
+						t.Errorf("unexpected mirror line: %s", line)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestCreateImageMirrorKeepsDistinctDestinationsForSameSource(t *testing.T) {
+	// Multiple extensions can report the same upstream image but require
+	// different mirror tags (e.g. their mapping tools generated different
+	// tags). Every required destination must be emitted; deduplication is by
+	// destination only.
+	ref, err := reference.Parse("quay.io/test/repo")
+	if err != nil {
+		t.Fatalf("failed to parse reference: %v", err)
 	}
 
-	return lines
+	sourceConfig := k8simage.Config{}
+	sourceConfig.SetRegistry("registry.k8s.io")
+	sourceConfig.SetName("e2e-test-images/agnhost")
+	sourceConfig.SetVersion("2.63.0")
+	source := sourceConfig.GetE2EImage()
+
+	destFor := func(tag string) k8simage.Config {
+		config := k8simage.Config{}
+		config.SetRegistry(ref.Registry)
+		config.SetName(ref.RepositoryName())
+		config.SetVersion(tag)
+		return config
+	}
+	oldTag, newTag := destFor("e2e-2-old-tag"), destFor("e2e-2-new-tag")
+
+	for _, tc := range []struct {
+		name string
+		dest []k8simage.Config
+	}{
+		{"old first", []k8simage.Config{oldTag, newTag}},
+		{"new first", []k8simage.Config{newTag, oldTag}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			mappings := []imageMapping{
+				{original: sourceConfig, updated: tc.dest[0]},
+				{original: sourceConfig, updated: tc.dest[1]},
+			}
+			lines := deduplicatedMirrorLines("", mappings, nil)
+			want := map[string]bool{
+				source + " " + oldTag.GetE2EImage(): true,
+				source + " " + newTag.GetE2EImage(): true,
+			}
+			if len(lines) != len(want) {
+				t.Fatalf("got %d mirror lines, want %d:\n%s", len(lines), len(want), strings.Join(lines, "\n"))
+			}
+			for _, line := range lines {
+				if !want[line] {
+					t.Errorf("unexpected mirror line: %s", line)
+				}
+			}
+		})
+	}
+
+	// The same rule holds when one of the mappings comes from the static
+	// openshift image path.
+	t.Run("static image path", func(t *testing.T) {
+		mappings := []imageMapping{{original: sourceConfig, updated: newTag}}
+		openshiftUpdated := map[string]string{source: oldTag.GetE2EImage()}
+		lines := deduplicatedMirrorLines("", mappings, openshiftUpdated)
+		want := map[string]bool{
+			source + " " + oldTag.GetE2EImage(): true,
+			source + " " + newTag.GetE2EImage(): true,
+		}
+		if len(lines) != len(want) {
+			t.Fatalf("got %d mirror lines, want %d:\n%s", len(lines), len(want), strings.Join(lines, "\n"))
+		}
+		for _, line := range lines {
+			if !want[line] {
+				t.Errorf("unexpected mirror line: %s", line)
+			}
+		}
+	})
 }
