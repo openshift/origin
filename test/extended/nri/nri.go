@@ -88,7 +88,8 @@ var _ = g.Describe("[Suite:openshift/nri][sig-node] Node Resource Interface", fu
 		deletePlugin(ctx, oc, pluginName)
 	})
 
-	g.It("enables NRI in CRI-O and registers the plugin", func(ctx context.Context) {
+	g.It("registers with CRI-O and relays pod and container lifecycle events", func(ctx context.Context) {
+		g.By("registering and synchronizing with CRI-O")
 		_, err := waitForEvent(ctx, oc, pluginName, func(ev event) bool { return ev.Kind == "configure" })
 		o.Expect(err).NotTo(o.HaveOccurred(), "plugin never received a Configure request from CRI-O")
 
@@ -96,9 +97,8 @@ var _ = g.Describe("[Suite:openshift/nri][sig-node] Node Resource Interface", fu
 			return ev.Kind == "synchronize-pod" || ev.Kind == "synchronize-container"
 		})
 		o.Expect(err).NotTo(o.HaveOccurred(), "plugin never synchronized with CRI-O")
-	})
 
-	g.It("relays pod and container lifecycle events to the plugin", func(ctx context.Context) {
+		g.By("running a pod")
 		pod := createPod(ctx, oc, namespace, nodeName, "nri-events", podImage, optIn(nil), "/bin/bash", "-c", "sleep 3600")
 		waitPodRunning(ctx, oc, namespace, pod.Name, 3*time.Minute)
 
@@ -110,6 +110,7 @@ var _ = g.Describe("[Suite:openshift/nri][sig-node] Node Resource Interface", fu
 			o.Expect(err).NotTo(o.HaveOccurred(), "did not observe %s for %s", kind, podRef)
 		}
 
+		g.By("deleting the pod")
 		deletePod(ctx, oc, namespace, pod.Name)
 
 		for _, kind := range []string{"stop-container", "stop-pod", "remove-pod"} {
@@ -120,15 +121,16 @@ var _ = g.Describe("[Suite:openshift/nri][sig-node] Node Resource Interface", fu
 		}
 	})
 
-	g.It("injects environment, annotations, mounts and cpuset into opted-in containers", func(ctx context.Context) {
+	g.It("injects environment, annotations, mounts, devices and cpuset into opted-in containers", func(ctx context.Context) {
 		if cpuset == "" {
 			g.Skip("node has a single online CPU, cannot observe a cpuset adjustment")
 		}
 		pod := createPod(ctx, oc, namespace, nodeName, "nri-adjust", podImage, optIn(map[string]string{
-			annEnv:    "NRI_TEST_ENV=hello-from-nri,NRI_SECOND=2",
-			annMounts: "/proc/version:/mnt/nri/version:ro,/dev/null:/mnt/nri/null",
-			annAnnos:  "nri.openshift.io/injected=yes",
-			annCpuset: cpuset,
+			annEnv:     "NRI_TEST_ENV=hello-from-nri,NRI_SECOND=2",
+			annMounts:  "/proc/version:/mnt/nri/version:ro,/dev/null:/mnt/nri/null",
+			annDevices: "/dev/nri-null:c:1:3:666",
+			annAnnos:   "nri.openshift.io/injected=yes",
+			annCpuset:  cpuset,
 		}), "/bin/bash", "-c", "sleep 3600")
 		waitPodRunning(ctx, oc, namespace, pod.Name, 3*time.Minute)
 
@@ -136,10 +138,9 @@ var _ = g.Describe("[Suite:openshift/nri][sig-node] Node Resource Interface", fu
 			return ev.Kind == "create-container" && ev.Pod == namespace+"/"+pod.Name
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(ev.Adjustments).To(o.ContainElement("env"))
-		o.Expect(ev.Adjustments).To(o.ContainElement("mounts"))
-		o.Expect(ev.Adjustments).To(o.ContainElement("annotations"))
-		o.Expect(ev.Adjustments).To(o.ContainElement("cpuset"))
+		for _, adjustment := range []string{"env", "mounts", "devices", "annotations", "cpuset"} {
+			o.Expect(ev.Adjustments).To(o.ContainElement(adjustment), "the plugin did not apply the %s adjustment", adjustment)
+		}
 
 		out, err := execInPod(ctx, oc, namespace, pod.Name, "env")
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -159,27 +160,20 @@ var _ = g.Describe("[Suite:openshift/nri][sig-node] Node Resource Interface", fu
 		_, err = execInPod(ctx, oc, namespace, pod.Name, "sh", "-c", "echo nri > /mnt/nri/null")
 		o.Expect(err).NotTo(o.HaveOccurred(), "the read-write mount is not writable")
 
+		out, err = execInPod(ctx, oc, namespace, pod.Name, "stat", "-c", "%F %a %t:%T", "/dev/nri-null")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		// major 1, minor 3 in hex, mode 666.
+		o.Expect(strings.TrimSpace(out)).To(o.Equal("character special file 666 1:3"))
+		_, err = execInPod(ctx, oc, namespace, pod.Name, "sh", "-c", "dd if=/dev/nri-null of=/dev/null bs=1 count=1")
+		o.Expect(err).NotTo(o.HaveOccurred(), "the injected device is not usable")
+
 		out, err = execInPod(ctx, oc, namespace, pod.Name, "grep", "Cpus_allowed_list", "/proc/self/status")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(strings.TrimSpace(out)).To(o.Equal("Cpus_allowed_list:\t" + cpuset))
 	})
 
-	g.It("injects device nodes into opted-in containers", func(ctx context.Context) {
-		pod := createPod(ctx, oc, namespace, nodeName, "nri-device", podImage, optIn(map[string]string{
-			annDevices: "/dev/nri-null:c:1:3:666",
-		}), "/bin/bash", "-c", "sleep 3600")
-		waitPodRunning(ctx, oc, namespace, pod.Name, 3*time.Minute)
-
-		out, err := execInPod(ctx, oc, namespace, pod.Name, "stat", "-c", "%F %a %t:%T", "/dev/nri-null")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		// major 1, minor 3 in hex, mode 666.
-		o.Expect(strings.TrimSpace(out)).To(o.Equal("character special file 666 1:3"))
-
-		_, err = execInPod(ctx, oc, namespace, pod.Name, "sh", "-c", "dd if=/dev/nri-null of=/dev/null bs=1 count=1")
-		o.Expect(err).NotTo(o.HaveOccurred(), "the injected device is not usable")
-	})
-
-	g.It("fails container creation when the plugin fails the adjustment", func(ctx context.Context) {
+	g.It("enforces the NRI failure policy", func(ctx context.Context) {
+		g.By("failing container creation when the plugin rejects the adjustment")
 		// The pod has to reach a terminal phase: it can never start (the plugin
 		// rejects it), and a pod deleted while Pending trips the pod-lifecycle
 		// monitor.
@@ -215,9 +209,37 @@ var _ = g.Describe("[Suite:openshift/nri][sig-node] Node Resource Interface", fu
 			return p.Status.Phase == corev1.PodFailed, nil
 		})
 		o.Expect(err).NotTo(o.HaveOccurred(), "the failing pod did not reach a terminal phase")
+
+		g.By("keeping pod creation working while the plugin is down")
+		resumePlugin := pausePlugin(ctx, oc)
+		g.DeferCleanup(resumePlugin)
+
+		downPod := createPod(ctx, oc, namespace, nodeName, "nri-noplugin", podImage, optIn(nil), "/bin/bash", "-c", "sleep 3600")
+		waitPodRunning(ctx, oc, namespace, downPod.Name, 3*time.Minute)
+
+		g.By("resynchronizing when the plugin returns")
+		resumePlugin(ctx)
+		err = wait.PollUntilContextTimeout(ctx, 2*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
+			events, err := readEvents(ctx, oc, pluginName)
+			if err != nil {
+				return false, nil
+			}
+			configured, seenPod := false, false
+			for _, ev := range events {
+				if ev.Kind == "configure" {
+					configured = true
+				}
+				if ev.Kind == "synchronize-pod" && ev.Pod == namespace+"/"+downPod.Name {
+					seenPod = true
+				}
+			}
+			return configured && seenPod, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "plugin did not re-register and synchronize the existing pod")
 	})
 
-	g.It("does not adjust pods that do not opt in", func(ctx context.Context) {
+	g.It("does not adjust pods outside its opt-in and namespace", func(ctx context.Context) {
+		g.By("leaving a pod without the opt-in annotation alone")
 		pod := createPod(ctx, oc, namespace, nodeName, "nri-noop", podImage, map[string]string{
 			annMounts: "/proc/version:/mnt/nri/version:ro",
 		}, "/bin/bash", "-c", "sleep 3600")
@@ -234,9 +256,8 @@ var _ = g.Describe("[Suite:openshift/nri][sig-node] Node Resource Interface", fu
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(hasCreateContainerEvent(events, namespace+"/"+pod.Name)).To(o.BeFalse(),
 			"the plugin recorded an adjustment for a pod that did not opt in")
-	})
 
-	g.It("ignores pods in another namespace", func(ctx context.Context) {
+		g.By("leaving a pod in another namespace alone")
 		// Same privileges as the suite's namespace, so only the plugin's
 		// namespace filter can keep it from adjusting the pod.
 		other, err := createNamespace(ctx, oc, "e2e-test-nri-other-", map[string]string{
@@ -251,23 +272,23 @@ var _ = g.Describe("[Suite:openshift/nri][sig-node] Node Resource Interface", fu
 			deleteNamespace(ctx, oc, other)
 		})
 
-		pod := createPod(ctx, oc, other, nodeName, "nri-other", podImage, map[string]string{
+		otherPod := createPod(ctx, oc, other, nodeName, "nri-other", podImage, map[string]string{
 			pluginOptIn: "true",
 			annEnv:      "NRI_TEST_ENV=should-not-appear",
 			annMounts:   "/proc/version:/mnt/nri/version:ro",
 		}, "/bin/bash", "-c", "sleep 3600")
-		waitPodRunning(ctx, oc, other, pod.Name, 3*time.Minute)
+		waitPodRunning(ctx, oc, other, otherPod.Name, 3*time.Minute)
 
-		out, err := execInPod(ctx, oc, other, pod.Name, "env")
+		out, err = execInPod(ctx, oc, other, otherPod.Name, "env")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).NotTo(o.ContainSubstring("NRI_TEST_ENV"))
 
-		_, err = execInPod(ctx, oc, other, pod.Name, "cat", "/mnt/nri/version")
+		_, err = execInPod(ctx, oc, other, otherPod.Name, "cat", "/mnt/nri/version")
 		o.Expect(err).To(o.HaveOccurred(), "a pod outside the plugin's namespace received the injected mount")
 
-		events, err := readEvents(ctx, oc, pluginName)
+		events, err = readEvents(ctx, oc, pluginName)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(hasCreateContainerEvent(events, other+"/"+pod.Name)).To(o.BeFalse(),
+		o.Expect(hasCreateContainerEvent(events, other+"/"+otherPod.Name)).To(o.BeFalse(),
 			"the plugin adjusted a pod outside its namespace")
 	})
 
@@ -364,35 +385,5 @@ var _ = g.Describe("[Suite:openshift/nri][sig-node] Node Resource Interface", fu
 		for _, name := range names {
 			deletePod(ctx, oc, namespace, name)
 		}
-	})
-
-	g.It("keeps creating pods while the plugin is down and resynchronizes when it returns", func(ctx context.Context) {
-		g.By("stopping the plugin")
-		resumePlugin := pausePlugin(ctx, oc)
-		g.DeferCleanup(resumePlugin)
-
-		g.By("creating a pod with no plugin connection")
-		pod := createPod(ctx, oc, namespace, nodeName, "nri-noplugin", podImage, optIn(nil), "/bin/bash", "-c", "sleep 3600")
-		waitPodRunning(ctx, oc, namespace, pod.Name, 3*time.Minute)
-
-		g.By("restarting the plugin")
-		resumePlugin(ctx)
-		err := wait.PollUntilContextTimeout(ctx, 2*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
-			events, err := readEvents(ctx, oc, pluginName)
-			if err != nil {
-				return false, nil
-			}
-			configured, seenPod := false, false
-			for _, ev := range events {
-				if ev.Kind == "configure" {
-					configured = true
-				}
-				if ev.Kind == "synchronize-pod" && ev.Pod == namespace+"/"+pod.Name {
-					seenPod = true
-				}
-			}
-			return configured && seenPod, nil
-		})
-		o.Expect(err).NotTo(o.HaveOccurred(), "plugin did not re-register and synchronize the existing pod")
 	})
 })

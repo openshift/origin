@@ -50,7 +50,7 @@ $ EXTENSION_BINARY_OVERRIDE_INCLUDE_TAGS=tests openshift-tests run openshift/nri
 `run-test` matches test names exactly, so a single case needs its full name:
 
 ```console
-$ openshift-tests run-test "[Suite:openshift/nri][sig-node] Node Resource Interface injects environment, annotations, mounts and cpuset into opted-in containers"
+$ openshift-tests run-test "[Suite:openshift/nri][sig-node] Node Resource Interface injects environment, annotations, mounts, devices and cpuset into opted-in containers"
 ```
 
 The plugin ships as the `nri-test-plugin` payload image, built from

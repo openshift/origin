@@ -17,7 +17,8 @@ NRI_TEST_PLUGIN_IMAGE=quay.io/<you>/nri-test-plugin:dev \
 openshift-tests run-test "[Suite:openshift/nri][sig-node] Node Resource Interface <spec name>"
 ```
 
-Each case below lists the spec name that identifies it.
+Each case below lists the spec that covers it. Several cases share one spec so
+the plugin setup runs once.
 
 ---
 
@@ -41,7 +42,7 @@ Each case below lists the spec name that identifies it.
 
 ## TC-FUNC-001 — Plugin registers and synchronizes with CRI-O
 
-- **Spec:** `enables NRI in CRI-O and registers the plugin`
+- **Spec:** `registers with CRI-O and relays pod and container lifecycle events`
 - **Tier:** `e2e-serial`
 - **Target:** `test/extended/nri/nri.go`
 - **Coverage:** Covered
@@ -53,14 +54,14 @@ Each case below lists the spec name that identifies it.
 
 1. Run the suite on a node with NRI enabled.
    **Expected:** the plugin DaemonSet becomes Ready on the selected node.
-2. Read the plugin pod logs after `BeforeAll`.
+2. Read the plugin pod logs once the plugin registers.
    **Expected:** a `{"kind":"configure"}` line and at least one `synchronize-pod` or `synchronize-container` line.
 
 ---
 
 ## TC-FUNC-002 — Pod and container lifecycle events reach the plugin
 
-- **Spec:** `relays pod and container lifecycle events to the plugin`
+- **Spec:** `registers with CRI-O and relays pod and container lifecycle events`
 - **Tier:** `e2e-serial`
 - **Target:** `test/extended/nri/nri.go`
 - **Coverage:** Covered
@@ -79,7 +80,7 @@ Each case below lists the spec name that identifies it.
 
 ## TC-FUNC-003 — Environment, annotations, read-only mount and cpuset adjustments
 
-- **Spec:** `injects environment, annotations, mounts and cpuset into opted-in containers`
+- **Spec:** `injects environment, annotations, mounts, devices and cpuset into opted-in containers`
 - **Tier:** `e2e-serial`
 - **Target:** `test/extended/nri/nri.go`
 - **Coverage:** Covered
@@ -111,7 +112,7 @@ Each case below lists the spec name that identifies it.
 
 ## TC-FUNC-004 — Device node injection and usability
 
-- **Spec:** `injects device nodes into opted-in containers`
+- **Spec:** `injects environment, annotations, mounts, devices and cpuset into opted-in containers`
 - **Tier:** `e2e-serial`
 - **Target:** `test/extended/nri/nri.go`
 - **Coverage:** Covered
@@ -152,7 +153,7 @@ Each case below lists the spec name that identifies it.
 
 ## TC-FUNC-006 — Pod creation while the plugin is down, then resynchronization
 
-- **Spec:** `keeps creating pods while the plugin is down and resynchronizes when it returns`
+- **Spec:** `enforces the NRI failure policy`
 - **Tier:** `e2e-serial`
 - **Target:** `test/extended/nri/nri.go`
 - **Coverage:** Covered
@@ -172,7 +173,7 @@ Each case below lists the spec name that identifies it.
 
 ## TC-NEG-001 — A plugin error fails container creation and is logged
 
-- **Spec:** `fails container creation when the plugin fails the adjustment`
+- **Spec:** `enforces the NRI failure policy`
 - **Tier:** `e2e-serial`
 - **Target:** `test/extended/nri/nri.go`
 - **Coverage:** Covered
@@ -194,7 +195,7 @@ Each case below lists the spec name that identifies it.
 
 ## TC-NEG-002 — Pods without the opt-in annotation are not adjusted
 
-- **Spec:** `does not adjust pods that do not opt in`
+- **Spec:** `does not adjust pods outside its opt-in and namespace`
 - **Tier:** `e2e-serial`
 - **Target:** `test/extended/nri/nri.go`
 - **Coverage:** Covered
@@ -214,7 +215,7 @@ Each case below lists the spec name that identifies it.
 
 ## TC-SEC-001 — Pods outside the plugin's namespace are not adjusted
 
-- **Spec:** `ignores pods in another namespace`
+- **Spec:** `does not adjust pods outside its opt-in and namespace`
 - **Tier:** `e2e-serial`
 - **Target:** `test/extended/nri/nri.go`
 - **Coverage:** Covered

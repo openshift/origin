@@ -62,7 +62,7 @@ Out of scope: the plugin implementations themselves (gpu-fractioning and other o
 | R2 | [OCPNODE-4852](https://redhat.atlassian.net/browse/OCPNODE-4852) — testing epic |
 | R3 | [OCPSTRAT-3973](https://redhat.atlassian.net/browse/OCPSTRAT-3973) — NRI Plugin Support in CRI-O: GA 5.1 |
 | R4 | [openshift/origin PR #31844](https://github.com/openshift/origin/pull/31844) |
-| R5 | `test/extended/nri/nri.go` — the suite (11 specs) |
+| R5 | `test/extended/nri/nri.go` — the suite (7 specs) |
 | R6 | `test/extended/nri/nri_helpers.go` — namespace, plugin, pod and log helpers |
 | R7 | `test/extended/nri/plugin` — the test plugin and parser unit tests |
 | R8 | `images/nri-test-plugin/Dockerfile.rhel` — the plugin payload image |
@@ -142,7 +142,7 @@ Acceptance criteria from OCPNODE-4853 and whether they are testable:
 
 ### 6.1 Strategy
 
-Test-code-as-deliverable: the PR adds tests rather than product behavior, so the plan documents what the new tests cover, what is already covered upstream, and what remains uncovered. The suite is a set of independent Ginkgo specs, each deploying its own plugin and namespace on a real cluster; unit tests for the plugin's parsers run in the plugin image build.
+Test-code-as-deliverable: the PR adds tests rather than product behavior, so the plan documents what the new tests cover, what is already covered upstream, and what remains uncovered. The suite is a set of independent Ginkgo specs: run-tests gives every spec its own process, so specs that need the same plugin and node state group their scenarios together and pay for that setup once. Unit tests for the plugin's parsers run in the plugin image build.
 
 ### 6.2 Testing levels and CI tiers
 
@@ -178,7 +178,7 @@ None. NRI has no OpenShift feature gate; it is enabled by default since CRI-O 1.
 
 ## 7. Item Pass/Fail Criteria
 
-1. All eleven suite specs pass in one `openshift-tests run openshift/nri` on a supported payload.
+1. All seven suite specs pass in one `openshift-tests run openshift/nri` on a supported payload.
 2. Three consecutive runs are green with no retries; a flake in any scenario is a failure for the purpose of this plan.
 3. The plugin parser unit tests pass in the payload image build (TC-UNIT-001).
 4. TC-FUNC-003 proves the gpu-fractioning prerequisites: environment and bind mount injected by a DaemonSet plugin at container-create time, with the read-only mount enforcing `EROFS`.
@@ -218,7 +218,7 @@ None. NRI has no OpenShift feature gate; it is enabled by default since CRI-O 1.
 - `images/nri-test-plugin/Dockerfile.rhel` — the payload image
 - `pkg/testsuites/standard_suites.go`, `test/extended/include.go` — suite registration
 - CI job for `openshift/nri` and its artifacts
-- Polarion/`[OTP]` IDs for the eleven automated specs
+- Polarion/`[OTP]` IDs for the seven automated specs
 - This plan and its companion test case catalogue (`nri-test-cases.md`)
 
 ---
@@ -228,7 +228,7 @@ None. NRI has no OpenShift feature gate; it is enabled by default since CRI-O 1.
 1. Re-run the full suite after the event-log redesign and attach results (blocking before merge).
 2. Add the `nri-test-plugin` `images:` entry in the `openshift/release` ci-operator config for the branch.
 3. Add the `openshift/nri` CI job: periodic, informing first; pre-merge when CRI-O, MCO or the suite changes.
-4. Add Polarion/`[OTP]` IDs to the eleven specs for QE reporting.
+4. Add Polarion/`[OTP]` IDs to the seven specs for QE reporting.
 5. Add the test cases to `openshift-eng/ci-test-mapping` so Component Readiness can track them (new suite, new tests).
 6. Run SNO and multi-node clusters (TC-DEPLOY-003) and HyperShift (TC-DEPLOY-004).
 7. Track the deferred scenarios in the appendix.
