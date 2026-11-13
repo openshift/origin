@@ -200,7 +200,7 @@ The `rollback` API object configures the generation process and provides the sco
 }
 ```
 
-With this rollback specification, a new `deploymentConfig` named `deployment-3` will be generated, containing the details of `deployment-2` with the specified portions of `deployment-1` overlayed. The generation options are:
+With this rollback specification, a new `deploymentConfig` named `deployment-3` will be generated, containing the details of `deployment-2` with the specified portions of `deployment-1` overlaid. The generation options are:
 
 * `includeTemplate` - whether to roll back `podTemplate` of the `deploymentConfig`
 * `includeTriggers` - whether to roll back `triggers` of the `deploymentConfig`

@@ -192,7 +192,7 @@ In case you need additional control over how flags behave in terms of code compl
 
 === Handling Errors
 
-When delcaring the `Run:` field in the cobra comand, make sure to call the `Complete`, `Validate`, `Run` methods
+When declaring the `Run:` field in the cobra command, make sure to call the `Complete`, `Validate`, `Run` methods
 within the `k8s.io/kubernetes/pkg/kubectl/cmd/util#CheckErr` helper, which will take care of exiting with the correct
 exit code in the event of an error:
 
