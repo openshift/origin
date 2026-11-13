@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			o.Expect(output).Should(o.ContainSubstring(`The FeatureGate "cluster" is invalid`))
 		})
 
-	g.It("[OTP][OCP-66921-2][OCP-74460][OCPFeatureGate:TechPreviewNoUpgrade] NoUpgrade featuresets are immutable once set [Slow][Disruptive][apigroup:config.openshift.io][Timeout:30m]",
+	g.It("[OTP][OCP-66921-2][OCP-74460][OCPFeatureGate:TechPreviewNoUpgrade] NoUpgrade featuresets are immutable once set [APIServer_Disruptive][Slow][Disruptive][apigroup:config.openshift.io][Timeout:30m]",
 		ote.Informing(), func() {
 			const (
 				featureTechPreview     = `[{"op": "replace", "path": "/spec/featureSet", "value": "TechPreviewNoUpgrade"}]`
@@ -120,7 +120,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			compat_otp.AssertWaitPollNoErr(err, "kube-apiserver operator status check failed")
 		})
 
-	g.It("[OTP][OCP-80286][OCPFeatureGate:AllowUnsafeMalformedObjectDeletion] Handle undecryptable resources [Slow][Disruptive][apigroup:config.openshift.io][apigroup:operator.openshift.io][Timeout:120m]",
+	g.It("[OTP][OCP-80286][OCPFeatureGate:AllowUnsafeMalformedObjectDeletion] Handle undecryptable resources [APIServer_Disruptive][Slow][Disruptive][apigroup:config.openshift.io][apigroup:operator.openshift.io][Timeout:120m]",
 		ote.Informing(), func() {
 			const (
 				testSecretName      = "test-secret-80286"
@@ -280,7 +280,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			cleanupRequired = false
 		})
 
-	g.It("[OTP][OCP-80554][OCPFeatureGate:CBOR] Verify the CBOR workflow [Slow][Disruptive][apigroup:config.openshift.io][Timeout:90m]",
+	g.It("[OTP][OCP-80554][OCPFeatureGate:CBOR] Verify the CBOR workflow [APIServer_Disruptive][Slow][Disruptive][apigroup:config.openshift.io][Timeout:90m]",
 		ote.Informing(), func() {
 			const (
 				timeoutShort = 500

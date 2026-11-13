@@ -377,7 +377,7 @@ func (w admissionWebhook) createAdmissionWebhookFromTemplate(oc *exutil.CLI) {
 		)
 	}
 	configFile := compat_otp.ProcessTemplate(oc, params...)
-	err := oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", configFile).Execute()
+	err := oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", configFile).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
@@ -418,11 +418,16 @@ func kasOperatorCheckForStep(oc *exutil.CLI, preConfigKasStatus map[string]strin
 	}
 }
 
-func compareAPIServerWebhookConditions(oc *exutil.CLI, reasons interface{}, expectedStatus string, conditionTypes []string) {
+// compareAPIServerWebhookConditions waits for the kube-apiserver operator to report,
+// or stop reporting, admission webhook conditions. When ownedResourceNames is set,
+// only conditions referencing those resources are considered, so unrelated webhook
+// failures do not fail the test.
+func compareAPIServerWebhookConditions(oc *exutil.CLI, reasons interface{}, expectedStatus string, conditionTypes []string, ownedResourceNames ...string) {
 	reasonList := normalizeWebhookReasons(reasons)
 	for _, conditionType := range conditionTypes {
 		statusPath := fmt.Sprintf(`jsonpath={.status.conditions[?(@.type=="%s")].status}`, conditionType)
 		reasonPath := fmt.Sprintf(`jsonpath={.status.conditions[?(@.type=="%s")].reason}`, conditionType)
+		messagePath := fmt.Sprintf(`jsonpath={.status.conditions[?(@.type=="%s")].message}`, conditionType)
 
 		// Wait for the kube-apiserver operator to detect and report the webhook error
 		// The operator needs time to reconcile and update its status conditions
@@ -432,15 +437,46 @@ func compareAPIServerWebhookConditions(oc *exutil.CLI, reasons interface{}, expe
 			timeout = 600 * time.Second // 10 minutes for error clearing
 		}
 
+		// reportsOwnedResource reports whether the condition message references one
+		// of the test's resources; on read errors it conservatively returns true.
+		reportsOwnedResource := func() bool {
+			if len(ownedResourceNames) == 0 {
+				return false
+			}
+			message, err := getResource(oc, asAdmin, withoutNamespace, "kubeapiserver", "cluster", "-o", messagePath)
+			if err != nil {
+				return true
+			}
+			return containsAnySubstring(message, ownedResourceNames)
+		}
+
+		clearedWithForeignErrorsRemaining := false
 		err := wait.PollUntilContextTimeout(context.Background(), 5*time.Second, timeout, false, func(ctx context.Context) (bool, error) {
 			status, err := getResource(oc, asAdmin, withoutNamespace, "kubeapiserver", "cluster", "-o", statusPath)
 			if err != nil {
 				return false, nil
 			}
-			return status == expectedStatus, nil
+			if status != expectedStatus {
+				// the condition may stay "True" because of webhooks this test does not own
+				if expectedStatus == "False" && status == "True" && !reportsOwnedResource() {
+					clearedWithForeignErrorsRemaining = true
+					return true, nil
+				}
+				return false, nil
+			}
+			// a "True" condition must be caused by the test's own webhooks
+			if expectedStatus == "True" && len(ownedResourceNames) > 0 && !reportsOwnedResource() {
+				return false, nil
+			}
+			return true, nil
 		})
 		o.Expect(err).NotTo(o.HaveOccurred(),
 			"timed out waiting for kubeapiserver condition %s status to become %s", conditionType, expectedStatus)
+
+		if clearedWithForeignErrorsRemaining {
+			e2e.Logf("kubeapiserver condition %s is still True only for unrelated webhooks, considering it cleared", conditionType)
+			continue
+		}
 
 		// Verify final status
 		status, err := getResource(oc, asAdmin, withoutNamespace, "kubeapiserver", "cluster", "-o", statusPath)
@@ -455,6 +491,15 @@ func compareAPIServerWebhookConditions(oc *exutil.CLI, reasons interface{}, expe
 				"expected kubeapiserver condition %s reason to be one of %v, got %q", conditionType, reasonList, reason)
 		}
 	}
+}
+
+func containsAnySubstring(s string, substrings []string) bool {
+	for _, substring := range substrings {
+		if substring != "" && strings.Contains(s, substring) {
+			return true
+		}
+	}
+	return false
 }
 
 func normalizeWebhookReasons(reasons interface{}) []string {
