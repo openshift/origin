@@ -1862,6 +1862,13 @@ func waitForKASObservedConfig(ctx context.Context, client *exutil.CLI, check fun
 }
 
 func waitForOIDCRollout(ctx context.Context, client *exutil.CLI, webhookArch bool) {
+	// Snapshot the kube-apiserver revision before the auth change is observed. The
+	// observedConfig below flips the moment the KAS config-observer recomputes the
+	// merged config, which happens BEFORE the static-pod RevisionController cuts a
+	// new revision and before the multi-master installer roll begins. Capturing the
+	// revision first lets us detect the roll this change triggers.
+	revisionBefore := kubeAPIServerLatestRevision(ctx, client)
+
 	waitForKASObservedConfig(ctx, client, func(gomega o.Gomega, observedConfig map[string]interface{}) {
 		gomega.Expect(observedConfig["authConfig"]).To(o.BeNil(), "authConfig should be absent for OIDC")
 
@@ -1877,10 +1884,25 @@ func waitForOIDCRollout(ctx context.Context, client *exutil.CLI, webhookArch boo
 		}
 	})
 
+	// The observed config changing is not sufficient: the oauth-openshift teardown
+	// (and, for the webhook architecture, the oauth-apiserver roll) is gated on
+	// OIDCAvailable(), which requires every master's kube-apiserver to be at the new
+	// auth-config revision. Settling right after the observedConfig flip can observe
+	// the stale, pre-roll "settled" state and return before the installer roll has
+	// even started, so a later 5-minute wait for the teardown times out mid-roll.
+	// Wait for the revision this change triggers to roll out to all masters first.
+	waitForKubeAPIServerRevisionRollout(ctx, client, revisionBefore)
+
 	waitForOperatorsToSettle(ctx, client)
 }
 
 func waitForIntegratedOAuthRollout(ctx context.Context, client *exutil.CLI) {
+	// See waitForOIDCRollout: reverting to IntegratedOAuth triggers the same
+	// config-observer -> RevisionController -> multi-master installer roll, and the
+	// observedConfig flips before the roll begins. Snapshot the revision first so we
+	// can wait for the roll to complete and avoid settling on stale pre-roll state.
+	revisionBefore := kubeAPIServerLatestRevision(ctx, client)
+
 	waitForKASObservedConfig(ctx, client, func(gomega o.Gomega, observedConfig map[string]interface{}) {
 		gomega.Expect(observedConfig["authConfig"]).NotTo(o.BeNil(), "authConfig should be present for IntegratedOAuth")
 
@@ -1891,7 +1913,46 @@ func waitForIntegratedOAuthRollout(ctx context.Context, client *exutil.CLI) {
 		gomega.Expect(apiServerArgs["authentication-config"]).To(o.BeNil(), "authentication-config should be absent for IntegratedOAuth")
 	})
 
+	waitForKubeAPIServerRevisionRollout(ctx, client, revisionBefore)
+
 	waitForOperatorsToSettle(ctx, client)
+}
+
+// waitForKubeAPIServerRevisionRollout waits for the kube-apiserver static-pod
+// installer to roll a revision newer than revisionBefore out to every master.
+//
+// It is keyed on the revision number rather than on NodeInstallerProgressing
+// transitioning True so it cannot be fooled by a fast roll whose Progressing
+// flag flips True->False between polls: Phase 1 waits for LatestAvailableRevision
+// to advance past revisionBefore (the RevisionController has cut the new
+// revision), and Phase 2 waits for every node's CurrentRevision to reach that
+// LatestAvailableRevision (the installer has finished rolling it to all masters).
+// This is exactly the state OIDCAvailable() gates the oauth-openshift teardown
+// on, so once this returns the subsequent teardown waits race nothing.
+func waitForKubeAPIServerRevisionRollout(ctx context.Context, client *exutil.CLI, revisionBefore int32) {
+	kasCli := client.AdminOperatorClient().OperatorV1().KubeAPIServers()
+
+	// Phase 1: a new revision has been cut in response to the config change.
+	o.Eventually(func(gomega o.Gomega) {
+		kas, err := kasCli.Get(ctx, "cluster", metav1.GetOptions{})
+		gomega.Expect(err).NotTo(o.HaveOccurred(), "should get kubeapiservers.operator.openshift.io/cluster")
+		gomega.Expect(kas.Status.LatestAvailableRevision).To(o.BeNumerically(">", revisionBefore),
+			"kube-apiserver should cut a new revision in response to the authentication change")
+	}).WithTimeout(10 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+
+	// Phase 2: the new revision has rolled out to every master.
+	o.Eventually(func(gomega o.Gomega) {
+		kas, err := kasCli.Get(ctx, "cluster", metav1.GetOptions{})
+		gomega.Expect(err).NotTo(o.HaveOccurred(), "should get kubeapiservers.operator.openshift.io/cluster")
+
+		latest := kas.Status.LatestAvailableRevision
+		gomega.Expect(kas.Status.NodeStatuses).NotTo(o.BeEmpty(), "kube-apiserver should report node statuses")
+		for _, ns := range kas.Status.NodeStatuses {
+			gomega.Expect(ns.CurrentRevision).To(o.Equal(latest),
+				fmt.Sprintf("node %s should be at the latest kube-apiserver revision %d", ns.NodeName, latest))
+		}
+	}).WithTimeout(30*time.Minute).WithPolling(15*time.Second).Should(o.Succeed(),
+		"kube-apiserver installer should finish rolling the new revision to all masters")
 }
 
 func waitForOperatorsToSettle(ctx context.Context, client *exutil.CLI) {
