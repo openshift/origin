@@ -11,25 +11,25 @@ import (
 // with apply.
 type KMSPluginHealthReportApplyConfiguration struct {
 	// nodeName is the name of the node this instance of the plugin runs on.
-	// The combination of nodeName and keyId makes this health report unique.
+	// The combination of nodeName and keyID makes this health report unique.
 	// The value must be a valid Kubernetes node name: a lowercase RFC 1123 subdomain
 	// consisting of lowercase alphanumeric characters, '-' or '.', starting and ending with
 	// an alphanumeric character, and be at most 253 characters in length.
 	NodeName *string `json:"nodeName,omitempty"`
-	// keyId is the encryption-key-secret id (kms-{keyId}.sock), a unique identifier of the plugin on that node.
+	// keyID is the encryption-key-secret id (kms-{keyID}.sock), a unique identifier of the plugin on that node.
 	// This is not a cryptographic key used to encrypt/decrypt any resources.
 	// The value must be between 1 and 512 characters.
-	KeyId *string `json:"keyId,omitempty"`
+	KeyID *string `json:"keyID,omitempty"`
 	// status contains a health indicator for the respective KMS plugin
 	// The field can have three states: healthy, unhealthy, error.
 	// With error and unhealthy containing additional information in Detail.
 	Status *operatorv1.KMSPluginHealthStatus `json:"status,omitempty"`
 	// lastCheckedTime is a timestamp of when the probe was last checked.
 	LastCheckedTime *metav1.Time `json:"lastCheckedTime,omitempty"`
-	// kekId refers to the remote KEK id from KMS v2 StatusResponse.key_id.
+	// remoteKeyID refers to the remote key identifier from KMS v2 StatusResponse.key_id.
 	// This is not a cryptographic key, but a unique representation of the KEK.
 	// The value must be between 1 and 1024 characters.
-	KEKId *string `json:"kekId,omitempty"`
+	RemoteKeyID *string `json:"remoteKeyID,omitempty"`
 	// detail contains additional error/health information for the respective KMS plugin.
 	// When omitted, no additional error or health information is provided.
 	// When set, the value must be between 1 and 1024 characters.
@@ -50,11 +50,11 @@ func (b *KMSPluginHealthReportApplyConfiguration) WithNodeName(value string) *KM
 	return b
 }
 
-// WithKeyId sets the KeyId field in the declarative configuration to the given value
+// WithKeyID sets the KeyID field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the KeyId field is set to the value of the last call.
-func (b *KMSPluginHealthReportApplyConfiguration) WithKeyId(value string) *KMSPluginHealthReportApplyConfiguration {
-	b.KeyId = &value
+// If called multiple times, the KeyID field is set to the value of the last call.
+func (b *KMSPluginHealthReportApplyConfiguration) WithKeyID(value string) *KMSPluginHealthReportApplyConfiguration {
+	b.KeyID = &value
 	return b
 }
 
@@ -74,11 +74,11 @@ func (b *KMSPluginHealthReportApplyConfiguration) WithLastCheckedTime(value meta
 	return b
 }
 
-// WithKEKId sets the KEKId field in the declarative configuration to the given value
+// WithRemoteKeyID sets the RemoteKeyID field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the KEKId field is set to the value of the last call.
-func (b *KMSPluginHealthReportApplyConfiguration) WithKEKId(value string) *KMSPluginHealthReportApplyConfiguration {
-	b.KEKId = &value
+// If called multiple times, the RemoteKeyID field is set to the value of the last call.
+func (b *KMSPluginHealthReportApplyConfiguration) WithRemoteKeyID(value string) *KMSPluginHealthReportApplyConfiguration {
+	b.RemoteKeyID = &value
 	return b
 }
 

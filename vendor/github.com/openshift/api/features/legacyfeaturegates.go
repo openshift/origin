@@ -83,8 +83,6 @@ var legacyFeatureGates = sets.New(
 	// never add to this list, if you think you have an exception ask @deads2k
 	"PrivateHostedZoneAWS",
 	// never add to this list, if you think you have an exception ask @deads2k
-	"RouteExternalCertificate",
-	// never add to this list, if you think you have an exception ask @deads2k
 	"SetEIPForNLBIngressController",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"SignatureStores",
