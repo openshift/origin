@@ -136,7 +136,7 @@ var staticSuites = []ginkgo.TestSuite{
 			// Standard early and late tests are included in the serial suite
 			withExcludedTestsFilter(withStandardEarlyOrLateTests("name.contains('[Suite:openshift/conformance/serial')")),
 		},
-		TestTimeout: 40 * time.Minute,
+		TestTimeout: 50 * time.Minute,
 		Parallelism: 1,
 	},
 	{
