@@ -235,7 +235,19 @@ func hasIdenticalPodSpecImage(spec *core.PodSpec, containerName, image string) b
 	return false
 }
 
-// Mutate applies fn to all containers and init containers. If fn changes the Kind to
+func hasIdenticalPodSpecVolumeImage(spec *core.PodSpec, volumeName, reference string) bool {
+	if spec == nil {
+		return false
+	}
+	for i := range spec.Volumes {
+		if spec.Volumes[i].Name == volumeName {
+			return spec.Volumes[i].Image != nil && spec.Volumes[i].Image.Reference == reference
+		}
+	}
+	return false
+}
+
+// Mutate applies fn to all containers, init containers and image volumes. If fn changes the Kind to
 // any value other than "DockerImage", an error is set on that field.
 func (m *podSpecMutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 	var errs field.ErrorList
@@ -270,6 +282,26 @@ func (m *podSpecMutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 			continue
 		}
 		container.Image = ref.Name
+	}
+	for i := range m.spec.Volumes {
+		image := m.spec.Volumes[i].Image
+		if image == nil || len(image.Reference) == 0 {
+			continue
+		}
+		if !m.resolveAnnotationChanged && hasIdenticalPodSpecVolumeImage(m.oldSpec, m.spec.Volumes[i].Name, image.Reference) {
+			continue
+		}
+		fldPath := m.path.Child("volumes").Index(i).Child("image", "reference")
+		ref := core.ObjectReference{Kind: "DockerImage", Name: image.Reference}
+		if err := fn(&ref); err != nil {
+			errs = append(errs, FieldErrorOrInternal(err, fldPath))
+			continue
+		}
+		if ref.Kind != "DockerImage" {
+			errs = append(errs, FieldErrorOrInternal(fmt.Errorf("pod specs may only contain references to docker images, not %q", ref.Kind), fldPath))
+			continue
+		}
+		image.Reference = ref.Name
 	}
 	return errs
 }
@@ -346,7 +378,19 @@ func hasIdenticalPodSpecV1Image(spec *corev1.PodSpec, containerName, image strin
 	return false
 }
 
-// Mutate applies fn to all containers and init containers. If fn changes the Kind to
+func hasIdenticalPodSpecV1VolumeImage(spec *corev1.PodSpec, volumeName, reference string) bool {
+	if spec == nil {
+		return false
+	}
+	for i := range spec.Volumes {
+		if spec.Volumes[i].Name == volumeName {
+			return spec.Volumes[i].Image != nil && spec.Volumes[i].Image.Reference == reference
+		}
+	}
+	return false
+}
+
+// Mutate applies fn to all containers, init containers and image volumes. If fn changes the Kind to
 // any value other than "DockerImage", an error is set on that field.
 func (m *podSpecV1Mutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 	var errs field.ErrorList
@@ -381,6 +425,26 @@ func (m *podSpecV1Mutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 			continue
 		}
 		container.Image = ref.Name
+	}
+	for i := range m.spec.Volumes {
+		image := m.spec.Volumes[i].Image
+		if image == nil || len(image.Reference) == 0 {
+			continue
+		}
+		if !m.resolveAnnotationChanged && hasIdenticalPodSpecV1VolumeImage(m.oldSpec, m.spec.Volumes[i].Name, image.Reference) {
+			continue
+		}
+		fldPath := m.path.Child("volumes").Index(i).Child("image", "reference")
+		ref := core.ObjectReference{Kind: "DockerImage", Name: image.Reference}
+		if err := fn(&ref); err != nil {
+			errs = append(errs, FieldErrorOrInternal(err, fldPath))
+			continue
+		}
+		if ref.Kind != "DockerImage" {
+			errs = append(errs, FieldErrorOrInternal(fmt.Errorf("pod specs may only contain references to docker images, not %q", ref.Kind), fldPath))
+			continue
+		}
+		image.Reference = ref.Name
 	}
 	return errs
 }
