@@ -7,6 +7,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	machineconfigv1 "github.com/openshift/api/machineconfiguration/v1"
@@ -25,18 +26,27 @@ func CreateKubeletConfig(ctx context.Context, mcClient *machineconfigclient.Clie
 
 // CreateOrUpdateKubeletConfig creates a KubeletConfig or updates it if it already exists.
 func CreateOrUpdateKubeletConfig(ctx context.Context, mcClient *machineconfigclient.Clientset, kubeletConfig *machineconfigv1.KubeletConfig) (*machineconfigv1.KubeletConfig, error) {
-	existing, err := mcClient.MachineconfigurationV1().KubeletConfigs().Get(ctx, kubeletConfig.Name, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		framework.Logf("Creating KubeletConfig %s", kubeletConfig.Name)
-		return mcClient.MachineconfigurationV1().KubeletConfigs().Create(ctx, kubeletConfig, metav1.CreateOptions{})
-	}
-	if err != nil {
-		return nil, err
-	}
+	kcClient := mcClient.MachineconfigurationV1().KubeletConfigs()
 
-	framework.Logf("Updating existing KubeletConfig %s", kubeletConfig.Name)
-	existing.Spec = kubeletConfig.Spec
-	return mcClient.MachineconfigurationV1().KubeletConfigs().Update(ctx, existing, metav1.UpdateOptions{})
+	var updated *machineconfigv1.KubeletConfig
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		existing, err := kcClient.Get(ctx, kubeletConfig.Name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			framework.Logf("Creating KubeletConfig %s", kubeletConfig.Name)
+			updated, err = kcClient.Create(ctx, kubeletConfig, metav1.CreateOptions{})
+			return err
+		}
+		if err != nil {
+			return err
+		}
+
+		// the controller keeps writing status and the resource version, so re-read on every attempt
+		framework.Logf("Updating existing KubeletConfig %s", kubeletConfig.Name)
+		existing.Spec = kubeletConfig.Spec
+		updated, err = kcClient.Update(ctx, existing, metav1.UpdateOptions{})
+		return err
+	})
+	return updated, err
 }
 
 // CleanupKubeletConfig deletes a KubeletConfig. If mcpName is non-empty, waits for that MCP to stabilize.
@@ -60,9 +70,9 @@ func CleanupKubeletConfig(ctx context.Context, mcClient *machineconfigclient.Cli
 	return nil
 }
 
-// ApplyKubeletConfigAndWaitForMCP creates a KubeletConfig and waits for the MCP rollout to complete.
+// ApplyKubeletConfigAndWaitForMCP creates or updates a KubeletConfig and waits for the MCP rollout to complete.
 func ApplyKubeletConfigAndWaitForMCP(ctx context.Context, mcClient *machineconfigclient.Clientset, kubeletConfig *machineconfigv1.KubeletConfig, mcpName string, rolloutTimeout time.Duration) error {
-	_, err := CreateKubeletConfig(ctx, mcClient, kubeletConfig)
+	_, err := CreateOrUpdateKubeletConfig(ctx, mcClient, kubeletConfig)
 	if err != nil {
 		return err
 	}
@@ -106,14 +116,29 @@ func WaitForMCPUpdating(ctx context.Context, mcClient *machineconfigclient.Clien
 	}
 }
 
-// CreateContainerRuntimeConfig creates a ContainerRuntimeConfig resource.
-func CreateContainerRuntimeConfig(ctx context.Context, mcClient *machineconfigclient.Clientset, ctrcfg *machineconfigv1.ContainerRuntimeConfig) (*machineconfigv1.ContainerRuntimeConfig, error) {
-	framework.Logf("Creating ContainerRuntimeConfig %s", ctrcfg.Name)
-	created, err := mcClient.MachineconfigurationV1().ContainerRuntimeConfigs().Create(ctx, ctrcfg, metav1.CreateOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return created, nil
+// CreateOrUpdateContainerRuntimeConfig creates a ContainerRuntimeConfig or updates it if it already exists.
+func CreateOrUpdateContainerRuntimeConfig(ctx context.Context, mcClient *machineconfigclient.Clientset, ctrcfg *machineconfigv1.ContainerRuntimeConfig) (*machineconfigv1.ContainerRuntimeConfig, error) {
+	crcClient := mcClient.MachineconfigurationV1().ContainerRuntimeConfigs()
+
+	var updated *machineconfigv1.ContainerRuntimeConfig
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		existing, err := crcClient.Get(ctx, ctrcfg.Name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			framework.Logf("Creating ContainerRuntimeConfig %s", ctrcfg.Name)
+			updated, err = crcClient.Create(ctx, ctrcfg, metav1.CreateOptions{})
+			return err
+		}
+		if err != nil {
+			return err
+		}
+
+		// the controller keeps writing status and the resource version, so re-read on every attempt
+		framework.Logf("Updating existing ContainerRuntimeConfig %s", ctrcfg.Name)
+		existing.Spec = ctrcfg.Spec
+		updated, err = crcClient.Update(ctx, existing, metav1.UpdateOptions{})
+		return err
+	})
+	return updated, err
 }
 
 // CleanupContainerRuntimeConfig deletes a ContainerRuntimeConfig. If mcpName is non-empty, waits for that MCP to stabilize.
@@ -137,9 +162,9 @@ func CleanupContainerRuntimeConfig(ctx context.Context, mcClient *machineconfigc
 	return nil
 }
 
-// ApplyContainerRuntimeConfigAndWaitForMCP creates a ContainerRuntimeConfig and waits for the MCP rollout to complete.
+// ApplyContainerRuntimeConfigAndWaitForMCP creates or updates a ContainerRuntimeConfig and waits for the MCP rollout to complete.
 func ApplyContainerRuntimeConfigAndWaitForMCP(ctx context.Context, mcClient *machineconfigclient.Clientset, ctrcfg *machineconfigv1.ContainerRuntimeConfig, mcpName string, rolloutTimeout time.Duration) error {
-	_, err := CreateContainerRuntimeConfig(ctx, mcClient, ctrcfg)
+	_, err := CreateOrUpdateContainerRuntimeConfig(ctx, mcClient, ctrcfg)
 	if err != nil {
 		return err
 	}
