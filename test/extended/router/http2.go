@@ -494,6 +494,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			for i, tc := range testCases {
 				testConfig := fmt.Sprintf("%+v", tc)
 				var resp *http.Response
+				var body []byte
 				client := makeHTTPClient(tc.useHTTP2Transport, http2ClientTimeout)
 
 				o.Expect(wait.Poll(time.Second, 5*time.Minute, func() (bool, error) {
@@ -505,10 +506,34 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 						return false, nil // could be 503 if service not ready
 					}
 					if resp.StatusCode != tc.statusCode {
-						// Successful responses are checked and asserted
-						// in the o.Expect() checks below.
 						resp.Body.Close()
 						e2e.Logf("[test #%d/%d]: config: %s, expected status: %v, actual status: %v", i+1, len(testCases), testConfig, tc.statusCode, resp.StatusCode)
+						return false, nil
+					}
+					body, err = ioutil.ReadAll(resp.Body)
+					resp.Body.Close()
+					if err != nil {
+						e2e.Logf("[test #%d/%d]: config: %s, body read error: %v", i+1, len(testCases), testConfig, err)
+						return false, nil
+					}
+					// A response can transiently come from the wrong
+					// router: the shard's wildcard DNS record
+					// (*.<shard-domain>) may not have propagated yet, in
+					// which case the request matches the cluster's
+					// *.apps wildcard and is served by the default
+					// router, which admits the route too but has HTTP/2
+					// disabled by default. Such a response has the
+					// expected status code and body, but the wrong
+					// negotiated protocol. Retry until the response
+					// comes from the shard router, i.e., protocol and
+					// body both match the expectation.
+					if resp.Proto != tc.frontendProto || string(body) != tc.backendProto {
+						e2e.Logf("[test #%d/%d]: config: %s, expected frontend proto %q and backend proto %q, got %q and %q; response may come from a router without http/2 enabled, retrying", i+1, len(testCases), testConfig, tc.frontendProto, tc.backendProto, resp.Proto, string(body))
+						// Drop pooled keep-alive connections so the
+						// next attempt re-resolves DNS and opens a
+						// fresh TLS connection instead of reusing the
+						// connection to the wrong router.
+						client.CloseIdleConnections()
 						return false, nil
 					}
 					return true, nil
@@ -517,10 +542,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				o.Expect(resp).ToNot(o.BeNil(), testConfig)
 				o.Expect(resp.StatusCode).To(o.Equal(tc.statusCode), testConfig)
 				o.Expect(resp.Proto).To(o.Equal(tc.frontendProto), testConfig)
-				body, err := ioutil.ReadAll(resp.Body)
-				o.Expect(err).NotTo(o.HaveOccurred(), testConfig)
 				o.Expect(string(body)).To(o.Equal(tc.backendProto), testConfig)
-				o.Expect(resp.Body.Close()).NotTo(o.HaveOccurred())
 			}
 		})
 	})
