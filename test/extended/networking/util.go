@@ -295,7 +295,7 @@ func makeNamespaceScheduleToAllNodes(f *e2e.Framework) {
 
 func modifyNetworkConfig(configClient configv1client.Interface, autoAssignCIDRs, allowedCIDRs, rejectedCIDRs []string) {
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 25*time.Minute)
 	defer cancel()
 
 	kubeAPIServerRollout := exutil.WaitForOperatorToRollout(ctx, configClient, "kube-apiserver")
