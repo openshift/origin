@@ -451,7 +451,7 @@ var _ = Describe("[sig-network][Feature:Layer2LiveMigration][Feature:baremetal][
 				VMName: "migrating", VMNamespace: namespace, NetBindingName: "l2bridge",
 				Memory:                    "544Mi",
 				FedoraContainterDiskImage: image.LocationFor("quay.io/kubevirt/fedora-with-test-tooling-container-disk:v1.8.2"),
-				DHCPv4:                    hasIPv4, DHCPv6: hasIPv6, NodeNames: nodeNames,
+				NodeNames:                 nodeNames,
 			}
 			Expect(virtClient.CreateVM(kubevirt.FedoraVMWithPrimaryUDNAttachment, params)).To(Succeed(), "create migrating VM")
 			waitForVMReadiness(virtClient, namespace, params.VMName)
@@ -1004,7 +1004,7 @@ func startVMEgressCaptures(ctx context.Context, oc *exutil.CLI, namespace string
 	for _, node := range nodes {
 		hosts = append(hosts, node.Labels[corev1.LabelHostname])
 	}
-	packetSnifferInterface, err := findPacketSnifferInterface(oc, hosts)
+	packetSnifferInterface, err := findPacketSnifferInterface(oc, OVNKubernetesPluginName, hosts)
 	if err != nil {
 		return nil, fmt.Errorf("find packet sniffer interfaces on %v: %w", hosts, err)
 	}
