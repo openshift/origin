@@ -1,7 +1,9 @@
-package auth_proxy
+package authproxy
 
 import (
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"reflect"
 	"strings"
@@ -149,4 +151,43 @@ func TestCertificateRotationResources(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGenerateCertificates(t *testing.T) {
+	t.Parallel()
+	first, err := generateCertificates("proxy-test")
+	if err != nil {
+		t.Fatalf("generateCertificates() error = %v", err)
+	}
+	if want := "auth-proxy.proxy-test.svc.cluster.local"; first.serviceHost != want {
+		t.Errorf("serviceHost = %q, want %q", first.serviceHost, want)
+	}
+	if err := verifyServerCertificate(first.serverCertPEM, first.caCertPEM, first.serviceHost); err != nil {
+		t.Errorf("server certificate does not verify against its CA for %q: %v", first.serviceHost, err)
+	}
+
+	second, err := generateCertificates("proxy-test")
+	if err != nil {
+		t.Fatalf("second generateCertificates() error = %v", err)
+	}
+	if err := verifyServerCertificate(first.serverCertPEM, second.caCertPEM, first.serviceHost); err == nil {
+		t.Error("server certificate verifies against a later CA, want each call to create a fresh CA")
+	}
+}
+
+func verifyServerCertificate(serverCertPEM, caCertPEM []byte, host string) error {
+	roots := x509.NewCertPool()
+	if !roots.AppendCertsFromPEM(caCertPEM) {
+		return errors.New("no CA certificate in PEM")
+	}
+	block, _ := pem.Decode(serverCertPEM)
+	if block == nil {
+		return errors.New("no server certificate in PEM")
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return err
+	}
+	_, err = cert.Verify(x509.VerifyOptions{DNSName: host, Roots: roots})
+	return err
 }

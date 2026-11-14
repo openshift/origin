@@ -1,4 +1,4 @@
-package auth_proxy
+package authproxy
 
 import (
 	"bytes"

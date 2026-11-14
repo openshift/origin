@@ -1,4 +1,4 @@
-package auth_proxy
+package authproxy
 
 import (
 	"context"
@@ -30,6 +30,10 @@ import (
 	watchtools "k8s.io/client-go/tools/watch"
 
 	"github.com/openshift/origin/test/extended/util/image"
+)
+
+const (
+	proxyTrafficPollInterval = 10 * time.Second
 )
 
 var (
@@ -79,33 +83,14 @@ func DeployAuthProxyComponent(ctx context.Context, oc *exutil.CLI) (authProxy Au
 	}
 	authProxy.namespace = namespace.Name
 
-	caConfig, err := libcrypto.MakeSelfSignedCAConfigForDuration("squid-proxy-ca", 2*time.Hour)
+	certs, err := generateCertificates(namespace.Name)
 	if err != nil {
-		return authProxy, fmt.Errorf("error on creating proxy CA certificate: %w", err)
-	}
-	ca := &libcrypto.CA{
-		Config:          caConfig,
-		SerialGenerator: &libcrypto.RandomSerialGenerator{},
+		return authProxy, fmt.Errorf("error on generating proxy certificates: %w", err)
 	}
 
-	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", squidServiceName, namespace.Name)
-	serverCertConfig, err := ca.MakeServerCert(sets.New(serviceHost), 2*time.Hour)
-	if err != nil {
-		return authProxy, fmt.Errorf("error creating proxy server cert: %w", err)
-	}
+	authProxy.CACertPEM = certs.caCertPEM
 
-	caCertPEM, _, err := caConfig.GetPEMBytes()
-	if err != nil {
-		return authProxy, fmt.Errorf("error encoding proxy CA cert: %w", err)
-	}
-
-	authProxy.CACertPEM = caCertPEM
-	serverCertPEM, serverKeyPEM, err := serverCertConfig.GetPEMBytes()
-	if err != nil {
-		return authProxy, fmt.Errorf("error encoding proxy server cert: %w", err)
-	}
-
-	// Field order is fixed: proxyTrafficMatches parses method url sourceIP squidStatus httpCode.
+	// Field order is fixed: proxyTrafficQuery.seenIn parses method url sourceIP squidStatus httpCode.
 	squidConfig := fmt.Sprintf(`http_port %d
 https_port %d tls-cert=/etc/squid/tls/tls.crt tls-key=/etc/squid/tls/tls.key
 pid_filename /tmp/squid.pid
@@ -133,8 +118,8 @@ buffered_logs off
 		Create(ctx, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "squid-tls"},
 			Data: map[string][]byte{
-				"tls.crt": serverCertPEM,
-				"tls.key": serverKeyPEM,
+				"tls.crt": certs.serverCertPEM,
+				"tls.key": certs.serverKeyPEM,
 			},
 		}, metav1.CreateOptions{})
 	if err != nil {
@@ -253,12 +238,12 @@ buffered_logs off
 		return authProxy, fmt.Errorf("authentication proxy deployment in namespace %q did not become ready: %w", authProxy.namespace, err)
 	}
 
-	authProxy.HttpUrl, err = url.Parse("http://" + net.JoinHostPort(serviceHost, strconv.Itoa(int(squidHTTPPort))))
+	authProxy.HttpUrl, err = url.Parse("http://" + net.JoinHostPort(certs.serviceHost, strconv.Itoa(int(squidHTTPPort))))
 	if err != nil {
 		return authProxy, fmt.Errorf("error parsing http proxy url: %w", err)
 	}
 
-	authProxy.HttpsUrl, err = url.Parse("https://" + net.JoinHostPort(serviceHost, strconv.Itoa(int(squidHTTPSPort))))
+	authProxy.HttpsUrl, err = url.Parse("https://" + net.JoinHostPort(certs.serviceHost, strconv.Itoa(int(squidHTTPSPort))))
 	if err != nil {
 		return authProxy, fmt.Errorf("error parsing https proxy url: %w", err)
 	}
@@ -281,9 +266,14 @@ func (aP AuthenticationProxyComponent) String() string {
 // the wait. Failures report unconfirmed deletion and preserve the context and last
 // read error. Fields are retained so Delete can be retried after a failed wait.
 func (aP AuthenticationProxyComponent) Delete(ctx context.Context, timeout time.Duration) error {
+	if aP.namespace == "" {
+		return nil
+	}
+
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
 	deleteCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
@@ -330,9 +320,9 @@ func deleteProxyNamespace(ctx context.Context, namespaces coreclientv1.Namespace
 	return nil
 }
 
-// logsSince reports all available logs when since is zero. Read failures are not
-// retried here so callers can accumulate them across polls.
-func (aP AuthenticationProxyComponent) logsSince(
+// logSince returns all available logs when since is zero.
+// logSince does not retry failures, so callers can accumulate them across polls.
+func (aP AuthenticationProxyComponent) logSince(
 	ctx context.Context,
 	since time.Time,
 ) (string, error) {
@@ -368,9 +358,8 @@ func (aP AuthenticationProxyComponent) logsSince(
 	return string(logBytes), nil
 }
 
-// WaitForProxyTrafficFrom matches sourceIP literally, so callers must use the logged
-// address format. Read failures are retried but preserved if the wait fails, so a
-// flake cannot mask the real timeout.
+// WaitForProxyTrafficFrom is WaitForProxyTrafficFromTo with any destination. sourceIP
+// must match the logged address format.
 func (aP AuthenticationProxyComponent) WaitForProxyTrafficFrom(
 	ctx context.Context,
 	sourceIP string,
@@ -378,14 +367,7 @@ func (aP AuthenticationProxyComponent) WaitForProxyTrafficFrom(
 	timeout time.Duration,
 ) error {
 	g.GinkgoHelper()
-	sourceIPs := []string{sourceIP}
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	g.GinkgoWriter.Printf("waiting up to %s for proxy traffic from %s\n", timeout, sourceIP)
-	return waitForProxyTraffic(ctx, timeout, 10*time.Second,
-		func(ctx context.Context) (string, error) { return aP.logsSince(ctx, since) },
-		func(logs string) bool { return proxyTrafficMatches(logs, sourceIPs, "") })
+	return aP.WaitForProxyTrafficFromTo(ctx, []string{sourceIP}, "", since, timeout)
 }
 
 // WaitForProxyTrafficFromTo matches IPs literally, so callers must use the logged
@@ -404,15 +386,23 @@ func (aP AuthenticationProxyComponent) WaitForProxyTrafficFromTo(
 	}
 
 	g.GinkgoWriter.Printf("waiting up to %s for proxy traffic from %v to %s\n", timeout, sourceIPs, destHost)
-	return waitForProxyTraffic(ctx, timeout, 10*time.Second,
-		func(ctx context.Context) (string, error) { return aP.logsSince(ctx, since) },
-		func(logs string) bool { return proxyTrafficMatches(logs, sourceIPs, destHost) })
+	return aP.waitForProxyTraffic(ctx, timeout, proxyTrafficQuery{
+		since:     since,
+		sourceIPs: sourceIPs,
+		destHost:  destHost,
+	})
 }
 
-// proxyTrafficMatches compares source IPs literally; hosts ignore DNS case and a trailing dot. An empty
-// destHost accepts any destination. Malformed entries are skipped.
-func proxyTrafficMatches(logs string, sourceIPs []string, destHost string) bool {
-	allowedIPs := sets.New(sourceIPs...)
+// destHost empty accepts any destination; sourceIPs and destHost must match the
+// logged formats, compared literally.
+type proxyTrafficQuery struct {
+	since     time.Time
+	sourceIPs []string
+	destHost  string
+}
+
+func (q proxyTrafficQuery) seenIn(logs string) bool {
+	allowedIPs := sets.New(q.sourceIPs...)
 
 	for line := range strings.SplitSeq(logs, "\n") {
 		parts := strings.Fields(line)
@@ -427,7 +417,7 @@ func proxyTrafficMatches(logs string, sourceIPs []string, destHost string) bool 
 		if err != nil {
 			continue
 		}
-		if destHost != "" && !strings.EqualFold(strings.TrimSuffix(host, "."), strings.TrimSuffix(destHost, ".")) {
+		if q.destHost != "" && !strings.EqualFold(strings.TrimSuffix(host, "."), strings.TrimSuffix(q.destHost, ".")) {
 			continue
 		}
 		g.GinkgoWriter.Printf("confirmed proxy traffic: %s\n", line)
@@ -436,26 +426,70 @@ func proxyTrafficMatches(logs string, sourceIPs []string, destHost string) bool 
 	return false
 }
 
-// waitForProxyTraffic joins the last read failure with the termination error, so a log flake stays
-// visible in the timeout message.
-func waitForProxyTraffic(ctx context.Context, timeout, interval time.Duration, readLogs func(context.Context) (string, error), matches func(string) bool) error {
+// waitForProxyTraffic joins the last log read failure with the termination error,
+// so a flake cannot mask the real timeout.
+func (aP AuthenticationProxyComponent) waitForProxyTraffic(ctx context.Context, timeout time.Duration, q proxyTrafficQuery) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	var lastReadErr error
-	err := wait.PollUntilContextTimeout(ctx, interval, timeout, true, func(ctx context.Context) (bool, error) {
-		logs, err := readLogs(ctx)
+	err := wait.PollUntilContextTimeout(ctx, proxyTrafficPollInterval, timeout, true, func(ctx context.Context) (bool, error) {
+		logs, err := aP.logSince(ctx, q.since)
 		if err != nil {
 			lastReadErr = err
 			g.GinkgoWriter.Printf("failed to read auth proxy logs: %v\n", err)
 			return false, nil
 		}
-		return matches(logs), nil
+		return q.seenIn(logs), nil
 	})
 	if err != nil && lastReadErr != nil {
 		return errors.Join(err, fmt.Errorf("last proxy log read failed: %w", lastReadErr))
 	}
 	return err
+}
+
+// certificates carries serviceHost because the proxy URLs must use the server
+// certificate's only SAN for TLS verification against caCertPEM to succeed.
+type certificates struct {
+	serviceHost                 string
+	caCertPEM                   []byte
+	serverCertPEM, serverKeyPEM []byte
+}
+
+// generateCertificates returns a fresh CA on every call, so rotating discards trust
+// in the previous one. The CA private key is dropped after signing.
+func generateCertificates(namespace string) (certificates, error) {
+	caConfig, err := libcrypto.MakeSelfSignedCAConfigForDuration("squid-proxy-ca", 2*time.Hour)
+	if err != nil {
+		return certificates{}, fmt.Errorf("creating CA certificate: %w", err)
+	}
+
+	caCertPEM, _, err := caConfig.GetPEMBytes()
+	if err != nil {
+		return certificates{}, fmt.Errorf("encoding CA certificate: %w", err)
+	}
+
+	ca := &libcrypto.CA{
+		Config:          caConfig,
+		SerialGenerator: &libcrypto.RandomSerialGenerator{},
+	}
+	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", squidServiceName, namespace)
+	serverCertConfig, err := ca.MakeServerCert(sets.New(serviceHost), 2*time.Hour)
+	if err != nil {
+		return certificates{}, fmt.Errorf("creating server certificate: %w", err)
+	}
+
+	serverCertPEM, serverKeyPEM, err := serverCertConfig.GetPEMBytes()
+	if err != nil {
+		return certificates{}, fmt.Errorf("encoding server certificate: %w", err)
+	}
+
+	return certificates{
+		serviceHost:   serviceHost,
+		caCertPEM:     caCertPEM,
+		serverCertPEM: serverCertPEM,
+		serverKeyPEM:  serverKeyPEM,
+	}, nil
 }
 
 // RotateProxyCertificates leaves CACertPEM unchanged until the proxy reconfigures,
@@ -474,30 +508,14 @@ func (aP *AuthenticationProxyComponent) RotateProxyCertificates(ctx context.Cont
 		return nil, err
 	}
 
-	newCAConfig, err := libcrypto.MakeSelfSignedCAConfigForDuration("squid-proxy-ca", 2*time.Hour)
+	certs, err := generateCertificates(aP.namespace)
 	if err != nil {
-		return nil, fmt.Errorf("error creating new CA certificate: %w", err)
-	}
-	newCA := &libcrypto.CA{Config: newCAConfig, SerialGenerator: &libcrypto.RandomSerialGenerator{}}
-
-	serviceDNS := fmt.Sprintf("%s.%s.svc.cluster.local", squidServiceName, aP.namespace)
-	newServerCertConfig, err := newCA.MakeServerCert(sets.New(serviceDNS), 2*time.Hour)
-	if err != nil {
-		return nil, fmt.Errorf("error creating authentication proxy component certificate: %w", err)
-	}
-
-	newCACertPEM, _, err := newCAConfig.GetPEMBytes()
-	if err != nil {
-		return nil, fmt.Errorf("error extracting CA cert bytes: %w", err)
-	}
-	newServerCertPEM, newServerKeyPEM, err := newServerCertConfig.GetPEMBytes()
-	if err != nil {
-		return nil, fmt.Errorf("error extracting authentication proxy component bytes: %w", err)
+		return nil, fmt.Errorf("error generating authentication proxy component certificates: %w", err)
 	}
 
 	g.GinkgoWriter.Println("Updating authentication proxy TLS Secret with rotated certificate")
-	tlsSecret.Data[corev1.TLSCertKey] = newServerCertPEM
-	tlsSecret.Data[corev1.TLSPrivateKeyKey] = newServerKeyPEM
+	tlsSecret.Data[corev1.TLSCertKey] = certs.serverCertPEM
+	tlsSecret.Data[corev1.TLSPrivateKeyKey] = certs.serverKeyPEM
 	_, err = kubeClient.CoreV1().
 		Secrets(aP.namespace).
 		Update(ctx, tlsSecret, metav1.UpdateOptions{})
@@ -507,7 +525,7 @@ func (aP *AuthenticationProxyComponent) RotateProxyCertificates(ctx context.Cont
 
 	g.GinkgoWriter.Println("Waiting for authentication proxy TLS Secret to propagate to pod volume")
 	err = wait.PollUntilContextTimeout(ctx, 10*time.Second, 3*time.Minute, true, func(ctx context.Context) (done bool, err error) {
-		return aP.podFileContentMatches(ctx, *squidPod, "squid", "/etc/squid/tls/tls.crt", newServerCertPEM)
+		return aP.podFileContentMatches(ctx, *squidPod, "squid", "/etc/squid/tls/tls.crt", certs.serverCertPEM)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w: certificate propagation failed: %w", ErrProxyCertificateRotationIncomplete, err)
@@ -527,8 +545,8 @@ func (aP *AuthenticationProxyComponent) RotateProxyCertificates(ctx context.Cont
 		return nil, fmt.Errorf("%w: authentication proxy reconfiguration failed (%q): %w", ErrProxyCertificateRotationIncomplete, string(output), err)
 	}
 
-	aP.CACertPEM = newCACertPEM
-	return newCACertPEM, nil
+	aP.CACertPEM = certs.caCertPEM
+	return aP.CACertPEM, nil
 }
 
 // certificateRotationResources performs no writes and does not validate PEM syntax,
