@@ -382,18 +382,6 @@ func (aP AuthenticationProxyComponent) logSince(
 	return string(logBytes), nil
 }
 
-// WaitForProxyTrafficFrom is WaitForProxyTrafficFromTo with any destination. sourceIP
-// must match the logged address format.
-func (aP AuthenticationProxyComponent) WaitForProxyTrafficFrom(
-	ctx context.Context,
-	sourceIP string,
-	since time.Time,
-	timeout time.Duration,
-) error {
-	g.GinkgoHelper()
-	return aP.WaitForProxyTrafficFromTo(ctx, []string{sourceIP}, "", since, timeout)
-}
-
 // WaitForProxyTrafficFromTo matches IPs literally, so callers must use the logged
 // format. An empty destHost accepts any destination, and hostnames compare in full,
 // ignoring DNS case and a trailing dot. Read failures are retried but preserved.
@@ -592,9 +580,14 @@ func (aP *AuthenticationProxyComponent) verifyProxyServesCertificate(ctx context
 		return errors.New("no CA certificate in rotated PEM")
 	}
 
+	// The overall deadline caps all port-forward retries: ForwardPortAndExecute can
+	// run the callback three times, and without a shared deadline each retry would
+	// get a fresh tlsVerifyTimeout budget.
+	verifyCtx, cancel := context.WithTimeout(ctx, tlsVerifyTimeout)
+	defer cancel()
 	return exutil.ForwardPortAndExecute(squidServiceName, aP.namespace, strconv.Itoa(int(squidHTTPSPort)), func(localPort int) error {
 		tlsAddr := net.JoinHostPort("127.0.0.1", strconv.Itoa(localPort))
-		return wait.PollUntilContextTimeout(ctx, tlsVerifyPollInterval, tlsVerifyTimeout, true, func(ctx context.Context) (bool, error) {
+		return wait.PollUntilContextTimeout(verifyCtx, tlsVerifyPollInterval, tlsVerifyTimeout, true, func(ctx context.Context) (bool, error) {
 			dialer := &tls.Dialer{
 				Config: &tls.Config{
 					ServerName: serviceHost,

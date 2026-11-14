@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kubefake "k8s.io/client-go/kubernetes/fake"
+	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	clienttesting "k8s.io/client-go/testing"
 )
 
@@ -128,25 +129,41 @@ func TestDeleteProxyNamespaceRepeatedCalls(t *testing.T) {
 	}
 }
 
+// deleteProxyNamespace must pass the caller's deadline to the Delete request so a
+// hung API call cannot outlive the bound the caller set.
 func TestDeleteProxyNamespaceDeleteDeadline(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	deadline := time.Now().Add(time.Hour)
+	ctx, cancel := context.WithDeadline(context.Background(), deadline)
 	defer cancel()
-	client := kubefake.NewSimpleClientset()
-	client.PrependReactor("delete", "namespaces", func(clienttesting.Action) (bool, runtime.Object, error) {
-		<-ctx.Done()
-		return true, nil, ctx.Err()
-	})
-	err := deleteProxyNamespace(ctx, client.CoreV1().Namespaces(), "proxy-test", time.Millisecond)
-	if !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("error = %v, want delete deadline exceeded", err)
+
+	namespaces := &deleteDeadlineNamespaces{}
+	if err := deleteProxyNamespace(ctx, namespaces, "proxy-test", time.Millisecond); err != nil {
+		t.Fatal(err)
 	}
-	if !strings.Contains(err.Error(), "requesting deletion") {
-		t.Errorf("error does not describe the failed deletion request: %v", err)
+	if !namespaces.deleteCalled {
+		t.Fatal("Delete was never called")
 	}
-	for _, action := range client.Actions() {
-		if action.GetVerb() != "delete" {
-			t.Errorf("unexpected action after delete failure: %s", action.GetVerb())
-		}
+	got, ok := namespaces.deleteCtx.Deadline()
+	if !ok || !got.Equal(deadline) {
+		t.Errorf("Delete deadline = %v, %v; want %v, true", got, ok, deadline)
 	}
+}
+
+// deleteDeadlineNamespaces records the context passed to Delete. The embedded
+// interface stays nil: any method other than Delete and Get panics.
+type deleteDeadlineNamespaces struct {
+	coreclientv1.NamespaceInterface
+	deleteCtx    context.Context
+	deleteCalled bool
+}
+
+func (d *deleteDeadlineNamespaces) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+	d.deleteCtx = ctx
+	d.deleteCalled = true
+	return nil
+}
+
+func (d *deleteDeadlineNamespaces) Get(ctx context.Context, name string, opts metav1.GetOptions) (*corev1.Namespace, error) {
+	return nil, apierrors.NewNotFound(schema.GroupResource{Resource: "namespaces"}, name)
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"reflect"
 	"strings"
 	"time"
 
@@ -25,7 +26,7 @@ import (
 	"github.com/openshift/library-go/pkg/oauth/tokenrequest"
 	"github.com/openshift/library-go/pkg/oauth/tokenrequest/challengehandlers"
 
-	"github.com/openshift/origin/test/extended/authentication/auth_proxy"
+	"github.com/openshift/origin/test/extended/authentication/authproxy"
 	exutil "github.com/openshift/origin/test/extended/util"
 	operator "github.com/openshift/origin/test/extended/util/operator"
 )
@@ -35,9 +36,9 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 
 	var (
 		ctx                    context.Context
-		authProxyComponent     auth_proxy.AuthenticationProxyComponent
+		authProxyComponent     authproxy.AuthenticationProxyComponent
 		kcSetup                *keycloakProxySetup
-		oauthServerProxyConfig auth_proxy.ProxyConfig
+		oauthServerProxyConfig authproxy.ProxyConfig
 		cleanups               []removalFunc
 
 		appsV1 appsclientv1.AppsV1Interface
@@ -57,11 +58,12 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Checking that no earlier test left a component proxy behind")
-		o.Expect(originalProxy).To(o.BeZero(),
-			"authentication/cluster spec.proxy is already set, so an earlier test did not restore it")
+		if !reflect.DeepEqual(originalProxy, operatorv1.AuthenticationProxyConfig{}) {
+			g.Fail("authentication/cluster spec.proxy is already set, so an earlier test did not restore it")
+		}
 
 		g.By("Getting the actual oauth-server proxy configuration")
-		oauthServerProxyConfig, err = auth_proxy.DeploymentProxyConfig(ctx,
+		oauthServerProxyConfig, err = authproxy.DeploymentProxyConfig(ctx,
 			"openshift-authentication", "oauth-openshift", "oauth-openshift",
 			v1.ConfigMapKeySelector{
 				LocalObjectReference: v1.LocalObjectReference{Name: componentProxyCAConfigMapName},
@@ -70,7 +72,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to capture the OAuth server proxy configuration")
 
 		g.By("Deploying authentication forward proxy")
-		authProxyComponent, err = auth_proxy.DeployAuthProxyComponent(ctx, oc)
+		authProxyComponent, err = authproxy.DeployAuthProxyComponent(ctx, oc)
 		cleanups = append(cleanups, func(ctx context.Context) error {
 			return authProxyComponent.Delete(ctx, 5*time.Minute)
 		})
@@ -126,7 +128,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 	})
 })
 
-func testProxyConfigPerformOIDCLogin(ctx context.Context, oc *exutil.CLI, cleanups *[]removalFunc, kcSetup *keycloakProxySetup, authProxy auth_proxy.AuthenticationProxyComponent) {
+func testProxyConfigPerformOIDCLogin(ctx context.Context, oc *exutil.CLI, cleanups *[]removalFunc, kcSetup *keycloakProxySetup, authProxy authproxy.AuthenticationProxyComponent) {
 	const namespace, name = "openshift-authentication", "oauth-openshift"
 	o.Expect(authProxy.HttpUrl).
 		NotTo(o.BeNil(), "authentication proxy component http url shoul be not nil")
@@ -179,10 +181,10 @@ func testProxyConfigPerformOIDCLogin(ctx context.Context, oc *exutil.CLI, cleanu
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Verifying oauth-server has HTTPS_PROXY but not HTTP_PROXY")
-	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, auth_proxy.ProxyConfig{
+	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, authproxy.ProxyConfig{
 		HttpProxy:  nil,
 		HttpsProxy: authProxy.HttpUrl,
-		NoProxy:    auth_proxy.DefaultNoProxy(),
+		NoProxy:    authproxy.DefaultNoProxy(),
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -203,7 +205,7 @@ func testProxyConfigPerformOIDCLogin(ctx context.Context, oc *exutil.CLI, cleanu
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-func testHotReloadCAFileChange(ctx context.Context, oc *exutil.CLI, cleanups *[]removalFunc, kcSetup *keycloakProxySetup, authProxy auth_proxy.AuthenticationProxyComponent) {
+func testHotReloadCAFileChange(ctx context.Context, oc *exutil.CLI, cleanups *[]removalFunc, kcSetup *keycloakProxySetup, authProxy authproxy.AuthenticationProxyComponent) {
 	const namespace, name = "openshift-authentication", "oauth-openshift"
 	o.Expect(authProxy.HttpsUrl).
 		NotTo(o.BeNil(), "authentication proxy component https url shoul be not nil")
@@ -338,7 +340,7 @@ func testHotReloadCAFileChange(ctx context.Context, oc *exutil.CLI, cleanups *[]
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-func testBypassProxyNoProxyHost(ctx context.Context, oc *exutil.CLI, cleanups *[]removalFunc, kcSetup *keycloakProxySetup, authProxy auth_proxy.AuthenticationProxyComponent) {
+func testBypassProxyNoProxyHost(ctx context.Context, oc *exutil.CLI, cleanups *[]removalFunc, kcSetup *keycloakProxySetup, authProxy authproxy.AuthenticationProxyComponent) {
 	const namespace, name = "openshift-authentication", "oauth-openshift"
 	o.Expect(authProxy.HttpUrl).
 		NotTo(o.BeNil(), "authentication proxy component http url shoul be not nil")
@@ -404,10 +406,10 @@ func testBypassProxyNoProxyHost(ctx context.Context, oc *exutil.CLI, cleanups *[
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Verifying oauth-server has HTTP_PROXY, HTTPS_PROXY, and NO_PROXY with custom entry")
-	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, auth_proxy.ProxyConfig{
+	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, authproxy.ProxyConfig{
 		HttpProxy:  authProxy.HttpUrl,
 		HttpsProxy: authProxy.HttpsUrl,
-		NoProxy:    auth_proxy.DefaultNoProxy().Insert(keycloakHost),
+		NoProxy:    authproxy.DefaultNoProxy().Insert(keycloakHost),
 		CACertPEM:  authProxy.CACertPEM,
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -422,7 +424,7 @@ func testBypassProxyNoProxyHost(ctx context.Context, oc *exutil.CLI, cleanups *[
 }
 
 func testOIDCIdPThroughComponentProxy(ctx context.Context, oc *exutil.CLI, kcSetup *keycloakProxySetup,
-	proxyURL *url.URL, proxyCACert []byte, authProxy auth_proxy.AuthenticationProxyComponent) {
+	proxyURL *url.URL, proxyCACert []byte, authProxy authproxy.AuthenticationProxyComponent) {
 	const namespace, name = "openshift-authentication", "oauth-openshift"
 	o.Expect(proxyURL).
 		NotTo(o.BeNil(), "authentication proxy component url should be not nil")
@@ -487,10 +489,10 @@ func testOIDCIdPThroughComponentProxy(ctx context.Context, oc *exutil.CLI, kcSet
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Verifying OAuth server deployment has proxy env vars and trustedCA volume/mount")
-	authProxyConfig := auth_proxy.ProxyConfig{
+	authProxyConfig := authproxy.ProxyConfig{
 		HttpProxy:  nil,
 		HttpsProxy: proxyURL,
-		NoProxy:    auth_proxy.DefaultNoProxy(),
+		NoProxy:    authproxy.DefaultNoProxy(),
 		CACertPEM:  proxyCACert,
 	}
 	err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, authProxyConfig)
@@ -506,12 +508,14 @@ func testOIDCIdPThroughComponentProxy(ctx context.Context, oc *exutil.CLI, kcSet
 	o.Expect(operatorIP).NotTo(o.BeEmpty())
 
 	g.By("Verifying operator traffic went through the authentication proxy")
-	err = authProxy.WaitForProxyTrafficFrom(ctx, operatorIP, proxyTrafficStart, 5*time.Minute)
+	issuerUrl, err := url.Parse(kcSetup.issuerURL)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	err = authProxy.WaitForProxyTrafficFromTo(ctx, []string{operatorIP}, issuerUrl.Hostname(), proxyTrafficStart, 5*time.Minute)
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 func testFallbackOnProxyRemoval(ctx context.Context, oc *exutil.CLI,
-	cleanups *[]removalFunc, kcSetup *keycloakProxySetup, authProxy auth_proxy.AuthenticationProxyComponent, oauthServerProxyConfig auth_proxy.ProxyConfig) {
+	cleanups *[]removalFunc, kcSetup *keycloakProxySetup, authProxy authproxy.AuthenticationProxyComponent, oauthServerProxyConfig authproxy.ProxyConfig) {
 	const namespace, name = "openshift-authentication", "oauth-openshift"
 	o.Expect(authProxy.HttpUrl).
 		NotTo(o.BeNil(), "authentication proxy component http url should be not nil")

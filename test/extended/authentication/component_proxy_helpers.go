@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
 
-	"github.com/openshift/origin/test/extended/authentication/auth_proxy"
+	"github.com/openshift/origin/test/extended/authentication/authproxy"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -95,7 +95,7 @@ func createTrustedCAConfigMap(ctx context.Context, oc *exutil.CLI, caCertPEM []b
 	_, err := kubeClient.CoreV1().ConfigMaps("openshift-config").Create(ctx, &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   configMapName,
-			Labels: auth_proxy.ComponentProxyTestLabels(),
+			Labels: authproxy.ComponentProxyTestLabels(),
 		},
 		Data: map[string]string{
 			"ca-bundle.crt": string(caCertPEM),
@@ -253,7 +253,7 @@ func addKeycloakOIDCIdPForProxy(ctx context.Context, oc *exutil.CLI, setup *keyc
 	_, err := kubeClient.CoreV1().Secrets("openshift-config").Create(ctx, &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   secretName,
-			Labels: auth_proxy.ComponentProxyTestLabels(),
+			Labels: authproxy.ComponentProxyTestLabels(),
 		},
 		Data: map[string][]byte{
 			"clientSecret": []byte(setup.clientSecret),
@@ -315,7 +315,7 @@ func syncDefaultIngressCAToConfig(ctx context.Context, oc *exutil.CLI, name stri
 	_, err = kubeClient.CoreV1().ConfigMaps("openshift-config").Create(ctx, &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
-			Labels: auth_proxy.ComponentProxyTestLabels(),
+			Labels: authproxy.ComponentProxyTestLabels(),
 		},
 		Data: map[string]string{
 			"ca.crt": ca.Data["ca-bundle.crt"],
@@ -357,7 +357,7 @@ func addIdentityProvider(ctx context.Context, oc *exutil.CLI, idp configv1.Ident
 func verifyOAuthServerDeploymentProxyConfig(
 	ctx context.Context,
 	oc *exutil.CLI,
-	expectedAuthProxyConfig auth_proxy.ProxyConfig,
+	expectedAuthProxyConfig authproxy.ProxyConfig,
 ) error {
 	kubeClient := oc.AdminKubeClient()
 	hasCACert := len(expectedAuthProxyConfig.CACertPEM) > 0
@@ -369,7 +369,7 @@ func verifyOAuthServerDeploymentProxyConfig(
 			return false, nil
 		}
 
-		actualOauthServerProxyConfig, err := auth_proxy.DeploymentProxyConfig(ctx,
+		actualOauthServerProxyConfig, err := authproxy.DeploymentProxyConfig(ctx,
 			"openshift-authentication", "oauth-openshift", "oauth-openshift",
 			corev1.ConfigMapKeySelector{
 				LocalObjectReference: corev1.LocalObjectReference{Name: componentProxyCAConfigMapName},
