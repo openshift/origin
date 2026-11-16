@@ -17,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
@@ -187,16 +186,6 @@ func (a *managementCPUsOverride) Admit(ctx context.Context, attr admission.Attri
 		return admission.NewForbidden(attr, fmt.Errorf("%s node or namespace or infra config cache not synchronized", PluginName))
 	}
 
-	nodes, err := a.nodeLister.List(labels.Everything())
-	if err != nil {
-		return admission.NewForbidden(attr, err) // can happen due to informer latency
-	}
-
-	// we still need to have nodes under the cluster to decide if the management resource enabled or not
-	if len(nodes) == 0 {
-		return admission.NewForbidden(attr, fmt.Errorf("%s the cluster does not have any nodes", PluginName))
-	}
-
 	clusterInfra, err := a.infraConfigLister.Get(infraClusterName)
 	if err != nil {
 		return admission.NewForbidden(attr, err) // can happen due to informer latency
@@ -215,7 +204,7 @@ func (a *managementCPUsOverride) Admit(ctx context.Context, attr admission.Attri
 	}
 
 	// Check if we are in CPU Partitioning mode for AllNodes
-	if !isCPUPartitioning(clusterInfra.Status, nodes, workloadType) {
+	if !isCPUPartitioning(clusterInfra.Status) {
 		return nil
 	}
 
@@ -284,18 +273,7 @@ func (a *managementCPUsOverride) Admit(ctx context.Context, attr admission.Attri
 	return nil
 }
 
-func isCPUPartitioning(infraStatus configv1.InfrastructureStatus, nodes []*corev1.Node, workloadType string) bool {
-	// If status is not for CPU partitioning and we're single node we also check nodes to support upgrade event
-	// TODO: This should not be needed after 4.13 as all clusters after should have this feature on at install time, or updated by migration in NTO.
-	if infraStatus.CPUPartitioning != configv1.CPUPartitioningAllNodes && infraStatus.ControlPlaneTopology == configv1.SingleReplicaTopologyMode {
-		managedResource := fmt.Sprintf("%s.%s", workloadType, containerWorkloadResourceSuffix)
-		for _, node := range nodes {
-			// We only expect a single node to exist, so we return on first hit
-			if _, ok := node.Status.Allocatable[corev1.ResourceName(managedResource)]; ok {
-				return true
-			}
-		}
-	}
+func isCPUPartitioning(infraStatus configv1.InfrastructureStatus) bool {
 	return infraStatus.CPUPartitioning == configv1.CPUPartitioningAllNodes
 }
 
