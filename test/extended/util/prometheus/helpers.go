@@ -302,7 +302,15 @@ func ExpectURLStatusCodeExecViaPod(ns, execPodName, url string, statusCodes ...i
 // CurlExecViaPod attempts connection to url via exec pod and returns the HTTP
 // status code and the error message reported by curl.
 func CurlExecViaPod(ns, name, url string) (int, string, error) {
-	cmd := fmt.Sprintf("curl -k -s -o /dev/null -w '%%{http_code} %%{errormsg}' %q", url)
+	// Force HTTP/1.1: with h2, curl 7.x (RHEL 9) sends the connection preface
+	// and the request HEADERS as two separate writes after the TLS 1.3
+	// handshake. Against an mTLS server that rejects the missing client cert
+	// (e.g. etcd :9979), the server's RST can arrive before the second write
+	// when client and server are on the same node (single-node clusters), so
+	// curl reports "SSL_write: Broken pipe" / "Connection reset by peer"
+	// instead of reading the "certificate required" alert. With HTTP/1.1 the
+	// request is a single write and the alert is reliably read.
+	cmd := fmt.Sprintf("curl --http1.1 -k -s -o /dev/null -w '%%{http_code} %%{errormsg}' %q", url)
 	output, execErr := e2eoutput.RunHostCmd(ns, name, cmd)
 	// Parse output before checking execErr: curl's -w output is in stdout even
 	// when curl exits non-zero (e.g. TLS rejection), and RunHostCmd returns that
