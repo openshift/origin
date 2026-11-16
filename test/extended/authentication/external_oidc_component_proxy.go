@@ -30,6 +30,7 @@ import (
 
 const (
 	clusterAuthenticationOperatorName = "authentication"
+	authenticationOperatorNamespace   = "openshift-authentication-operator"
 	oauthAPIServerNamespace           = "openshift-oauth-apiserver"
 	oauthAPIServerName                = "apiserver"
 	oauthAPIServerContainerName       = "oauth-apiserver"
@@ -155,8 +156,114 @@ func (t ExternalOIDCComponentProxyTests) testExternalOIDCOperandProxyConfigurati
 
 	g.By("Verifying operator propagated proxy env vars (and trustedCA volume/mount) to the oauth-apiserver operand")
 	err = t.proxyVerifier.
-		AssertProxyConfig(ctx, "", proxyURL, component_proxy.DefaultNoProxy, withTrustedCA)
+		AssertProxyConfig(ctx, "", proxyURL, expectedNoProxyWithServiceIP(ctx, t.oc), withTrustedCA)
 	o.Expect(err).NotTo(o.HaveOccurred(), "proxy env vars should propagate")
+}
+
+// testExternalOIDCOperatorDegradedOnUnreachableProxy verifies an unreachable proxy URL
+// takes the authentication operator Degraded while break-glass client-certificate
+// authentication keeps working, and that correcting the proxy at its source recovers the
+// operator and token validation. The proxyconfig controller implementing the check is
+// external work in cluster-authentication-operator; against an operator without it this
+// test stays red, mirroring the DefaultNoProxy contract.
+func (t ExternalOIDCComponentProxyTests) testExternalOIDCOperatorDegradedOnUnreachableProxy(
+	ctx context.Context,
+	keycloakCli *keycloakClient,
+	username, password, workingProxyURL, proxyNamespace string,
+) {
+	unreachableURL, err := unreachableProxyURL(ctx, t.oc, proxyNamespace)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should build an unreachable proxy URL")
+
+	g.By("Setting a proxy URL that actively refuses connections")
+	// updateAuthenticationProxy is called directly, outside the rollout wrapper: like the
+	// missing-CA case, the operator may not complete a Deployment rollout while Degraded
+	// and the wrapper would block until timeout.
+	err = updateAuthenticationProxy(ctx, t.oc, operatorv1.AuthenticationProxyConfig{HTTPSProxy: unreachableURL})
+	o.Expect(err).
+		NotTo(o.HaveOccurred(), "should set unreachable proxy config")
+	t.deferResetProxy()
+
+	g.By("Verifying the authentication cluster operator goes Degraded=True")
+	err = waitForClusterOperatorDegraded(ctx, t.oc, clusterAuthenticationOperatorName, true)
+	o.Expect(err).
+		NotTo(o.HaveOccurred(), "authentication operator should go Degraded when the proxy URL is unreachable")
+
+	g.By("Verifying break-glass client-certificate authentication keeps working")
+	err = assertBreakGlassClientCertAuthWorks(ctx, t.oc)
+	o.Expect(err).
+		NotTo(o.HaveOccurred(), "client-certificate authentication should keep working with an unreachable proxy")
+
+	g.By("Correcting the proxy at its source")
+	err = t.waitForOperatorToSettleAndDeploymentRollout(ctx, func() error {
+		return updateAuthenticationProxy(ctx, t.oc, operatorv1.AuthenticationProxyConfig{HTTPSProxy: workingProxyURL})
+	})
+	o.Expect(err).
+		NotTo(o.HaveOccurred(), "should set a working proxy config")
+
+	g.By("Verifying the authentication cluster operator recovers to Degraded=False")
+	err = waitForClusterOperatorDegraded(ctx, t.oc, clusterAuthenticationOperatorName, false)
+	o.Expect(err).
+		NotTo(o.HaveOccurred(), "authentication operator should recover after the proxy is corrected")
+
+	g.By("Verifying token validation works after recovery")
+	configureExternalClaimsKeycloakClient(keycloakCli)
+	assertExternalOIDCLoginGroups(ctx, t.oc, keycloakCli, externalClaimsKeycloakClientID, username, password, fmt.Sprintf("%s@payload.openshift.io", username))
+}
+
+// testExternalOIDCWarningEventOnUnreachableIssuer verifies an issuer unreachable behind
+// a working proxy emits a Warning event rather than taking the operator Degraded, and that
+// authentication recovers once the issuer is reachable again. The probes run when the
+// effective configuration changes, so the issuer must be unreachable before the proxy is
+// set. The proxyconfig controller emitting the event is external work in
+// cluster-authentication-operator; against an operator without it the Warning-event
+// assertion stays red, mirroring the DefaultNoProxy contract.
+func (t ExternalOIDCComponentProxyTests) testExternalOIDCWarningEventOnUnreachableIssuer(
+	ctx context.Context,
+	keycloakCli *keycloakClient,
+	username, password, keycloakNamespace, proxyURL string,
+) {
+	issuerURL, err := admittedURLForRoute(ctx, t.oc, keycloakResourceName, keycloakNamespace)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should get keycloak route URL")
+	issuerURLParsed, err := url.Parse(issuerURL)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should parse keycloak route URL")
+	issuerHost := issuerURLParsed.Hostname()
+
+	g.By("Making the issuer unreachable by scaling Keycloak to zero")
+	err = scaleDeployment(ctx, t.oc, keycloakNamespace, keycloakResourceName, 0)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should scale keycloak to zero")
+	g.DeferCleanup(func(ctx context.Context) error {
+		return scaleDeployment(ctx, t.oc, keycloakNamespace, keycloakResourceName, 1)
+	})
+
+	eventSince := time.Now()
+
+	g.By("Setting a working component proxy while the issuer is unreachable")
+	err = t.waitForOperatorToSettleAndDeploymentRollout(ctx, func() error {
+		return updateAuthenticationProxy(ctx, t.oc, operatorv1.AuthenticationProxyConfig{HTTPSProxy: proxyURL})
+	})
+	o.Expect(err).
+		NotTo(o.HaveOccurred(), "should set proxy config")
+	t.deferResetProxy()
+
+	g.By("Verifying a Warning event mentions the unreachable issuer")
+	err = waitForWarningEventMentioning(ctx, t.oc, authenticationOperatorNamespace, issuerHost, eventSince, 5*time.Minute)
+	o.Expect(err).
+		NotTo(o.HaveOccurred(), "authentication operator should emit a Warning event for the unreachable issuer")
+
+	g.By("Verifying the authentication cluster operator stays Degraded=False")
+	err = waitForClusterOperatorDegraded(ctx, t.oc, clusterAuthenticationOperatorName, false)
+	o.Expect(err).
+		NotTo(o.HaveOccurred(), "authentication operator should not go Degraded for an unreachable issuer")
+
+	g.By("Making the issuer reachable again")
+	err = scaleDeployment(ctx, t.oc, keycloakNamespace, keycloakResourceName, 1)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should scale keycloak back to one")
+	err = waitForKeycloakAvailable(ctx, t.oc, keycloakNamespace, g.GinkgoLogr)
+	o.Expect(err).NotTo(o.HaveOccurred(), "keycloak should become available again")
+
+	g.By("Verifying token validation works after the issuer recovers")
+	configureExternalClaimsKeycloakClient(keycloakCli)
+	assertExternalOIDCLoginGroups(ctx, t.oc, keycloakCli, externalClaimsKeycloakClientID, username, password, fmt.Sprintf("%s@payload.openshift.io", username))
 }
 
 // testExternalOIDCFallbackOnProxyRemoval verifies the operand gets the proxy env vars when
@@ -724,6 +831,17 @@ func proxyURLWithCredentials(proxyURL, username, password string) (string, error
 	}
 	u.User = url.UserPassword(username, password)
 	return u.String(), nil
+}
+
+// expectedNoProxyWithServiceIP extends component_proxy.DefaultNoProxy with the cluster's
+// Kubernetes service IP. The enhancement mandates the service IP, baked by the operators
+// from KUBERNETES_SERVICE_HOST, in the implicit noProxy defaults; the verifier's subset
+// semantics keep the assertion safe against operator supersets.
+func expectedNoProxyWithServiceIP(ctx context.Context, oc *exutil.CLI) string {
+	g.GinkgoHelper()
+	service, err := oc.AdminKubeClient().CoreV1().Services("default").Get(ctx, "kubernetes", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "should get the kubernetes service")
+	return component_proxy.DefaultNoProxy + "," + service.Spec.ClusterIP
 }
 
 // createNamedTrustedCAConfigMap creates a trustedCA ConfigMap under an exact name in

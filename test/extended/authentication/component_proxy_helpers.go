@@ -26,6 +26,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/utils/ptr"
 
 	"github.com/openshift/origin/test/extended/authentication/component_proxy"
 	"github.com/openshift/origin/test/extended/authentication/operator_wait"
@@ -404,6 +405,84 @@ func waitForProxyTrafficFromTo(ctx context.Context, oc *exutil.CLI, proxyNamespa
 		}
 		return false, nil
 	})
+}
+
+// getSquidPodIP returns the IP of the running Squid pod in the proxy namespace.
+// TODO: this Squid part changes with PR 31837; adapt to its helpers when it lands.
+func getSquidPodIP(ctx context.Context, oc *exutil.CLI, proxyNamespace string) (string, error) {
+	g.GinkgoHelper()
+	pods, err := oc.AdminKubeClient().CoreV1().Pods(proxyNamespace).List(ctx, metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("app=%s", squidServiceName),
+	})
+	if err != nil {
+		return "", fmt.Errorf("listing squid pods in %s: %w", proxyNamespace, err)
+	}
+	if len(pods.Items) == 0 || pods.Items[0].Status.PodIP == "" {
+		return "", fmt.Errorf("no running squid pod with an IP found in namespace %s", proxyNamespace)
+	}
+	return pods.Items[0].Status.PodIP, nil
+}
+
+// unreachableProxyURL returns a proxy URL pointing at the Squid pod IP on a port nothing
+// listens on. Connecting to it is actively refused rather than timed out, so an operator
+// probing the proxy fails fast instead of hanging on a dropped-packet address.
+// TODO: this Squid part changes with PR 31837; adapt to its helpers when it lands.
+func unreachableProxyURL(ctx context.Context, oc *exutil.CLI, proxyNamespace string) (string, error) {
+	podIP, err := getSquidPodIP(ctx, oc, proxyNamespace)
+	if err != nil {
+		return "", err
+	}
+	return "http://" + net.JoinHostPort(podIP, strconv.Itoa(int(squidHTTPSPort)+10)), nil
+}
+
+func scaleDeployment(ctx context.Context, oc *exutil.CLI, namespace, name string, replicas int32) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		deployment.Spec.Replicas = ptr.To(replicas)
+		_, err = oc.AdminKubeClient().AppsV1().Deployments(namespace).Update(ctx, deployment, metav1.UpdateOptions{})
+		return err
+	})
+}
+
+// waitForWarningEventMentioning polls Events in namespace until a Warning event whose
+// message or reason mentions substring appears after since. The match is deliberately
+// loose: it pins the enhancement contract (a Warning event, not a Degraded condition, for
+// an endpoint unreachable behind a working proxy) without depending on an
+// implementation-specific reason constant.
+func waitForWarningEventMentioning(ctx context.Context, oc *exutil.CLI, namespace, substring string, since time.Time, timeout time.Duration) error {
+	return wait.PollUntilContextTimeout(ctx, 10*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		events, err := oc.AdminKubeClient().CoreV1().Events(namespace).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return false, nil
+		}
+		for _, event := range events.Items {
+			if event.Type != corev1.EventTypeWarning {
+				continue
+			}
+			if event.EventTime.Time.After(since) || event.LastTimestamp.Time.After(since) || event.CreationTimestamp.After(since) {
+				if strings.Contains(event.Message, substring) || strings.Contains(event.Reason, substring) {
+					g.GinkgoWriter.Printf("found warning event: %s %s: %s\n", event.Reason, event.LastTimestamp, event.Message)
+					return true, nil
+				}
+			}
+		}
+		return false, nil
+	})
+}
+
+// assertBreakGlassClientCertAuthWorks proves independent administrative access survives a
+// broken proxy: the client-certificate kubeconfig authenticates against the API server
+// without any dependency on the OIDC token-validation path.
+func assertBreakGlassClientCertAuthWorks(ctx context.Context, oc *exutil.CLI) error {
+	output, err := oc.AsAdmin().Run("whoami").Output()
+	if err != nil {
+		return fmt.Errorf("client-certificate authentication should keep working while the proxy is broken: %w", err)
+	}
+	g.GinkgoWriter.Printf("break-glass client-certificate auth works: %s", output)
+	return nil
 }
 
 // keycloakProxySetup holds the results of deploying Keycloak for proxy tests,

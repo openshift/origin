@@ -3,6 +3,7 @@ package authentication
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -23,13 +24,14 @@ import (
 )
 
 const (
-	consoleNamespace        = "openshift-console"
-	consoleDeploymentName   = "console"
-	consoleOperatorName     = "console"
-	consoleConfigMapName    = "console-config"
-	consoleConfigFileName   = "console-config.yaml"
-	consoleContainerName    = "console"
-	consolePodLabelSelector = "app=console"
+	consoleNamespace         = "openshift-console"
+	consoleDeploymentName    = "console"
+	consoleOperatorName      = "console"
+	consoleOperatorNamespace = "openshift-console-operator"
+	consoleConfigMapName     = "console-config"
+	consoleConfigFileName    = "console-config.yaml"
+	consoleContainerName     = "console"
+	consolePodLabelSelector  = "app=console"
 
 	// The three constants below mirror the console-operator api package: the mount
 	// directory, the bundle file name, and the path the rendered console-config.yaml
@@ -255,7 +257,7 @@ func (t ConsoleComponentProxyTests) testConsoleOperandProxyConfiguration(
 	}
 	t.setProxy(ctx, proxyConfig)
 
-	err := t.proxyVerifier.AssertProxyConfigInFile(ctx, "", proxyURL, component_proxy.DefaultNoProxy, withTrustedCA)
+	err := t.proxyVerifier.AssertProxyConfigInFile(ctx, "", proxyURL, expectedNoProxyWithServiceIP(ctx, t.oc), withTrustedCA)
 	o.Expect(err).
 		NotTo(o.HaveOccurred(), "console config should carry the auth.proxy block")
 
@@ -272,6 +274,105 @@ func (t ConsoleComponentProxyTests) testConsoleOperandProxyConfiguration(
 		o.Expect(err).
 			NotTo(o.HaveOccurred(), "console deployment should not mount the auth proxy CA")
 	}
+}
+
+// testConsoleOperatorDegradedOnUnreachableProxy verifies the enhancement's proxy
+// configuration checks for the console path: an unreachable proxy URL takes the console
+// cluster operator Degraded while break-glass client-certificate authentication keeps
+// working, and correcting the proxy at its source restores the operator.
+// The proxyconfig controller implementing the check is external work in
+// console-operator; against an operator without it this test stays red, mirroring the
+// DefaultNoProxy contract.
+func (t ConsoleComponentProxyTests) testConsoleOperatorDegradedOnUnreachableProxy(
+	ctx context.Context,
+	workingProxyURL, proxyNamespace string,
+) {
+	unreachableURL, err := unreachableProxyURL(ctx, t.oc, proxyNamespace)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should build an unreachable proxy URL")
+
+	g.By("Setting a console auth proxy URL that actively refuses connections")
+	// Like the missing-CA case, the operator may not complete a Deployment rollout while
+	// Degraded, so the config is applied directly instead of through the rollout wrapper.
+	err = updateConsoleAuthProxy(ctx, t.oc, operatorv1.ConsoleAuthProxyConfig{HTTPSProxy: unreachableURL})
+	o.Expect(err).
+		NotTo(o.HaveOccurred(), "should set unreachable console auth proxy config")
+	t.deferResetProxy()
+
+	g.By("Verifying the console cluster operator goes Degraded=True")
+	err = waitForClusterOperatorDegraded(ctx, t.oc, consoleOperatorName, true)
+	o.Expect(err).
+		NotTo(o.HaveOccurred(), "console operator should go Degraded when the proxy URL is unreachable")
+
+	g.By("Verifying break-glass client-certificate authentication keeps working")
+	err = assertBreakGlassClientCertAuthWorks(ctx, t.oc)
+	o.Expect(err).
+		NotTo(o.HaveOccurred(), "client-certificate authentication should keep working with an unreachable proxy")
+
+	g.By("Correcting the proxy at its source")
+	err = t.waitForOperatorToSettleAndDeploymentRollout(ctx, func() error {
+		return updateConsoleAuthProxy(ctx, t.oc, operatorv1.ConsoleAuthProxyConfig{HTTPSProxy: workingProxyURL})
+	})
+	o.Expect(err).
+		NotTo(o.HaveOccurred(), "should set a working console auth proxy config")
+
+	g.By("Verifying the console cluster operator recovers to Degraded=False")
+	err = waitForClusterOperatorDegraded(ctx, t.oc, consoleOperatorName, false)
+	o.Expect(err).
+		NotTo(o.HaveOccurred(), "console operator should recover after the proxy is corrected")
+}
+
+// testConsoleWarningEventOnUnreachableIssuer verifies the other half of the console proxy
+// configuration checks: an issuer unreachable behind a working proxy emits a Warning
+// event rather than taking the console operator Degraded. The probes run when the
+// effective configuration changes, so the issuer is made unreachable before the proxy is
+// set. The proxyconfig controller emitting the event is external work in console-operator;
+// against an operator without it the Warning-event assertion stays red, mirroring the
+// DefaultNoProxy contract.
+func (t ConsoleComponentProxyTests) testConsoleWarningEventOnUnreachableIssuer(
+	ctx context.Context,
+	keycloakNamespace, proxyURL string,
+) {
+	issuerURL, err := admittedURLForRoute(ctx, t.oc, keycloakResourceName, keycloakNamespace)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should get keycloak route URL")
+	issuerURLParsed, err := url.Parse(issuerURL)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should parse keycloak route URL")
+	issuerHost := issuerURLParsed.Hostname()
+
+	g.By("Making the issuer unreachable by scaling Keycloak to zero")
+	err = scaleDeployment(ctx, t.oc, keycloakNamespace, keycloakResourceName, 0)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should scale keycloak to zero")
+	g.DeferCleanup(func(ctx context.Context) error {
+		return scaleDeployment(ctx, t.oc, keycloakNamespace, keycloakResourceName, 1)
+	})
+
+	eventSince := time.Now()
+
+	g.By("Setting a working console auth proxy while the issuer is unreachable")
+	err = t.waitForOperatorToSettleAndDeploymentRollout(ctx, func() error {
+		return updateConsoleAuthProxy(ctx, t.oc, operatorv1.ConsoleAuthProxyConfig{HTTPSProxy: proxyURL})
+	})
+	o.Expect(err).
+		NotTo(o.HaveOccurred(), "should set console auth proxy config")
+	t.deferResetProxy()
+
+	g.By("Verifying a Warning event mentions the unreachable issuer")
+	err = waitForWarningEventMentioning(ctx, t.oc, consoleOperatorNamespace, issuerHost, eventSince, 5*time.Minute)
+	o.Expect(err).
+		NotTo(o.HaveOccurred(), "console operator should emit a Warning event for the unreachable issuer")
+
+	g.By("Verifying the console cluster operator stays Degraded=False")
+	err = waitForClusterOperatorDegraded(ctx, t.oc, consoleOperatorName, false)
+	o.Expect(err).
+		NotTo(o.HaveOccurred(), "console operator should not go Degraded for an unreachable issuer")
+
+	g.By("Making the issuer reachable again")
+	err = scaleDeployment(ctx, t.oc, keycloakNamespace, keycloakResourceName, 1)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should scale keycloak back to one")
+	err = waitForKeycloakAvailable(ctx, t.oc, keycloakNamespace, g.GinkgoLogr)
+	o.Expect(err).NotTo(o.HaveOccurred(), "keycloak should become available again")
+
+	g.By("Verifying the console OIDC clients are healthy after the issuer recovers")
+	waitForHealthyOIDCClients(ctx, t.oc)
 }
 
 // testConsoleFallbackOnProxyRemoval verifies the auth.proxy block is rendered when

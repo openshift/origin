@@ -192,6 +192,12 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 	g.It("oauth-apiserver/operator should hot-reload mounted CA file on change when spec.proxy.trustedCA is set", func() {
 		externalOIDCComponentProxyTests.testExternalOIDCHotReloadCAFileChange(ctx, keycloakCli, keycloakNamespace, proxyNamespace, username, password, group, httpsProxyURL, caCertPEM)
 	})
+	g.It("operator should go Degraded when the proxy URL is unreachable", func() {
+		externalOIDCComponentProxyTests.testExternalOIDCOperatorDegradedOnUnreachableProxy(ctx, keycloakCli, username, password, httpsProxyURL, proxyNamespace)
+	})
+	g.It("operator should emit a Warning event when the issuer is unreachable behind a working proxy", func() {
+		externalOIDCComponentProxyTests.testExternalOIDCWarningEventOnUnreachableIssuer(ctx, keycloakCli, username, password, keycloakNamespace, httpsProxyURL)
+	})
 	g.It("oauth-apiserver should bypass proxy by directly connecting to idp to perform OIDC login flow when spec.proxy.noProxy contains idp", func() {
 		externalOIDCComponentProxyTests.testExternalOIDCBypassNoProxyHost(ctx, keycloakCli, keycloakNamespace, proxyNamespace, username, password, group, httpProxyURL, httpsProxyURL, caCertPEM)
 	})
@@ -222,6 +228,12 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 	})
 	g.It("console/operator should hot-reload mounted CA file on change when spec.authProxy.trustedCA is set", func() {
 		consoleComponentProxyTests.testConsoleHotReloadCAFileChange(ctx, keycloakNamespace, proxyNamespace, httpsProxyURL, caCertPEM)
+	})
+	g.It("console-operator should go Degraded when the auth proxy URL is unreachable", func() {
+		consoleComponentProxyTests.testConsoleOperatorDegradedOnUnreachableProxy(ctx, httpsProxyURL, proxyNamespace)
+	})
+	g.It("console-operator should emit a Warning event when the issuer is unreachable behind a working auth proxy", func() {
+		consoleComponentProxyTests.testConsoleWarningEventOnUnreachableIssuer(ctx, keycloakNamespace, httpsProxyURL)
 	})
 	g.It("console should bypass proxy by directly connecting to idp for OIDC discovery when spec.authProxy.noProxy contains idp", func() {
 		consoleComponentProxyTests.testConsoleBypassNoProxyHost(ctx, keycloakNamespace, proxyNamespace, httpProxyURL, httpsProxyURL, caCertPEM)
