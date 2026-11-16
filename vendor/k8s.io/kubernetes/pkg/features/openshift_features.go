@@ -9,7 +9,6 @@ var (
 	RouteExternalCertificate        featuregate.Feature = "RouteExternalCertificate"
 	MinimumKubeletVersion           featuregate.Feature = "MinimumKubeletVersion"
 	StoragePerformantSecurityPolicy featuregate.Feature = "StoragePerformantSecurityPolicy"
-	SELinuxMountGAReadiness         featuregate.Feature = "SELinuxMountGAReadiness"
 )
 
 // registerOpenshiftFeatures injects openshift-specific feature gates
@@ -26,13 +25,8 @@ func registerOpenshiftFeatures() {
 	defaultVersionedKubernetesFeatureGates[StoragePerformantSecurityPolicy] = featuregate.VersionedSpecs{
 		{Version: version.MustParse("1.33"), Default: false, PreRelease: featuregate.Alpha},
 	}
-	// Introduced in 5.0
-	defaultVersionedKubernetesFeatureGates[SELinuxMountGAReadiness] = featuregate.VersionedSpecs{
-		{Version: version.MustParse("1.35"), Default: false, PreRelease: featuregate.Alpha},
-	}
 
 	defaultKubernetesFeatureGateDependencies[RouteExternalCertificate] = []featuregate.Feature{}
 	defaultKubernetesFeatureGateDependencies[MinimumKubeletVersion] = []featuregate.Feature{}
 	defaultKubernetesFeatureGateDependencies[StoragePerformantSecurityPolicy] = []featuregate.Feature{}
-	defaultKubernetesFeatureGateDependencies[SELinuxMountGAReadiness] = []featuregate.Feature{}
 }

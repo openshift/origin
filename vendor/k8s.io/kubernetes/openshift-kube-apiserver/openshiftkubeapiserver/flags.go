@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"strconv"
 	"strings"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -39,6 +40,13 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 	configflags.SetIfUnset(args, "service-account-key-file", kubeAPIServerConfig.ServiceAccountPublicKeyFiles...)
 	configflags.SetIfUnset(args, "service-cluster-ip-range", kubeAPIServerConfig.ServicesSubnet)
 	configflags.SetIfUnset(args, "tls-cipher-suites", kubeAPIServerConfig.ServingInfo.CipherSuites...)
+	if len(kubeAPIServerConfig.ServingInfo.CurvePreferences) > 0 {
+		curvePreferences := make([]string, len(kubeAPIServerConfig.ServingInfo.CurvePreferences))
+		for i, curvePreference := range kubeAPIServerConfig.ServingInfo.CurvePreferences {
+			curvePreferences[i] = strconv.FormatInt(int64(curvePreference), 10)
+		}
+		configflags.SetIfUnset(args, "tls-curve-preferences", curvePreferences...)
+	}
 	configflags.SetIfUnset(args, "tls-min-version", kubeAPIServerConfig.ServingInfo.MinTLSVersion)
 	configflags.SetIfUnset(args, "tls-sni-cert-key", sniCertKeys(kubeAPIServerConfig.ServingInfo.NamedCertificates)...)
 
