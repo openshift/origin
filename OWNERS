@@ -4,7 +4,6 @@ filters:
   ".*":
     reviewers:
     - sjenning
-    - p0lyn0mial
     approvers:
     - bertinatto
     - dgoodwin
@@ -18,7 +17,8 @@ filters:
     - mkowalski 
     - miyadav
     - jogeo
-    - xueqzhan 
+    - jacobsee
+    - jubittajohn
   "^\\.go.(mod|sum)$":
     labels:
     - "vendor-update"
