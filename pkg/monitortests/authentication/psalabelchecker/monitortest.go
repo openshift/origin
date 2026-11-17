@@ -3,7 +3,9 @@ package psalabelchecker
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
@@ -92,9 +94,15 @@ var hypershiftExceptedNamespaces = map[string]string{
 	"openshift-route-controller-manager": "CNTRLPLANE-4825",
 }
 
+// psaViolationRegex is used later to check dry-run warnings for
+// namespace violations.
+var psaViolationRegex = regexp.MustCompile(`existing pods in namespace 
+"([^"]+)" violate the new PodSecurity enforce level "([^"]+)"`)
+
 type noPodSecurityAdmissionLabelNamespaceChecker struct {
 	kubeClient   kubernetes.Interface
 	configClient configv1client.Interface
+	wngCollector *warningCollector
 }
 
 // Cleanup implements monitortestframework.MonitorTest
@@ -105,28 +113,64 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) Cleanup(ctx context.Contex
 // generateTestCase asserts that an OpenShift managed namespace sets the enforce, audit and
 // warn pod-security.kubernetes.io/ labels and no longer opts into the PSA label syncer.
 // Both are prerequisites for retiring the syncer without weakening PSA enforcement.
-func generateTestCase(namespace corev1.Namespace, isMicroShift bool, isHyperShift bool) []*junitapi.JUnitTestCase {
-	namespaceName := namespace.Name
+func (n *noPodSecurityAdmissionLabelNamespaceChecker) generateTestCase(namespace corev1.Namespace, isMicroShift bool, isHyperShift bool) []*junitapi.JUnitTestCase {
+	if n.configClient == nil || n.kubeClient == nil || n.wngCollector == nil {
+		return nil
+	}
+
+	nsCopy := namespace.DeepCopy()
+
+	namespaceName := nsCopy.Name
 
 	testName := fmt.Sprintf("[sig-auth] namespace %s must set the pod security admission level labels", namespaceName)
 
+	if nsCopy.Labels == nil {
+		nsCopy.Labels = make(map[string]string)
+	}
+
 	problems := []string{}
 	for _, key := range []string{psapi.EnforceLevelLabel, psapi.AuditLevelLabel, psapi.WarnLevelLabel} {
-		labelVal, ok := namespace.Labels[key]
+		_, ok := nsCopy.Labels[key]
 		if !ok {
 			problems = append(problems, fmt.Sprintf("%s is not set", key))
 			continue
 		}
-		if labelVal != "restricted" {
-			problems = append(problems, fmt.Sprintf("%s should be set to restricted, observed value was %s",
-				key, labelVal))
+	}
+
+	// The namespace needs to be checked if it can enforce restricted PSS.
+	// This can be safely done with a dry-run update with `restricted` PSS
+	// enforcement applied.
+	enforceVal := nsCopy.Labels[psapi.EnforceLevelLabel]
+	if enforceVal != string(psapi.LevelRestricted) {
+		nsCopy.Labels[psapi.EnforceLevelLabel] = string(psapi.LevelRestricted)
+		nsCopy.Labels[psapi.EnforceVersionLabel] = psapi.LatestVersion().String()
+
+		_, err := n.kubeClient.CoreV1().Namespaces().Update(
+			context.Background(),
+			nsCopy,
+			metav1.UpdateOptions{DryRun: []string{metav1.DryRunAll}},
+		)
+
+		if err != nil {
+			problems = append(problems, fmt.Sprintf("namespace %s failed to update with dry run: %v", nsCopy.Name, err))
+		}
+
+		warnings := n.wngCollector.PopWarnings()
+
+		for _, warning := range warnings {
+			if psaViolationRegex.MatchString(warning) {
+				problems = append(problems, fmt.Sprintf("namespace %s cannot enforce restricted PSS: %s", nsCopy.Name, warning))
+			}
 		}
 	}
+
+	// reset nsCopy since we modified its labels...
+	nsCopy = namespace.DeepCopy()
 
 	// The syncer opt-in becomes a no-op once the syncer is disabled, so it has to be
 	// cleaned up rather than left behind as a false signal.
 	sccPsaLabelSyncPrefix := "security.openshift.io/scc.podSecurityLabelSync"
-	sccPsaLabelSyncValue := namespace.Labels[sccPsaLabelSyncPrefix]
+	sccPsaLabelSyncValue := nsCopy.Labels[sccPsaLabelSyncPrefix]
 	if sccPsaLabelSyncValue == "false" {
 		problems = append(problems, fmt.Sprintf("%s is set to %s and needs to be removed", sccPsaLabelSyncPrefix, sccPsaLabelSyncValue))
 	}
@@ -192,7 +236,7 @@ func generateTestCase(namespace corev1.Namespace, isMicroShift bool, isHyperShif
 
 // CollectData implements monitortestframework.MonitorTest
 func (n *noPodSecurityAdmissionLabelNamespaceChecker) CollectData(ctx context.Context, storageDir string, beginning time.Time, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-	if n.configClient == nil || n.kubeClient == nil {
+	if n.configClient == nil || n.kubeClient == nil || n.wngCollector == nil {
 		return nil, nil, nil
 	}
 	namespaces, err := n.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
@@ -221,6 +265,9 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) CollectData(ctx context.Co
 		}
 
 		// Annotated namespaces are shipped to, but not created by, HyperShift.
+		// By including this check, we help to reduce duplicate reportings of
+		// namespace manifests that do not belong to HyperShift, but rather they
+		// belong to an OCP component repo instead.
 		isHyperShiftIncludedNamespace := ns.Annotations["include.release.openshift.io/hypershift"] == "true"
 
 		// Under HyperShift these are created by openshift-apiserver, not HyperShift itself,
@@ -237,7 +284,7 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) CollectData(ctx context.Co
 		if !isManagedNamespace {
 			continue
 		}
-		junits = append(junits, generateTestCase(ns, isMicroShift, isHyperShift)...)
+		junits = append(junits, n.generateTestCase(ns, isMicroShift, isHyperShift)...)
 	}
 	return nil, junits, nil
 }
@@ -259,13 +306,18 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) PrepareCollection(ctx cont
 
 // StartCollection implements monitortestframework.MonitorTest.
 func (n *noPodSecurityAdmissionLabelNamespaceChecker) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	cfg := rest.CopyConfig(adminRESTConfig)
+	n.wngCollector = &warningCollector{}
+	cfg.WarningHandler = n.wngCollector
+
 	var err error
-	n.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
+
+	n.kubeClient, err = kubernetes.NewForConfig(cfg)
 	if err != nil {
 		return err
 	}
 
-	n.configClient, err = configv1client.NewForConfig(adminRESTConfig)
+	n.configClient, err = configv1client.NewForConfig(cfg)
 	if err != nil {
 		return err
 	}
@@ -280,4 +332,24 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) WriteContentToStorage(ctx 
 
 func NewAnalyzer() monitortestframework.MonitorTest {
 	return &noPodSecurityAdmissionLabelNamespaceChecker{}
+}
+
+type warningCollector struct {
+	mu       sync.Mutex
+	warnings []string
+}
+
+// HandleWarningHeader is invoked by client-go whenever the API server returns a "Warning" HTTP header.
+func (w *warningCollector) HandleWarningHeader(code int, agent string, text string) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.warnings = append(w.warnings, text)
+}
+
+func (w *warningCollector) PopWarnings() []string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	out := w.warnings
+	w.warnings = nil
+	return out
 }
