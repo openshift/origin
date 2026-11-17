@@ -883,18 +883,22 @@ cat /tmp/bgp-vip-e2e-api/log 2>/dev/null || true`
 		t.Skip("no setsid")
 	}
 	dir := t.TempDir() + "/probe"
-	setup := fmt.Sprintf("mkdir -p %[1]s; echo '100.0 192.168.111.5 200 0' > %[1]s/log; setsid bash -c 'while :; do sleep 0.1; done' > /dev/null 2>&1 < /dev/null & echo $! > %[1]s/pid; cat %[1]s/pid", dir)
-	out, err := runBGPVIPTestScript(t, nil, setup)
+	sentinel := t.TempDir() + "/running"
+	out, err := runBGPVIPTestScript(t, nil, bgpVIPTestProbeLoopSetup(dir, sentinel, true))
 	if err != nil {
 		t.Fatal(err)
 	}
 	pid := strings.TrimSpace(out)
 	pgid, err := strconv.Atoi(pid)
-	if err != nil {
+	if err != nil || pgid <= 1 {
 		t.Fatalf("no loop pid in %q: %v", out, err)
 	}
 	// The loop runs in its own session: kill it whatever happens below.
 	t.Cleanup(func() { killBGPVIPTestProcess(t, -pgid, "probe loop group") })
+	// Stop a loop that runs, not one that already ended.
+	if sid, err := bgpVIPSessionID(pgid); err != nil || sid != pgid || bgpVIPProcessGone(pgid, 0) {
+		t.Fatalf("the probe loop %d does not run in its own session before the stop: session %d, %v", pgid, sid, err)
+	}
 	out, err = runBGPVIPTestScript(t, nil, bgpVIPProbeStopScript(dir, true))
 	if err != nil {
 		t.Fatal(err)
@@ -1437,4 +1441,65 @@ func TestKillBGPVIPProcessGroup(t *testing.T) {
 	if err := killBGPVIPProcessGroup(cmd.Process); err != nil {
 		t.Errorf("the group of an exited command: %v", err)
 	}
+}
+
+// bgpVIPTestProbeLoopSetup starts a detached probe loop for dir in its own
+// session, as the probe's start script does, and waits up to 5s for the loop
+// to write its pid to dir/pid from inside that session, so that the loop runs
+// when setup returns. The loop also ends once sentinel is gone, so that a
+// loop nothing killed cannot outlive the test's temporary directories.
+// Without ack the loop never writes its pid, for testing the wait.
+func bgpVIPTestProbeLoopSetup(dir, sentinel string, ack bool) string {
+	acknowledge := ""
+	if ack {
+		acknowledge = fmt.Sprintf("echo $$ > %[1]s/pid.tmp && mv %[1]s/pid.tmp %[1]s/pid; ", dir)
+	}
+	return fmt.Sprintf(`mkdir -p %[1]s
+echo '100.0 192.168.111.5 200 0' > %[1]s/log
+touch %[2]s
+setsid bash -c '%[3]swhile [ -e %[2]s ]; do sleep 0.1; done' > /dev/null 2>&1 < /dev/null &
+for i in $(seq 100); do [ -s %[1]s/pid ] && break; sleep 0.05; done
+[ -s %[1]s/pid ] || { echo "the probe loop did not start within 5s" >&2; exit 1; }
+cat %[1]s/pid
+`, dir, sentinel, acknowledge)
+}
+
+// TestBGPVIPTestProbeLoopSetupNeedsAck checks that the stop test's setup
+// fails within its bound when the detached loop never acknowledges its start.
+func TestBGPVIPTestProbeLoopSetupNeedsAck(t *testing.T) {
+	if _, err := exec.LookPath("setsid"); err != nil {
+		t.Skip("no setsid")
+	}
+	dir := t.TempDir() + "/probe"
+	sentinel := t.TempDir() + "/running"
+	start := time.Now()
+	_, err := runBGPVIPTestScript(t, nil, bgpVIPTestProbeLoopSetup(dir, sentinel, false))
+	if err == nil || !strings.Contains(err.Error(), "the probe loop did not start within 5s") {
+		t.Errorf("err = %v, want a startup timeout", err)
+	}
+	if elapsed := time.Since(start); elapsed > 15*time.Second {
+		t.Errorf("setup gave up after %v", elapsed)
+	}
+	// End the loop that never acknowledged.
+	if err := os.Remove(sentinel); err != nil {
+		t.Errorf("remove %s: %v", sentinel, err)
+	}
+}
+
+// bgpVIPSessionID returns the session of pid from /proc.
+func bgpVIPSessionID(pid int) (int, error) {
+	stat, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", pid))
+	if err != nil {
+		return 0, err
+	}
+	// After the parenthesized command: state, ppid, pgrp, session.
+	i := strings.LastIndexByte(string(stat), ')')
+	if i < 0 {
+		return 0, fmt.Errorf("cannot parse %q", stat)
+	}
+	fields := strings.Fields(string(stat[i+1:]))
+	if len(fields) < 4 {
+		return 0, fmt.Errorf("cannot parse %q", stat)
+	}
+	return strconv.Atoi(fields[3])
 }
