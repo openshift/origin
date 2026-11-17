@@ -96,8 +96,7 @@ var hypershiftExceptedNamespaces = map[string]string{
 
 // psaViolationRegex is used later to check dry-run warnings for
 // namespace violations.
-var psaViolationRegex = regexp.MustCompile(`existing pods in namespace 
-"([^"]+)" violate the new PodSecurity enforce level "([^"]+)"`)
+var psaViolationRegex = regexp.MustCompile(`existing pods in namespace "([^"]+)" violate the new PodSecurity enforce level "([^"]+)"`)
 
 type noPodSecurityAdmissionLabelNamespaceChecker struct {
 	kubeClient   kubernetes.Interface
