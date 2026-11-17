@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"net/url"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -31,11 +31,31 @@ const (
 	// bgpVIPIngressProbeBudget is the number of failed probe requests per
 	// ingress VIP tolerated while a router pod moves away from its node.
 	bgpVIPIngressProbeBudget = 3
-	// test 5 body budget: the suite timeout (20m) minus the failure dump
-	// (bgpVIPDumpTimeout, 2m), the cleanup budget (5m) and a 2m margin.
-	bgpVIPIngressMoveBodyTimeout = 11 * time.Minute
-	bgpVIPIngressMoveCleanup     = 5 * time.Minute
+	// test 5 budget within the suite timeout (20m): the body (11m), the
+	// failure dump (bgpVIPDumpTimeout, 2m), the cleanup (6m: two hypervisor
+	// steps of bgpVIPIngressMoveHostStep and the node restoration of
+	// bgpVIPIngressMoveRestoreBudget) and a 1m margin.
+	bgpVIPIngressMoveBodyTimeout   = 11 * time.Minute
+	bgpVIPIngressMoveHostStep      = 30 * time.Second
+	bgpVIPIngressMoveRestoreBudget = 5 * time.Minute
+	// bgpVIPIngressExposureMin is the number of successful probe requests of
+	// every address family that the moved router node must have carried
+	// before the disruption; bgpVIPIngressExposureWindow bounds the wait for
+	// them.
+	bgpVIPIngressExposureMin    = 5
+	bgpVIPIngressExposureWindow = 30 * time.Second
+	// bgpVIPIngressSampleInterval paces the exposure and ToR withdrawal
+	// sampling, which time events against the 1/s probe.
+	bgpVIPIngressSampleInterval = time.Second
+	// bgpVIPIngressObservationWindow is how long the probe runs after the
+	// ToR converged and after the restoration.
+	bgpVIPIngressObservationWindow = 30 * time.Second
 )
+
+// bgpVIPIngressMovePhaseNames are the phases of the ingress VIP move, split at
+// the disruption, the ToR's convergence on the remaining router nodes, and
+// the start and end of the restoration.
+var bgpVIPIngressMovePhaseNames = []string{"exposure", "withdrawal", "moved", "restoration", "post-restore"}
 
 var _ = g.Describe(bgpVIPTags+" BGP VIP management", func() {
 	defer g.GinkgoRecover()
@@ -198,6 +218,7 @@ var _ = g.Describe(bgpVIPTags+" BGP VIP management", func() {
 			e2eskipper.Skipf("need router pods on at least 2 nodes, %s wants %d replicas", bgpVIPRouterDeployment, routerReplicas)
 		}
 		nodeIPs := bgpVIPNodeIPs(bodyCtx, oc)
+		families := bgpVIPFamilies(ingressVIPs)
 
 		g.By("checking that the hypervisor reaches every ingress VIP over a BGP route via a router node")
 		for _, vip := range ingressVIPs {
@@ -207,18 +228,90 @@ var _ = g.Describe(bgpVIPTags+" BGP VIP management", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
-		probeURL := bgpVIPIngressProbeURL(bodyCtx, oc)
-		g.By("probing " + probeURL + " through every ingress VIP from the hypervisor")
-		probe, err := startBGPVIPProbe(bodyCtx, h, "ingress", probeURL, ingressVIPs, 1)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		// Registered before the first change to the hypervisor or the
+		// cluster, it undoes whichever of them happened, on every path, each
+		// step within its own budget.
+		state := &bgpVIPIngressMoveState{}
 		g.DeferCleanup(func() {
-			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-			defer cancel()
-			_, err := probe.stop(ctx)
-			o.Expect(err).NotTo(o.HaveOccurred(), "stopping the ingress probe on the hypervisor")
+			o.Expect(runBGPVIPCleanup(context.Background(), state.cleanupSteps(bgpVIPIngressMoveActions{
+				stopProbe: func(ctx context.Context) error {
+					samples, err := state.probe.stopAndRemove(ctx, bgpVIPIngressMoveHostStep)
+					for _, line := range describeBGPVIPProbeSamples(samples, 20) {
+						e2e.Logf("cleanup: %s", line)
+					}
+					return err
+				},
+				restoreHost: func(ctx context.Context, pathsRecorded, hashPolicySet bool) error {
+					_, err := h.run(ctx, bgpVIPIngressMoveHostStep, bgpVIPIngressHostCleanupScript(pathsRecorded, hashPolicySet))
+					return err
+				},
+				restoreNode: func(ctx context.Context, node string, unschedulable bool) error {
+					return restoreRouterNode(ctx, oc, node, unschedulable, peers, ingressVIPs)
+				},
+			}))).To(o.Succeed())
 		})
 
-		victim := sets.List(routerNodes)[0]
+		probeURL := bgpVIPIngressProbeURL(bodyCtx, oc)
+		_, probePort, err := parseBGPVIPURL(probeURL)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		var routers []bgpVIPExposureRouter
+		for _, node := range sets.List(routerNodes) {
+			macs := sets.New[string]()
+			for ip, name := range nodeIPs {
+				if name != node || !slices.Contains(families, addressFamily(ip)) {
+					continue
+				}
+				mac, err := hypervisorNeighborMAC(bodyCtx, h, ip)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				macs.Insert(mac)
+			}
+			o.Expect(macs.Len()).NotTo(o.BeZero(), "router node %s has no InternalIP of families %v", node, families)
+			routers = append(routers, bgpVIPExposureRouter{Node: node, MACs: sets.List(macs)})
+		}
+		e2e.Logf("router nodes and their MAC addresses on the hypervisor: %+v", routers)
+		var policy strings.Builder
+		for _, f := range families {
+			fmt.Fprintf(&policy, "sysctl net.%s.fib_multipath_hash_policy\n", f)
+		}
+		out, err := h.run(bodyCtx, time.Minute, policy.String())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("the hypervisor's own multipath hash policy: %s", strings.Join(strings.Fields(out), " "))
+		// The probe's source ports tell its requests apart only if the
+		// hypervisor never assigns them to another connection by itself.
+		out, err = h.run(bodyCtx, time.Minute, "sysctl -n net.ipv4.ip_local_port_range")
+		o.Expect(err).NotTo(o.HaveOccurred(), "coverage: cannot read the hypervisor's ephemeral port range, so the probe's source ports may not identify its requests")
+		e2e.Logf("the hypervisor's ephemeral port range: %s", strings.Join(strings.Fields(out), "-"))
+		o.Expect(checkBGPVIPProbePorts(out, bgpVIPIngressProbePorts)).To(o.Succeed(), "coverage: the probe's source ports may not identify its requests")
+
+		g.By("recording on the hypervisor the router node that every probe SYN is sent to")
+		state.pathsRecorded = true
+		_, err = h.run(bodyCtx, time.Minute, bgpVIPDeleteNftTablesScript+"nft -f - <<'EOF'\n"+bgpVIPProbePathNftScript(routers, ingressVIPs, probePort, bgpVIPIngressProbePorts)+"EOF\n")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("probing " + probeURL + " through every ingress VIP from the hypervisor")
+		probe := newBGPVIPProbe(h, "ingress")
+		state.probe = probe
+		o.Expect(probe.start(bodyCtx, probeURL, ingressVIPs, 1, &bgpVIPIngressProbePorts)).To(o.Succeed())
+		observe := func(ctx context.Context) (bgpVIPProbeObservation, error) {
+			return h.observeProbePaths(ctx, probe.dir()+"/log", routers, families, bgpVIPIngressProbePorts)
+		}
+
+		// Move the router pod off the node that the probe requests of every
+		// family actually reach under the hypervisor's own multipath hash
+		// policy. Only when that policy sends the families to different
+		// nodes, hash by port, as the API VIP failover test does, and
+		// measure again.
+		g.By("finding a router node that carries probe requests of every address family " + strings.Join(families, ", "))
+		victim, exposureFrom, exposure, err := waitBGPVIPExposedRouter(bodyCtx, h, observe, families)
+		if err != nil && exposure != nil {
+			e2e.Logf("under the hypervisor's own multipath hash policy: %v; hashing the multipath routes of %v by port and measuring again", err, families)
+			state.hashPolicySet = true
+			_, err = h.run(bodyCtx, time.Minute, bgpVIPSetHashPolicyFamiliesScript(families, bgpVIPIngressHashPolicyFile))
+			o.Expect(err).NotTo(o.HaveOccurred(), "coverage: cannot hash the hypervisor's multipath routes by port")
+			victim, exposureFrom, _, err = waitBGPVIPExposedRouter(bodyCtx, h, observe, families)
+		}
+		o.Expect(err).NotTo(o.HaveOccurred(), "coverage: no router node is proven to carry probe requests of every ingress VIP family, so moving its router pod would not test traffic exposure")
+
 		var victimNode *corev1.Node
 		err = bgpVIPEventually(bodyCtx, time.Minute, "read node "+victim, func(ctx context.Context) error {
 			var err error
@@ -226,54 +319,165 @@ var _ = g.Describe(bgpVIPTags+" BGP VIP management", func() {
 			return err
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		wasUnschedulable := victimNode.Spec.Unschedulable
+		state.victim, state.wasUnschedulable = victim, victimNode.Spec.Unschedulable
+
+		disrupted, err := observe(bodyCtx)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		preExposure := bgpVIPExposure(attributeBGPVIPProbe(disrupted.Samples, disrupted.Blocks, bgpVIPIngressProbePorts), exposureFrom, disrupted.Time)
+		for _, f := range families {
+			e2e.Logf("before the disruption, %s carried %d successful %s probe requests in the %.1fs measured (successful requests by router node: %v; probe SYNs sent by router node since the probe started, retransmissions included: %v)",
+				victim, preExposure[victim][f], f, disrupted.Time-exposureFrom, preExposure, disrupted.SYNs)
+			o.Expect(preExposure[victim][f]).To(o.BeNumerically(">=", bgpVIPIngressExposureMin), "coverage: %s carried too few %s probe requests before the disruption", victim, f)
+		}
+
 		g.By("cordoning " + victim + " and deleting its router pod")
-		g.DeferCleanup(func() {
-			ctx, cancel := context.WithTimeout(context.Background(), bgpVIPIngressMoveCleanup)
-			defer cancel()
-			o.Expect(restoreRouterNode(ctx, oc, victim, wasUnschedulable, peers, ingressVIPs)).To(o.Succeed())
-		})
 		o.Expect(setNodeUnschedulable(bodyCtx, oc, victim, true)).To(o.Succeed())
 		pods, err := oc.AdminKubeClient().CoreV1().Pods(bgpVIPRouterNamespace).List(bodyCtx, metav1.ListOptions{LabelSelector: bgpVIPRouterSelector, FieldSelector: "spec.nodeName=" + victim})
 		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(pods.Items).NotTo(o.BeEmpty(), "coverage: no router pod to delete on %s", victim)
 		grace := int64(30)
 		for _, pod := range pods.Items {
 			o.Expect(oc.AdminKubeClient().CoreV1().Pods(bgpVIPRouterNamespace).Delete(bodyCtx, pod.Name, metav1.DeleteOptions{GracePeriodSeconds: &grace})).To(o.Succeed())
 		}
 
-		// The replacement router pod may land on a node outside routerNodes,
-		// so the expected advertisers are recomputed on every poll.
-		for _, vip := range ingressVIPs {
-			err := bgpVIPEventually(bodyCtx, bgpVIPConvergeTimeout, fmt.Sprintf("see the ToR's paths to %s from the Ready router nodes other than %s only", vip, victim), func(ctx context.Context) error {
-				want, err := bgpVIPRouterNodes(ctx, oc)
+		// Sampled every second, between two readings of the hypervisor clock
+		// that stamps the probe samples, so whatever a look at the ToR shows
+		// happened before the reading after it. The replacement router pod
+		// may land on a node outside routerNodes, so the expected advertisers
+		// are recomputed on every poll.
+		victimSeen, victimGone, convergedBy := map[string]float64{}, map[string]float64{}, map[string]float64{}
+		var converged float64
+		err = bgpVIPEventuallyEvery(bodyCtx, bgpVIPIngressSampleInterval, bgpVIPConvergeTimeout, fmt.Sprintf("see the ToR's paths to %v from the Ready router nodes other than %s only", ingressVIPs, victim), func(ctx context.Context) error {
+			before, err := h.clock(ctx)
+			if err != nil {
+				return err
+			}
+			want, err := bgpVIPRouterNodes(ctx, oc)
+			if err != nil {
+				return err
+			}
+			want.Delete(victim)
+			if want.Len() == 0 {
+				return fmt.Errorf("no Ready router pod outside %s", victim)
+			}
+			var gone, done, pending []string
+			for _, vip := range ingressVIPs {
+				if _, ok := convergedBy[vip]; ok {
+					continue
+				}
+				peers, err := h.torPathPeers(ctx, vip)
 				if err != nil {
 					return err
 				}
-				want.Delete(victim)
-				if want.Len() == 0 {
-					return fmt.Errorf("no Ready router pod outside %s", victim)
+				if _, ok := victimGone[vip]; !ok {
+					if bgpVIPTorPathsVia(peers, victim, nodeIPs) {
+						victimSeen[vip] = before
+					} else {
+						gone = append(gone, vip)
+					}
 				}
-				return checkTorPaths(ctx, h, vip, want, nodeIPs)
-			})
-			o.Expect(err).NotTo(o.HaveOccurred())
+				if err := compareTorPaths(vip, peers, want, nodeIPs); err != nil {
+					pending = append(pending, err.Error())
+					continue
+				}
+				done = append(done, vip)
+			}
+			after, err := h.clock(ctx)
+			if err != nil {
+				return err
+			}
+			for _, vip := range gone {
+				victimGone[vip] = after
+			}
+			for _, vip := range done {
+				convergedBy[vip] = after
+			}
+			if len(pending) > 0 {
+				return fmt.Errorf("%s", strings.Join(pending, "; "))
+			}
+			converged = after
+			return nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "convergence: the ToR did not converge on the ingress VIP paths of the router nodes other than %s", victim)
+		for _, vip := range ingressVIPs {
+			seen := "not seen after the disruption"
+			if t, ok := victimSeen[vip]; ok {
+				seen = fmt.Sprintf("last seen at %+.1fs", t-disrupted.Time)
+			}
+			e2e.Logf("the ToR's paths to %s (%s), hypervisor clock relative to the disruption: %s's path %s, gone by %+.1fs; only the remaining router nodes' paths by %+.1fs",
+				vip, addressFamily(vip), victim, seen, victimGone[vip]-disrupted.Time, convergedBy[vip]-disrupted.Time)
 		}
-		g.By("letting the probe run with the VIP served by the remaining router nodes")
-		time.Sleep(30 * time.Second)
 
-		samples, err := probe.stop(bodyCtx)
+		g.By("letting the probe run with the VIP served by the remaining router nodes")
+		time.Sleep(bgpVIPIngressObservationWindow)
+
+		g.By("restoring the schedulability of " + victim + " with the probe running")
+		restoring, err := h.clock(bodyCtx)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(restoreRouterNode(bodyCtx, oc, victim, state.wasUnschedulable, peers, ingressVIPs)).To(o.Succeed(), "convergence: the router and its ingress VIP advertisers did not recover after %s was restored", victim)
+		restored, err := h.clock(bodyCtx)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("letting the probe run with the restored ingress VIP advertisers")
+		time.Sleep(bgpVIPIngressObservationWindow)
+		samples, err := probe.stopAndRemove(bodyCtx, time.Minute)
+		var final bgpVIPProbeObservation
+		if err == nil {
+			state.probe = nil
+			final, err = observe(bodyCtx)
+		}
+		if err != nil {
+			for _, line := range describeBGPVIPProbeSamples(samples, 20) {
+				e2e.Logf("%s", line)
+			}
+		}
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Every sample, including those still in flight when the probe
+		// stopped, falls into exactly one phase.
+		phases, err := bgpVIPProbePhases(bgpVIPIngressMovePhaseNames, []float64{disrupted.Time, converged, restoring, restored})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		perPhase, overall := summarizeBGPVIPPhases(phases, attributeBGPVIPProbe(samples, final.Blocks, bgpVIPIngressProbePorts))
+		e2e.Logf("probe SYNs sent by router node over the whole run, retransmissions included: %v", final.SYNs)
+		for _, p := range phases {
+			for _, vip := range ingressVIPs {
+				e2e.Logf("%s", describeBGPVIPPhaseStats("phase "+p.Name, vip, perPhase[p.Name][vip], disrupted.Time))
+			}
+		}
+		for _, vip := range ingressVIPs {
+			e2e.Logf("%s", describeBGPVIPPhaseStats("whole run", vip, overall[vip], disrupted.Time))
+		}
+
+		g.By("checking that " + victim + " has its original schedulability and every ingress VIP its healthy advertisers")
+		err = bgpVIPEventually(bodyCtx, time.Minute, "see "+victim+" restored and exactly the nodes with a Ready router pod advertise every ingress VIP", func(ctx context.Context) error {
+			node, err := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, victim, metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
+			if node.Spec.Unschedulable != state.wasUnschedulable {
+				return fmt.Errorf("node %s is unschedulable=%t, want %t", victim, node.Spec.Unschedulable, state.wasUnschedulable)
+			}
+			return checkIngressAdvertisers(ctx, oc, peers, ingressVIPs)
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "convergence: the router and its ingress VIP advertisers are not healthy at the end")
+		state.restored = true
+
+		for _, p := range []string{"moved", "post-restore"} {
+			for _, vip := range ingressVIPs {
+				o.Expect(perPhase[p][vip]).NotTo(o.BeNil(), "coverage: the probe via %s did not run in phase %s", vip, p)
+				o.Expect(perPhase[p][vip].Total).To(o.BeNumerically(">", 10), "coverage: the probe via %s barely ran in phase %s", vip, p)
+			}
+		}
 		// The probe's log only holds this probe's samples, stamped with the
-		// hypervisor's clock, so all of them are counted.
+		// hypervisor's clock, so all of them are counted, including those
+		// sent while the router pod returned and the VIP was re-advertised.
 		stats := summarizeBGPVIPProbe(samples, 0, math.Inf(1))
 		for _, vip := range ingressVIPs {
 			st := stats[vip]
-			e2e.Logf("ingress probe via %s: %d requests, %d failed", vip, st.Total, st.Failed)
+			e2e.Logf("ingress probe via %s (%s): %d requests, %d failed", vip, addressFamily(vip), st.Total, st.Failed)
 			o.Expect(st.Total).To(o.BeNumerically(">", 10), "the probe via %s barely ran", vip)
-			o.Expect(st.Failed).To(o.BeNumerically("<=", bgpVIPIngressProbeBudget), "ingress traffic via %s failed %d times while its router pod moved", vip, st.Failed)
+			o.Expect(st.Failed).To(o.BeNumerically("<=", bgpVIPIngressProbeBudget), "traffic: ingress traffic via %s (%s) failed %d times while the router pod moved off %s and back", vip, addressFamily(vip), st.Failed, victim)
 		}
-
-		g.By("restoring the schedulability of " + victim)
-		o.Expect(restoreRouterNode(bodyCtx, oc, victim, wasUnschedulable, peers, ingressVIPs)).To(o.Succeed())
 	})
 
 	g.It("should serve API and ingress traffic through the VIPs of every peered address family [Requires:HypervisorSSHConfig]", func(ctx context.Context) {
@@ -468,6 +672,12 @@ func checkTorPaths(ctx context.Context, h *bgpVIPHypervisor, vip string, want se
 	if err != nil {
 		return err
 	}
+	return compareTorPaths(vip, peers, want, nodeIPs)
+}
+
+// compareTorPaths checks that the ToR paths peers to vip come from exactly
+// the nodes want, one path each.
+func compareTorPaths(vip string, peers []string, want sets.Set[string], nodeIPs map[string]string) error {
 	got := sets.New[string]()
 	for _, peer := range peers {
 		name, ok := nodeIPs[peer]
@@ -551,13 +761,9 @@ func bgpVIPIngressProbeURL(ctx context.Context, oc *exutil.CLI) string {
 // hypervisorGet requests rawURL from the hypervisor with its host resolved to
 // vip, as an external client reaching the VIP over the BGP route would.
 func hypervisorGet(ctx context.Context, h *bgpVIPHypervisor, rawURL, vip string) error {
-	u, err := url.Parse(rawURL)
+	u, port, err := parseBGPVIPURL(rawURL)
 	if err != nil {
 		return err
-	}
-	port := u.Port()
-	if port == "" {
-		port = "443"
 	}
 	out, err := h.run(ctx, time.Minute, fmt.Sprintf("curl -sk -o /dev/null -w '%%{http_code}' --max-time 20 --noproxy '*' --resolve %s %s || true",
 		shellQuote(u.Hostname()+":"+port+":"+curlResolveAddr(vip)), shellQuote(rawURL)))
@@ -604,4 +810,119 @@ func restoreRouterNode(ctx context.Context, oc *exutil.CLI, node string, unsched
 	return bgpVIPEventually(ctx, bgpVIPConvergeTimeout, "see every ingress VIP advertised by exactly the router nodes", func(ctx context.Context) error {
 		return checkIngressAdvertisers(ctx, oc, peers, ingressVIPs)
 	})
+}
+
+// bgpVIPIngressMoveState records what the ingress VIP move changed, so that
+// its cleanup undoes exactly that. Each field is set before the change is
+// attempted, so a change that fails halfway is undone too.
+type bgpVIPIngressMoveState struct {
+	// probe is set before the probe creates its files on the hypervisor and
+	// cleared once the test has stopped it and removed them.
+	probe         *bgpVIPProbe
+	pathsRecorded bool
+	hashPolicySet bool
+	// victim is the node cordoned for the move, with its original
+	// schedulability; restored is set once the test itself has seen the node
+	// restored and the ingress VIP advertisers healthy at its end.
+	victim           string
+	wasUnschedulable bool
+	restored         bool
+}
+
+type bgpVIPIngressMoveActions struct {
+	stopProbe   func(ctx context.Context) error
+	restoreHost func(ctx context.Context, pathsRecorded, hashPolicySet bool) error
+	restoreNode func(ctx context.Context, node string, unschedulable bool) error
+}
+
+// cleanupSteps returns the steps that undo s, each with its own budget:
+// first the quick hypervisor steps, then the node restoration, which waits
+// for the router and the ingress VIP advertisers to recover.
+func (s *bgpVIPIngressMoveState) cleanupSteps(a bgpVIPIngressMoveActions) []bgpVIPCleanupStep {
+	var steps []bgpVIPCleanupStep
+	if s.probe != nil {
+		steps = append(steps, bgpVIPCleanupStep{Name: "stop the ingress probe and remove its files", Timeout: bgpVIPIngressMoveHostStep, Run: a.stopProbe})
+	}
+	if s.pathsRecorded || s.hashPolicySet {
+		pathsRecorded, hashPolicySet := s.pathsRecorded, s.hashPolicySet
+		var parts []string
+		if pathsRecorded {
+			parts = append(parts, "delete the probe path records")
+		}
+		if hashPolicySet {
+			parts = append(parts, "restore the multipath hash policy")
+		}
+		steps = append(steps, bgpVIPCleanupStep{
+			Name:    strings.Join(parts, " and "),
+			Timeout: bgpVIPIngressMoveHostStep,
+			Run:     func(ctx context.Context) error { return a.restoreHost(ctx, pathsRecorded, hashPolicySet) },
+		})
+	}
+	if s.victim != "" && !s.restored {
+		node, unschedulable := s.victim, s.wasUnschedulable
+		steps = append(steps, bgpVIPCleanupStep{
+			Name:    fmt.Sprintf("restore node %s (unschedulable=%t) and the ingress VIP advertisers", node, unschedulable),
+			Timeout: bgpVIPIngressMoveRestoreBudget,
+			Run:     func(ctx context.Context) error { return a.restoreNode(ctx, node, unschedulable) },
+		})
+	}
+	return steps
+}
+
+// clock reads the hypervisor clock, which stamps the probe samples.
+func (h *bgpVIPHypervisor) clock(ctx context.Context) (float64, error) {
+	out, err := h.run(ctx, time.Minute, "date +%s.%N\n")
+	if err != nil {
+		return 0, err
+	}
+	return parseHypervisorClock(out)
+}
+
+// observeProbePaths reads the probe log and the recorded probe paths.
+func (h *bgpVIPHypervisor) observeProbePaths(ctx context.Context, logFile string, routers []bgpVIPExposureRouter, families []string, ports bgpVIPProbePorts) (bgpVIPProbeObservation, error) {
+	out, err := h.run(ctx, time.Minute, bgpVIPObservationScript(logFile))
+	if err != nil {
+		return bgpVIPProbeObservation{}, err
+	}
+	return parseBGPVIPProbeObservation(out, routers, families, ports)
+}
+
+// waitBGPVIPExposedRouter observes the probe every second for up to
+// bgpVIPIngressExposureWindow and returns the router node that carried
+// bgpVIPIngressExposureMin successful probe requests of every family since
+// it started, with the hypervisor time it started at. On failure, the
+// exposure it last measured is returned when the observations themselves
+// worked, and nil otherwise.
+func waitBGPVIPExposedRouter(ctx context.Context, h *bgpVIPHypervisor, observe func(context.Context) (bgpVIPProbeObservation, error), families []string) (string, float64, map[string]map[string]int, error) {
+	from, err := h.clock(ctx)
+	if err != nil {
+		return "", 0, nil, err
+	}
+	var victim string
+	var exposure map[string]map[string]int
+	var syns map[string]map[string]int64
+	what := fmt.Sprintf("see a router node carry %d successful probe requests of every family %v", bgpVIPIngressExposureMin, families)
+	err = bgpVIPEventuallyEvery(ctx, bgpVIPIngressSampleInterval, bgpVIPIngressExposureWindow, what, func(ctx context.Context) error {
+		obs, err := observe(ctx)
+		if err != nil {
+			exposure = nil
+			return err
+		}
+		exposure = bgpVIPExposure(attributeBGPVIPProbe(obs.Samples, obs.Blocks, bgpVIPIngressProbePorts), from, math.Inf(1))
+		syns = obs.SYNs
+		var ok bool
+		if victim, ok = selectBGPVIPExposedRouter(exposure, families, bgpVIPIngressExposureMin); !ok {
+			return fmt.Errorf("successful probe requests by router node and family: %v", exposure)
+		}
+		return nil
+	})
+	if err != nil {
+		if exposure == nil {
+			return "", from, nil, fmt.Errorf("cannot observe the probe's paths: %w", err)
+		}
+		return "", from, exposure, fmt.Errorf("no router node carried %d successful probe requests of every family %v: %w (probe SYNs by router node, retransmissions included: %v)",
+			bgpVIPIngressExposureMin, families, err, syns)
+	}
+	e2e.Logf("successful probe requests by router node and family: %v, probe SYNs by router node, retransmissions included: %v; moving the router pod off %s", exposure, syns, victim)
+	return victim, from, exposure, nil
 }

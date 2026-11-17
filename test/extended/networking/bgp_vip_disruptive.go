@@ -161,7 +161,7 @@ var _ = g.Describe(bgpVIPTags+" BGP VIP management [Disruptive]", func() {
 
 		g.By("probing the API through every API VIP from the hypervisor")
 		apiURL := strings.TrimSuffix(infra.Status.APIServerURL, "/") + "/readyz"
-		probe, err := startBGPVIPProbe(bodyCtx, h, "api", apiURL, apiVIPs, bgpVIPAPIProbeRate)
+		probe, err := startBGPVIPProbe(bodyCtx, h, "api", apiURL, apiVIPs, bgpVIPAPIProbeRate, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		g.DeferCleanup(func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)

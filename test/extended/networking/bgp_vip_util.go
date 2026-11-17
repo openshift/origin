@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/kubectl/pkg/scheme"
@@ -90,9 +91,15 @@ func skipUnlessBGPVIP(ctx context.Context, oc *exutil.CLI) *configv1.Infrastruct
 // the same way: the test client may reach the API server through the BGP VIP
 // under test.
 func bgpVIPEventually(ctx context.Context, timeout time.Duration, what string, fn func(ctx context.Context) error) error {
+	return bgpVIPEventuallyEvery(ctx, bgpVIPPollInterval, timeout, what, fn)
+}
+
+// bgpVIPEventuallyEvery is bgpVIPEventually polling every interval, for the
+// few waits that time an event rather than wait for a steady state.
+func bgpVIPEventuallyEvery(ctx context.Context, interval, timeout time.Duration, what string, fn func(ctx context.Context) error) error {
 	var last error
 	start := time.Now()
-	err := wait.PollUntilContextTimeout(ctx, bgpVIPPollInterval, timeout, true, func(ctx context.Context) (bool, error) {
+	err := wait.PollUntilContextTimeout(ctx, interval, timeout, true, func(ctx context.Context) (bool, error) {
 		callCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 		defer cancel()
 		if err := fn(callCtx); err != nil {
@@ -639,66 +646,144 @@ type bgpVIPProbe struct {
 
 func (p *bgpVIPProbe) dir() string { return "/tmp/bgp-vip-e2e-" + p.name }
 
-func startBGPVIPProbe(ctx context.Context, h *bgpVIPHypervisor, name, rawURL string, vips []string, n int) (*bgpVIPProbe, error) {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return nil, err
-	}
-	port := u.Port()
-	if port == "" {
-		port = "443"
-	}
-	p := &bgpVIPProbe{h: h, name: name}
-	var loop strings.Builder
-	loop.WriteString("while :; do\n")
-	for _, vip := range vips {
-		fmt.Fprintf(&loop, "  for i in $(seq %d); do ( t=$(date +%%s.%%N); c=$(curl -sk -o /dev/null -w '%%{http_code}' --max-time 3 --noproxy '*' --resolve %s %s || true); echo \"$t %s ${c:-000}\" >> %s/log ) & done\n",
-			n, shellQuote(u.Hostname()+":"+port+":"+curlResolveAddr(vip)), shellQuote(rawURL), vip, p.dir())
-	}
-	loop.WriteString("  sleep 1\ndone\n")
-	script := fmt.Sprintf(`rm -rf %[1]s; mkdir -p %[1]s
-cat > %[1]s/loop.sh <<'EOF'
-%[2]sEOF
-setsid bash %[1]s/loop.sh > /dev/null 2>&1 < /dev/null &
-echo $! > %[1]s/pid
-`, p.dir(), loop.String())
-	if _, err := h.run(ctx, time.Minute, script); err != nil {
+// startBGPVIPProbe requests rawURL through every VIP n times a second from
+// the hypervisor until stopped. With ports, every request binds to its own
+// block of local ports and its log line carries its request number.
+func startBGPVIPProbe(ctx context.Context, h *bgpVIPHypervisor, name, rawURL string, vips []string, n int, ports *bgpVIPProbePorts) (*bgpVIPProbe, error) {
+	p := newBGPVIPProbe(h, name)
+	if err := p.start(ctx, rawURL, vips, n, ports); err != nil {
 		return nil, err
 	}
 	return p, nil
 }
 
+// newBGPVIPProbe returns a probe that has not started yet, so that a test can
+// record it before start creates its files on the hypervisor.
+func newBGPVIPProbe(h *bgpVIPHypervisor, name string) *bgpVIPProbe {
+	return &bgpVIPProbe{h: h, name: name}
+}
+
+func (p *bgpVIPProbe) start(ctx context.Context, rawURL string, vips []string, n int, ports *bgpVIPProbePorts) error {
+	loop, err := bgpVIPProbeLoop(rawURL, vips, n, p.dir()+"/log", ports)
+	if err != nil {
+		return err
+	}
+	script := fmt.Sprintf(`rm -rf %[1]s; mkdir -p %[1]s
+cat > %[1]s/loop.sh <<'EOF'
+%[2]sEOF
+setsid bash %[1]s/loop.sh > /dev/null 2>&1 < /dev/null &
+echo $! > %[1]s/pid
+`, p.dir(), loop)
+	_, err = p.h.run(ctx, time.Minute, script)
+	return err
+}
+
+// bgpVIPProbeLoop returns the probe's shell loop. Each request appends
+// "<start time> <vip> <HTTP code>" to logFile, followed by its request
+// number when ports is set.
+func bgpVIPProbeLoop(rawURL string, vips []string, n int, logFile string, ports *bgpVIPProbePorts) (string, error) {
+	u, port, err := parseBGPVIPURL(rawURL)
+	if err != nil {
+		return "", err
+	}
+	var loop strings.Builder
+	loop.WriteString("r=0\nwhile :; do\n")
+	for _, vip := range vips {
+		resolve := shellQuote(u.Hostname() + ":" + port + ":" + curlResolveAddr(vip))
+		if ports == nil {
+			fmt.Fprintf(&loop, "  for i in $(seq %d); do ( t=$(date +%%s.%%N); c=$(curl -sk -o /dev/null -w '%%{http_code}' --max-time 3 --noproxy '*' --resolve %s %s || true); echo \"$t %s ${c:-000}\" >> %s ) & done\n",
+				n, resolve, shellQuote(rawURL), vip, logFile)
+			continue
+		}
+		fmt.Fprintf(&loop, "  for i in $(seq %d); do lp=$((%d + r %% %d * %d)); ( t=$(date +%%s.%%N); c=$(curl -sk -o /dev/null -w '%%{http_code}' --max-time 3 --noproxy '*' --local-port \"$lp-$((lp + %d))\" --resolve %s %s || true); echo \"$t %s ${c:-000} $r\" >> %s ) & r=$((r + 1)); done\n",
+			n, ports.Base, ports.Blocks, ports.Block, ports.Block-1, resolve, shellQuote(rawURL), vip, logFile)
+	}
+	loop.WriteString("  sleep 1\ndone\n")
+	return loop.String(), nil
+}
+
 // stop stops the probe and returns its samples. Safe to call more than once.
 func (p *bgpVIPProbe) stop(ctx context.Context) ([]bgpVIPProbeSample, error) {
-	// Stop the loop first so that it launches no more requests, give the
-	// requests in flight (curl --max-time 3) time to log their result, then
-	// kill whatever is left of the process group.
-	out, err := p.h.run(ctx, time.Minute, fmt.Sprintf(`if [ -f %[1]s/pid ]; then pid=$(cat %[1]s/pid); kill -TERM "$pid" 2>/dev/null || true; sleep 4; kill -TERM -- "-$pid" 2>/dev/null || true; rm -f %[1]s/pid; fi
-cat %[1]s/log 2>/dev/null || true`, p.dir()))
+	out, err := p.h.run(ctx, time.Minute, bgpVIPProbeStopScript(p.dir(), false))
 	if err != nil {
 		return nil, err
 	}
 	return parseBGPVIPProbeLog(out), nil
 }
 
+// stopAndRemove stops the probe and removes its files from the hypervisor.
+// It returns the samples read before the removal, also when it fails.
+func (p *bgpVIPProbe) stopAndRemove(ctx context.Context, timeout time.Duration) ([]bgpVIPProbeSample, error) {
+	out, err := p.h.run(ctx, timeout, bgpVIPProbeStopScript(p.dir(), true))
+	return parseBGPVIPProbeLog(out), err
+}
+
+// bgpVIPProbeStopScript stops the loop first so that it launches no more
+// requests, gives the requests in flight (curl --max-time 3) time to log
+// their result, kills whatever is left of the process group and prints the
+// log; with remove, it then deletes the probe's files.
+func bgpVIPProbeStopScript(dir string, remove bool) string {
+	script := fmt.Sprintf(`if [ -f %[1]s/pid ]; then pid=$(cat %[1]s/pid); kill -TERM "$pid" 2>/dev/null || true; sleep 4; kill -TERM -- "-$pid" 2>/dev/null || true; rm -f %[1]s/pid; fi
+cat %[1]s/log 2>/dev/null || true`, dir)
+	if remove {
+		script += "\nrm -rf " + dir + "\n"
+	}
+	return script
+}
+
+// describeBGPVIPProbeSamples summarizes the samples per VIP with the start
+// times of up to maxFailures failed requests, for a test that fails before
+// it analyzes them.
+func describeBGPVIPProbeSamples(samples []bgpVIPProbeSample, maxFailures int) []string {
+	stats := summarizeBGPVIPProbe(samples, math.Inf(-1), math.Inf(1))
+	failures := map[string][]string{}
+	for _, s := range samples {
+		if !s.OK && len(failures[s.VIP]) < maxFailures {
+			failures[s.VIP] = append(failures[s.VIP], fmt.Sprintf("%.3f", s.Time))
+		}
+	}
+	var out []string
+	for _, vip := range sets.List(sets.KeySet(stats)) {
+		st := stats[vip]
+		line := fmt.Sprintf("ingress probe via %s (%s): %d requests, %d failed", vip, addressFamily(vip), st.Total, st.Failed)
+		if st.Failed > 0 {
+			line += ", failed requests started at " + strings.Join(failures[vip], ", ")
+			if st.Failed > len(failures[vip]) {
+				line += fmt.Sprintf(" and %d more", st.Failed-len(failures[vip]))
+			}
+			line += " (hypervisor clock)"
+		}
+		out = append(out, line)
+	}
+	return out
+}
+
 type bgpVIPProbeSample struct {
 	Time float64
 	VIP  string
 	OK   bool
+	// Request is the request number of a probe with ports, -1 otherwise.
+	Request int
 }
 
 func parseBGPVIPProbeLog(log string) []bgpVIPProbeSample {
 	var samples []bgpVIPProbeSample
 	for _, line := range strings.Split(log, "\n") {
 		fields := strings.Fields(line)
-		if len(fields) != 3 {
+		if len(fields) != 3 && len(fields) != 4 {
 			continue
 		}
 		t, err := strconv.ParseFloat(fields[0], 64)
 		if err != nil {
 			continue
 		}
-		samples = append(samples, bgpVIPProbeSample{Time: t, VIP: fields[1], OK: fields[2] == "200"})
+		sample := bgpVIPProbeSample{Time: t, VIP: fields[1], OK: fields[2] == "200", Request: -1}
+		if len(fields) == 4 {
+			if sample.Request, err = strconv.Atoi(fields[3]); err != nil || sample.Request < 0 {
+				continue
+			}
+		}
+		samples = append(samples, sample)
 	}
 	sort.SliceStable(samples, func(i, j int) bool { return samples[i].Time < samples[j].Time })
 	return samples
@@ -728,6 +813,552 @@ func summarizeBGPVIPProbe(samples []bgpVIPProbeSample, from, to float64) map[str
 		stats[s.VIP] = st
 	}
 	return stats
+}
+
+// bgpVIPFamilies returns the sorted address families of ips.
+func bgpVIPFamilies(ips []string) []string {
+	families := sets.New[string]()
+	for _, ip := range ips {
+		families.Insert(addressFamily(ip))
+	}
+	return sets.List(families)
+}
+
+// bgpVIPProbePorts gives every request of a probe its own block of local
+// ports. The hypervisor records the source port of each probe SYN per router
+// node, so a port identifies the probe request that was sent to that node,
+// apart from any other traffic of the hypervisor to the VIPs, and a
+// retransmitted SYN is the same request rather than another one.
+type bgpVIPProbePorts struct {
+	// Base is the first port, Block the number of ports curl may pick from
+	// for one request, and Blocks the number of requests before the ports
+	// repeat.
+	Base, Block, Blocks int
+}
+
+// bgpVIPIngressProbePorts lies below the default ephemeral port range
+// (32768-60999), so the hypervisor's other connections do not pick these
+// ports, and a few ports per request cover one that happens to be taken.
+// 2500 requests outlast the ingress VIP move test: 2 VIPs at 1/s each for at
+// most its body timeout.
+var bgpVIPIngressProbePorts = bgpVIPProbePorts{Base: 20000, Block: 4, Blocks: 2500}
+
+// ports returns the first and last local port of request r.
+func (p bgpVIPProbePorts) ports(r int) (int, int) {
+	first := p.Base + (r%p.Blocks)*p.Block
+	return first, first + p.Block - 1
+}
+
+// block returns the block of local ports that port belongs to, or -1.
+func (p bgpVIPProbePorts) block(port int) int {
+	if port < p.Base || port >= p.Base+p.Block*p.Blocks {
+		return -1
+	}
+	return (port - p.Base) / p.Block
+}
+
+// parseBGPVIPPortRange parses net.ipv4.ip_local_port_range: "<low> <high>".
+func parseBGPVIPPortRange(out string) (int, int, error) {
+	fields := strings.Fields(out)
+	if len(fields) != 2 {
+		return 0, 0, fmt.Errorf("want 2 ports, got %q", truncateBGPVIPOutput(out))
+	}
+	low, err := strconv.Atoi(fields[0])
+	if err != nil {
+		return 0, 0, err
+	}
+	high, err := strconv.Atoi(fields[1])
+	if err != nil {
+		return 0, 0, err
+	}
+	if low < 1 || high > 65535 || low > high {
+		return 0, 0, fmt.Errorf("invalid port range %d-%d", low, high)
+	}
+	return low, high, nil
+}
+
+// checkBGPVIPProbePorts checks that the hypervisor's kernel never picks a
+// probe port by itself, given the output of `sysctl -n
+// net.ipv4.ip_local_port_range`. Linux takes the local port of a connect()
+// or bind() without a port from that range, for IPv4 and IPv6 sockets
+// alike, and a socket's IP_LOCAL_PORT_RANGE can only narrow it. A probe port
+// then only carries traffic of a process that binds to it explicitly.
+func checkBGPVIPProbePorts(rangeOut string, p bgpVIPProbePorts) error {
+	low, high, err := parseBGPVIPPortRange(rangeOut)
+	if err != nil {
+		return fmt.Errorf("cannot parse net.ipv4.ip_local_port_range: %w", err)
+	}
+	first, _ := p.ports(0)
+	_, last := p.ports(p.Blocks - 1)
+	if first <= high && low <= last {
+		return fmt.Errorf("the probe's ports %d-%d overlap the hypervisor's ephemeral ports %d-%d", first, last, low, high)
+	}
+	return nil
+}
+
+// bgpVIPIngressHashPolicyFile holds the original multipath hash policy of
+// the families whose policy the ingress VIP move changed.
+const bgpVIPIngressHashPolicyFile = "/tmp/bgp-vip-e2e-ingress-hash-policy"
+
+func bgpVIPHashPolicyKey(family string) string {
+	return "net." + family + ".fib_multipath_hash_policy"
+}
+
+// bgpVIPSetHashPolicyFamiliesScript hashes the multipath routes of families,
+// and of no other family, by port. Before it changes a family it records the
+// family's policy in file, unless file still holds the original from a run
+// that could not restore it, so that a change that stops halfway is
+// restored too. It stops at the first failure.
+func bgpVIPSetHashPolicyFamiliesScript(families []string, file string) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "f=%s\n", file)
+	for _, f := range families {
+		fmt.Fprintf(&b, "if ! grep -q '^%[1]s=' \"$f\" 2>/dev/null; then v=$(sysctl -n %[1]s); echo \"%[1]s=$v\" >> \"$f\"; fi\nsysctl -q -w %[1]s=1\n", bgpVIPHashPolicyKey(f))
+	}
+	return b.String()
+}
+
+// bgpVIPRestoreHashPolicyFamiliesScript restores every policy recorded in
+// file, each even when another fails, and removes file only once all are
+// restored. It sets rc=1 on failure rather than exiting, so that the cleanup
+// steps after it still run.
+func bgpVIPRestoreHashPolicyFamiliesScript(file string) string {
+	return fmt.Sprintf(`f=%s
+if [ -f "$f" ]; then
+  restored=1
+  while IFS= read -r kv; do
+    [ -n "$kv" ] || continue
+    sysctl -q -w "$kv" || { echo "cannot restore $kv" >&2; restored=0; rc=1; }
+  done < "$f"
+  [ "$restored" = 0 ] || rm -f "$f"
+fi
+`, file)
+}
+
+// bgpVIPIngressHostCleanupScript undoes what the ingress VIP move changed on
+// the hypervisor besides its probe: the probe path records and, when it
+// changed it, the multipath hash policy. Each part runs even when the other
+// fails, and the script fails when either did.
+func bgpVIPIngressHostCleanupScript(pathsRecorded, hashPolicySet bool) string {
+	script := "rc=0\n"
+	if pathsRecorded {
+		script += `if nft list table bridge bgp_vip_e2e > /dev/null 2>&1; then nft delete table bridge bgp_vip_e2e || { echo "cannot delete nft table bridge bgp_vip_e2e" >&2; rc=1; }; fi` + "\n"
+	}
+	if hashPolicySet {
+		script += bgpVIPRestoreHashPolicyFamiliesScript(bgpVIPIngressHashPolicyFile)
+	}
+	return script + "exit \"$rc\"\n"
+}
+
+// bgpVIPExposureRouter is a router node and the MAC addresses its InternalIPs
+// resolve to on the hypervisor.
+type bgpVIPExposureRouter struct {
+	Node string
+	MACs []string
+}
+
+// bgpVIPPathSet names the nft set of the probe SYN source ports sent to
+// routers[i] for family; bgpVIPSYNCounter names the counter of those SYNs.
+func bgpVIPPathSet(i int, family string) string    { return fmt.Sprintf("p%d_%s", i, family) }
+func bgpVIPSYNCounter(i int, family string) string { return fmt.Sprintf("s%d_%s", i, family) }
+
+// bgpVIPProbePathNftScript records, per router node and address family, the
+// source port of every probe SYN that the hypervisor sends to the node's MAC
+// address, and counts those SYNs, retransmissions included. The probe runs on
+// the hypervisor, whose kernel holds the BGP routes the ToR's zebra installs
+// and transmits the routed probe packets through the bridge the nodes are
+// attached to; frames the host itself sends through a bridge traverse the
+// bridge family's output hook. Their destination MAC is the next hop that the
+// kernel's multipath route picked for that connection, under whatever hash
+// policy is in effect. It only records; nothing is dropped.
+func bgpVIPProbePathNftScript(routers []bgpVIPExposureRouter, vips []string, dport string, ports bgpVIPProbePorts) string {
+	byFamily := map[string][]string{}
+	for _, vip := range vips {
+		byFamily[addressFamily(vip)] = append(byFamily[addressFamily(vip)], vip)
+	}
+	families := bgpVIPFamilies(vips)
+	first, _ := ports.ports(0)
+	_, last := ports.ports(ports.Blocks - 1)
+	var b strings.Builder
+	b.WriteString("table bridge bgp_vip_e2e {\n")
+	for i := range routers {
+		for _, f := range families {
+			fmt.Fprintf(&b, "\tset %s {\n\t\ttype inet_service\n\t\tsize 65535\n\t\tflags dynamic\n\t}\n", bgpVIPPathSet(i, f))
+			fmt.Fprintf(&b, "\tcounter %s { }\n", bgpVIPSYNCounter(i, f))
+		}
+	}
+	b.WriteString("\tchain output {\n\t\ttype filter hook output priority -200; policy accept;\n")
+	for i, r := range routers {
+		for _, f := range families {
+			proto := "ip"
+			if f == "ipv6" {
+				proto = "ip6"
+			}
+			fmt.Fprintf(&b, "\t\tether daddr { %s } %s daddr { %s } tcp sport %d-%d tcp dport %s tcp flags & (syn | ack) == syn add @%s { tcp sport } counter name %s\n",
+				strings.Join(r.MACs, ", "), proto, strings.Join(byFamily[f], ", "), first, last, dport, bgpVIPPathSet(i, f), bgpVIPSYNCounter(i, f))
+		}
+	}
+	b.WriteString("\t}\n}\n")
+	return b.String()
+}
+
+// bgpVIPObservationMarker separates the probe log from the nft table in the
+// output of bgpVIPObservationScript.
+const bgpVIPObservationMarker = "--- bgp-vip-e2e nft ---"
+
+// bgpVIPObservationScript reads the probe log, then the recorded probe paths,
+// then the hypervisor clock: every request in the log has sent its SYNs by
+// the time the paths are read.
+func bgpVIPObservationScript(logFile string) string {
+	return fmt.Sprintf("cat %s 2>/dev/null || true\necho %s\nnft -j list table bridge bgp_vip_e2e\necho\ndate +%%s.%%N\n", logFile, shellQuote(bgpVIPObservationMarker))
+}
+
+// bgpVIPProbeObservation is one reading of the probe log and of what the
+// hypervisor recorded of the probe's paths, with the hypervisor clock.
+type bgpVIPProbeObservation struct {
+	Time    float64
+	Samples []bgpVIPProbeSample
+	// Blocks holds, per router node and family, the port blocks of the
+	// probe requests whose SYNs were sent to the node; SYNs counts those
+	// SYNs, retransmissions included.
+	Blocks map[string]map[string]sets.Set[int]
+	SYNs   map[string]map[string]int64
+}
+
+// parseBGPVIPProbeObservation parses the output of bgpVIPObservationScript.
+// Every set and counter of routers and families must be present.
+func parseBGPVIPProbeObservation(out string, routers []bgpVIPExposureRouter, families []string, ports bgpVIPProbePorts) (bgpVIPProbeObservation, error) {
+	log, rest, ok := strings.Cut(out, bgpVIPObservationMarker+"\n")
+	if !ok {
+		return bgpVIPProbeObservation{}, fmt.Errorf("no %q in %q", bgpVIPObservationMarker, truncateBGPVIPOutput(out))
+	}
+	t, err := parseHypervisorClock(rest)
+	if err != nil {
+		return bgpVIPProbeObservation{}, err
+	}
+	var doc struct {
+		Nftables []struct {
+			Set *struct {
+				Name string            `json:"name"`
+				Elem []json.RawMessage `json:"elem"`
+			} `json:"set"`
+			Counter *struct {
+				Name    string `json:"name"`
+				Packets int64  `json:"packets"`
+			} `json:"counter"`
+		} `json:"nftables"`
+	}
+	found := false
+	for _, line := range strings.Split(rest, "\n") {
+		if line = strings.TrimSpace(line); strings.HasPrefix(line, "{") {
+			if err := json.Unmarshal([]byte(line), &doc); err != nil {
+				return bgpVIPProbeObservation{}, fmt.Errorf("nft output is not JSON: %w: %s", err, truncateBGPVIPOutput(line))
+			}
+			found = true
+			break
+		}
+	}
+	if !found {
+		return bgpVIPProbeObservation{}, fmt.Errorf("no nft JSON in %q", truncateBGPVIPOutput(rest))
+	}
+	setPorts := map[string][]int{}
+	counters := map[string]int64{}
+	for _, o := range doc.Nftables {
+		switch {
+		case o.Set != nil:
+			setPorts[o.Set.Name] = []int{}
+			for _, raw := range o.Set.Elem {
+				port, err := parseBGPVIPNftPort(raw)
+				if err != nil {
+					return bgpVIPProbeObservation{}, fmt.Errorf("set %s: %w", o.Set.Name, err)
+				}
+				setPorts[o.Set.Name] = append(setPorts[o.Set.Name], port)
+			}
+		case o.Counter != nil:
+			counters[o.Counter.Name] = o.Counter.Packets
+		}
+	}
+	obs := bgpVIPProbeObservation{Time: t, Samples: parseBGPVIPProbeLog(log), Blocks: map[string]map[string]sets.Set[int]{}, SYNs: map[string]map[string]int64{}}
+	for i, r := range routers {
+		obs.Blocks[r.Node] = map[string]sets.Set[int]{}
+		obs.SYNs[r.Node] = map[string]int64{}
+		for _, f := range families {
+			ps, ok := setPorts[bgpVIPPathSet(i, f)]
+			if !ok {
+				return bgpVIPProbeObservation{}, fmt.Errorf("nft set %s of %s is missing", bgpVIPPathSet(i, f), r.Node)
+			}
+			n, ok := counters[bgpVIPSYNCounter(i, f)]
+			if !ok {
+				return bgpVIPProbeObservation{}, fmt.Errorf("nft counter %s of %s is missing", bgpVIPSYNCounter(i, f), r.Node)
+			}
+			blocks := sets.New[int]()
+			for _, port := range ps {
+				b := ports.block(port)
+				if b < 0 {
+					return bgpVIPProbeObservation{}, fmt.Errorf("nft set %s holds port %d outside the probe's ports", bgpVIPPathSet(i, f), port)
+				}
+				blocks.Insert(b)
+			}
+			obs.Blocks[r.Node][f] = blocks
+			obs.SYNs[r.Node][f] = n
+		}
+	}
+	return obs, nil
+}
+
+// parseBGPVIPNftPort parses a set element of `nft -j`: a port, or an object
+// holding it when the element carries more attributes.
+func parseBGPVIPNftPort(raw json.RawMessage) (int, error) {
+	var port int
+	if err := json.Unmarshal(raw, &port); err == nil {
+		return port, nil
+	}
+	var elem struct {
+		Elem *struct {
+			Val *int `json:"val"`
+		} `json:"elem"`
+	}
+	if err := json.Unmarshal(raw, &elem); err == nil && elem.Elem != nil && elem.Elem.Val != nil {
+		return *elem.Elem.Val, nil
+	}
+	return 0, fmt.Errorf("unexpected element %s", truncateBGPVIPOutput(string(raw)))
+}
+
+// bgpVIPAttributedSample is a probe sample with the router nodes its SYNs
+// were sent to.
+type bgpVIPAttributedSample struct {
+	bgpVIPProbeSample
+	Family string
+	// Routers is sorted, and empty when no SYN of the request was recorded
+	// or its port block does not identify it.
+	Routers []string
+}
+
+// attributeBGPVIPProbe attributes every sample to the router nodes whose
+// recorded blocks hold its port block. Samples without a request number,
+// and samples whose port block another sample also used, stay unattributed.
+func attributeBGPVIPProbe(samples []bgpVIPProbeSample, blocks map[string]map[string]sets.Set[int], ports bgpVIPProbePorts) []bgpVIPAttributedSample {
+	uses := map[int]int{}
+	for _, s := range samples {
+		if s.Request >= 0 {
+			uses[s.Request%ports.Blocks]++
+		}
+	}
+	nodes := sets.List(sets.KeySet(blocks))
+	out := make([]bgpVIPAttributedSample, 0, len(samples))
+	for _, s := range samples {
+		a := bgpVIPAttributedSample{bgpVIPProbeSample: s, Family: addressFamily(s.VIP)}
+		if b := s.Request % ports.Blocks; s.Request >= 0 && uses[b] == 1 {
+			for _, node := range nodes {
+				if blocks[node][a.Family].Has(b) {
+					a.Routers = append(a.Routers, node)
+				}
+			}
+		}
+		out = append(out, a)
+	}
+	return out
+}
+
+// bgpVIPExposure counts, per router node and family, the successful probe
+// requests that started in [from, to) and whose SYNs went to that node only.
+func bgpVIPExposure(samples []bgpVIPAttributedSample, from, to float64) map[string]map[string]int {
+	out := map[string]map[string]int{}
+	for _, s := range samples {
+		if !s.OK || len(s.Routers) != 1 || s.Time < from || s.Time >= to {
+			continue
+		}
+		if out[s.Routers[0]] == nil {
+			out[s.Routers[0]] = map[string]int{}
+		}
+		out[s.Routers[0]][s.Family]++
+	}
+	return out
+}
+
+// selectBGPVIPExposedRouter returns the router node that carried at least
+// atLeast probe requests of every family, preferring the node whose least
+// exposed family carried the most, then the first by name.
+func selectBGPVIPExposedRouter(exposure map[string]map[string]int, families []string, atLeast int) (string, bool) {
+	best, bestLeast := "", -1
+	for _, node := range sets.List(sets.KeySet(exposure)) {
+		least := math.MaxInt
+		for _, f := range families {
+			least = min(least, exposure[node][f])
+		}
+		if len(families) > 0 && least >= atLeast && least > bestLeast {
+			best, bestLeast = node, least
+		}
+	}
+	return best, best != ""
+}
+
+// bgpVIPProbePhase is a window of a probe run on the hypervisor clock: the
+// samples that started in [From, To) belong to it.
+type bgpVIPProbePhase struct {
+	Name     string
+	From, To float64
+}
+
+// bgpVIPProbePhases splits a probe run into contiguous phases at the
+// boundaries, boundaries[i] ending names[i]. The first phase starts and the
+// last ends unbounded, so every sample falls into exactly one phase.
+func bgpVIPProbePhases(names []string, boundaries []float64) ([]bgpVIPProbePhase, error) {
+	if len(names) == 0 || len(boundaries) != len(names)-1 {
+		return nil, fmt.Errorf("%d phases need %d boundaries, got %d", len(names), len(names)-1, len(boundaries))
+	}
+	phases := make([]bgpVIPProbePhase, 0, len(names))
+	from := math.Inf(-1)
+	for i, name := range names {
+		to := math.Inf(1)
+		if i < len(boundaries) {
+			to = boundaries[i]
+		}
+		if to < from {
+			return nil, fmt.Errorf("phase %s ends at %.3f before it starts at %.3f", name, to, from)
+		}
+		phases = append(phases, bgpVIPProbePhase{Name: name, From: from, To: to})
+		from = to
+	}
+	return phases, nil
+}
+
+// bgpVIPFailure is a failed probe request: when it started on the hypervisor
+// clock, in which phase, and the router nodes its SYNs were sent to.
+type bgpVIPFailure struct {
+	Time    float64
+	Phase   string
+	Routers []string
+}
+
+// bgpVIPPhaseStats summarizes the probe requests through one VIP.
+type bgpVIPPhaseStats struct {
+	Total, Failed int
+	First, Last   *bgpVIPFailure
+	// Requests counts the requests by the router nodes their SYNs were sent
+	// to, joined by "+", with "none" for those not attributed to a node.
+	Requests map[string]int
+}
+
+func (st *bgpVIPPhaseStats) add(s bgpVIPAttributedSample, phase string) {
+	st.Total++
+	routers := "none"
+	if len(s.Routers) > 0 {
+		routers = strings.Join(s.Routers, "+")
+	}
+	st.Requests[routers]++
+	if s.OK {
+		return
+	}
+	st.Failed++
+	f := &bgpVIPFailure{Time: s.Time, Phase: phase, Routers: s.Routers}
+	if st.First == nil || s.Time < st.First.Time {
+		st.First = f
+	}
+	if st.Last == nil || s.Time >= st.Last.Time {
+		st.Last = f
+	}
+}
+
+// summarizeBGPVIPPhases summarizes the samples per phase and VIP, and per VIP
+// over the whole run.
+func summarizeBGPVIPPhases(phases []bgpVIPProbePhase, samples []bgpVIPAttributedSample) (map[string]map[string]*bgpVIPPhaseStats, map[string]*bgpVIPPhaseStats) {
+	perPhase := map[string]map[string]*bgpVIPPhaseStats{}
+	overall := map[string]*bgpVIPPhaseStats{}
+	get := func(m map[string]*bgpVIPPhaseStats, vip string) *bgpVIPPhaseStats {
+		if m[vip] == nil {
+			m[vip] = &bgpVIPPhaseStats{Requests: map[string]int{}}
+		}
+		return m[vip]
+	}
+	for _, p := range phases {
+		perPhase[p.Name] = map[string]*bgpVIPPhaseStats{}
+	}
+	for _, s := range samples {
+		for _, p := range phases {
+			if s.Time >= p.From && s.Time < p.To {
+				get(perPhase[p.Name], s.VIP).add(s, p.Name)
+				get(overall, s.VIP).add(s, p.Name)
+				break
+			}
+		}
+	}
+	return perPhase, overall
+}
+
+// describeBGPVIPPhaseStats reports a VIP's probe requests in a phase, with
+// the failure times relative to the disruption on the hypervisor clock.
+func describeBGPVIPPhaseStats(phase, vip string, st *bgpVIPPhaseStats, disruptedAt float64) string {
+	if st == nil {
+		st = &bgpVIPPhaseStats{}
+	}
+	s := fmt.Sprintf("ingress probe via %s (%s), %s: %d requests, %d failed, requests by router node %v", vip, addressFamily(vip), phase, st.Total, st.Failed, st.Requests)
+	describe := func(f *bgpVIPFailure) string {
+		routers := "no recorded router node"
+		if len(f.Routers) > 0 {
+			routers = strings.Join(f.Routers, "+")
+		}
+		return fmt.Sprintf("%+.1fs in phase %s via %s", f.Time-disruptedAt, f.Phase, routers)
+	}
+	if st.First != nil {
+		s += fmt.Sprintf("; first failure %s, last failure %s (hypervisor clock, relative to the disruption)", describe(st.First), describe(st.Last))
+	}
+	return s
+}
+
+// bgpVIPTorPathsVia reports whether the ToR paths peers include one from node.
+func bgpVIPTorPathsVia(peers []string, node string, nodeIPs map[string]string) bool {
+	for _, peer := range peers {
+		if nodeIPs[peer] == node {
+			return true
+		}
+	}
+	return false
+}
+
+// bgpVIPCleanupStep is one step of a test's cleanup, bounded by its own
+// timeout when it has one.
+type bgpVIPCleanupStep struct {
+	Name    string
+	Timeout time.Duration
+	Run     func(ctx context.Context) error
+}
+
+// runBGPVIPCleanup runs every step in order and returns all their errors: a
+// failed or timed out step never skips the steps after it.
+func runBGPVIPCleanup(ctx context.Context, steps []bgpVIPCleanupStep) error {
+	var errs []error
+	for _, step := range steps {
+		err := func() error {
+			stepCtx, cancel := ctx, context.CancelFunc(func() {})
+			if step.Timeout > 0 {
+				stepCtx, cancel = context.WithTimeout(ctx, step.Timeout)
+			}
+			defer cancel()
+			return step.Run(stepCtx)
+		}()
+		if err != nil {
+			e2e.Logf("cleanup: %s failed: %v", step.Name, err)
+			errs = append(errs, fmt.Errorf("%s: %w", step.Name, err))
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// parseBGPVIPURL returns rawURL and the TCP port it is served on.
+func parseBGPVIPURL(rawURL string) (*url.URL, string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, "", err
+	}
+	if u.Hostname() == "" {
+		return nil, "", fmt.Errorf("URL %q has no host", rawURL)
+	}
+	port := u.Port()
+	if port == "" {
+		port = "443"
+	}
+	return u, port, nil
 }
 
 // bgpVIPBlackholeNftScript drops the hypervisor's frames to one master's MAC
