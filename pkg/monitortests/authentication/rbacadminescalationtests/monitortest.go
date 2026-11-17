@@ -534,12 +534,10 @@ var escalationChecks = []escalationCheck{
 		// ConfirmNoEscalation and rejects writing/binding any permission the caller does not already
 		// hold, unless the caller has `escalate` (for role rules) or `bind` (for a role reference).
 		//
-		// `bind` is flagged regardless of any resourceNames scoping. Even a bind scoped to a specific,
-		// non-cluster-admin role still lets the subject grant that role's permissions to arbitrary
-		// subjects (bind bypasses ConfirmNoEscalation), which is an escalation for those subjects. The
-		// API server does honor resourceNames for bind, but scoping does not make it safe, so
-		// roleGrantsAny strips resourceNames for the bind atom (see bindAlwaysFlaggedVerbs). Legitimate
-		// scoped binds are allowlisted via the exception list rather than silently ignored.
+		// A `bind` scoped by resourceNames is acceptable: the API server honors resourceNames for bind
+		// (the bound role's name is the resourceName), so restricting a bind to named roles is a
+		// deliberate, reviewable narrow grant and is not flagged. Only an unscoped bind — one that can
+		// reference ANY role, including cluster-admin — fires.
 		id:   escalateRBACCheckID,
 		desc: "escalate or bind RBAC roles",
 		rules: []rbacv1.PolicyRule{
@@ -624,13 +622,6 @@ func verbIgnoresResourceNames(verbs []string) bool {
 	return resourceNameIneffectiveVerbs.HasAny(verbs...)
 }
 
-// bindAlwaysFlaggedVerbs are verbs the API server DOES honor resourceNames for, but which we flag
-// regardless of any scoping. `bind` bypasses ConfirmNoEscalation, so any bind of a role — even one
-// scoped by resourceName to a specific, non-cluster-admin role — lets the subject grant that role's
-// permissions to arbitrary subjects. Scoping does not make it safe, so we treat a scoped bind the
-// same as an unrestricted one; legitimate scoped binds are allowlisted via the exception list.
-var bindAlwaysFlaggedVerbs = sets.New("bind")
-
 // isSubresourceAtom reports whether the atom targets a subresource (a resource containing "/", e.g.
 // "serviceaccounts/token"). This matters for create: for a top-level create the object name is not
 // known at authorization time so resourceNames are ignored, but for a subresource create the parent
@@ -659,20 +650,17 @@ func stripResourceNames(rules []rbacv1.PolicyRule) []rbacv1.PolicyRule {
 }
 
 // roleGrantsAny reports whether roleRules cover ANY atomic permission in servantRules, returning the
-// matched atoms for reporting. Coverage is wildcard-aware (handled by rbacvalidation.Covers). The
-// role's rules are compared with resourceNames stripped when the atom's verb is one whose scoping we
-// disregard, so an ineffective or unsafe restriction is still flagged:
-//   - create/deletecollection on a top-level resource: the API server ignores resourceNames (the
-//     object name is not known at authorization time). Subresource creates (e.g. serviceaccounts/token)
-//     are excluded because the parent object's name IS known, so resourceNames are honored there.
-//   - bind: resourceNames are honored by the API server, but any bind is an escalation path regardless
-//     of scoping (see bindAlwaysFlaggedVerbs).
+// matched atoms for reporting. Coverage is wildcard-aware (handled by rbacvalidation.Covers). For
+// top-level verbs whose resourceNames the API server ignores (create, deletecollection), the role's
+// rules are compared with resourceNames stripped so an ineffective restriction is still flagged.
+// Subresource creates (e.g. serviceaccounts/token) are excluded from stripping because the parent
+// object's name is known at authorization time, so resourceNames ARE honored there.
 func roleGrantsAny(roleRules, servantRules []rbacv1.PolicyRule) (bool, []rbacv1.PolicyRule) {
 	matched := []rbacv1.PolicyRule{}
 	for _, servantRule := range servantRules {
 		for _, atom := range rbacvalidation.BreakdownRule(servantRule) {
 			candidateRules := roleRules
-			if ignoreResourceNamesForAtom(atom) {
+			if verbIgnoresResourceNames(atom.Verbs) && !isSubresourceAtom(atom.Resources) {
 				candidateRules = stripResourceNames(roleRules)
 			}
 			if covered, _ := rbacvalidation.Covers(candidateRules, []rbacv1.PolicyRule{atom}); covered {
@@ -681,15 +669,6 @@ func roleGrantsAny(roleRules, servantRules []rbacv1.PolicyRule) (bool, []rbacv1.
 		}
 	}
 	return len(matched) > 0, matched
-}
-
-// ignoreResourceNamesForAtom reports whether the role's resourceNames should be disregarded when
-// checking coverage of this atom. Atoms come from BreakdownRule, so each has exactly one verb.
-func ignoreResourceNamesForAtom(atom rbacv1.PolicyRule) bool {
-	if bindAlwaysFlaggedVerbs.HasAny(atom.Verbs...) {
-		return true
-	}
-	return verbIgnoresResourceNames(atom.Verbs) && !isSubresourceAtom(atom.Resources)
 }
 
 // subjectSet returns a canonical, order-insensitive set of a binding's subjects for exact matching.
