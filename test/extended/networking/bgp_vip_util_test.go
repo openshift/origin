@@ -1200,22 +1200,7 @@ exit 1
 // becomes Ready, for either family, while its first convergence time stays.
 func TestBGPVIPTorConvergence(t *testing.T) {
 	const v4, v6 = "192.168.111.5", "fd2e::5"
-	nodeIPs := map[string]string{
-		"192.168.111.20": "worker-0", "fd2e::20": "worker-0",
-		"192.168.111.21": "worker-1", "fd2e::21": "worker-1",
-		"192.168.111.22": "worker-2", "fd2e::22": "worker-2",
-	}
-	paths := func(vip string, nodes ...string) []string {
-		var out []string
-		for _, node := range nodes {
-			for ip, name := range nodeIPs {
-				if name == node && addressFamily(ip) == addressFamily(vip) {
-					out = append(out, ip)
-				}
-			}
-		}
-		return out
-	}
+	nodeIPs, paths := bgpVIPTestNodeIPs, bgpVIPTestTorPaths
 	for _, stale := range []string{v4, v6} {
 		t.Run(addressFamily(stale), func(t *testing.T) {
 			other := v6
@@ -1266,5 +1251,82 @@ func TestBGPVIPTorConvergence(t *testing.T) {
 	}
 	if err := tor.observe([]string{v4, v6}, map[string][]string{v4: paths(v4, "worker-1")}, sets.New("worker-1"), 40, 41); err == nil || !strings.Contains(err.Error(), "no look at the ToR's paths to "+v6) {
 		t.Errorf("missing look: %v", err)
+	}
+}
+
+// bgpVIPTestNodeIPs are the InternalIPs of the nodes in the ToR convergence
+// tests.
+var bgpVIPTestNodeIPs = map[string]string{
+	"192.168.111.20": "worker-0", "fd2e::20": "worker-0",
+	"192.168.111.21": "worker-1", "fd2e::21": "worker-1",
+	"192.168.111.22": "worker-2", "fd2e::22": "worker-2",
+}
+
+// bgpVIPTestTorPaths returns the ToR's path peers to vip from nodes, in the
+// family of vip.
+func bgpVIPTestTorPaths(vip string, nodes ...string) []string {
+	var out []string
+	for _, node := range nodes {
+		for ip, name := range bgpVIPTestNodeIPs {
+			if name == node && addressFamily(ip) == addressFamily(vip) {
+				out = append(out, ip)
+			}
+		}
+	}
+	return out
+}
+
+// TestBGPVIPTorConvergenceVictimPathReturns keeps the expected router nodes
+// the same in every look and checks that a VIP whose paths matched in an
+// earlier look is pending again when the victim's path returns to it, so
+// that the ToR converges only in a look where every VIP matches, for either
+// family and VIP order, while the first convergence times stay.
+func TestBGPVIPTorConvergenceVictimPathReturns(t *testing.T) {
+	const v4, v6 = "192.168.111.5", "fd2e::5"
+	const victim, survivor = "worker-0", "worker-1"
+	only, both := []string{survivor}, []string{victim, survivor}
+	for _, test := range []struct {
+		name string
+		// first matches in look 1 and gets the victim's path back in look
+		// 2, when second matches.
+		first, second string
+		vips          []string
+	}{
+		{name: "IPv4 matches first", first: v4, second: v6, vips: []string{v4, v6}},
+		{name: "IPv4 matches first, IPv6 listed first", first: v4, second: v6, vips: []string{v6, v4}},
+		{name: "IPv6 matches first", first: v6, second: v4, vips: []string{v4, v6}},
+		{name: "IPv6 matches first, IPv6 listed first", first: v6, second: v4, vips: []string{v6, v4}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			tor := newBGPVIPTorConvergence(victim, bgpVIPTestNodeIPs)
+			look := func(firstNodes, secondNodes []string, before, after float64) error {
+				return tor.observe(test.vips, map[string][]string{
+					test.first:  bgpVIPTestTorPaths(test.first, firstNodes...),
+					test.second: bgpVIPTestTorPaths(test.second, secondNodes...),
+				}, sets.New(survivor), before, after)
+			}
+			pendingOnly := func(err error, pending, matched string) bool {
+				return err != nil && strings.Contains(err.Error(), "paths to "+pending+" ") && !strings.Contains(err.Error(), "paths to "+matched+" ")
+			}
+
+			if err := look(only, both, 10, 11); !pendingOnly(err, test.second, test.first) {
+				t.Errorf("look 1: err = %v, want only %s pending", err, test.second)
+			}
+			if err := look(both, only, 20, 21); !pendingOnly(err, test.first, test.second) {
+				t.Errorf("look 2: err = %v, want only %s pending", err, test.first)
+			}
+			if err := look(only, only, 30, 31); err != nil {
+				t.Errorf("look 3: %v", err)
+			}
+			if got, want := tor.convergedBy, map[string]float64{test.first: 11, test.second: 21}; !reflect.DeepEqual(got, want) {
+				t.Errorf("first convergence %v, want %v", got, want)
+			}
+			if got, want := tor.victimSeen, map[string]float64{test.first: 20, test.second: 10}; !reflect.DeepEqual(got, want) {
+				t.Errorf("victim last seen %v, want %v", got, want)
+			}
+			if got, want := tor.victimGone, map[string]float64{test.first: 31, test.second: 21}; !reflect.DeepEqual(got, want) {
+				t.Errorf("victim gone %v, want %v", got, want)
+			}
+		})
 	}
 }
