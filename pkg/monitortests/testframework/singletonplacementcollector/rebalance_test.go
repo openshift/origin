@@ -17,22 +17,22 @@ import (
 
 func TestPodsToRebalance(t *testing.T) {
 	masters := []string{"master-0", "master-1", "master-2"}
-	pod := func(name, nodeName string, requestMB int64) singletonPod {
-		return singletonPod{namespace: "openshift-a", podName: name, nodeName: nodeName, memoryRequestBytes: requestMB * bytesPerMB}
+	pod := func(name, nodeName string, requestMB int64) controlPlanePod {
+		return controlPlanePod{namespace: "openshift-a", podName: name, nodeName: nodeName, memoryRequestBytes: requestMB * bytesPerMB}
 	}
 
 	tests := []struct {
 		name     string
-		pods     []singletonPod
+		pods     []controlPlanePod
 		expected []string
 	}{
 		{
 			name: "balanced",
-			pods: []singletonPod{pod("a", "master-0", 50), pod("b", "master-1", 50), pod("c", "master-2", 50), pod("d", "master-0", 50)},
+			pods: []controlPlanePod{pod("a", "master-0", 50), pod("b", "master-1", 50), pod("c", "master-2", 50), pod("d", "master-0", 50)},
 		},
 		{
 			name: "one overloaded master sheds down to an even share, largest requests first",
-			pods: []singletonPod{
+			pods: []controlPlanePod{
 				pod("a", "master-0", 10), pod("b", "master-0", 300), pod("c", "master-0", 50),
 				pod("d", "master-0", 100), pod("e", "master-0", 50), pod("f", "master-1", 50),
 			},
@@ -40,7 +40,7 @@ func TestPodsToRebalance(t *testing.T) {
 		},
 		{
 			name: "empty master after upgrade, both loaded masters shed",
-			pods: []singletonPod{
+			pods: []controlPlanePod{
 				pod("a", "master-0", 50), pod("b", "master-0", 50), pod("c", "master-0", 50), pod("d", "master-0", 50), pod("e", "master-0", 50),
 				pod("f", "master-1", 50), pod("g", "master-1", 50), pod("h", "master-1", 50), pod("i", "master-1", 50),
 			},
@@ -48,7 +48,7 @@ func TestPodsToRebalance(t *testing.T) {
 		},
 		{
 			name: "uneven count, only the most loaded master keeps the extra pod",
-			pods: []singletonPod{
+			pods: []controlPlanePod{
 				pod("a", "master-0", 50), pod("b", "master-0", 50),
 				pod("c", "master-1", 50), pod("d", "master-1", 50),
 			},
