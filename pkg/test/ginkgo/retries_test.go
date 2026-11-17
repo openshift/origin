@@ -466,37 +466,37 @@ func TestAggressiveRetryStrategy_DurationPolicy_Boundary(t *testing.T) {
 	strategy := NewAggressiveRetryStrategy(10, 3)
 
 	tests := []struct {
-		name             string
-		retryDuration    time.Duration
-		retrySucceeded    bool
-		expectContinue   bool
-		expectedOutcome  RetryOutcome
+		name            string
+		retryDuration   time.Duration
+		retrySucceeded  bool
+		expectContinue  bool
+		expectedOutcome RetryOutcome
 	}{
 		{
 			name:            "just_below_cutoff_continues",
 			retryDuration:   aggressiveAdditionalAttemptDurationCutoff - time.Second,
-			retrySucceeded:   false,
+			retrySucceeded:  false,
 			expectContinue:  true,
 			expectedOutcome: RetryOutcomeFlaky,
 		},
 		{
 			name:            "exactly_at_cutoff_stops",
 			retryDuration:   aggressiveAdditionalAttemptDurationCutoff,
-			retrySucceeded:   false,
+			retrySucceeded:  false,
 			expectContinue:  false,
 			expectedOutcome: RetryOutcomeDurationPolicyFail,
 		},
 		{
 			name:            "above_cutoff_stops",
 			retryDuration:   aggressiveAdditionalAttemptDurationCutoff + time.Minute,
-			retrySucceeded:   false,
+			retrySucceeded:  false,
 			expectContinue:  false,
 			expectedOutcome: RetryOutcomeDurationPolicyFail,
 		},
 		{
 			name:            "slow_passing_retry_still_fails",
 			retryDuration:   10 * time.Minute,
-			retrySucceeded:   true,
+			retrySucceeded:  true,
 			expectContinue:  false,
 			expectedOutcome: RetryOutcomeDurationPolicyFail,
 		},
