@@ -16,6 +16,7 @@ import (
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/operator"
+	appsv1 "k8s.io/api/apps/v1"
 	authnv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
+	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 	"k8s.io/pod-security-admission/api"
 
 	"github.com/openshift/library-go/pkg/operator/condition"
@@ -63,7 +65,11 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 	var webhookArchitecture bool
 
 	g.BeforeAll(func() {
-		var err error
+		auth, err := oc.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not error getting authentications")
+		if len(auth.Spec.Type) != 0 && auth.Spec.Type != configv1.AuthenticationTypeIntegratedOAuth {
+			g.Skip(fmt.Sprintf("external OIDC suite requires IntegratedOAuth at startup, got %q", auth.Spec.Type))
+		}
 
 		clusterVersion, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting ClusterVersion")
@@ -103,9 +109,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 		o.Expect(keycloakCli.CreateGroup(group)).To(o.Succeed(), "should be able to create a new keycloak group")
 		o.Expect(keycloakCli.CreateUser(username, password, group)).To(o.Succeed(), "should be able to create a new keycloak user")
 
-		originalAuth, err = oc.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "should not error getting authentications")
-
+		originalAuth = auth
 		oauthUserConfig = oc.GetClientConfigForUser("oidc-e2e-oauth-user")
 
 		// create a dummy oidc client secret for the console to consume
@@ -260,12 +264,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 					gomega.Expect(err).NotTo(o.HaveOccurred(), "should be able to create a SelfSubjectReview")
 				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 
-				err, modified := resetAuthentication(ctx, oc, originalAuth)
-				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
-
-				if modified {
-					waitForIntegratedOAuthRollout(ctx, oc)
-				}
+				restoreAuthentication(ctx, oc, originalAuth)
 			})
 
 			g.It("should rollout configuration on the kube-apiserver successfully", func() {
@@ -1460,15 +1459,8 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 	})
 
 	g.AfterAll(func() {
-		err, modified := resetAuthentication(ctx, oc, originalAuth)
-		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
-
-		// Only if we modified the Authentication resource during the reset should we wait for a rollout
-		if modified {
-			waitForIntegratedOAuthRollout(ctx, oc)
-		}
-
-		err = removeResources(ctx, cleanups...)
+		restoreAuthentication(ctx, oc, originalAuth)
+		err := removeResources(ctx, cleanups...)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error cleaning up keycloak resources")
 	})
 })
@@ -1817,16 +1809,14 @@ func admittedURLForRoute(ctx context.Context, client *exutil.CLI, routeName, nam
 	return fmt.Sprintf("https://%s", admittedURL), err
 }
 
-func resetAuthentication(ctx context.Context, client *exutil.CLI, original *configv1.Authentication) (error, bool) {
+func restoreAuthentication(ctx context.Context, client *exutil.CLI, original *configv1.Authentication) {
+	g.GinkgoHelper()
 	if original == nil {
-		return nil, false
+		return
 	}
 
-	modified := false
-	timeoutCtx, cancel := context.WithDeadline(ctx, time.Now().Add(5*time.Minute))
-	defer cancel()
 	cli := client.AdminConfigClient().ConfigV1().Authentications()
-	err := wait.PollUntilContextCancel(timeoutCtx, 10*time.Second, true, func(ctx context.Context) (done bool, err error) {
+	err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
 		current, err := cli.Get(ctx, "cluster", metav1.GetOptions{})
 		if err != nil {
 			return false, fmt.Errorf("getting the current authentications.config.openshift.io/cluster: %w", err)
@@ -1837,7 +1827,6 @@ func resetAuthentication(ctx context.Context, client *exutil.CLI, original *conf
 		}
 
 		current.Spec = original.Spec
-		modified = true
 
 		_, err = cli.Update(ctx, current, metav1.UpdateOptions{})
 		if err != nil {
@@ -1849,11 +1838,17 @@ func resetAuthentication(ctx context.Context, client *exutil.CLI, original *conf
 		return true, nil
 	})
 
-	return err, modified
+	o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
+	// The saved spec may already be in place while its rollout is still in progress.
+	waitForIntegratedOAuthRollout(ctx, client)
 }
 
 func waitForKASObservedConfig(ctx context.Context, client *exutil.CLI, check func(o.Gomega, map[string]interface{})) {
-	o.Eventually(func(gomega o.Gomega) {
+	const timeout = 10 * time.Minute
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	o.Eventually(ctx, func(gomega o.Gomega, ctx context.Context) {
 		kas, err := client.AdminOperatorClient().OperatorV1().KubeAPIServers().Get(ctx, "cluster", metav1.GetOptions{})
 		gomega.Expect(err).NotTo(o.HaveOccurred(), "should be able to get KAS")
 
@@ -1862,7 +1857,7 @@ func waitForKASObservedConfig(ctx context.Context, client *exutil.CLI, check fun
 		gomega.Expect(err).NotTo(o.HaveOccurred(), "should be able to unmarshal KAS observed config")
 
 		check(gomega, observedConfig)
-	}).WithTimeout(10*time.Minute).WithPolling(20*time.Second).Should(o.Succeed(), "should eventually observe the expected KAS authentication configuration")
+	}).WithTimeout(timeout).WithPolling(20*time.Second).Should(o.Succeed(), "should eventually observe the expected KAS authentication configuration")
 }
 
 func waitForOIDCRollout(ctx context.Context, client *exutil.CLI, webhookArch bool) {
@@ -1895,7 +1890,60 @@ func waitForIntegratedOAuthRollout(ctx context.Context, client *exutil.CLI) {
 		gomega.Expect(apiServerArgs["authentication-config"]).To(o.BeNil(), "authentication-config should be absent for IntegratedOAuth")
 	})
 
-	waitForOperatorsToSettle(ctx, client)
+	// Share one deadline with operator settling. Explicit Eventually timeouts override
+	// the e2e framework's five-minute default, which also applies with a context.
+	const timeout = 50 * time.Minute
+	readinessCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	o.Eventually(readinessCtx, func(ctx context.Context) error {
+		deployment, err := client.AdminKubeClient().AppsV1().Deployments("openshift-oauth-apiserver").Get(ctx, "apiserver", metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		return integratedOAuthDeploymentReady(deployment)
+	}).
+		WithTimeout(timeout).
+		WithPolling(10*time.Second).
+		Should(o.Succeed(), "OAuth API deployment should finish restoring IntegratedOAuth")
+
+	o.Eventually(readinessCtx, func(ctx context.Context) error {
+		if _, err := client.AdminUserClient().UserV1().Users().List(ctx, metav1.ListOptions{Limit: 1}); err != nil {
+			return err
+		}
+		_, err := client.AdminOAuthClient().OauthV1().OAuthClients().List(ctx, metav1.ListOptions{Limit: 1})
+		return err
+	}).
+		WithTimeout(timeout).
+		WithPolling(10*time.Second).
+		Should(o.Succeed(), "User and OAuthClient APIs should be available after restoring IntegratedOAuth")
+
+	waitForOperatorsToSettle(readinessCtx, client)
+}
+
+func integratedOAuthDeploymentReady(deployment *appsv1.Deployment) error {
+	normalMode := false
+	for _, container := range deployment.Spec.Template.Spec.Containers {
+		if container.Name != "oauth-apiserver" {
+			continue
+		}
+		// The operand command and flags are embedded in a shell script.
+		command := strings.Join(container.Command, " ") + " " + strings.Join(container.Args, " ")
+		normalMode = strings.Contains(command, "oauth-apiserver start ") &&
+			strings.Contains(command, "--tls-cert-file=/var/run/secrets/serving-cert/tls.crt")
+		break
+	}
+	if !normalMode {
+		return fmt.Errorf("oauth-apiserver container is not configured for normal mode with the normal serving certificate")
+	}
+
+	if deployment.Spec.Replicas == nil || *deployment.Spec.Replicas <= 0 {
+		return fmt.Errorf("oauth-apiserver must have positive desired replicas")
+	}
+	if !deploymentutil.DeploymentComplete(deployment, &deployment.Status) {
+		return fmt.Errorf("oauth-apiserver rollout is incomplete")
+	}
+	return nil
 }
 
 func waitForOperatorsToSettle(ctx context.Context, client *exutil.CLI) {
