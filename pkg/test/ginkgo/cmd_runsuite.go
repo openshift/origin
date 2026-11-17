@@ -1120,6 +1120,7 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 	var finalFlaky []string
 	var finalSkipped []string
 	var stillFailing []*testCase
+	replacedFailing := sets.NewString()
 
 	for testName, attempts := range testAttempts {
 		// Use the retry strategy to determine the outcome
@@ -1149,25 +1150,31 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 					break
 				}
 			}
+			replacedFailing.Insert(testName)
 			stillFailing = append(stillFailing, rollupTest)
 		}
 	}
 
-	// Remove flaky tests from failing list
-	if len(finalFlaky) > 0 {
-		var withoutFlakes []*testCase
-	flakeLoop:
+	// Remove flaky and replaced-by-rollup tests from failing list
+	if len(finalFlaky) > 0 || replacedFailing.Len() > 0 {
+		var filteredFailing []*testCase
+	filterLoop:
 		for _, t := range failing {
+			if replacedFailing.Has(t.name) {
+				continue filterLoop
+			}
 			for _, f := range finalFlaky {
 				if t.name == f {
-					continue flakeLoop
+					continue filterLoop
 				}
 			}
-			withoutFlakes = append(withoutFlakes, t)
+			filteredFailing = append(filteredFailing, t)
 		}
-		failing = withoutFlakes
-		sort.Strings(finalFlaky)
-		fmt.Fprintf(o.Out, "Flaky tests:\n\n%s\n\n", strings.Join(finalFlaky, "\n"))
+		failing = filteredFailing
+		if len(finalFlaky) > 0 {
+			sort.Strings(finalFlaky)
+			fmt.Fprintf(o.Out, "Flaky tests:\n\n%s\n\n", strings.Join(finalFlaky, "\n"))
+		}
 	}
 	failing = append(failing, stillFailing...)
 
