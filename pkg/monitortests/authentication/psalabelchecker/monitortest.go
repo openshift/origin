@@ -137,10 +137,11 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) generateTestCase(namespace
 	}
 
 	// The namespace needs to be checked if it can enforce restricted PSS.
+	// This check occurs only if the namespace does not have enforce label.
 	// This can be safely done with a dry-run update with `restricted` PSS
 	// enforcement applied.
-	enforceVal := nsCopy.Labels[psapi.EnforceLevelLabel]
-	if enforceVal != string(psapi.LevelRestricted) {
+	_, ok := nsCopy.Labels[psapi.EnforceLevelLabel]
+	if !ok {
 		nsCopy.Labels[psapi.EnforceLevelLabel] = string(psapi.LevelRestricted)
 		nsCopy.Labels[psapi.EnforceVersionLabel] = psapi.LatestVersion().String()
 
