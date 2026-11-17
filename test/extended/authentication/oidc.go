@@ -627,7 +627,11 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 					}
 					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
 						TokenClaimMapping: configv1.TokenClaimMapping{
-							Expression: "claims.groups.orValue([]).filter(g, g.startsWith('ocp-'))", // Only keep groups starting with 'ocp-'
+							// Only keep groups starting with 'ocp-'. dyn() is needed because
+							// orValue() returns type any, which cannot be the range of a
+							// comprehension like filter(); claims.?groups (optional select)
+							// is required because orValue() is only defined for optional values.
+							Expression: "dyn(claims.?groups.orValue([])).filter(g, g.startsWith('ocp-'))",
 						},
 					}
 
