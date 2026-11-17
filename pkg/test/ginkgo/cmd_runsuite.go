@@ -814,16 +814,34 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		duration = duration.Round(time.Second)
 	}
 
-	pass, fail, skip, failing := summarizeTests(tests)
+	pass, _, skip, failing := summarizeTests(tests)
+
+	// Separate informing failures from blocking ones before retry processing.
+	// Informing tests don't block the suite, so retrying them wastes the
+	// retry budget and can cause timeouts (OCPBUGS-138571).
+	var retryCandidates []*testCase
+	var informingNotRetried []*testCase
+	for _, test := range failing {
+		if isBlockingFailure(test) {
+			retryCandidates = append(retryCandidates, test)
+		} else {
+			informingNotRetried = append(informingNotRetried, test)
+		}
+	}
+	if len(informingNotRetried) > 0 {
+		logrus.Infof("Excluded %d informing test failure(s) from retry candidates", len(informingNotRetried))
+	}
 
 	// Process test retries using the configured retry strategy
 	var flaky int
-	if o.RetryStrategy.ShouldAttemptRetries(failing, suite) {
-		logrus.Infof("Using retry strategy: %s for %d failing tests", o.RetryStrategy.Name(), fail)
-		tests, failing, flaky = o.performRetries(testCtx, tests, failing, testRunnerContext, parallelism, testOutputConfig, abortFn)
-	} else if fail > 0 {
-		logrus.Infof("Retry strategy %s decided not to retry %d failing tests", o.RetryStrategy.Name(), fail)
+	if o.RetryStrategy.ShouldAttemptRetries(retryCandidates, suite) {
+		logrus.Infof("Using retry strategy: %s for %d failing tests", o.RetryStrategy.Name(), len(retryCandidates))
+		tests, retryCandidates, flaky = o.performRetries(testCtx, tests, retryCandidates, testRunnerContext, parallelism, testOutputConfig, abortFn)
+	} else if len(retryCandidates) > 0 {
+		logrus.Infof("Retry strategy %s decided not to retry %d failing tests", o.RetryStrategy.Name(), len(retryCandidates))
 	}
+	// Merge informing failures back for downstream blocking/informing split
+	failing = append(retryCandidates, informingNotRetried...)
 
 	endWithRetries := time.Now()
 	durationWithRetries := endWithRetries.Sub(start).Round(time.Second / 10)

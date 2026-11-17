@@ -3,6 +3,10 @@ package ginkgo
 import (
 	"testing"
 	"time"
+
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
+
+	"github.com/openshift/origin/pkg/test/extensions"
 )
 
 func TestRetryOnceStrategy_ShouldRetryTest_Allowlist(t *testing.T) {
@@ -192,5 +196,265 @@ func TestAggressiveRetryStrategy_DurationLimit(t *testing.T) {
 	result := strategy.ShouldContinue(attempts[0], attempts, 2)
 	if result != false {
 		t.Errorf("Expected false for test exceeding duration limit, got %v", result)
+	}
+}
+
+func makeBlockingTest(name string) *testCase {
+	return &testCase{
+		name:   name,
+		failed: true,
+		extensionTestResult: &extensions.ExtensionTestResult{
+			ExtensionTestResult: &extensiontests.ExtensionTestResult{
+				Lifecycle: extensiontests.LifecycleBlocking,
+			},
+		},
+	}
+}
+
+func makeInformingTest(name string) *testCase {
+	return &testCase{
+		name:   name,
+		failed: true,
+		extensionTestResult: &extensions.ExtensionTestResult{
+			ExtensionTestResult: &extensiontests.ExtensionTestResult{
+				Lifecycle: extensiontests.LifecycleInforming,
+			},
+		},
+	}
+}
+
+func makeNoMetadataTest(name string) *testCase {
+	return &testCase{
+		name:   name,
+		failed: true,
+	}
+}
+
+func TestIsBlockingFailure(t *testing.T) {
+	tests := []struct {
+		name      string
+		test      *testCase
+		wantBlock bool
+	}{
+		{
+			name:      "blocking_lifecycle_is_blocking",
+			test:      makeBlockingTest("blocking-test"),
+			wantBlock: true,
+		},
+		{
+			name:      "informing_lifecycle_is_not_blocking",
+			test:      makeInformingTest("informing-test"),
+			wantBlock: false,
+		},
+		{
+			name:      "nil_extension_result_is_blocking",
+			test:      makeNoMetadataTest("no-metadata-test"),
+			wantBlock: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isBlockingFailure(tt.test)
+			if got != tt.wantBlock {
+				t.Errorf("isBlockingFailure() = %v, want %v", got, tt.wantBlock)
+			}
+		})
+	}
+}
+
+func TestAggressiveRetryStrategy_InformingTestsExcluded(t *testing.T) {
+	strategy := NewAggressiveRetryStrategy(aggressiveMaxRetries, aggressiveMinFailureThreshold)
+
+	tests := []struct {
+		name        string
+		failing     []*testCase
+		wantRetry   bool
+		description string
+	}{
+		{
+			name: "informing_only_failures_no_retry",
+			failing: func() []*testCase {
+				return []*testCase{
+					makeInformingTest("informing-1"),
+					makeInformingTest("informing-2"),
+				}
+			}(),
+			wantRetry:   false,
+			description: "All-informing failures should result in empty retry candidates",
+		},
+		{
+			name: "blocking_failures_within_gate_triggers_retry",
+			failing: func() []*testCase {
+				return []*testCase{
+					makeBlockingTest("blocking-1"),
+					makeBlockingTest("blocking-2"),
+				}
+			}(),
+			wantRetry:   true,
+			description: "Blocking failures within the gate should trigger retries",
+		},
+		{
+			name: "mixed_blocking_under_gate_after_filtering",
+			failing: func() []*testCase {
+				var f []*testCase
+				for i := 0; i < 4; i++ {
+					f = append(f, makeBlockingTest("blocking-"+string(rune('a'+i))))
+				}
+				for i := 0; i < 3; i++ {
+					f = append(f, makeInformingTest("informing-"+string(rune('a'+i))))
+				}
+				return f
+			}(),
+			wantRetry:   true,
+			description: "4 blocking + 3 informing = 7 total, but only 4 blocking count toward gate (<=5)",
+		},
+		{
+			name: "mixed_blocking_over_gate_without_filtering",
+			failing: func() []*testCase {
+				var f []*testCase
+				for i := 0; i < 3; i++ {
+					f = append(f, makeBlockingTest("blocking-"+string(rune('a'+i))))
+				}
+				for i := 0; i < 4; i++ {
+					f = append(f, makeInformingTest("informing-"+string(rune('a'+i))))
+				}
+				return f
+			}(),
+			wantRetry:   true,
+			description: "3 blocking + 4 informing = 7 total, but only 3 blocking count toward gate (<=5)",
+		},
+		{
+			name: "blocking_over_gate",
+			failing: func() []*testCase {
+				var f []*testCase
+				for i := 0; i < 6; i++ {
+					f = append(f, makeBlockingTest("blocking-"+string(rune('a'+i))))
+				}
+				return f
+			}(),
+			wantRetry:   false,
+			description: "6 blocking failures exceeds the 5-failure gate",
+		},
+		{
+			name: "blocking_at_gate_with_informing",
+			failing: func() []*testCase {
+				var f []*testCase
+				for i := 0; i < 5; i++ {
+					f = append(f, makeBlockingTest("blocking-"+string(rune('a'+i))))
+				}
+				for i := 0; i < 10; i++ {
+					f = append(f, makeInformingTest("informing-"+string(rune('a'+i))))
+				}
+				return f
+			}(),
+			wantRetry:   true,
+			description: "5 blocking + 10 informing: only blocking count, 5 <= 5 passes gate",
+		},
+		{
+			name: "no_metadata_treated_as_blocking",
+			failing: func() []*testCase {
+				return []*testCase{
+					makeNoMetadataTest("legacy-1"),
+					makeNoMetadataTest("legacy-2"),
+				}
+			}(),
+			wantRetry:   true,
+			description: "Tests with no extension metadata are treated as blocking",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var retryCandidates []*testCase
+			for _, test := range tt.failing {
+				if isBlockingFailure(test) {
+					retryCandidates = append(retryCandidates, test)
+				}
+			}
+
+			got := strategy.ShouldAttemptRetries(retryCandidates, &TestSuite{})
+			if got != tt.wantRetry {
+				t.Errorf("%s: ShouldAttemptRetries(filtered) = %v, want %v (total=%d, blocking=%d)",
+					tt.description, got, tt.wantRetry, len(tt.failing), len(retryCandidates))
+			}
+		})
+	}
+}
+
+func TestInformingResultsPreservedAfterRetryFiltering(t *testing.T) {
+	allFailing := []*testCase{
+		makeBlockingTest("blocking-1"),
+		makeInformingTest("informing-1"),
+		makeInformingTest("informing-2"),
+		makeBlockingTest("blocking-2"),
+	}
+
+	var retryCandidates []*testCase
+	var informingNotRetried []*testCase
+	for _, test := range allFailing {
+		if isBlockingFailure(test) {
+			retryCandidates = append(retryCandidates, test)
+		} else {
+			informingNotRetried = append(informingNotRetried, test)
+		}
+	}
+
+	if len(retryCandidates) != 2 {
+		t.Errorf("expected 2 retry candidates, got %d", len(retryCandidates))
+	}
+	if len(informingNotRetried) != 2 {
+		t.Errorf("expected 2 informing tests preserved, got %d", len(informingNotRetried))
+	}
+
+	failing := append(retryCandidates, informingNotRetried...)
+	if len(failing) != 4 {
+		t.Errorf("expected 4 total failures after merge, got %d", len(failing))
+	}
+
+	var blockingAfterMerge, informingAfterMerge int
+	for _, test := range failing {
+		if isBlockingFailure(test) {
+			blockingAfterMerge++
+		} else {
+			informingAfterMerge++
+		}
+	}
+	if blockingAfterMerge != 2 {
+		t.Errorf("expected 2 blocking after merge, got %d", blockingAfterMerge)
+	}
+	if informingAfterMerge != 2 {
+		t.Errorf("expected 2 informing after merge, got %d", informingAfterMerge)
+	}
+}
+
+// Runtime policy: the aggressive strategy only checks the original attempt's
+// duration. Later retry durations are not used as eligibility guards. This test
+// documents that a short original failure remains eligible even if a subsequent
+// retry takes much longer. If a cumulative-duration guard is added, update this
+// test to verify the new behavior.
+func TestAggressiveRetryStrategy_RuntimePolicy_ShortOriginalLongRetry(t *testing.T) {
+	strategy := NewAggressiveRetryStrategy(10, 3)
+
+	shortOriginal := &testCase{
+		name:     "test-short-then-long",
+		duration: 30 * time.Second,
+		failed:   true,
+	}
+
+	if maxRetries := strategy.GetMaxRetries(shortOriginal); maxRetries == 0 {
+		t.Fatal("short original should be eligible for retries")
+	}
+
+	longRetry := &testCase{
+		name:     "test-short-then-long",
+		duration: 10 * time.Minute,
+		failed:   true,
+	}
+
+	attempts := []*testCase{shortOriginal, longRetry}
+	shouldContinue := strategy.ShouldContinue(shortOriginal, attempts, 3)
+	if !shouldContinue {
+		t.Error("strategy should still continue: only the original attempt's duration is checked, not later retries")
 	}
 }
