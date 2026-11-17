@@ -377,15 +377,16 @@ var replicaRouterExec = func(config *rest.Config, client kubernetes.Interface, n
 
 // replicaServerStateCommand reads HAProxy's runtime server table over the admin socket.
 // The byte cap is applied in the router container so an unexpectedly large table cannot
-// be streamed back in full, and stderr is discarded so no diagnostic text from the
-// command can reach the log through the executor's error path.
+// be streamed back in full. Stderr is discarded for the pipeline as a whole, not just for
+// socat: ExecInPodWithResult logs whatever stderr holds when the stream fails, so leaving
+// any command free to write there would put unallowlisted text in the log.
 func replicaServerStateCommand() []string {
-	return []string{"/bin/sh", "-c", fmt.Sprintf("echo 'show servers state' | socat - %s 2>/dev/null | head -c %d", replicaHAProxySocketPath, replicaMaxStateBytes)}
+	return []string{"/bin/sh", "-c", fmt.Sprintf("{ echo 'show servers state' | socat - %s | head -c %d ; } 2>/dev/null", replicaHAProxySocketPath, replicaMaxStateBytes)}
 }
 
 // execReplicaServerState applies a per-exec deadline on top of the shared diagnostics
-// budget. RunHostCmd has no context-aware form, so the deadline is enforced here and a
-// late reply is discarded through the buffered channel.
+// budget. ExecInPodWithResult has no context-aware form, so the deadline is enforced here
+// and a late reply is discarded through the buffered channel.
 func execReplicaServerState(ctx context.Context, config *rest.Config, client kubernetes.Interface, namespace string) (string, error) {
 	execCtx, cancel := context.WithTimeout(ctx, replicaExecTimeout)
 	defer cancel()
