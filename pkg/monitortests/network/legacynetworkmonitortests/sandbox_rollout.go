@@ -86,7 +86,7 @@ func sandboxFailureDuringOVNRollout(failure monitorapi.Interval, podEvents, ovnD
 	if !sandboxPodLifecycleCovers(podEvents, node, first, recovery) {
 		return ""
 	}
-	return fmt.Sprintf("OVN rollout on node:%s recovered pod networking %.0fs after pod:%s began deletion",
+	return fmt.Sprintf("OVN rollout on node:%s recovered pod networking %.0fs after pod:%s began deletion https://redhat.atlassian.net/browse/OCPBUGS-141934",
 		node, recovery.Sub(deletion.From).Seconds(), deletion.Locator.Keys[monitorapi.LocatorPodKey])
 }
 
@@ -134,9 +134,11 @@ func sandboxPodLifecycleCovers(events monitorapi.Intervals, node string, first, 
 			if scheduledNode := event.Message.Annotations[monitorapi.AnnotationNode]; scheduledNode != "" && scheduledNode != node {
 				return false
 			}
+			// Pod-watch observations retain sub-second precision in memory,
+			// whereas firstTimestamp only identifies the failure's second.
 			if event.Source == monitorapi.SourcePodState && eventUID != "" &&
 				event.Message.Annotations[monitorapi.AnnotationNode] == node &&
-				!event.From.After(first) && !event.To.Before(recovery) {
+				!event.From.Truncate(time.Second).After(first) && !event.To.Before(recovery) {
 				covered = true
 			}
 		}

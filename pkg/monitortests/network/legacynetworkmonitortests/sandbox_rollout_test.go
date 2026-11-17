@@ -133,6 +133,10 @@ func TestSandboxCreationDuringOVNRollout(t *testing.T) {
 			delete(e[3].Message.Annotations, "firstTimestamp")
 			return e
 		}},
+		{name: "failure is not a Kubernetes event", change: func(e monitorapi.Intervals) monitorapi.Intervals {
+			e[3].Source = monitorapi.SourceNodeMonitor
+			return e
+		}},
 		{name: "malformed last occurrence", change: func(e monitorapi.Intervals) monitorapi.Intervals {
 			e[3].Message.Annotations["lastTimestamp"] = "invalid"
 			return e
@@ -187,6 +191,13 @@ func TestSandboxCreationDuringOVNRollout(t *testing.T) {
 			e[2].Message.Annotations[monitorapi.AnnotationNode] = "node-2"
 			return e
 		}},
+		{name: "raw lifecycle locator on another node", change: func(e monitorapi.Intervals) monitorapi.Intervals {
+			other := e[2]
+			other.Source = monitorapi.SourcePodMonitor
+			other.Message.Reason = monitorapi.PodReasonCreated
+			other.Locator.Keys = map[monitorapi.LocatorKey]string{"namespace": "workload", "pod": "target", "node": "node-2", "uid": "target-uid"}
+			return append(e, other)
+		}},
 		{name: "lifecycle does not cover recovery", change: func(e monitorapi.Intervals) monitorapi.Intervals { e[2].To = e[4].From.Add(-time.Second); return e }},
 		{name: "pod recreated", change: func(e monitorapi.Intervals) monitorapi.Intervals {
 			other := e[2]
@@ -216,6 +227,28 @@ func TestSandboxCreationDuringOVNRollout(t *testing.T) {
 				events = tt.change(events)
 			}
 			assertSandboxOtherResult(t, events, config, tt.flake)
+		})
+	}
+}
+
+func TestSandboxCreationLiveSchedulingPrecision(t *testing.T) {
+	config := sandboxTestConfig(t)
+	for _, tc := range []struct {
+		offset time.Duration
+		flake  bool
+	}{
+		{offset: 0, flake: true},
+		{offset: time.Nanosecond, flake: true},
+		{offset: 500 * time.Millisecond, flake: true},
+		{offset: 999 * time.Millisecond, flake: true},
+		{offset: time.Second, flake: false},
+	} {
+		t.Run(tc.offset.String(), func(t *testing.T) {
+			events := sandboxRolloutEvents()
+			// Live pod-watch observations retain fractions of a second, while
+			// the failure's firstTimestamp annotation has whole-second precision.
+			events[2].From = events[3].From.Add(tc.offset)
+			assertSandboxOtherResult(t, events, config, tc.flake)
 		})
 	}
 }
@@ -265,18 +298,29 @@ func TestSandboxCreationRolloutReplay(t *testing.T) {
 	config := sandboxTestConfig(t)
 	for _, run := range runs {
 		t.Run(run.BuildID, func(t *testing.T) {
-			events, err := monitorserialization.IntervalsFromJSON(append(append([]byte(`{"items":`), run.Items...), '}'))
-			if err != nil {
-				t.Fatal(err)
+			for _, offset := range []time.Duration{0, time.Millisecond, 534 * time.Millisecond, 999 * time.Millisecond} {
+				t.Run(offset.String(), func(t *testing.T) {
+					events, err := monitorserialization.IntervalsFromJSON(append(append([]byte(`{"items":`), run.Items...), '}'))
+					if err != nil {
+						t.Fatal(err)
+					}
+					for i := range events {
+						switch events[i].Source {
+						case monitorapi.SourcePodMonitor, monitorapi.SourcePodState, monitorapi.SourceOperatorState:
+							events[i].From = events[i].From.Add(offset)
+							events[i].To = events[i].To.Add(offset)
+						}
+					}
+					assertSandboxOtherResult(t, events, config, true)
+					var withoutRecovery monitorapi.Intervals
+					for _, event := range events {
+						if event.Message.Reason != "AddedInterface" {
+							withoutRecovery = append(withoutRecovery, event)
+						}
+					}
+					assertSandboxOtherResult(t, withoutRecovery, config, false)
+				})
 			}
-			assertSandboxOtherResult(t, events, config, true)
-			var withoutRecovery monitorapi.Intervals
-			for _, event := range events {
-				if event.Message.Reason != "AddedInterface" {
-					withoutRecovery = append(withoutRecovery, event)
-				}
-			}
-			assertSandboxOtherResult(t, withoutRecovery, config, false)
 		})
 	}
 }
