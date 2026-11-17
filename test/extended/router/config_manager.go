@@ -32,8 +32,9 @@ import (
 )
 
 const (
-	timeoutSeconds             = 3 * 60
-	configManagerRouterPodName = "router-haproxy-cfgmgr"
+	timeoutSeconds                   = 3 * 60
+	configManagerRouterPodName       = "router-haproxy-cfgmgr"
+	configManagerRouterContainerName = "router"
 )
 
 var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]", func() {
@@ -398,7 +399,7 @@ http {
 					TerminationGracePeriodSeconds: utilpointer.Int64(1),
 					Containers: []corev1.Container{
 						{
-							Name:            "router",
+							Name:            configManagerRouterContainerName,
 							Image:           routerImage,
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Env: []corev1.EnvVar{
@@ -676,6 +677,9 @@ http {
 
 			g.By("adding new replicas")
 			expectedBackendServers := sets.New[string]()
+			// Ordered copy of the same names, so diagnostics can refer to a replica by its
+			// position instead of by name.
+			expectedBackendOrdinals := []string{}
 			endpointReplicaLabelUpdate := []byte(`{"metadata":{"labels":{"endpoints":"insecure-concurrent-endpoint-replicas"}}}`)
 			for i := range NUM_CONCURRENT_REPLICAS {
 				// our NUM_CONCURRENT_REPLICAS is already configured to go beyond the available blueprint servers per backend
@@ -687,8 +691,9 @@ http {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				expectedBackendServers.Insert(podName)
+				expectedBackendOrdinals = append(expectedBackendOrdinals, podName)
 				allBackendServers := sets.New[string]()
-				stats := replicaRequestStats{iteration: i + 1, expected: expectedBackendServers.Len()}
+				stats := replicaRequestStats{iteration: i + 1, expected: expectedBackendServers.Len(), names: expectedBackendOrdinals}
 				err = wait.PollUntilContextTimeout(context.Background(), time.Second, timeoutSeconds*time.Second, true, func(ctx context.Context) (bool, error) {
 					output, err := readURLWithReplicaStats(ns, execPod.Name, hostName, "/", routerIP, &stats)
 					if err != nil {
@@ -697,7 +702,7 @@ http {
 					}
 					return stats.observeBackend(output, expectedBackendServers, allBackendServers)
 				})
-				reportReplicaFailure(context.Background(), err, stats, kubeClient, ns, serviceName, execPod.Name, func(output string) {
+				reportReplicaFailure(context.Background(), err, stats, kubeClient, oc.AdminConfig(), ns, serviceName, execPod.Name, func(output string) {
 					e2e.Logf("%s", output)
 				})
 				o.Expect(err).NotTo(o.HaveOccurred())

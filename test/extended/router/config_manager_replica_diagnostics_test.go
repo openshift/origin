@@ -179,7 +179,7 @@ func TestReplicaFailureOnlyBeforeCleanupAndSuppression(test *testing.T) {
 	execPod.Status.ContainerStatuses[0].State = corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{Reason: replicaSensitive, Message: replicaSensitive, ExitCode: 1}}
 	client := fake.NewSimpleClientset(replicaTestSlice(), router, execPod)
 	emitted := false
-	reportReplicaFailure(context.Background(), nil, replicaRequestStats{}, client, "test", "service", replicaSensitive, func(string) { emitted = true })
+	reportReplicaFailure(context.Background(), nil, replicaRequestStats{}, client, nil, "test", "service", replicaSensitive, func(string) { emitted = true })
 	if emitted || len(client.Actions()) != 0 {
 		test.Fatal("success triggered diagnostics")
 	}
@@ -189,7 +189,7 @@ func TestReplicaFailureOnlyBeforeCleanupAndSuppression(test *testing.T) {
 	cleaned := false
 	func() {
 		defer func() { cleaned = true }()
-		reportReplicaFailure(context.Background(), errors.New(replicaSensitive), stats, client, "test", "service", replicaSensitive, func(output string) {
+		reportReplicaFailure(context.Background(), errors.New(replicaSensitive), stats, client, nil, "test", "service", replicaSensitive, func(output string) {
 			emitted = true
 			if cleaned || len(client.Actions()) != 3 {
 				test.Fatal("collection did not complete before cleanup")
@@ -386,7 +386,7 @@ func TestReplicaInternalRequestDeadlines(test *testing.T) {
 	if err != nil {
 		test.Fatal(err)
 	}
-	reportReplicaFailure(context.Background(), errors.New(replicaSensitive), replicaRequestStats{}, client, "test", "service", replicaSensitive, func(string) {})
+	reportReplicaFailure(context.Background(), errors.New(replicaSensitive), replicaRequestStats{}, client, nil, "test", "service", replicaSensitive, func(string) {})
 	if requests != 3 {
 		test.Fatal("expected EndpointSlice and two pod requests")
 	}
@@ -398,7 +398,7 @@ func TestReplicaLookupErrorsSuppressDetails(test *testing.T) {
 	client.PrependReactor("*", "*", func(clienttesting.Action) (bool, runtime.Object, error) {
 		return true, nil, apierrors.NewForbidden(schema.GroupResource{Resource: replicaSensitive}, replicaSensitive, errors.New(replicaSensitive))
 	})
-	reportReplicaFailure(context.Background(), context.DeadlineExceeded, replicaRequestStats{}, client, "test", "service", replicaSensitive, func(output string) {
+	reportReplicaFailure(context.Background(), context.DeadlineExceeded, replicaRequestStats{}, client, nil, "test", "service", replicaSensitive, func(output string) {
 		if strings.Contains(output, replicaSensitive) || strings.Count(output, "lookup_failed=true error=forbidden") != 3 || !strings.Contains(output, "incomplete=true") {
 			test.Fatal("error details escaped fixed categories")
 		}
@@ -425,12 +425,542 @@ func TestReplicaCollectionDeadlineAndRequestScope(test *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 	start := time.Now()
-	reportReplicaFailure(ctx, context.DeadlineExceeded, replicaRequestStats{}, client, "test", "service", replicaSensitive, func(output string) {
+	reportReplicaFailure(ctx, context.DeadlineExceeded, replicaRequestStats{}, client, nil, "test", "service", replicaSensitive, func(output string) {
 		if !strings.Contains(output, "incomplete=true") || !strings.Contains(output, "lookup_failed=true error=timeout") {
 			test.Fatal("deadline not represented")
 		}
 	})
 	if time.Since(start) > time.Second {
 		test.Fatal("collection exceeded shared caller deadline")
+	}
+}
+
+// replicaStateHeader is the commented column header HAProxy emits ahead of the server
+// rows of "show servers state".
+const replicaStateHeader = "# be_id be_name srv_id srv_name srv_addr srv_op_state srv_admin_state srv_uweight srv_iweight srv_time_since_last_change srv_check_status srv_check_result"
+
+// replicaStateRowText builds one "show servers state" row in the documented column order.
+func replicaStateRowText(backend, server, op, admin, weight, check string) string {
+	return replicaStateRowAt(backend, server, "10.0.0.1", op, admin, weight, check)
+}
+
+// replicaStateRowAt builds a row with an explicit server address.
+func replicaStateRowAt(backend, server, address, op, admin, weight, check string) string {
+	return strings.Join([]string{"3", backend, "1", server, address, op, admin, weight, "1", "7", "15", check}, " ")
+}
+
+func replicaStateDump(rows ...string) string {
+	return "1\n" + replicaStateHeader + "\n" + strings.Join(rows, "\n") + "\n"
+}
+
+var replicaStateNames = []string{"replica-0", "replica-1", "replica-2"}
+
+func TestReplicaServerStateParsing(test *testing.T) {
+	test.Parallel()
+	healthy := func(ordinal string) string {
+		return replicaStateRowText("be_http:test:route", "pod:replica-"+ordinal+":svc::10.0.0.1:9376", "2", "0", "1", "3")
+	}
+	for _, testCase := range []struct {
+		name                     string
+		output                   string
+		names                    []string
+		addresses                map[string]int
+		backendFound, incomplete bool
+		truncated, extraCapped   bool
+		extra, missing           int
+		ops                      []replicaServerOp
+		admins                   []replicaServerAdmin
+		checks                   []replicaServerCheck
+		weightZero               []bool
+		duplicate                []bool
+	}{
+		{
+			name: "all servers healthy", output: replicaStateDump(healthy("0"), healthy("1"), healthy("2")), names: replicaStateNames,
+			backendFound: true,
+			ops:          []replicaServerOp{replicaOpUp, replicaOpUp, replicaOpUp},
+			admins:       []replicaServerAdmin{replicaAdminNone, replicaAdminNone, replicaAdminNone},
+			checks:       []replicaServerCheck{replicaCheckPassed, replicaCheckPassed, replicaCheckPassed},
+		},
+		{
+			name: "distinguishes down maintenance and drain",
+			output: replicaStateDump(
+				replicaStateRowText("be_http:test:route", "pod:replica-0:svc::10.0.0.1:9376", "0", "0", "1", "2"),
+				replicaStateRowText("be_http:test:route", "pod:replica-1:svc::10.0.0.2:9376", "2", "1", "1", "3"),
+				replicaStateRowText("be_http:test:route", "pod:replica-2:svc::10.0.0.3:9376", "2", "8", "1", "3"),
+			),
+			names: replicaStateNames, backendFound: true,
+			ops:    []replicaServerOp{replicaOpDown, replicaOpUp, replicaOpUp},
+			admins: []replicaServerAdmin{replicaAdminNone, replicaAdminMaint, replicaAdminDrain},
+			checks: []replicaServerCheck{replicaCheckFailed, replicaCheckPassed, replicaCheckPassed},
+		},
+		{
+			name: "zero weight is distinguished from healthy",
+			output: replicaStateDump(healthy("0"), healthy("1"),
+				replicaStateRowText("be_http:test:route", "pod:replica-2:svc::10.0.0.3:9376", "2", "0", "0", "3")),
+			names: replicaStateNames, backendFound: true,
+			ops:        []replicaServerOp{replicaOpUp, replicaOpUp, replicaOpUp},
+			admins:     []replicaServerAdmin{replicaAdminNone, replicaAdminNone, replicaAdminNone},
+			checks:     []replicaServerCheck{replicaCheckPassed, replicaCheckPassed, replicaCheckPassed},
+			weightZero: []bool{false, false, true},
+		},
+		{
+			name:   "missing server row is reported as absent",
+			output: replicaStateDump(healthy("0"), healthy("2")), names: replicaStateNames,
+			backendFound: true, incomplete: true, missing: 1,
+			ops:    []replicaServerOp{replicaOpUp, replicaOpAbsent, replicaOpUp},
+			admins: []replicaServerAdmin{replicaAdminNone, replicaAdminAbsent, replicaAdminNone},
+			checks: []replicaServerCheck{replicaCheckPassed, replicaCheckUnknown, replicaCheckPassed},
+		},
+		{
+			name: "unrelated backends are ignored",
+			output: replicaStateDump(
+				replicaStateRowText("be_http:test:other", "pod:replica-0:svc::10.0.0.9:9376", "0", "1", "0", "2"),
+				replicaStateRowText("be_tcp:other:route", "pod:unrelated:svc::10.0.0.8:9376", "0", "1", "0", "2"),
+				healthy("0"), healthy("1"), healthy("2"),
+			),
+			names: replicaStateNames, backendFound: true,
+			ops:    []replicaServerOp{replicaOpUp, replicaOpUp, replicaOpUp},
+			admins: []replicaServerAdmin{replicaAdminNone, replicaAdminNone, replicaAdminNone},
+			checks: []replicaServerCheck{replicaCheckPassed, replicaCheckPassed, replicaCheckPassed},
+		},
+		{
+			name: "unmatched servers in the target backend are counted only",
+			output: replicaStateDump(healthy("0"), healthy("1"), healthy("2"),
+				replicaStateRowText("be_http:test:route", "pod:"+replicaSensitive+":svc::10.0.0.7:9376", "2", "0", "1", "3")),
+			names: replicaStateNames, backendFound: true, extra: 1,
+			ops:    []replicaServerOp{replicaOpUp, replicaOpUp, replicaOpUp},
+			admins: []replicaServerAdmin{replicaAdminNone, replicaAdminNone, replicaAdminNone},
+			checks: []replicaServerCheck{replicaCheckPassed, replicaCheckPassed, replicaCheckPassed},
+		},
+		{
+			name:   "duplicate rows are flagged not double counted",
+			output: replicaStateDump(healthy("0"), healthy("0"), healthy("1"), healthy("2")),
+			names:  replicaStateNames, backendFound: true, incomplete: true,
+			ops:       []replicaServerOp{replicaOpUp, replicaOpUp, replicaOpUp},
+			admins:    []replicaServerAdmin{replicaAdminNone, replicaAdminNone, replicaAdminNone},
+			checks:    []replicaServerCheck{replicaCheckPassed, replicaCheckPassed, replicaCheckPassed},
+			duplicate: []bool{true, false, false},
+		},
+		{
+			name: "unknown enum values are bucketed not guessed",
+			output: replicaStateDump(
+				replicaStateRowText("be_http:test:route", "pod:replica-0:svc::10.0.0.1:9376", "9", "bogus", "x", "77"),
+				healthy("1"), healthy("2")),
+			names: replicaStateNames, backendFound: true, incomplete: true,
+			ops:    []replicaServerOp{replicaOpUnknown, replicaOpUp, replicaOpUp},
+			admins: []replicaServerAdmin{replicaAdminUnknown, replicaAdminNone, replicaAdminNone},
+			checks: []replicaServerCheck{replicaCheckInvalid, replicaCheckPassed, replicaCheckPassed},
+		},
+		{
+			name: "reordered header columns are followed by name",
+			output: "1\n# srv_check_result srv_uweight srv_admin_state srv_op_state srv_addr srv_name be_name be_id\n" +
+				strings.Join([]string{"3", "1", "0", "2", "10.0.0.1", "pod:replica-0:svc", "be_http:test:route", "3"}, " ") + "\n",
+			names: []string{"replica-0"}, backendFound: true,
+			ops:    []replicaServerOp{replicaOpUp},
+			admins: []replicaServerAdmin{replicaAdminNone},
+			checks: []replicaServerCheck{replicaCheckPassed},
+		},
+		{
+			name:       "header without a required column yields no attribution",
+			output:     "1\n# be_id be_name srv_id srv_name\n3 be_http:test:route 1 pod:replica-0:svc\n",
+			names:      replicaStateNames,
+			incomplete: true, missing: 3,
+			ops:    []replicaServerOp{replicaOpAbsent, replicaOpAbsent, replicaOpAbsent},
+			admins: []replicaServerAdmin{replicaAdminAbsent, replicaAdminAbsent, replicaAdminAbsent},
+			checks: []replicaServerCheck{replicaCheckUnknown, replicaCheckUnknown, replicaCheckUnknown},
+		},
+		{
+			name:         "row cut short by the byte cap is not attributed",
+			output:       replicaStateDump(healthy("0"), healthy("1")) + "3 be_http:test:route 1 pod:replica-2",
+			names:        replicaStateNames,
+			backendFound: true, incomplete: true, missing: 1,
+			ops:    []replicaServerOp{replicaOpUp, replicaOpUp, replicaOpAbsent},
+			admins: []replicaServerAdmin{replicaAdminNone, replicaAdminNone, replicaAdminAbsent},
+			checks: []replicaServerCheck{replicaCheckPassed, replicaCheckPassed, replicaCheckUnknown},
+		},
+		{
+			name: "output without a header is incomplete", output: "garbage\nmore garbage\n", names: replicaStateNames,
+			incomplete: true, missing: 3,
+			ops:    []replicaServerOp{replicaOpAbsent, replicaOpAbsent, replicaOpAbsent},
+			admins: []replicaServerAdmin{replicaAdminAbsent, replicaAdminAbsent, replicaAdminAbsent},
+			checks: []replicaServerCheck{replicaCheckUnknown, replicaCheckUnknown, replicaCheckUnknown},
+		},
+		{
+			name: "empty output is incomplete", output: "", names: replicaStateNames, incomplete: true, missing: 3,
+			ops:    []replicaServerOp{replicaOpAbsent, replicaOpAbsent, replicaOpAbsent},
+			admins: []replicaServerAdmin{replicaAdminAbsent, replicaAdminAbsent, replicaAdminAbsent},
+			checks: []replicaServerCheck{replicaCheckUnknown, replicaCheckUnknown, replicaCheckUnknown},
+		},
+		{
+			name:   "no expected server present means the backend is not identified",
+			output: replicaStateDump(replicaStateRowText("be_http:test:route", "pod:unrelated:svc::10.0.0.6:9376", "2", "0", "1", "3")),
+			names:  replicaStateNames, incomplete: true, missing: 3,
+			ops:    []replicaServerOp{replicaOpAbsent, replicaOpAbsent, replicaOpAbsent},
+			admins: []replicaServerAdmin{replicaAdminAbsent, replicaAdminAbsent, replicaAdminAbsent},
+			checks: []replicaServerCheck{replicaCheckUnknown, replicaCheckUnknown, replicaCheckUnknown},
+		},
+	} {
+		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
+			state := parseReplicaServerState(testCase.output, testCase.names, testCase.addresses)
+			if !state.collected {
+				test.Fatal("parse did not report collection")
+			}
+			if state.backendFound != testCase.backendFound || state.incomplete != testCase.incomplete ||
+				state.truncated != testCase.truncated || state.extraCapped != testCase.extraCapped ||
+				state.extra != testCase.extra || state.missing != testCase.missing {
+				test.Fatalf("summary mismatch: backend_found=%t incomplete=%t truncated=%t extra_capped=%t extra=%d missing=%d",
+					state.backendFound, state.incomplete, state.truncated, state.extraCapped, state.extra, state.missing)
+			}
+			if len(state.servers) != len(testCase.names) {
+				test.Fatalf("expected %d ordinals, got %d", len(testCase.names), len(state.servers))
+			}
+			for ordinal, server := range state.servers {
+				if server.op != testCase.ops[ordinal] || server.admin != testCase.admins[ordinal] || server.check != testCase.checks[ordinal] {
+					test.Fatalf("ordinal %d category mismatch: op=%s admin=%s check=%s", ordinal,
+						replicaServerOpNames[server.op], replicaServerAdminNames[server.admin], replicaServerCheckNames[server.check])
+				}
+				if testCase.weightZero != nil && server.weightZero != testCase.weightZero[ordinal] {
+					test.Fatalf("ordinal %d weight mismatch", ordinal)
+				}
+				if testCase.duplicate != nil && server.duplicate != testCase.duplicate[ordinal] {
+					test.Fatalf("ordinal %d duplicate mismatch", ordinal)
+				}
+			}
+		})
+	}
+}
+
+func TestReplicaServerStateBounds(test *testing.T) {
+	test.Parallel()
+	rows := make([]string, 0, replicaMaxStateRows*2)
+	for index := 0; index < replicaMaxStateRows*2; index++ {
+		rows = append(rows, replicaStateRowText("be_http:test:route", fmt.Sprintf("pod:filler-%d:svc", index), "2", "0", "1", "3"))
+	}
+	state := parseReplicaServerState(replicaStateDump(rows...), replicaStateNames, nil)
+	if state.lines > replicaMaxStateRows || !state.truncated || !state.incomplete {
+		test.Fatalf("row cap not enforced: lines=%d truncated=%t", state.lines, state.truncated)
+	}
+
+	extras := make([]string, 0, replicaMaxServers*2)
+	extras = append(extras, replicaStateRowText("be_http:test:route", "pod:replica-0:svc", "2", "0", "1", "3"))
+	for index := 0; index < replicaMaxServers*2; index++ {
+		extras = append(extras, replicaStateRowText("be_http:test:route", fmt.Sprintf("pod:extra-%d:svc", index), "2", "0", "1", "3"))
+	}
+	bounded := parseReplicaServerState(replicaStateDump(extras...), []string{"replica-0"}, nil)
+	if bounded.extra > replicaMaxServers || !bounded.extraCapped || !bounded.incomplete {
+		test.Fatalf("unmatched server count not bounded: extra=%d extra_capped=%t", bounded.extra, bounded.extraCapped)
+	}
+	if bounded.truncated {
+		test.Fatal("saturating the unmatched counter must not claim the dump was truncated")
+	}
+
+	oversized := parseReplicaServerState(strings.Repeat("x", replicaMaxStateBytes+1), replicaStateNames, nil)
+	if !oversized.truncated || !oversized.incomplete {
+		test.Fatal("oversized input not marked truncated")
+	}
+}
+
+func TestReplicaServerStateCollectionFailures(test *testing.T) {
+	// Not parallel: these cases swap the package-level exec hook.
+	for _, testCase := range []struct {
+		name     string
+		err      error
+		category replicaFailure
+	}{
+		{name: "forbidden", err: apierrors.NewForbidden(schema.GroupResource{Resource: replicaSensitive}, replicaSensitive, errors.New(replicaSensitive)), category: replicaForbidden},
+		{name: "timeout", err: fmt.Errorf("%s: %w", replicaSensitive, context.DeadlineExceeded), category: replicaTimeout},
+		{name: "exec", err: exec.CodeExitError{Err: errors.New(replicaSensitive), Code: 126}, category: replicaExec},
+		{name: "unknown", err: errors.New(replicaSensitive), category: replicaOther},
+	} {
+		test.Run(testCase.name, func(test *testing.T) {
+			restore := replicaRouterExec
+			defer func() { replicaRouterExec = restore }()
+			replicaRouterExec = func(*rest.Config, kubernetes.Interface, string) (string, error) {
+				return replicaSensitive, testCase.err
+			}
+			state := collectReplicaServerState(context.Background(), &rest.Config{}, fake.NewSimpleClientset(), "test", replicaRequestStats{names: replicaStateNames}, replicaEndpointCounts{})
+			if !state.collected || !state.failed || !state.incomplete || state.failure != testCase.category {
+				test.Fatalf("failure not classified: failed=%t error=%s", state.failed, replicaFailureNames[state.failure])
+			}
+			if state.backendFound || state.missing != len(replicaStateNames) {
+				test.Fatal("failed collection reported backend facts")
+			}
+		})
+	}
+}
+
+func TestReplicaServerStateExecDeadlineAndScope(test *testing.T) {
+	// Not parallel: these cases swap the package-level exec hook.
+	restore := replicaRouterExec
+	defer func() { replicaRouterExec = restore }()
+	var gotNamespace string
+	replicaRouterExec = func(_ *rest.Config, _ kubernetes.Interface, namespace string) (string, error) {
+		gotNamespace = namespace
+		return replicaStateDump(replicaStateRowText("be_http:test:route", "pod:replica-0:svc", "2", "0", "1", "3")), nil
+	}
+	state := collectReplicaServerState(context.Background(), &rest.Config{}, fake.NewSimpleClientset(), "test", replicaRequestStats{names: []string{"replica-0"}}, replicaEndpointCounts{})
+	if !state.backendFound {
+		test.Fatal("collection did not parse the backend")
+	}
+	if gotNamespace != "test" {
+		test.Fatal("collection was not scoped to the test namespace")
+	}
+	command := strings.Join(replicaServerStateCommand(), " ")
+	if !strings.Contains(command, replicaHAProxySocketPath) || !strings.Contains(command, strconv.Itoa(replicaMaxStateBytes)) || !strings.Contains(command, "2>/dev/null") {
+		test.Fatal("command does not read the router socket under a byte cap with stderr discarded")
+	}
+
+	released := make(chan struct{})
+	defer close(released)
+	replicaRouterExec = func(*rest.Config, kubernetes.Interface, string) (string, error) {
+		<-released
+		return "", nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	stalled := collectReplicaServerState(ctx, &rest.Config{}, fake.NewSimpleClientset(), "test", replicaRequestStats{names: replicaStateNames}, replicaEndpointCounts{})
+	if time.Since(start) > replicaExecTimeout {
+		test.Fatal("stalled exec outlived the caller deadline")
+	}
+	if !stalled.failed || stalled.failure != replicaTimeout {
+		test.Fatalf("stalled exec not reported as a timeout: %s", replicaFailureNames[stalled.failure])
+	}
+}
+
+func TestReplicaResponseOrdinalAccounting(test *testing.T) {
+	test.Parallel()
+	stats := replicaRequestStats{expected: 3, names: replicaStateNames}
+	expected := sets.New(replicaStateNames...)
+	observed := sets.New[string]()
+	for _, response := range []string{"replica-0", "replica-0", "replica-2", "replica-1", "replica-0"} {
+		if _, err := stats.observeBackend(response, expected, observed); err != nil {
+			test.Fatal(err)
+		}
+	}
+	for ordinal, want := range []int{3, 1, 1} {
+		if stats.responsesFor(ordinal) != want {
+			test.Fatalf("ordinal %d served %d responses, want %d", ordinal, stats.responsesFor(ordinal), want)
+		}
+	}
+	if stats.responsesFor(-1) != 0 || stats.responsesFor(len(replicaStateNames)) != 0 {
+		test.Fatal("out of range ordinal did not report zero")
+	}
+	// Callers that do not supply ordinals must keep the original behavior.
+	plain := replicaRequestStats{expected: 1}
+	plainObserved := sets.New[string]()
+	if done, err := plain.observeBackend("replica-0", sets.New("replica-0"), plainObserved); !done || err != nil || plain.responses != nil {
+		test.Fatal("unordered caller behavior changed")
+	}
+}
+
+func TestReplicaServerStateReportedWithoutIdentifiers(test *testing.T) {
+	// Not parallel: these cases swap the package-level exec hook.
+	restore := replicaRouterExec
+	defer func() { replicaRouterExec = restore }()
+	// replica-1 is registered, up, unweighted and passing checks, yet served nothing: the
+	// combination the request and endpoint counters alone cannot distinguish.
+	replicaRouterExec = func(*rest.Config, kubernetes.Interface, string) (string, error) {
+		return replicaStateDump(
+			replicaStateRowText("be_http:test:"+replicaSensitive, "pod:replica-0:svc::10.0.0.1:9376", "2", "0", "1", "3"),
+			replicaStateRowText("be_http:test:"+replicaSensitive, "pod:replica-1:svc::10.0.0.2:9376", "2", "0", "1", "3"),
+			replicaStateRowText("be_http:test:"+replicaSensitive, "pod:replica-2:svc::10.0.0.3:9376", "2", "0", "1", "3"),
+		), nil
+	}
+	stats := replicaRequestStats{iteration: 3, expected: 3, observed: 2, names: replicaStateNames, responses: []int{82, 0, 65}}
+	client := fake.NewSimpleClientset(replicaTestSlice(), replicaTestPod(configManagerRouterPodName), replicaTestPod(replicaSensitive))
+	emitted := false
+	reportReplicaFailure(context.Background(), context.DeadlineExceeded, stats, client, &rest.Config{}, "test", "service", replicaSensitive, func(output string) {
+		emitted = true
+		for _, expected := range []string{
+			"haproxy backend_found=true servers=3 extra=0 missing=0",
+			"haproxy_server ordinal=0 present=true op=up admin=none check=passed weight_known=true weight_zero=false duplicate=false responses=82",
+			"haproxy_server ordinal=1 present=true op=up admin=none check=passed weight_known=true weight_zero=false duplicate=false responses=0",
+			"haproxy_server ordinal=2 present=true op=up admin=none check=passed weight_known=true weight_zero=false duplicate=false responses=65",
+		} {
+			if !strings.Contains(output, expected) {
+				test.Fatalf("missing fixed diagnostic: %s", expected)
+			}
+		}
+		for _, forbidden := range []string{replicaSensitive, "be_http", "10.0.0.", "replica-0", "pod:", replicaHAProxySocketPath, "socat", "show servers state", "9376"} {
+			if strings.Contains(output, forbidden) {
+				test.Fatalf("diagnostic output leaked %q", forbidden)
+			}
+		}
+		if len(output) > replicaMaxOutput {
+			test.Fatal("diagnostic output exceeded bound")
+		}
+	})
+	if !emitted {
+		test.Fatal("diagnostics were not emitted")
+	}
+}
+
+func TestReplicaServerStateNeverAltersVerdict(test *testing.T) {
+	// Not parallel: these cases swap the package-level exec hook.
+	restore := replicaRouterExec
+	defer func() { replicaRouterExec = restore }()
+	replicaRouterExec = func(*rest.Config, kubernetes.Interface, string) (string, error) {
+		panic("collection must not be reached without ordinals")
+	}
+	client := fake.NewSimpleClientset(replicaTestSlice(), replicaTestPod(configManagerRouterPodName), replicaTestPod(replicaSensitive))
+	// Without ordinals there is nothing to attribute, so no exec is attempted at all.
+	reportReplicaFailure(context.Background(), errors.New(replicaSensitive), replicaRequestStats{}, client, nil, "test", "service", replicaSensitive, func(output string) {
+		if strings.Contains(output, "haproxy") {
+			test.Fatal("state reported without ordinals")
+		}
+	})
+
+	// A failing collection still emits the other diagnostics and leaves cleanup ordering
+	// and the caller's failure untouched.
+	replicaRouterExec = func(*rest.Config, kubernetes.Interface, string) (string, error) {
+		return "", errors.New(replicaSensitive)
+	}
+	cleaned, emitted := false, false
+	func() {
+		defer func() { cleaned = true }()
+		reportReplicaFailure(context.Background(), errors.New(replicaSensitive), replicaRequestStats{names: replicaStateNames}, client, &rest.Config{}, "test", "service", replicaSensitive, func(output string) {
+			emitted = true
+			if cleaned {
+				test.Fatal("collection did not complete before cleanup")
+			}
+			if !strings.Contains(output, "collect_failed=true error=other") || !strings.Contains(output, "incomplete=true") {
+				test.Fatal("collection failure not represented")
+			}
+			if strings.Contains(output, replicaSensitive) {
+				test.Fatal("collection failure leaked error text")
+			}
+		})
+	}()
+	if !emitted || !cleaned {
+		test.Fatal("failure collection or cleanup did not run")
+	}
+}
+
+func TestReplicaServerStateMatchesDynamicSlotsByAddress(test *testing.T) {
+	test.Parallel()
+	// A server occupying a pre-provisioned dynamic slot keeps the slot's name, so only its
+	// address identifies the endpoint behind it.
+	output := replicaStateDump(
+		replicaStateRowAt("be_http:test:route", "pod:replica-0:svc::10.0.0.1:9376", "10.0.0.1", "2", "0", "1", "3"),
+		replicaStateRowAt("be_http:test:route", "_dynamic_pods-1", "10.0.0.2", "2", "0", "1", "3"),
+		replicaStateRowAt("be_http:test:route", "_dynamic_pods-2", "10.0.0.3", "0", "0", "0", "2"),
+	)
+	addresses := map[string]int{"10.0.0.2": 1, "10.0.0.3": 2}
+	state := parseReplicaServerState(output, replicaStateNames, addresses)
+	if !state.backendFound || state.missing != 0 || state.extra != 0 {
+		test.Fatalf("dynamic slots not attributed: backend_found=%t missing=%d extra=%d", state.backendFound, state.missing, state.extra)
+	}
+	for ordinal, want := range []replicaServerOp{replicaOpUp, replicaOpUp, replicaOpDown} {
+		if state.servers[ordinal].op != want {
+			test.Fatalf("ordinal %d op=%s", ordinal, replicaServerOpNames[state.servers[ordinal].op])
+		}
+	}
+	if !state.servers[2].weightZero || state.servers[2].check != replicaCheckFailed {
+		test.Fatal("dynamic slot health not reported")
+	}
+	// Without the address map the same dump cannot identify the dynamic slots.
+	if blind := parseReplicaServerState(output, replicaStateNames, nil); blind.missing != 2 || !blind.incomplete {
+		test.Fatalf("name-only matching should report the slots missing, got missing=%d", blind.missing)
+	}
+}
+
+func TestReplicaAddressOrdinalsFromEndpoints(test *testing.T) {
+	test.Parallel()
+	endpoints := replicaEndpointCounts{addresses: map[string]string{
+		"10.0.0.1": "replica-0", "10.0.0.3": "replica-2", "10.0.0.9": replicaSensitive,
+	}}
+	ordinals := replicaAddressOrdinals(replicaRequestStats{names: replicaStateNames}, endpoints)
+	if len(ordinals) != 2 || ordinals["10.0.0.1"] != 0 || ordinals["10.0.0.3"] != 2 {
+		test.Fatalf("address map mismatch: %v", ordinals)
+	}
+	if _, present := ordinals["10.0.0.9"]; present {
+		test.Fatal("address of an unexpected pod retained")
+	}
+	if collected := collectReplicaEndpoints(context.Background(), fake.NewSimpleClientset(replicaTestSlice()), "test", "service"); collected.addresses == nil {
+		test.Fatal("endpoint collection did not gather addresses")
+	}
+}
+
+func TestReplicaServerStateAdditionalBounds(test *testing.T) {
+	test.Parallel()
+	// A second header would leave later rows reading the first header's offsets.
+	doubled := replicaStateDump(replicaStateRowText("be_http:test:route", "pod:replica-0:svc", "2", "0", "1", "3")) +
+		replicaStateHeader + "\n" + replicaStateRowText("be_http:test:route", "pod:replica-1:svc", "2", "0", "1", "3") + "\n"
+	if state := parseReplicaServerState(doubled, replicaStateNames, nil); !state.incomplete {
+		test.Fatal("a second header was not treated as a format change")
+	}
+	// Weight is compared as a number, not as raw text.
+	for _, raw := range []string{"0", "+0", "00"} {
+		state := parseReplicaServerState(replicaStateDump(replicaStateRowText("be_http:test:route", "pod:replica-0:svc", "2", "0", raw, "3")), []string{"replica-0"}, nil)
+		if !state.servers[0].weightKnown || !state.servers[0].weightZero {
+			test.Fatalf("weight %q not recognized as zero", raw)
+		}
+	}
+	// Mismatched response accounting must not index out of range.
+	stats := replicaRequestStats{names: replicaStateNames, responses: []int{0}}
+	if _, err := stats.observeBackend("replica-2", sets.New(replicaStateNames...), sets.New[string]()); err != nil {
+		test.Fatal(err)
+	}
+	if stats.responsesFor(2) != 1 {
+		test.Fatal("response not recorded after the slice was resized")
+	}
+}
+
+func TestReplicaServerStateEmittedServerLinesAreCapped(test *testing.T) {
+	// Not parallel: this case swaps the package-level exec hook.
+	restore := replicaRouterExec
+	defer func() { replicaRouterExec = restore }()
+	names := make([]string, replicaMaxServers+4)
+	rows := make([]string, 0, len(names))
+	for index := range names {
+		names[index] = fmt.Sprintf("replica-%d", index)
+		rows = append(rows, replicaStateRowText("be_http:test:route", fmt.Sprintf("pod:replica-%d:svc", index), "2", "0", "1", "3"))
+	}
+	replicaRouterExec = func(*rest.Config, kubernetes.Interface, string) (string, error) {
+		return replicaStateDump(rows...), nil
+	}
+	client := fake.NewSimpleClientset(replicaTestSlice(), replicaTestPod(configManagerRouterPodName), replicaTestPod(replicaSensitive))
+	emitted := false
+	reportReplicaFailure(context.Background(), context.DeadlineExceeded, replicaRequestStats{names: names}, client, &rest.Config{}, "test", "service", replicaSensitive, func(output string) {
+		emitted = true
+		if !strings.Contains(output, "servers_capped=true") || !strings.Contains(output, fmt.Sprintf("servers=%d", len(names))) {
+			test.Fatal("dropped server lines were not flagged")
+		}
+		if strings.Count(output, "haproxy_server ordinal=") != replicaMaxServers {
+			test.Fatalf("emitted %d server lines, want %d", strings.Count(output, "haproxy_server ordinal="), replicaMaxServers)
+		}
+		if !strings.Contains(output, "incomplete=true") {
+			test.Fatal("capped report not marked incomplete")
+		}
+	})
+	if !emitted {
+		test.Fatal("diagnostics were not emitted")
+	}
+}
+
+func TestReplicaServerStateSkippedWithoutRuntimeAccess(test *testing.T) {
+	// Not parallel: this case swaps the package-level exec hook.
+	restore := replicaRouterExec
+	defer func() { replicaRouterExec = restore }()
+	replicaRouterExec = func(*rest.Config, kubernetes.Interface, string) (string, error) {
+		panic("collection must not be attempted without runtime access")
+	}
+	client := fake.NewSimpleClientset(replicaTestSlice(), replicaTestPod(configManagerRouterPodName), replicaTestPod(replicaSensitive))
+	reportReplicaFailure(context.Background(), errors.New(replicaSensitive), replicaRequestStats{names: replicaStateNames}, client, nil, "test", "service", replicaSensitive, func(output string) {
+		if strings.Contains(output, "haproxy") {
+			test.Fatal("state reported without runtime access")
+		}
+	})
+}
+
+func TestReplicaErrorNameOmitsZeroValueCategory(test *testing.T) {
+	test.Parallel()
+	if replicaErrorName(false, replicaOther) != "none" {
+		test.Fatal("a collection that did not fail must not name a failure category")
+	}
+	if replicaErrorName(true, replicaForbidden) != "forbidden" {
+		test.Fatal("a failed collection must name its category")
 	}
 }
