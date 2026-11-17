@@ -13,7 +13,9 @@ import (
 	"reflect"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -364,10 +366,6 @@ func TestBGPVIPProbeLoop(t *testing.T) {
 // fake curl, to check the request numbers, the ports of each request and the
 // log format.
 func TestBGPVIPProbeLoopRuns(t *testing.T) {
-	bash, err := exec.LookPath("bash")
-	if err != nil {
-		t.Skip("no bash")
-	}
 	dir := t.TempDir()
 	fakeCurl := "#!/bin/bash\nwhile [ $# -gt 0 ]; do if [ \"$1\" = --local-port ]; then echo \"$2\" >> " + dir + "/ports; fi; shift; done\nprintf 200\n"
 	if err := os.WriteFile(dir+"/curl", []byte(fakeCurl), 0o755); err != nil {
@@ -380,10 +378,8 @@ func TestBGPVIPProbeLoopRuns(t *testing.T) {
 	}
 	loop = strings.Replace(loop, "while :; do", "for round in 1 2; do", 1)
 	loop = strings.Replace(loop, "  sleep 1\n", "  wait\n", 1)
-	cmd := exec.Command(bash, "-c", loop)
-	cmd.Env = append(os.Environ(), "PATH="+dir+":"+os.Getenv("PATH"))
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("%v: %s", err, out)
+	if _, err := runBGPVIPBash(t, bgpVIPTestScriptTimeout, dir+":"+os.Getenv("PATH"), loop); err != nil {
+		t.Fatal(err)
 	}
 	log, err := os.ReadFile(dir + "/log")
 	if err != nil {
@@ -893,6 +889,12 @@ cat /tmp/bgp-vip-e2e-api/log 2>/dev/null || true`
 		t.Fatal(err)
 	}
 	pid := strings.TrimSpace(out)
+	pgid, err := strconv.Atoi(pid)
+	if err != nil {
+		t.Fatalf("no loop pid in %q: %v", out, err)
+	}
+	// The loop runs in its own session: kill it whatever happens below.
+	t.Cleanup(func() { _ = syscall.Kill(-pgid, syscall.SIGKILL) })
 	out, err = runBGPVIPTestScript(t, nil, bgpVIPProbeStopScript(dir, true))
 	if err != nil {
 		t.Fatal(err)
@@ -933,10 +935,6 @@ func TestDescribeBGPVIPProbeSamples(t *testing.T) {
 // commands in bin, if any, ahead of PATH.
 func runBGPVIPTestScript(t *testing.T, bin map[string]string, script string) (string, error) {
 	t.Helper()
-	bash, err := exec.LookPath("bash")
-	if err != nil {
-		t.Skip("no bash")
-	}
 	path := os.Getenv("PATH")
 	if len(bin) > 0 {
 		dir := t.TempDir()
@@ -947,14 +945,88 @@ func runBGPVIPTestScript(t *testing.T, bin map[string]string, script string) (st
 		}
 		path = dir + ":" + path
 	}
-	cmd := exec.Command(bash, "-c", "set -o errexit -o nounset -o pipefail\n"+script)
+	return runBGPVIPBash(t, bgpVIPTestScriptTimeout, path, "set -o errexit -o nounset -o pipefail\n"+script)
+}
+
+// bgpVIPTestScriptTimeout bounds a shell script of these tests; it leaves
+// ample room for the probe stop script's 4s drain.
+const bgpVIPTestScriptTimeout = 30 * time.Second
+
+// runBGPVIPBash runs script with bash in its own process group, with path as
+// PATH. When the script outlives timeout, the whole group is killed, so that
+// no background child keeps running or holds the output pipes, and the
+// error says that the script timed out.
+func runBGPVIPBash(t *testing.T, timeout time.Duration, path, script string) (string, error) {
+	t.Helper()
+	bash, err := exec.LookPath("bash")
+	if err != nil {
+		t.Skip("no bash")
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), timeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, bash, "-c", script)
 	cmd.Env = append(os.Environ(), "PATH="+path)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.Cancel = func() error { return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) }
+	cmd.WaitDelay = time.Second
 	var stdout, stderr strings.Builder
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
-	if err := cmd.Run(); err != nil {
+	err = cmd.Run()
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		return stdout.String(), fmt.Errorf("the script did not finish within %v: %w: %s", timeout, ctx.Err(), stderr.String())
+	}
+	if err != nil {
 		return stdout.String(), fmt.Errorf("%v: %s", err, stderr.String())
 	}
 	return stdout.String(), nil
+}
+
+func TestRunBGPVIPBash(t *testing.T) {
+	if out, err := runBGPVIPBash(t, 10*time.Second, os.Getenv("PATH"), "echo ok"); err != nil || out != "ok\n" {
+		t.Errorf("got %q, %v", out, err)
+	}
+	if _, err := runBGPVIPBash(t, 10*time.Second, os.Getenv("PATH"), "echo broken >&2; exit 3"); err == nil || !strings.Contains(err.Error(), "exit status 3: broken") {
+		t.Errorf("failing script: %v", err)
+	}
+
+	// A background child that holds stdout must neither keep the run going
+	// past the timeout nor outlive it.
+	start := time.Now()
+	out, err := runBGPVIPBash(t, 500*time.Millisecond, os.Getenv("PATH"), "sleep 60 & echo $!; wait")
+	if !errors.Is(err, context.DeadlineExceeded) || !strings.Contains(err.Error(), "did not finish within 500ms") {
+		t.Errorf("err = %v, want a timeout", err)
+	}
+	if elapsed := time.Since(start); elapsed > 5*time.Second {
+		t.Errorf("the timed out script returned after %v", elapsed)
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(out))
+	if err != nil {
+		t.Fatalf("no child pid in %q: %v", out, err)
+	}
+	if !bgpVIPProcessGone(pid, 2*time.Second) {
+		t.Errorf("the background child %d outlived the timed out script", pid)
+		_ = syscall.Kill(pid, syscall.SIGKILL)
+	}
+}
+
+// bgpVIPProcessGone reports whether pid exits, or is left a zombie for its
+// new parent to reap, within the given time.
+func bgpVIPProcessGone(pid int, within time.Duration) bool {
+	deadline := time.Now().Add(within)
+	for {
+		if err := syscall.Kill(pid, 0); errors.Is(err, syscall.ESRCH) {
+			return true
+		}
+		if stat, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", pid)); err == nil {
+			if i := strings.LastIndexByte(string(stat), ')'); i >= 0 && strings.HasPrefix(string(stat[i+1:]), " Z") {
+				return true
+			}
+		}
+		if time.Now().After(deadline) {
+			return false
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
 }
 
 // bgpVIPFakeSysctl keeps the sysctls in store, one file per key; a key with
@@ -1120,5 +1192,79 @@ exit 1
 	}
 	if script := bgpVIPIngressHostCleanupScript(true, false); strings.Contains(script, "sysctl") {
 		t.Errorf("restores a hash policy it did not change:\n%s", script)
+	}
+}
+
+// TestBGPVIPTorConvergence checks that a VIP whose ToR paths matched the
+// router nodes of an earlier look is compared again when another router node
+// becomes Ready, for either family, while its first convergence time stays.
+func TestBGPVIPTorConvergence(t *testing.T) {
+	const v4, v6 = "192.168.111.5", "fd2e::5"
+	nodeIPs := map[string]string{
+		"192.168.111.20": "worker-0", "fd2e::20": "worker-0",
+		"192.168.111.21": "worker-1", "fd2e::21": "worker-1",
+		"192.168.111.22": "worker-2", "fd2e::22": "worker-2",
+	}
+	paths := func(vip string, nodes ...string) []string {
+		var out []string
+		for _, node := range nodes {
+			for ip, name := range nodeIPs {
+				if name == node && addressFamily(ip) == addressFamily(vip) {
+					out = append(out, ip)
+				}
+			}
+		}
+		return out
+	}
+	for _, stale := range []string{v4, v6} {
+		t.Run(addressFamily(stale), func(t *testing.T) {
+			other := v6
+			if stale == v6 {
+				other = v4
+			}
+			vips := []string{v4, v6}
+			tor := newBGPVIPTorConvergence("worker-0", nodeIPs)
+
+			// The stale VIP converges on worker-1 while the other still has
+			// worker-0's path.
+			err := tor.observe(vips, map[string][]string{stale: paths(stale, "worker-1"), other: paths(other, "worker-0", "worker-1")}, sets.New("worker-1"), 10, 11)
+			if err == nil || !strings.Contains(err.Error(), other) {
+				t.Errorf("look 1: err = %v, want %s pending", err, other)
+			}
+
+			// worker-2 became Ready: the other VIP has its path, the stale
+			// one does not, and must not count as converged.
+			want := sets.New("worker-1", "worker-2")
+			err = tor.observe(vips, map[string][]string{stale: paths(stale, "worker-1"), other: paths(other, "worker-1", "worker-2")}, want, 20, 21)
+			if err == nil || !strings.Contains(err.Error(), stale) || strings.Contains(err.Error(), "paths to "+other+" ") {
+				t.Errorf("look 2: err = %v, want only %s pending", err, stale)
+			}
+
+			if err := tor.observe(vips, map[string][]string{stale: paths(stale, "worker-1", "worker-2"), other: paths(other, "worker-1", "worker-2")}, want, 30, 31); err != nil {
+				t.Errorf("look 3: %v", err)
+			}
+			if got, want := tor.convergedBy, map[string]float64{stale: 11, other: 21}; !reflect.DeepEqual(got, want) {
+				t.Errorf("first convergence %v, want %v", got, want)
+			}
+			if got, want := tor.victimSeen, map[string]float64{other: 10}; !reflect.DeepEqual(got, want) {
+				t.Errorf("victim last seen %v, want %v", got, want)
+			}
+			if got, want := tor.victimGone, map[string]float64{stale: 11, other: 21}; !reflect.DeepEqual(got, want) {
+				t.Errorf("victim gone %v, want %v", got, want)
+			}
+		})
+	}
+
+	tor := newBGPVIPTorConvergence("worker-0", nodeIPs)
+	// The victim's path returns after it was gone: it is gone again only
+	// from the next look without it.
+	for i, nodes := range [][]string{{"worker-1"}, {"worker-0", "worker-1"}, {"worker-1"}} {
+		_ = tor.observe([]string{v4}, map[string][]string{v4: paths(v4, nodes...)}, sets.New("worker-1"), float64(10*i), float64(10*i+1))
+	}
+	if tor.victimSeen[v4] != 10 || tor.victimGone[v4] != 21 || tor.convergedBy[v4] != 1 {
+		t.Errorf("seen %v gone %v converged %v", tor.victimSeen, tor.victimGone, tor.convergedBy)
+	}
+	if err := tor.observe([]string{v4, v6}, map[string][]string{v4: paths(v4, "worker-1")}, sets.New("worker-1"), 40, 41); err == nil || !strings.Contains(err.Error(), "no look at the ToR's paths to "+v6) {
+		t.Errorf("missing look: %v", err)
 	}
 }

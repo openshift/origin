@@ -345,7 +345,7 @@ var _ = g.Describe(bgpVIPTags+" BGP VIP management", func() {
 		// happened before the reading after it. The replacement router pod
 		// may land on a node outside routerNodes, so the expected advertisers
 		// are recomputed on every poll.
-		victimSeen, victimGone, convergedBy := map[string]float64{}, map[string]float64{}, map[string]float64{}
+		tor := newBGPVIPTorConvergence(victim, nodeIPs)
 		var converged float64
 		err = bgpVIPEventuallyEvery(bodyCtx, bgpVIPIngressSampleInterval, bgpVIPConvergeTimeout, fmt.Sprintf("see the ToR's paths to %v from the Ready router nodes other than %s only", ingressVIPs, victim), func(ctx context.Context) error {
 			before, err := h.clock(ctx)
@@ -360,40 +360,18 @@ var _ = g.Describe(bgpVIPTags+" BGP VIP management", func() {
 			if want.Len() == 0 {
 				return fmt.Errorf("no Ready router pod outside %s", victim)
 			}
-			var gone, done, pending []string
+			peers := map[string][]string{}
 			for _, vip := range ingressVIPs {
-				if _, ok := convergedBy[vip]; ok {
-					continue
-				}
-				peers, err := h.torPathPeers(ctx, vip)
-				if err != nil {
+				if peers[vip], err = h.torPathPeers(ctx, vip); err != nil {
 					return err
 				}
-				if _, ok := victimGone[vip]; !ok {
-					if bgpVIPTorPathsVia(peers, victim, nodeIPs) {
-						victimSeen[vip] = before
-					} else {
-						gone = append(gone, vip)
-					}
-				}
-				if err := compareTorPaths(vip, peers, want, nodeIPs); err != nil {
-					pending = append(pending, err.Error())
-					continue
-				}
-				done = append(done, vip)
 			}
 			after, err := h.clock(ctx)
 			if err != nil {
 				return err
 			}
-			for _, vip := range gone {
-				victimGone[vip] = after
-			}
-			for _, vip := range done {
-				convergedBy[vip] = after
-			}
-			if len(pending) > 0 {
-				return fmt.Errorf("%s", strings.Join(pending, "; "))
+			if err := tor.observe(ingressVIPs, peers, want, before, after); err != nil {
+				return err
 			}
 			converged = after
 			return nil
@@ -401,11 +379,11 @@ var _ = g.Describe(bgpVIPTags+" BGP VIP management", func() {
 		o.Expect(err).NotTo(o.HaveOccurred(), "convergence: the ToR did not converge on the ingress VIP paths of the router nodes other than %s", victim)
 		for _, vip := range ingressVIPs {
 			seen := "not seen after the disruption"
-			if t, ok := victimSeen[vip]; ok {
+			if t, ok := tor.victimSeen[vip]; ok {
 				seen = fmt.Sprintf("last seen at %+.1fs", t-disrupted.Time)
 			}
-			e2e.Logf("the ToR's paths to %s (%s), hypervisor clock relative to the disruption: %s's path %s, gone by %+.1fs; only the remaining router nodes' paths by %+.1fs",
-				vip, addressFamily(vip), victim, seen, victimGone[vip]-disrupted.Time, convergedBy[vip]-disrupted.Time)
+			e2e.Logf("the ToR's paths to %s (%s), hypervisor clock relative to the disruption: %s's path %s, gone by %+.1fs; only the remaining router nodes' paths first by %+.1fs, for every VIP by %+.1fs",
+				vip, addressFamily(vip), victim, seen, tor.victimGone[vip]-disrupted.Time, tor.convergedBy[vip]-disrupted.Time, converged-disrupted.Time)
 		}
 
 		g.By("letting the probe run with the VIP served by the remaining router nodes")

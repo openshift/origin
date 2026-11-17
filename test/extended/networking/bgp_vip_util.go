@@ -1316,6 +1316,55 @@ func bgpVIPTorPathsVia(peers []string, node string, nodeIPs map[string]string) b
 	return false
 }
 
+// bgpVIPTorConvergence follows the ToR's paths to the ingress VIPs while a
+// router pod moves off victim, on the hypervisor clock.
+type bgpVIPTorConvergence struct {
+	victim  string
+	nodeIPs map[string]string
+	// victimSeen holds per VIP the last look that still showed the victim's
+	// path, and victimGone the first look without it after that. convergedBy
+	// holds the first look whose paths came from exactly the expected router
+	// nodes, kept for the report even when a later look no longer matches.
+	victimSeen, victimGone, convergedBy map[string]float64
+}
+
+func newBGPVIPTorConvergence(victim string, nodeIPs map[string]string) *bgpVIPTorConvergence {
+	return &bgpVIPTorConvergence{victim: victim, nodeIPs: nodeIPs, victimSeen: map[string]float64{}, victimGone: map[string]float64{}, convergedBy: map[string]float64{}}
+}
+
+// observe records one look at the ToR's paths to every VIP, peers by VIP,
+// taken between the hypervisor clock readings before and after, against the
+// router nodes want. Every VIP is compared with want in every look, so a VIP
+// whose paths matched the router nodes of an earlier look must match the
+// current ones too. It returns nil only when every VIP matched want in this
+// look.
+func (c *bgpVIPTorConvergence) observe(vips []string, peers map[string][]string, want sets.Set[string], before, after float64) error {
+	var pending []string
+	for _, vip := range vips {
+		p, ok := peers[vip]
+		if !ok {
+			pending = append(pending, fmt.Sprintf("no look at the ToR's paths to %s", vip))
+			continue
+		}
+		if bgpVIPTorPathsVia(p, c.victim, c.nodeIPs) {
+			c.victimSeen[vip] = before
+		} else if gone, ok := c.victimGone[vip]; !ok || c.victimSeen[vip] > gone {
+			c.victimGone[vip] = after
+		}
+		if err := compareTorPaths(vip, p, want, c.nodeIPs); err != nil {
+			pending = append(pending, err.Error())
+			continue
+		}
+		if _, ok := c.convergedBy[vip]; !ok {
+			c.convergedBy[vip] = after
+		}
+	}
+	if len(pending) > 0 {
+		return errors.New(strings.Join(pending, "; "))
+	}
+	return nil
+}
+
 // bgpVIPCleanupStep is one step of a test's cleanup, bounded by its own
 // timeout when it has one.
 type bgpVIPCleanupStep struct {
