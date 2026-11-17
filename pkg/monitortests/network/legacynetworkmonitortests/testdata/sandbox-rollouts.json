@@ -1,0 +1,787 @@
+[
+  {
+    "build_id": "2120188789715374080",
+    "items": [
+      {
+        "level": "Warning",
+        "source": "OperatorState",
+        "display": true,
+        "locator": {
+          "type": "ClusterOperator",
+          "keys": {
+            "clusteroperator": "network"
+          }
+        },
+        "message": {
+          "reason": "Deploying",
+          "cause": "",
+          "humanMessage": "DaemonSet \"/openshift-multus/multus\" update is rolling out (0 out of 6 updated)",
+          "annotations": {
+            "condition": "Progressing",
+            "reason": "Deploying",
+            "status": "True"
+          }
+        },
+        "from": "2026-11-10T17:50:16Z",
+        "to": "2026-11-10T17:52:42Z"
+      },
+      {
+        "level": "Info",
+        "source": "PodMonitor",
+        "locator": {
+          "type": "Pod",
+          "keys": {
+            "namespace": "openshift-ovn-kubernetes",
+            "node": "ip-10-0-15-63.us-west-2.compute.internal",
+            "pod": "ovnkube-node-tt466",
+            "uid": "2fd20ad1-688f-4379-af51-52d90315064d"
+          }
+        },
+        "message": {
+          "reason": "GracefulDelete",
+          "cause": "",
+          "humanMessage": "",
+          "annotations": {
+            "duration": "30s",
+            "reason": "GracefulDelete"
+          }
+        },
+        "from": "2026-11-10T17:52:40Z",
+        "to": "2026-11-10T17:52:40Z"
+      },
+      {
+        "level": "Info",
+        "source": "PodState",
+        "locator": {
+          "type": "Pod",
+          "keys": {
+            "namespace": "openshift-network-diagnostics",
+            "pod": "network-check-target-t24vc",
+            "uid": "091f049a-2234-45d1-ba49-db4cad713a09"
+          }
+        },
+        "message": {
+          "reason": "Scheduled",
+          "cause": "",
+          "humanMessage": "",
+          "annotations": {
+            "constructed": "pod-lifecycle-constructor",
+            "node": "ip-10-0-15-63.us-west-2.compute.internal",
+            "reason": "Scheduled"
+          }
+        },
+        "from": "2026-11-10T17:52:41Z",
+        "to": "2026-11-10T18:24:25Z"
+      },
+      {
+        "level": "Warning",
+        "source": "KubeEvent",
+        "display": true,
+        "locator": {
+          "type": "Kind",
+          "keys": {
+            "hmsg": "dcb888bfb2",
+            "namespace": "openshift-network-diagnostics",
+            "node": "ip-10-0-15-63.us-west-2.compute.internal",
+            "pod": "network-check-target-t24vc"
+          }
+        },
+        "message": {
+          "reason": "FailedCreatePodSandBox",
+          "cause": "",
+          "humanMessage": "Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_network-check-target-t24vc_openshift-network-diagnostics_091f049a-2234-45d1-ba49-db4cad713a09_0(44469b143c7a203e93727152311a0e48509f8816e51d5cec89eeb6bed512187b): no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
+          "annotations": {
+            "firstTimestamp": "2026-11-10T17:52:53Z",
+            "interesting": "true",
+            "lastTimestamp": "2026-11-10T17:52:53Z",
+            "reason": "FailedCreatePodSandBox",
+            "uid": "5d4bc19e-11d6-4f62-98aa-ecef39b99528"
+          }
+        },
+        "from": "2026-11-10T17:52:53Z",
+        "to": "2026-11-10T17:52:54Z"
+      },
+      {
+        "level": "Warning",
+        "source": "KubeEvent",
+        "display": true,
+        "locator": {
+          "type": "Kind",
+          "keys": {
+            "hmsg": "4592cda56e",
+            "namespace": "openshift-network-diagnostics",
+            "node": "ip-10-0-15-63.us-west-2.compute.internal",
+            "pod": "network-check-target-t24vc"
+          }
+        },
+        "message": {
+          "reason": "FailedCreatePodSandBox",
+          "cause": "",
+          "humanMessage": "Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_network-check-target-t24vc_openshift-network-diagnostics_091f049a-2234-45d1-ba49-db4cad713a09_0(72be67c7db221cde664a7247d4ccd248e2dbfa792d2749c8a88f76e118b6be53): no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
+          "annotations": {
+            "firstTimestamp": "2026-11-10T17:52:55Z",
+            "interesting": "true",
+            "lastTimestamp": "2026-11-10T17:52:55Z",
+            "reason": "FailedCreatePodSandBox",
+            "uid": "52a80368-c251-4a5c-ae0f-0af9a241277d"
+          }
+        },
+        "from": "2026-11-10T17:52:55Z",
+        "to": "2026-11-10T17:52:56Z"
+      },
+      {
+        "level": "Info",
+        "source": "KubeEvent",
+        "locator": {
+          "type": "Kind",
+          "keys": {
+            "hmsg": "ea42ffe73f",
+            "namespace": "openshift-network-diagnostics",
+            "pod": "network-check-target-t24vc"
+          }
+        },
+        "message": {
+          "reason": "AddedInterface",
+          "cause": "",
+          "humanMessage": "Add eth0 [10.130.0.4/23] from ovn-kubernetes",
+          "annotations": {
+            "firstTimestamp": "2026-11-10T17:53:08Z",
+            "lastTimestamp": "2026-11-10T17:53:08Z",
+            "reason": "AddedInterface",
+            "uid": "0581e8f6-c76b-4493-85b1-83c079356b46"
+          }
+        },
+        "from": "2026-11-10T17:53:08Z",
+        "to": "2026-11-10T17:53:08Z"
+      }
+    ]
+  },
+  {
+    "build_id": "2120448016950235136",
+    "items": [
+      {
+        "level": "Warning",
+        "source": "OperatorState",
+        "display": true,
+        "locator": {
+          "type": "ClusterOperator",
+          "keys": {
+            "clusteroperator": "network"
+          }
+        },
+        "message": {
+          "reason": "Deploying",
+          "cause": "",
+          "humanMessage": "DaemonSet \"/openshift-multus/multus\" update is rolling out (0 out of 6 updated)",
+          "annotations": {
+            "condition": "Progressing",
+            "reason": "Deploying",
+            "status": "True"
+          }
+        },
+        "from": "2026-11-11T11:18:46Z",
+        "to": "2026-11-11T11:21:13Z"
+      },
+      {
+        "level": "Info",
+        "source": "PodMonitor",
+        "locator": {
+          "type": "Pod",
+          "keys": {
+            "namespace": "openshift-ovn-kubernetes",
+            "node": "ip-10-0-17-48.us-west-1.compute.internal",
+            "pod": "ovnkube-node-5xdd9",
+            "uid": "be5d55b5-3a75-449f-8725-cd1d1c00b887"
+          }
+        },
+        "message": {
+          "reason": "GracefulDelete",
+          "cause": "",
+          "humanMessage": "",
+          "annotations": {
+            "duration": "30s",
+            "reason": "GracefulDelete"
+          }
+        },
+        "from": "2026-11-11T11:21:10Z",
+        "to": "2026-11-11T11:21:10Z"
+      },
+      {
+        "level": "Info",
+        "source": "PodState",
+        "locator": {
+          "type": "Pod",
+          "keys": {
+            "namespace": "openshift-network-diagnostics",
+            "pod": "network-check-target-zc7kn",
+            "uid": "392b8d68-85aa-4df2-bfb3-4f17a760e72f"
+          }
+        },
+        "message": {
+          "reason": "Scheduled",
+          "cause": "",
+          "humanMessage": "",
+          "annotations": {
+            "constructed": "pod-lifecycle-constructor",
+            "node": "ip-10-0-17-48.us-west-1.compute.internal",
+            "reason": "Scheduled"
+          }
+        },
+        "from": "2026-11-11T11:21:19Z",
+        "to": "2026-11-11T11:52:34Z"
+      },
+      {
+        "level": "Warning",
+        "source": "KubeEvent",
+        "display": true,
+        "locator": {
+          "type": "Kind",
+          "keys": {
+            "hmsg": "a661eda624",
+            "namespace": "openshift-network-diagnostics",
+            "node": "ip-10-0-17-48.us-west-1.compute.internal",
+            "pod": "network-check-target-zc7kn"
+          }
+        },
+        "message": {
+          "reason": "FailedCreatePodSandBox",
+          "cause": "",
+          "humanMessage": "Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_network-check-target-zc7kn_openshift-network-diagnostics_392b8d68-85aa-4df2-bfb3-4f17a760e72f_0(0b31c7e8220bcfa4f4f8e952023b0c5977eccacb105c75cddbdd6c4b73ff7471): no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
+          "annotations": {
+            "firstTimestamp": "2026-11-11T11:21:19Z",
+            "interesting": "true",
+            "lastTimestamp": "2026-11-11T11:21:19Z",
+            "reason": "FailedCreatePodSandBox",
+            "uid": "2dffa13a-183a-43cd-b01a-4070ef828354"
+          }
+        },
+        "from": "2026-11-11T11:21:19Z",
+        "to": "2026-11-11T11:21:20Z"
+      },
+      {
+        "level": "Warning",
+        "source": "KubeEvent",
+        "display": true,
+        "locator": {
+          "type": "Kind",
+          "keys": {
+            "hmsg": "359054ce8f",
+            "namespace": "openshift-network-diagnostics",
+            "node": "ip-10-0-17-48.us-west-1.compute.internal",
+            "pod": "network-check-target-zc7kn"
+          }
+        },
+        "message": {
+          "reason": "FailedCreatePodSandBox",
+          "cause": "",
+          "humanMessage": "Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_network-check-target-zc7kn_openshift-network-diagnostics_392b8d68-85aa-4df2-bfb3-4f17a760e72f_0(807e4e8fc4237709ea0e4fc0c367117954cf7ebfa209799b094d6fd9206ddfe9): no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
+          "annotations": {
+            "firstTimestamp": "2026-11-11T11:21:20Z",
+            "interesting": "true",
+            "lastTimestamp": "2026-11-11T11:21:20Z",
+            "reason": "FailedCreatePodSandBox",
+            "uid": "370d6d1d-a5e0-4d7c-b457-39c055a29952"
+          }
+        },
+        "from": "2026-11-11T11:21:20Z",
+        "to": "2026-11-11T11:21:21Z"
+      },
+      {
+        "level": "Info",
+        "source": "KubeEvent",
+        "locator": {
+          "type": "Kind",
+          "keys": {
+            "hmsg": "cd29a577c1",
+            "namespace": "openshift-network-diagnostics",
+            "pod": "network-check-target-zc7kn"
+          }
+        },
+        "message": {
+          "reason": "AddedInterface",
+          "cause": "",
+          "humanMessage": "Add eth0 [10.131.0.3/23] from ovn-kubernetes",
+          "annotations": {
+            "firstTimestamp": "2026-11-11T11:21:33Z",
+            "lastTimestamp": "2026-11-11T11:21:33Z",
+            "reason": "AddedInterface",
+            "uid": "29ade4a3-6615-4a9a-8fec-b4a5e7babc9b"
+          }
+        },
+        "from": "2026-11-11T11:21:33Z",
+        "to": "2026-11-11T11:21:33Z"
+      }
+    ]
+  },
+  {
+    "build_id": "2120448019441651712",
+    "items": [
+      {
+        "level": "Warning",
+        "source": "OperatorState",
+        "display": true,
+        "locator": {
+          "type": "ClusterOperator",
+          "keys": {
+            "clusteroperator": "network"
+          }
+        },
+        "message": {
+          "reason": "Deploying",
+          "cause": "",
+          "humanMessage": "DaemonSet \"/openshift-multus/multus\" update is rolling out (0 out of 6 updated)",
+          "annotations": {
+            "condition": "Progressing",
+            "reason": "Deploying",
+            "status": "True"
+          }
+        },
+        "from": "2026-11-11T11:10:40Z",
+        "to": "2026-11-11T11:13:07Z"
+      },
+      {
+        "level": "Info",
+        "source": "PodMonitor",
+        "locator": {
+          "type": "Pod",
+          "keys": {
+            "namespace": "openshift-ovn-kubernetes",
+            "node": "ip-10-0-86-178.us-east-2.compute.internal",
+            "pod": "ovnkube-node-4998h",
+            "uid": "8d2eab4d-0428-44bd-87aa-ce3aab24c7a6"
+          }
+        },
+        "message": {
+          "reason": "GracefulDelete",
+          "cause": "",
+          "humanMessage": "",
+          "annotations": {
+            "duration": "30s",
+            "reason": "GracefulDelete"
+          }
+        },
+        "from": "2026-11-11T11:13:04Z",
+        "to": "2026-11-11T11:13:04Z"
+      },
+      {
+        "level": "Info",
+        "source": "PodState",
+        "locator": {
+          "type": "Pod",
+          "keys": {
+            "namespace": "openshift-network-diagnostics",
+            "pod": "network-check-target-crbrh",
+            "uid": "94d97cf7-2363-4aba-906c-a69ec4993ad8"
+          }
+        },
+        "message": {
+          "reason": "Scheduled",
+          "cause": "",
+          "humanMessage": "",
+          "annotations": {
+            "constructed": "pod-lifecycle-constructor",
+            "node": "ip-10-0-86-178.us-east-2.compute.internal",
+            "reason": "Scheduled"
+          }
+        },
+        "from": "2026-11-11T11:13:13Z",
+        "to": "2026-11-11T11:45:05Z"
+      },
+      {
+        "level": "Warning",
+        "source": "KubeEvent",
+        "display": true,
+        "locator": {
+          "type": "Kind",
+          "keys": {
+            "hmsg": "b56ef363e4",
+            "namespace": "openshift-network-diagnostics",
+            "node": "ip-10-0-86-178.us-east-2.compute.internal",
+            "pod": "network-check-target-crbrh"
+          }
+        },
+        "message": {
+          "reason": "FailedCreatePodSandBox",
+          "cause": "",
+          "humanMessage": "Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_network-check-target-crbrh_openshift-network-diagnostics_94d97cf7-2363-4aba-906c-a69ec4993ad8_0(93a9144ec9f716fd9b63f6f28c893bc881d0c479693c4e3ebbc36ef63f5a8109): no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
+          "annotations": {
+            "firstTimestamp": "2026-11-11T11:13:13Z",
+            "interesting": "true",
+            "lastTimestamp": "2026-11-11T11:13:13Z",
+            "reason": "FailedCreatePodSandBox",
+            "uid": "cff51c99-c1dc-432b-94b4-84cda2670954"
+          }
+        },
+        "from": "2026-11-11T11:13:13Z",
+        "to": "2026-11-11T11:13:14Z"
+      },
+      {
+        "level": "Warning",
+        "source": "KubeEvent",
+        "display": true,
+        "locator": {
+          "type": "Kind",
+          "keys": {
+            "hmsg": "c066893f47",
+            "namespace": "openshift-network-diagnostics",
+            "node": "ip-10-0-86-178.us-east-2.compute.internal",
+            "pod": "network-check-target-crbrh"
+          }
+        },
+        "message": {
+          "reason": "FailedCreatePodSandBox",
+          "cause": "",
+          "humanMessage": "Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_network-check-target-crbrh_openshift-network-diagnostics_94d97cf7-2363-4aba-906c-a69ec4993ad8_0(c1ad57613ea5994b105e68dc12b9424eb92f889cc6bdc4206a85a334fd28c677): no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
+          "annotations": {
+            "firstTimestamp": "2026-11-11T11:13:14Z",
+            "interesting": "true",
+            "lastTimestamp": "2026-11-11T11:13:14Z",
+            "reason": "FailedCreatePodSandBox",
+            "uid": "3280a9c6-d507-4edb-a11e-84fd9541e3e1"
+          }
+        },
+        "from": "2026-11-11T11:13:14Z",
+        "to": "2026-11-11T11:13:15Z"
+      },
+      {
+        "level": "Info",
+        "source": "KubeEvent",
+        "locator": {
+          "type": "Kind",
+          "keys": {
+            "hmsg": "cd29a577c1",
+            "namespace": "openshift-network-diagnostics",
+            "pod": "network-check-target-crbrh"
+          }
+        },
+        "message": {
+          "reason": "AddedInterface",
+          "cause": "",
+          "humanMessage": "Add eth0 [10.131.0.3/23] from ovn-kubernetes",
+          "annotations": {
+            "firstTimestamp": "2026-11-11T11:13:26Z",
+            "lastTimestamp": "2026-11-11T11:13:26Z",
+            "reason": "AddedInterface",
+            "uid": "60155fec-0a2c-4da3-a707-e145ac9432a0"
+          }
+        },
+        "from": "2026-11-11T11:13:26Z",
+        "to": "2026-11-11T11:13:26Z"
+      }
+    ]
+  },
+  {
+    "build_id": "2120566602322677760",
+    "items": [
+      {
+        "level": "Warning",
+        "source": "OperatorState",
+        "display": true,
+        "locator": {
+          "type": "ClusterOperator",
+          "keys": {
+            "clusteroperator": "network"
+          }
+        },
+        "message": {
+          "reason": "Deploying",
+          "cause": "",
+          "humanMessage": "DaemonSet \"/openshift-ovn-kubernetes/ovnkube-node\" update is rolling out (0 out of 6 updated)",
+          "annotations": {
+            "condition": "Progressing",
+            "reason": "Deploying",
+            "status": "True"
+          }
+        },
+        "from": "2026-11-11T18:44:53Z",
+        "to": "2026-11-11T18:46:38Z"
+      },
+      {
+        "level": "Info",
+        "source": "PodMonitor",
+        "locator": {
+          "type": "Pod",
+          "keys": {
+            "namespace": "openshift-ovn-kubernetes",
+            "node": "ip-10-0-101-96.us-west-2.compute.internal",
+            "pod": "ovnkube-node-zktsp",
+            "uid": "542b8a3d-aa36-4ffd-ab02-785ac33fac19"
+          }
+        },
+        "message": {
+          "reason": "GracefulDelete",
+          "cause": "",
+          "humanMessage": "",
+          "annotations": {
+            "duration": "30s",
+            "reason": "GracefulDelete"
+          }
+        },
+        "from": "2026-11-11T18:46:36Z",
+        "to": "2026-11-11T18:46:36Z"
+      },
+      {
+        "level": "Info",
+        "source": "PodState",
+        "locator": {
+          "type": "Pod",
+          "keys": {
+            "namespace": "openshift-network-diagnostics",
+            "pod": "network-check-target-ts84x",
+            "uid": "9a50ac44-77fb-4db1-9f91-530d7f6d6534"
+          }
+        },
+        "message": {
+          "reason": "Scheduled",
+          "cause": "",
+          "humanMessage": "",
+          "annotations": {
+            "constructed": "pod-lifecycle-constructor",
+            "node": "ip-10-0-101-96.us-west-2.compute.internal",
+            "reason": "Scheduled"
+          }
+        },
+        "from": "2026-11-11T18:46:42Z",
+        "to": "2026-11-11T19:16:27Z"
+      },
+      {
+        "level": "Warning",
+        "source": "KubeEvent",
+        "display": true,
+        "locator": {
+          "type": "Kind",
+          "keys": {
+            "hmsg": "3df93b84a9",
+            "namespace": "openshift-network-diagnostics",
+            "node": "ip-10-0-101-96.us-west-2.compute.internal",
+            "pod": "network-check-target-ts84x"
+          }
+        },
+        "message": {
+          "reason": "FailedCreatePodSandBox",
+          "cause": "",
+          "humanMessage": "Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_network-check-target-ts84x_openshift-network-diagnostics_9a50ac44-77fb-4db1-9f91-530d7f6d6534_0(a14b4edc6aff36338b7f4f7d8add8fba40312deb2d66f80c27860925b09e3dbd): no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
+          "annotations": {
+            "firstTimestamp": "2026-11-11T18:46:42Z",
+            "interesting": "true",
+            "lastTimestamp": "2026-11-11T18:46:42Z",
+            "reason": "FailedCreatePodSandBox",
+            "uid": "9a10e97e-36f0-4016-930d-cdbe8b57d431"
+          }
+        },
+        "from": "2026-11-11T18:46:42Z",
+        "to": "2026-11-11T18:46:43Z"
+      },
+      {
+        "level": "Warning",
+        "source": "KubeEvent",
+        "display": true,
+        "locator": {
+          "type": "Kind",
+          "keys": {
+            "hmsg": "b2f496121f",
+            "namespace": "openshift-network-diagnostics",
+            "node": "ip-10-0-101-96.us-west-2.compute.internal",
+            "pod": "network-check-target-ts84x"
+          }
+        },
+        "message": {
+          "reason": "FailedCreatePodSandBox",
+          "cause": "",
+          "humanMessage": "Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_network-check-target-ts84x_openshift-network-diagnostics_9a50ac44-77fb-4db1-9f91-530d7f6d6534_0(2a95519343a067ecd5a7ee14c6e9800944feb02509497e91e2ffcd396ddae846): no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
+          "annotations": {
+            "firstTimestamp": "2026-11-11T18:46:44Z",
+            "interesting": "true",
+            "lastTimestamp": "2026-11-11T18:46:44Z",
+            "reason": "FailedCreatePodSandBox",
+            "uid": "b9e9ddd8-b695-42ec-8ec7-0f3eecc0a8af"
+          }
+        },
+        "from": "2026-11-11T18:46:44Z",
+        "to": "2026-11-11T18:46:45Z"
+      },
+      {
+        "level": "Info",
+        "source": "KubeEvent",
+        "locator": {
+          "type": "Kind",
+          "keys": {
+            "hmsg": "b91cac5352",
+            "namespace": "openshift-network-diagnostics",
+            "pod": "network-check-target-ts84x"
+          }
+        },
+        "message": {
+          "reason": "AddedInterface",
+          "cause": "",
+          "humanMessage": "Add eth0 [10.130.0.5/23] from ovn-kubernetes",
+          "annotations": {
+            "firstTimestamp": "2026-11-11T18:46:58Z",
+            "lastTimestamp": "2026-11-11T18:46:58Z",
+            "reason": "AddedInterface",
+            "uid": "a896202e-2937-40c8-a981-78bf66dd47dc"
+          }
+        },
+        "from": "2026-11-11T18:46:58Z",
+        "to": "2026-11-11T18:46:58Z"
+      }
+    ]
+  },
+  {
+    "build_id": "2120566602289123328",
+    "items": [
+      {
+        "level": "Warning",
+        "source": "OperatorState",
+        "display": true,
+        "locator": {
+          "type": "ClusterOperator",
+          "keys": {
+            "clusteroperator": "network"
+          }
+        },
+        "message": {
+          "reason": "Deploying",
+          "cause": "",
+          "humanMessage": "DaemonSet \"/openshift-ovn-kubernetes/ovnkube-node\" update is rolling out (0 out of 6 updated)",
+          "annotations": {
+            "condition": "Progressing",
+            "reason": "Deploying",
+            "status": "True"
+          }
+        },
+        "from": "2026-11-11T18:48:26Z",
+        "to": "2026-11-11T18:50:02Z"
+      },
+      {
+        "level": "Info",
+        "source": "PodMonitor",
+        "locator": {
+          "type": "Pod",
+          "keys": {
+            "namespace": "openshift-ovn-kubernetes",
+            "node": "ip-10-0-57-25.us-west-1.compute.internal",
+            "pod": "ovnkube-node-6bm4h",
+            "uid": "9ca2086f-5cbc-492d-90eb-45e786baabab"
+          }
+        },
+        "message": {
+          "reason": "GracefulDelete",
+          "cause": "",
+          "humanMessage": "",
+          "annotations": {
+            "duration": "30s",
+            "reason": "GracefulDelete"
+          }
+        },
+        "from": "2026-11-11T18:50:00Z",
+        "to": "2026-11-11T18:50:00Z"
+      },
+      {
+        "level": "Info",
+        "source": "PodState",
+        "locator": {
+          "type": "Pod",
+          "keys": {
+            "namespace": "openshift-network-diagnostics",
+            "pod": "network-check-target-cvwdc",
+            "uid": "9bc2d1f7-3f92-4371-92a5-9398db622a99"
+          }
+        },
+        "message": {
+          "reason": "Scheduled",
+          "cause": "",
+          "humanMessage": "",
+          "annotations": {
+            "constructed": "pod-lifecycle-constructor",
+            "node": "ip-10-0-57-25.us-west-1.compute.internal",
+            "reason": "Scheduled"
+          }
+        },
+        "from": "2026-11-11T18:50:02Z",
+        "to": "2026-11-11T19:20:10Z"
+      },
+      {
+        "level": "Warning",
+        "source": "KubeEvent",
+        "display": true,
+        "locator": {
+          "type": "Kind",
+          "keys": {
+            "hmsg": "abb8d70816",
+            "namespace": "openshift-network-diagnostics",
+            "node": "ip-10-0-57-25.us-west-1.compute.internal",
+            "pod": "network-check-target-cvwdc"
+          }
+        },
+        "message": {
+          "reason": "FailedCreatePodSandBox",
+          "cause": "",
+          "humanMessage": "Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_network-check-target-cvwdc_openshift-network-diagnostics_9bc2d1f7-3f92-4371-92a5-9398db622a99_0(8e58680bee3929383aef461f6798d74eb70780e1bf1cb09bf8234aa439ed045f): no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
+          "annotations": {
+            "firstTimestamp": "2026-11-11T18:50:02Z",
+            "interesting": "true",
+            "lastTimestamp": "2026-11-11T18:50:02Z",
+            "reason": "FailedCreatePodSandBox",
+            "uid": "60e4665d-4391-4b05-ba09-7abd1b3fa8af"
+          }
+        },
+        "from": "2026-11-11T18:50:02Z",
+        "to": "2026-11-11T18:50:03Z"
+      },
+      {
+        "level": "Warning",
+        "source": "KubeEvent",
+        "display": true,
+        "locator": {
+          "type": "Kind",
+          "keys": {
+            "hmsg": "af68c8e150",
+            "namespace": "openshift-network-diagnostics",
+            "node": "ip-10-0-57-25.us-west-1.compute.internal",
+            "pod": "network-check-target-cvwdc"
+          }
+        },
+        "message": {
+          "reason": "FailedCreatePodSandBox",
+          "cause": "",
+          "humanMessage": "Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_network-check-target-cvwdc_openshift-network-diagnostics_9bc2d1f7-3f92-4371-92a5-9398db622a99_0(cebc948f0df4b6c1ab5f198d866c94a91c4d6148f9e913dff9f4628a3ac602fd): no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
+          "annotations": {
+            "firstTimestamp": "2026-11-11T18:50:07Z",
+            "interesting": "true",
+            "lastTimestamp": "2026-11-11T18:50:07Z",
+            "reason": "FailedCreatePodSandBox",
+            "uid": "07d38fd3-dc6f-4727-b837-00b2371c5093"
+          }
+        },
+        "from": "2026-11-11T18:50:07Z",
+        "to": "2026-11-11T18:50:08Z"
+      },
+      {
+        "level": "Info",
+        "source": "KubeEvent",
+        "locator": {
+          "type": "Kind",
+          "keys": {
+            "hmsg": "083a5f4882",
+            "namespace": "openshift-network-diagnostics",
+            "pod": "network-check-target-cvwdc"
+          }
+        },
+        "message": {
+          "reason": "AddedInterface",
+          "cause": "",
+          "humanMessage": "Add eth0 [10.128.2.3/23] from ovn-kubernetes",
+          "annotations": {
+            "firstTimestamp": "2026-11-11T18:50:22Z",
+            "lastTimestamp": "2026-11-11T18:50:22Z",
+            "reason": "AddedInterface",
+            "uid": "3080175b-aab8-487a-8502-fef3b8842125"
+          }
+        },
+        "from": "2026-11-11T18:50:22Z",
+        "to": "2026-11-11T18:50:22Z"
+      }
+    ]
+  }
+]
