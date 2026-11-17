@@ -465,7 +465,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 						case platformidentification.ArchitecturePPC64le:
 							return "https://redhat.atlassian.net/browse/OCPBUGS-82160"
 						case platformidentification.ArchitectureS390:
-							return "https://redhat.atlassian.net/browse/OCPBUGS-86017"
+							return "https://redhat.atlassian.net/browse/OCPBUGS-66213"
 						}
 					}
 				}
