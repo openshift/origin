@@ -24,9 +24,13 @@ func sandboxTestConfig(t *testing.T) *rest.Config {
 		switch r.URL.Path {
 		case "/api/v1/namespaces/kube-public/configmaps/microshift-version":
 			w.WriteHeader(http.StatusNotFound)
-			_, _ = w.Write([]byte(`{"kind":"Status","apiVersion":"v1","status":"Failure","reason":"NotFound","code":404}`))
+			if _, err := w.Write([]byte(`{"kind":"Status","apiVersion":"v1","status":"Failure","reason":"NotFound","code":404}`)); err != nil {
+				t.Errorf("writing configmap response: %v", err)
+			}
 		case "/apis/config.openshift.io/v1/infrastructures/cluster":
-			_, _ = w.Write([]byte(`{"kind":"Infrastructure","apiVersion":"config.openshift.io/v1","status":{"platformStatus":{"type":"AWS"}}}`))
+			if _, err := w.Write([]byte(`{"kind":"Infrastructure","apiVersion":"config.openshift.io/v1","status":{"platformStatus":{"type":"AWS"}}}`)); err != nil {
+				t.Errorf("writing infrastructure response: %v", err)
+			}
 		default:
 			t.Errorf("unexpected API request: %s", r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
