@@ -894,7 +894,7 @@ cat /tmp/bgp-vip-e2e-api/log 2>/dev/null || true`
 		t.Fatalf("no loop pid in %q: %v", out, err)
 	}
 	// The loop runs in its own session: kill it whatever happens below.
-	t.Cleanup(func() { _ = syscall.Kill(-pgid, syscall.SIGKILL) })
+	t.Cleanup(func() { killBGPVIPTestProcess(t, -pgid, "probe loop group") })
 	out, err = runBGPVIPTestScript(t, nil, bgpVIPProbeStopScript(dir, true))
 	if err != nil {
 		t.Fatal(err)
@@ -907,7 +907,7 @@ cat /tmp/bgp-vip-e2e-api/log 2>/dev/null || true`
 	}
 	if _, err := runBGPVIPTestScript(t, nil, "kill -0 "+pid); err == nil {
 		t.Errorf("the probe loop %s still runs", pid)
-		_, _ = runBGPVIPTestScript(t, nil, "kill -KILL -- -"+pid)
+		killBGPVIPTestProcess(t, -pgid, "probe loop group")
 	}
 }
 
@@ -953,32 +953,69 @@ func runBGPVIPTestScript(t *testing.T, bin map[string]string, script string) (st
 const bgpVIPTestScriptTimeout = 30 * time.Second
 
 // runBGPVIPBash runs script with bash in its own process group, with path as
-// PATH. When the script outlives timeout, the whole group is killed, so that
-// no background child keeps running or holds the output pipes, and the
-// error says that the script timed out.
+// PATH, and kills what is left of that group once the script exits or
+// outlives timeout, so that no background child keeps running. The output
+// goes to files rather than pipes, so that a child holding it cannot delay
+// the return. A timeout error says that the script timed out; a failure to
+// kill the group is reported after the script's own error.
 func runBGPVIPBash(t *testing.T, timeout time.Duration, path, script string) (string, error) {
 	t.Helper()
 	bash, err := exec.LookPath("bash")
 	if err != nil {
 		t.Skip("no bash")
 	}
+	dir := t.TempDir()
+	stdout, err := os.Create(dir + "/stdout")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stdout.Close()
+	stderr, err := os.Create(dir + "/stderr")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stderr.Close()
 	ctx, cancel := context.WithTimeout(t.Context(), timeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, bash, "-c", script)
 	cmd.Env = append(os.Environ(), "PATH="+path)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	cmd.Cancel = func() error { return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) }
+	cmd.Cancel = func() error { return killBGPVIPProcessGroup(cmd.Process) }
 	cmd.WaitDelay = time.Second
-	var stdout, stderr strings.Builder
-	cmd.Stdout, cmd.Stderr = &stdout, &stderr
-	err = cmd.Run()
-	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-		return stdout.String(), fmt.Errorf("the script did not finish within %v: %w: %s", timeout, ctx.Err(), stderr.String())
-	}
+	cmd.Stdout, cmd.Stderr = stdout, stderr
+	runErr := cmd.Run()
+	killErr := killBGPVIPProcessGroup(cmd.Process)
+	out, err := os.ReadFile(stdout.Name())
 	if err != nil {
-		return stdout.String(), fmt.Errorf("%v: %s", err, stderr.String())
+		t.Fatal(err)
 	}
-	return stdout.String(), nil
+	errOut, err := os.ReadFile(stderr.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var scriptErr error
+	switch {
+	case errors.Is(ctx.Err(), context.DeadlineExceeded):
+		scriptErr = fmt.Errorf("the script did not finish within %v: %w: %s", timeout, ctx.Err(), errOut)
+	case runErr != nil:
+		scriptErr = fmt.Errorf("%v: %s", runErr, errOut)
+	}
+	if killErr != nil {
+		scriptErr = errors.Join(scriptErr, fmt.Errorf("cannot kill what is left of the script: %w", killErr))
+	}
+	return string(out), scriptErr
+}
+
+// killBGPVIPProcessGroup kills the process group that p leads, if p started;
+// a group that is gone already is no error.
+func killBGPVIPProcessGroup(p *os.Process) error {
+	if p == nil || p.Pid <= 1 {
+		return nil
+	}
+	if err := syscall.Kill(-p.Pid, syscall.SIGKILL); err != nil && !errors.Is(err, syscall.ESRCH) {
+		return err
+	}
+	return nil
 }
 
 func TestRunBGPVIPBash(t *testing.T) {
@@ -1005,7 +1042,7 @@ func TestRunBGPVIPBash(t *testing.T) {
 	}
 	if !bgpVIPProcessGone(pid, 2*time.Second) {
 		t.Errorf("the background child %d outlived the timed out script", pid)
-		_ = syscall.Kill(pid, syscall.SIGKILL)
+		killBGPVIPTestProcess(t, pid, "background child")
 	}
 }
 
@@ -1243,8 +1280,18 @@ func TestBGPVIPTorConvergence(t *testing.T) {
 	tor := newBGPVIPTorConvergence("worker-0", nodeIPs)
 	// The victim's path returns after it was gone: it is gone again only
 	// from the next look without it.
-	for i, nodes := range [][]string{{"worker-1"}, {"worker-0", "worker-1"}, {"worker-1"}} {
-		_ = tor.observe([]string{v4}, map[string][]string{v4: paths(v4, nodes...)}, sets.New("worker-1"), float64(10*i), float64(10*i+1))
+	for i, look := range []struct {
+		nodes   []string
+		wantErr string
+	}{
+		{nodes: []string{"worker-1"}},
+		{nodes: []string{"worker-0", "worker-1"}, wantErr: "the ToR has paths to " + v4 + " from [worker-0 worker-1]"},
+		{nodes: []string{"worker-1"}},
+	} {
+		err := tor.observe([]string{v4}, map[string][]string{v4: paths(v4, look.nodes...)}, sets.New("worker-1"), float64(10*i), float64(10*i+1))
+		if look.wantErr == "" && err != nil || look.wantErr != "" && (err == nil || !strings.Contains(err.Error(), look.wantErr)) {
+			t.Errorf("look %d: err = %v, want %q", i+1, err, look.wantErr)
+		}
 	}
 	if tor.victimSeen[v4] != 10 || tor.victimGone[v4] != 21 || tor.convergedBy[v4] != 1 {
 		t.Errorf("seen %v gone %v converged %v", tor.victimSeen, tor.victimGone, tor.convergedBy)
@@ -1328,5 +1375,66 @@ func TestBGPVIPTorConvergenceVictimPathReturns(t *testing.T) {
 				t.Errorf("victim gone %v, want %v", got, want)
 			}
 		})
+	}
+}
+
+// TestRunBGPVIPBashKillsLeftoverChildren checks that a background child of a
+// script that exits before its deadline does not outlive it, whether the
+// child holds the script's output or not.
+func TestRunBGPVIPBashKillsLeftoverChildren(t *testing.T) {
+	for _, test := range []struct {
+		name, script, wantErr string
+	}{
+		{name: "success with a child holding stdout", script: "sleep 60 & echo $!"},
+		{name: "failure with a child holding stdout", script: "sleep 60 & echo $!; exit 3", wantErr: "exit status 3"},
+		{name: "success with a redirected child", script: "sleep 60 > /dev/null 2>&1 < /dev/null & echo $!"},
+		{name: "failure with a redirected child", script: "sleep 60 > /dev/null 2>&1 < /dev/null & echo $!; exit 3", wantErr: "exit status 3"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			start := time.Now()
+			out, err := runBGPVIPBash(t, 10*time.Second, os.Getenv("PATH"), test.script)
+			pid, perr := strconv.Atoi(strings.TrimSpace(out))
+			if perr != nil {
+				t.Fatalf("no child pid in %q (err %v): %v", out, err, perr)
+			}
+			t.Cleanup(func() { killBGPVIPTestProcess(t, pid, "background child") })
+			if test.wantErr == "" && err != nil || test.wantErr != "" && (err == nil || !strings.Contains(err.Error(), test.wantErr)) {
+				t.Errorf("err = %v, want %q", err, test.wantErr)
+			}
+			if elapsed := time.Since(start); elapsed > 5*time.Second {
+				t.Errorf("the script returned after %v", elapsed)
+			}
+			if !bgpVIPProcessGone(pid, 2*time.Second) {
+				t.Errorf("the background child %d outlived the script", pid)
+			}
+		})
+	}
+}
+
+// killBGPVIPTestProcess kills pid, or the process group -pid, and reports a
+// failure other than the process being gone already. It refuses 0 and -1,
+// which would signal the test's own process group or every process.
+func killBGPVIPTestProcess(t *testing.T, pid int, what string) {
+	t.Helper()
+	if pid == 0 || pid == -1 {
+		t.Errorf("refusing to kill %s %d", what, pid)
+		return
+	}
+	if err := syscall.Kill(pid, syscall.SIGKILL); err != nil && !errors.Is(err, syscall.ESRCH) {
+		t.Errorf("kill %s %d: %v", what, pid, err)
+	}
+}
+
+func TestKillBGPVIPProcessGroup(t *testing.T) {
+	if err := killBGPVIPProcessGroup(nil); err != nil {
+		t.Errorf("a command that did not start: %v", err)
+	}
+	cmd := exec.Command("true")
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	if err := cmd.Run(); err != nil {
+		t.Skipf("cannot run true: %v", err)
+	}
+	if err := killBGPVIPProcessGroup(cmd.Process); err != nil {
+		t.Errorf("the group of an exited command: %v", err)
 	}
 }
