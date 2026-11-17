@@ -428,12 +428,10 @@ func TestInformingResultsPreservedAfterRetryFiltering(t *testing.T) {
 	}
 }
 
-// Runtime policy: the aggressive strategy only checks the original attempt's
-// duration. Later retry durations are not used as eligibility guards. This test
-// documents that a short original failure remains eligible even if a subsequent
-// retry takes much longer. If a cumulative-duration guard is added, update this
-// test to verify the new behavior.
-func TestAggressiveRetryStrategy_RuntimePolicy_ShortOriginalLongRetry(t *testing.T) {
+// Duration policy: when an additional attempt takes >= 1.5 * aggressiveMaximumTestDuration
+// (currently 6 minutes), further retries stop and the outcome is a duration-policy failure,
+// regardless of whether the attempt passed.
+func TestAggressiveRetryStrategy_DurationPolicy_ShortOriginalLongRetry(t *testing.T) {
 	strategy := NewAggressiveRetryStrategy(10, 3)
 
 	shortOriginal := &testCase{
@@ -449,12 +447,197 @@ func TestAggressiveRetryStrategy_RuntimePolicy_ShortOriginalLongRetry(t *testing
 	longRetry := &testCase{
 		name:     "test-short-then-long",
 		duration: 10 * time.Minute,
-		failed:   true,
+		success:  true,
 	}
 
 	attempts := []*testCase{shortOriginal, longRetry}
-	shouldContinue := strategy.ShouldContinue(shortOriginal, attempts, 3)
-	if !shouldContinue {
-		t.Error("strategy should still continue: only the original attempt's duration is checked, not later retries")
+
+	if strategy.ShouldContinue(shortOriginal, attempts, 3) {
+		t.Error("strategy should stop: additional attempt duration 10m exceeds cutoff 6m")
+	}
+
+	outcome := strategy.DecideOutcome(attempts)
+	if outcome != RetryOutcomeDurationPolicyFail {
+		t.Errorf("expected RetryOutcomeDurationPolicyFail, got %d", outcome)
+	}
+}
+
+func TestAggressiveRetryStrategy_DurationPolicy_Boundary(t *testing.T) {
+	strategy := NewAggressiveRetryStrategy(10, 3)
+
+	tests := []struct {
+		name             string
+		retryDuration    time.Duration
+		retrySucceeded    bool
+		expectContinue   bool
+		expectedOutcome  RetryOutcome
+	}{
+		{
+			name:            "just_below_cutoff_continues",
+			retryDuration:   aggressiveAdditionalAttemptDurationCutoff - time.Second,
+			retrySucceeded:   false,
+			expectContinue:  true,
+			expectedOutcome: RetryOutcomeFlaky,
+		},
+		{
+			name:            "exactly_at_cutoff_stops",
+			retryDuration:   aggressiveAdditionalAttemptDurationCutoff,
+			retrySucceeded:   false,
+			expectContinue:  false,
+			expectedOutcome: RetryOutcomeDurationPolicyFail,
+		},
+		{
+			name:            "above_cutoff_stops",
+			retryDuration:   aggressiveAdditionalAttemptDurationCutoff + time.Minute,
+			retrySucceeded:   false,
+			expectContinue:  false,
+			expectedOutcome: RetryOutcomeDurationPolicyFail,
+		},
+		{
+			name:            "slow_passing_retry_still_fails",
+			retryDuration:   10 * time.Minute,
+			retrySucceeded:   true,
+			expectContinue:  false,
+			expectedOutcome: RetryOutcomeDurationPolicyFail,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			original := &testCase{
+				name:     "test-boundary",
+				duration: 30 * time.Second,
+				failed:   true,
+			}
+			retry := &testCase{
+				name:     "test-boundary",
+				duration: tt.retryDuration,
+				failed:   !tt.retrySucceeded,
+				success:  tt.retrySucceeded,
+			}
+			attempts := []*testCase{original, retry}
+
+			shouldContinue := strategy.ShouldContinue(original, attempts, 3)
+			if shouldContinue != tt.expectContinue {
+				t.Errorf("ShouldContinue() = %v, want %v", shouldContinue, tt.expectContinue)
+			}
+
+			outcome := strategy.DecideOutcome(attempts)
+			if outcome != tt.expectedOutcome {
+				t.Errorf("DecideOutcome() = %d, want %d", outcome, tt.expectedOutcome)
+			}
+		})
+	}
+}
+
+func TestAggressiveRetryStrategy_DurationPolicy_FlakeMarkedRetry(t *testing.T) {
+	strategy := NewAggressiveRetryStrategy(10, 3)
+
+	original := &testCase{
+		name:     "test-flake-slow",
+		duration: 2 * time.Minute,
+		failed:   true,
+	}
+	slowFlake := &testCase{
+		name:     "test-flake-slow",
+		duration: 10 * time.Minute,
+		flake:    true,
+	}
+
+	attempts := []*testCase{original, slowFlake}
+
+	if strategy.ShouldContinue(original, attempts, 3) {
+		t.Error("strategy should stop even for flake-marked retries that exceed the cutoff")
+	}
+
+	outcome := strategy.DecideOutcome(attempts)
+	if outcome != RetryOutcomeDurationPolicyFail {
+		t.Errorf("expected RetryOutcomeDurationPolicyFail for slow flake, got %d", outcome)
+	}
+}
+
+func TestAggressiveRetryStrategy_DurationPolicy_PreservesNormalBehaviorBelowCutoff(t *testing.T) {
+	strategy := NewAggressiveRetryStrategy(10, 3)
+
+	original := &testCase{
+		name:     "test-normal",
+		duration: 30 * time.Second,
+		failed:   true,
+	}
+	fastRetry1 := &testCase{
+		name:     "test-normal",
+		duration: 1 * time.Minute,
+		success:  true,
+	}
+	fastRetry2 := &testCase{
+		name:     "test-normal",
+		duration: 1 * time.Minute,
+		success:  true,
+	}
+
+	attempts := []*testCase{original, fastRetry1, fastRetry2}
+
+	if !strategy.ShouldContinue(original, attempts, 4) {
+		t.Error("strategy should continue: all retry durations are below the cutoff")
+	}
+
+	outcome := strategy.DecideOutcome(attempts)
+	if outcome != RetryOutcomeFlaky {
+		t.Errorf("expected RetryOutcomeFlaky for fast retries, got %d", outcome)
+	}
+}
+
+func TestAggressiveRetryStrategy_DurationPolicy_OnlyChecksAdditionalAttempts(t *testing.T) {
+	strategy := NewAggressiveRetryStrategy(10, 3)
+
+	// Original attempt is long (but under original eligibility limit), retries are fast
+	original := &testCase{
+		name:     "test-long-original",
+		duration: 3 * time.Minute,
+		failed:   true,
+	}
+	fastRetry := &testCase{
+		name:     "test-long-original",
+		duration: 1 * time.Minute,
+		success:  true,
+	}
+
+	attempts := []*testCase{original, fastRetry}
+
+	if !strategy.ShouldContinue(original, attempts, 3) {
+		t.Error("strategy should continue: original duration is not checked by duration policy, only the eligibility gate")
+	}
+
+	outcome := strategy.DecideOutcome(attempts)
+	if outcome != RetryOutcomeFlaky {
+		t.Errorf("expected RetryOutcomeFlaky, got %d", outcome)
+	}
+}
+
+func TestAggressiveRetryStrategy_DurationPolicy_NoSubsequentAttemptLaunched(t *testing.T) {
+	strategy := NewAggressiveRetryStrategy(10, 3)
+
+	original := &testCase{
+		name:     "test-one-slow-retry",
+		duration: 30 * time.Second,
+		failed:   true,
+	}
+	slowPassingRetry := &testCase{
+		name:     "test-one-slow-retry",
+		duration: 8 * time.Minute,
+		success:  true,
+	}
+
+	attempts := []*testCase{original, slowPassingRetry}
+
+	// ShouldContinue must return false so no third attempt is launched
+	if strategy.ShouldContinue(original, attempts, 3) {
+		t.Error("no subsequent attempt should be launched after a slow passing retry")
+	}
+
+	// DecideOutcome must return duration-policy failure
+	outcome := strategy.DecideOutcome(attempts)
+	if outcome != RetryOutcomeDurationPolicyFail {
+		t.Errorf("expected RetryOutcomeDurationPolicyFail, got %d", outcome)
 	}
 }
