@@ -422,6 +422,23 @@ func TestCollectStartUsage(t *testing.T) {
 			expectedPlacement: []*float64{ptr.To(mb(110)), ptr.To(mb(40)), ptr.To(mb(20))},
 		},
 		{
+			name: "workload mean only averages replicas with a start sample",
+			startUsage: map[string]float64{
+				"openshift-a/a-abc123-xyz": mb(100),
+				"openshift-b/b-abc123-xyz": mb(40),
+				"openshift-m/m-abc123-xyz": mb(10),
+			},
+			expectedPods: map[string]*float64{
+				"a-abc123-xyz": ptr.To(mb(100)),
+				"b-abc123-new": ptr.To(mb(40)),
+				"c-abc123-xyz": nil,
+				"m-abc123-xyz": ptr.To(mb(10)),
+				// the master-1 replica had no sample, so it does not drag the mean down to 5
+				"m-abc123-new": ptr.To(mb(10)),
+			},
+			expectedPlacement: []*float64{ptr.To(mb(110)), ptr.To(mb(40)), ptr.To(mb(10))},
+		},
+		{
 			name: "metrics API unavailable at start leaves start usage unset",
 			expectedPods: map[string]*float64{
 				"a-abc123-xyz": nil,
