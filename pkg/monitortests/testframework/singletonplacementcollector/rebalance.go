@@ -117,12 +117,12 @@ func isNodeReady(node *corev1.Node) bool {
 // the pods do not divide evenly the most loaded masters keep one extra, so as few pods as possible
 // are deleted. Pods with the largest memory requests go first since requests are what the
 // scheduler balances on.
-func podsToRebalance(masters []string, pods []singletonPod) []singletonPod {
+func podsToRebalance(masters []string, pods []controlPlanePod) []controlPlanePod {
 	if len(masters) == 0 {
 		return nil
 	}
 
-	byNode := map[string][]singletonPod{}
+	byNode := map[string][]controlPlanePod{}
 	for _, pod := range pods {
 		byNode[pod.nodeName] = append(byNode[pod.nodeName], pod)
 	}
@@ -138,7 +138,7 @@ func podsToRebalance(masters []string, pods []singletonPod) []singletonPod {
 		}
 	}
 
-	var ret []singletonPod
+	var ret []controlPlanePod
 	for _, name := range masters {
 		nodePods := byNode[name]
 		target := share[name]
@@ -159,7 +159,7 @@ func podsToRebalance(masters []string, pods []singletonPod) []singletonPod {
 // waitForReplacements waits until every deleted pod is gone, a different Ready pod has replaced
 // it, and its Deployment is back to one ready, available, up to date replica. The Deployment
 // status alone can lag behind the pod deletion.
-func waitForReplacements(ctx context.Context, kubeClient kubernetes.Interface, deleted []singletonPod, pollInterval, timeout time.Duration) error {
+func waitForReplacements(ctx context.Context, kubeClient kubernetes.Interface, deleted []controlPlanePod, pollInterval, timeout time.Duration) error {
 	var pending []string
 	err := wait.PollUntilContextTimeout(ctx, pollInterval, timeout, true, func(ctx context.Context) (bool, error) {
 		pending = nil
@@ -181,13 +181,13 @@ func waitForReplacements(ctx context.Context, kubeClient kubernetes.Interface, d
 				continue
 			}
 
-			d, err := kubeClient.AppsV1().Deployments(pod.namespace).Get(ctx, pod.deployment, metav1.GetOptions{})
+			d, err := kubeClient.AppsV1().Deployments(pod.namespace).Get(ctx, pod.workload, metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
 			s := d.Status
 			if s.ObservedGeneration < d.Generation || s.Replicas != 1 || s.UpdatedReplicas != 1 || s.ReadyReplicas != 1 || s.AvailableReplicas != 1 {
-				pending = append(pending, fmt.Sprintf("deployment %s/%s not ready", pod.namespace, pod.deployment))
+				pending = append(pending, fmt.Sprintf("deployment %s/%s not ready", pod.namespace, pod.workload))
 			}
 		}
 		return len(pending) == 0, nil
@@ -201,14 +201,14 @@ func waitForReplacements(ctx context.Context, kubeClient kubernetes.Interface, d
 // hasReadyReplacement reports whether the deleted pod's Deployment has another pod that is Ready
 // and not being deleted. Pods are matched to the Deployment through their ReplicaSet owner, the
 // same way listSingletonPods does.
-func hasReadyReplacement(ctx context.Context, kubeClient kubernetes.Interface, deleted singletonPod) (bool, error) {
+func hasReadyReplacement(ctx context.Context, kubeClient kubernetes.Interface, deleted controlPlanePod) (bool, error) {
 	replicaSets, err := kubeClient.AppsV1().ReplicaSets(deleted.namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return false, fmt.Errorf("failed to list replicasets in %s: %w", deleted.namespace, err)
 	}
 	ownedReplicaSets := map[string]bool{}
 	for _, rs := range replicaSets.Items {
-		if owner := metav1.GetControllerOf(&rs); owner != nil && owner.Kind == "Deployment" && owner.Name == deleted.deployment {
+		if owner := metav1.GetControllerOf(&rs); owner != nil && owner.Kind == "Deployment" && owner.Name == deleted.workload {
 			ownedReplicaSets[rs.Name] = true
 		}
 	}
@@ -241,7 +241,7 @@ func isPodReady(pod *corev1.Pod) bool {
 	return false
 }
 
-func formatPlacement(masters []string, pods []singletonPod) string {
+func formatPlacement(masters []string, pods []controlPlanePod) string {
 	counts := map[string]int{}
 	for _, pod := range pods {
 		counts[pod.nodeName]++

@@ -1,8 +1,14 @@
-// Package singletonplacementcollector records where single-replica openshift-* Deployment pods
-// landed across the control plane nodes at the end of a run, along with their memory usage before
-// the e2e suite started. Rolling master reboots during install and upgrade can leave most of these
-// singletons on one master, and because their memory requests are far below actual usage the
-// scheduler cannot see the imbalance (OCPBUGS-131892).
+// Package singletonplacementcollector records every running openshift-* pod on the control plane
+// nodes at the end of a run (Deployments of any replica count, DaemonSets, static pods, etc.),
+// along with their memory usage before the e2e suite started and during it. Rolling master reboots
+// during install and upgrade can leave most single-replica Deployments on one master, and because
+// memory requests are far below actual usage the scheduler cannot see the imbalance
+// (OCPBUGS-131892). Covering all pods shows each master's full memory picture, not just the part
+// contributed by singletons.
+//
+// Despite the "singleton" naming, which is kept because it is baked into the autodl table and
+// column names, the collector covers all control plane pods. The placement table's Singleton*
+// columns and RebalanceSingletons remain limited to single-replica Deployments.
 // This is data collection only; results are written to autodl for analysis in BigQuery.
 package singletonplacementcollector
 
@@ -31,6 +37,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -39,9 +46,23 @@ const (
 	bytesPerMB = 1024 * 1024
 )
 
-type singletonPod struct {
-	namespace          string
-	deployment         string
+// Workload kinds for pods that are not owned by a regular controller.
+const (
+	workloadKindStaticPod = "StaticPod"
+	workloadKindPod       = "Pod"
+)
+
+type controlPlanePod struct {
+	namespace string
+	// workloadKind is the controlling workload: Deployment (resolved through its ReplicaSet),
+	// DaemonSet, StaticPod for mirror pods, Pod for pods without a controller (e.g. guard pods),
+	// or the controller's kind otherwise.
+	workloadKind string
+	// workload names the controller. Static and controller-less pods are named after their node, so
+	// the node suffix is removed to get a name shared by the same workload on every master.
+	workload string
+	// replicas is the Deployment's desired replica count; nil for other workload kinds.
+	replicas           *int32
 	podName            string
 	nodeName           string
 	memoryRequestBytes int64
@@ -55,8 +76,15 @@ type singletonPod struct {
 }
 
 type masterPlacement struct {
-	nodeName           string
-	singletonPods      int
+	nodeName string
+	// all covers every control plane pod on the node; singletons only those from single-replica
+	// Deployments, matching what the collector recorded before it covered all pods.
+	all        podTotals
+	singletons podTotals
+}
+
+type podTotals struct {
+	pods               int
 	memoryRequestBytes int64
 
 	// nil when the metric source was unavailable
@@ -79,12 +107,15 @@ type singletonPlacementCollector struct {
 	fetchCurrentUsage func(ctx context.Context, kubeClient kubernetes.Interface) (map[string]float64, error)
 	fetchUsageStats   func(ctx context.Context, restConfig *rest.Config, kubeClient kubernetes.Interface, beginning, end time.Time) (map[string]usageStats, error)
 
-	// startUsage is the memory usage of each singleton before the e2e suite ran, keyed by
-	// "namespace/deployment" so it still applies if the pod is replaced during the run.
-	startUsage map[string]float64
-	startErr   error
+	// startPodUsage is the memory usage of each pod before the e2e suite ran, keyed by
+	// "namespace/pod". startWorkloadUsage is the mean per-pod usage of each workload, keyed by
+	// workloadKey, and is used for pods replaced during the run (most of them, on upgrades).
+	// For singletons this is exactly the previous pod's usage.
+	startPodUsage      map[string]float64
+	startWorkloadUsage map[string]float64
+	startErr           error
 
-	pods      []singletonPod
+	pods      []controlPlanePod
 	placement []masterPlacement
 }
 
@@ -112,12 +143,12 @@ func (w *singletonPlacementCollector) StartCollection(ctx context.Context, admin
 	return nil
 }
 
-// collectStartUsage records the steady state memory usage of the singletons after install,
-// for tuning operator memory requests.
+// collectStartUsage records the steady state memory usage of the control plane pods after install,
+// for tuning memory requests.
 func (w *singletonPlacementCollector) collectStartUsage(ctx context.Context, kubeClient kubernetes.Interface, now time.Time) error {
-	masters, pods, err := listSingletonPods(ctx, kubeClient, now)
+	masters, pods, err := listControlPlanePods(ctx, kubeClient, now)
 	if err != nil {
-		return fmt.Errorf("failed to list singleton pods at start: %w", err)
+		return fmt.Errorf("failed to list control plane pods at start: %w", err)
 	}
 	if len(masters) == 0 {
 		return nil
@@ -128,13 +159,31 @@ func (w *singletonPlacementCollector) collectStartUsage(ctx context.Context, kub
 		logrus.WithField("MonitorTest", "SingletonPlacementCollector").WithError(err).Warn("unable to get pod memory usage at start from metrics API")
 		return nil
 	}
-	w.startUsage = map[string]float64{}
+	w.startPodUsage = map[string]float64{}
+	sums := map[string]float64{}
+	counts := map[string]int{}
 	for _, pod := range pods {
-		if v, ok := usage[pod.namespace+"/"+pod.podName]; ok {
-			w.startUsage[pod.namespace+"/"+pod.deployment] = v
+		v, ok := usage[pod.namespace+"/"+pod.podName]
+		if !ok {
+			continue
 		}
+		w.startPodUsage[pod.namespace+"/"+pod.podName] = v
+		sums[pod.workloadKey()] += v
+		counts[pod.workloadKey()]++
+	}
+	w.startWorkloadUsage = map[string]float64{}
+	for key, sum := range sums {
+		w.startWorkloadUsage[key] = sum / float64(counts[key])
 	}
 	return nil
+}
+
+func (p *controlPlanePod) isSingleton() bool {
+	return p.workloadKind == "Deployment" && p.replicas != nil && *p.replicas == 1
+}
+
+func (p *controlPlanePod) workloadKey() string {
+	return p.namespace + "/" + p.workloadKind + "/" + p.workload
 }
 
 func (w *singletonPlacementCollector) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
@@ -154,7 +203,7 @@ func (w *singletonPlacementCollector) CollectData(ctx context.Context, storageDi
 		}, nil
 	}
 
-	logger.Infof("collected %d singleton pods across %d masters", len(w.pods), len(w.placement))
+	logger.Infof("collected %d control plane pods across %d masters", len(w.pods), len(w.placement))
 	return nil, nil, nil
 }
 
@@ -169,14 +218,14 @@ func (w *singletonPlacementCollector) collect(ctx context.Context, beginning, en
 func (w *singletonPlacementCollector) collectFromClient(ctx context.Context, kubeClient kubernetes.Interface, beginning, end, now time.Time) error {
 	logger := logrus.WithField("MonitorTest", "SingletonPlacementCollector")
 
-	masters, pods, err := listSingletonPods(ctx, kubeClient, now)
+	masters, pods, err := listControlPlanePods(ctx, kubeClient, now)
 	if err != nil {
 		return err
 	}
 	// HyperShift hosted clusters have no masters. Single node and two node topologies have little or
 	// no placement choice, but their per-pod memory usage is still worth recording.
 	if len(masters) == 0 {
-		logger.Infof("found %d master nodes, skipping singleton placement collection", len(masters))
+		logger.Infof("found %d master nodes, skipping control plane pod collection", len(masters))
 		return nil
 	}
 
@@ -194,10 +243,12 @@ func (w *singletonPlacementCollector) collectFromClient(ctx context.Context, kub
 	}
 
 	for i := range pods {
-		if v, ok := w.startUsage[pods[i].namespace+"/"+pods[i].deployment]; ok {
+		key := pods[i].namespace + "/" + pods[i].podName
+		if v, ok := w.startPodUsage[key]; ok {
+			pods[i].startUsageBytes = &v
+		} else if v, ok := w.startWorkloadUsage[pods[i].workloadKey()]; ok {
 			pods[i].startUsageBytes = &v
 		}
-		key := pods[i].namespace + "/" + pods[i].podName
 		if v, ok := currentUsage[key]; ok {
 			pods[i].currentUsageBytes = &v
 		}
@@ -208,13 +259,29 @@ func (w *singletonPlacementCollector) collectFromClient(ctx context.Context, kub
 	}
 
 	w.pods = pods
-	w.placement = summarizePlacement(masters, pods, len(w.startUsage) > 0, len(currentUsage) > 0, len(stats) > 0)
+	w.placement = summarizePlacement(masters, pods, len(w.startPodUsage) > 0, len(currentUsage) > 0, len(stats) > 0)
 	return nil
 }
 
-// listSingletonPods returns the sorted master node names and the running pods on them that belong
-// to single-replica Deployments in openshift-* namespaces.
-func listSingletonPods(ctx context.Context, kubeClient kubernetes.Interface, now time.Time) ([]string, []singletonPod, error) {
+// listSingletonPods returns the sorted master node names and the pods on them that belong to
+// single-replica Deployments, the only pods RebalanceSingletons may move.
+func listSingletonPods(ctx context.Context, kubeClient kubernetes.Interface, now time.Time) ([]string, []controlPlanePod, error) {
+	masters, pods, err := listControlPlanePods(ctx, kubeClient, now)
+	if err != nil {
+		return nil, nil, err
+	}
+	var singletons []controlPlanePod
+	for _, pod := range pods {
+		if pod.isSingleton() {
+			singletons = append(singletons, pod)
+		}
+	}
+	return masters, singletons, nil
+}
+
+// listControlPlanePods returns the sorted master node names and every running pod on them in an
+// openshift-* namespace. Other namespaces are skipped to keep out transient e2e test pods.
+func listControlPlanePods(ctx context.Context, kubeClient kubernetes.Interface, now time.Time) ([]string, []controlPlanePod, error) {
 	nodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to list nodes: %w", err)
@@ -238,15 +305,10 @@ func listSingletonPods(ctx context.Context, kubeClient kubernetes.Interface, now
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to list deployments: %w", err)
 	}
-	singletonDeployments := map[string]bool{}
+	deploymentReplicas := map[string]int32{}
 	for _, d := range deployments.Items {
-		if !strings.HasPrefix(d.Namespace, "openshift-") {
-			continue
-		}
 		// replicas defaults to 1 when unset
-		if d.Spec.Replicas == nil || *d.Spec.Replicas == 1 {
-			singletonDeployments[d.Namespace+"/"+d.Name] = true
-		}
+		deploymentReplicas[d.Namespace+"/"+d.Name] = ptr.Deref(d.Spec.Replicas, 1)
 	}
 
 	replicaSets, err := kubeClient.AppsV1().ReplicaSets("").List(ctx, metav1.ListOptions{})
@@ -264,43 +326,55 @@ func listSingletonPods(ctx context.Context, kubeClient kubernetes.Interface, now
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to list pods: %w", err)
 	}
-	var pods []singletonPod
+	var pods []controlPlanePod
 	for _, pod := range podList.Items {
-		if pod.Status.Phase != corev1.PodRunning || !masterSet[pod.Spec.NodeName] {
+		if pod.Status.Phase != corev1.PodRunning || !masterSet[pod.Spec.NodeName] || !strings.HasPrefix(pod.Namespace, "openshift-") {
 			continue
 		}
-		owner := metav1.GetControllerOf(&pod)
-		if owner == nil || owner.Kind != "ReplicaSet" {
-			continue
+		cpPod := controlPlanePod{
+			namespace: pod.Namespace,
+			podName:   pod.Name,
+			nodeName:  pod.Spec.NodeName,
+			podAge:    now.Sub(pod.CreationTimestamp.Time),
 		}
-		deployment, ok := rsToDeployment[pod.Namespace+"/"+owner.Name]
-		if !ok || !singletonDeployments[pod.Namespace+"/"+deployment] {
-			continue
+		switch owner := metav1.GetControllerOf(&pod); {
+		case owner == nil:
+			cpPod.workloadKind = workloadKindPod
+			cpPod.workload = strings.TrimSuffix(pod.Name, "-"+pod.Spec.NodeName)
+		case owner.Kind == "Node":
+			cpPod.workloadKind = workloadKindStaticPod
+			cpPod.workload = strings.TrimSuffix(pod.Name, "-"+pod.Spec.NodeName)
+		case owner.Kind == "ReplicaSet":
+			if deployment, ok := rsToDeployment[pod.Namespace+"/"+owner.Name]; ok {
+				cpPod.workloadKind = "Deployment"
+				cpPod.workload = deployment
+				if replicas, ok := deploymentReplicas[pod.Namespace+"/"+deployment]; ok {
+					cpPod.replicas = &replicas
+				}
+			} else {
+				cpPod.workloadKind = owner.Kind
+				cpPod.workload = owner.Name
+			}
+		default:
+			cpPod.workloadKind = owner.Kind
+			cpPod.workload = owner.Name
 		}
-		var memoryRequest int64
 		for _, c := range pod.Spec.Containers {
 			if q, ok := c.Resources.Requests[corev1.ResourceMemory]; ok {
-				memoryRequest += q.Value()
+				cpPod.memoryRequestBytes += q.Value()
 			}
 		}
-		pods = append(pods, singletonPod{
-			namespace:          pod.Namespace,
-			deployment:         deployment,
-			podName:            pod.Name,
-			nodeName:           pod.Spec.NodeName,
-			memoryRequestBytes: memoryRequest,
-			podAge:             now.Sub(pod.CreationTimestamp.Time),
-		})
+		pods = append(pods, cpPod)
 	}
 	return masters, pods, nil
 }
 
-// summarizePlacement produces one entry per master, including masters with no singletons, so skew
-// can be computed in BigQuery without knowing the master count. A master's usage sum is only set
-// when at least one of its pods has a sample, so missing data loads as NULL rather than zero.
-// Masters without singletons get a zero sum as long as the metric source returned data at all.
-// The start usage sum covers the singletons on the master at the end, not those there at start.
-func summarizePlacement(masters []string, pods []singletonPod, haveStartUsage, haveCurrentUsage, haveUsageStats bool) []masterPlacement {
+// summarizePlacement produces one entry per master, including masters with no pods, so skew can be
+// computed in BigQuery without knowing the master count. A master's usage sum is only set when at
+// least one of its counted pods has a sample, so missing data loads as NULL rather than zero.
+// Totals with no pods get a zero sum as long as the metric source returned data at all.
+// The start usage sum covers the pods on the master at the end, not those there at start.
+func summarizePlacement(masters []string, pods []controlPlanePod, haveStartUsage, haveCurrentUsage, haveUsageStats bool) []masterPlacement {
 	byNode := map[string]*masterPlacement{}
 	placement := make([]masterPlacement, len(masters))
 	for i, name := range masters {
@@ -309,29 +383,48 @@ func summarizePlacement(masters []string, pods []singletonPod, haveStartUsage, h
 	}
 	for _, pod := range pods {
 		p := byNode[pod.nodeName]
-		p.singletonPods++
-		p.memoryRequestBytes += pod.memoryRequestBytes
-		addSample(&p.startUsageBytes, pod.startUsageBytes)
-		addSample(&p.currentUsageBytes, pod.currentUsageBytes)
-		addSample(&p.peakUsageBytes, pod.peakUsageBytes)
-		addSample(&p.avgUsageBytes, pod.avgUsageBytes)
+		p.all.add(pod)
+		if pod.isSingleton() {
+			p.singletons.add(pod)
+		}
 	}
 	for i := range placement {
-		if placement[i].singletonPods > 0 {
-			continue
-		}
-		if haveStartUsage {
-			placement[i].startUsageBytes = new(float64)
-		}
-		if haveCurrentUsage {
-			placement[i].currentUsageBytes = new(float64)
-		}
-		if haveUsageStats {
-			placement[i].peakUsageBytes = new(float64)
-			placement[i].avgUsageBytes = new(float64)
+		for _, t := range []*podTotals{&placement[i].all, &placement[i].singletons} {
+			if t.pods > 0 {
+				continue
+			}
+			if haveStartUsage {
+				t.startUsageBytes = new(float64)
+			}
+			if haveCurrentUsage {
+				t.currentUsageBytes = new(float64)
+			}
+			if haveUsageStats {
+				t.peakUsageBytes = new(float64)
+				t.avgUsageBytes = new(float64)
+			}
 		}
 	}
 	return placement
+}
+
+func (t *podTotals) add(pod controlPlanePod) {
+	t.pods++
+	t.memoryRequestBytes += pod.memoryRequestBytes
+	addSample(&t.startUsageBytes, pod.startUsageBytes)
+	addSample(&t.currentUsageBytes, pod.currentUsageBytes)
+	addSample(&t.peakUsageBytes, pod.peakUsageBytes)
+	addSample(&t.avgUsageBytes, pod.avgUsageBytes)
+}
+
+// setRow writes the totals to columns named with the given prefix, e.g. SingletonPods.
+func (t *podTotals) setRow(row map[string]string, prefix string) {
+	row[prefix+"Pods"] = fmt.Sprintf("%d", t.pods)
+	row[prefix+"MemoryRequestMB"] = formatMB(float64(t.memoryRequestBytes))
+	setMB(row, prefix+"StartMemoryUsageMB", t.startUsageBytes)
+	setMB(row, prefix+"EndMemoryUsageMB", t.currentUsageBytes)
+	setMB(row, prefix+"PeakMemoryUsageMB", t.peakUsageBytes)
+	setMB(row, prefix+"AvgMemoryUsageMB", t.avgUsageBytes)
 }
 
 func addSample(sum **float64, v *float64) {
@@ -381,7 +474,7 @@ func currentUsageFromPodMetrics(podMetrics *metricsv1beta1.PodMetricsList) map[s
 }
 
 // usageStatsQuery returns a single query covering every openshift-* pod, so cost does not grow
-// with the number of singletons. Peak and average are distinguished by a "stat" label because
+// with the number of pods. Peak and average are distinguished by a "stat" label because
 // "or" would otherwise drop the second series for each pod. Summing containers before taking
 // max/avg gives the pod's true peak rather than a sum of per-container peaks.
 func usageStatsQuery(window time.Duration) string {
@@ -457,7 +550,7 @@ func (w *singletonPlacementCollector) WriteContentToStorage(ctx context.Context,
 	logger := logrus.WithField("func", "WriteContentToStorage")
 
 	if len(w.placement) == 0 {
-		logger.Info("No singleton placement data to export")
+		logger.Info("No control plane pod placement data to export")
 		return nil
 	}
 
@@ -465,11 +558,15 @@ func (w *singletonPlacementCollector) WriteContentToStorage(ctx context.Context,
 	for _, pod := range w.pods {
 		row := map[string]string{
 			"Namespace":       pod.namespace,
-			"Deployment":      pod.deployment,
+			"Deployment":      pod.workload,
+			"WorkloadKind":    pod.workloadKind,
 			"PodName":         pod.podName,
 			"NodeName":        pod.nodeName,
 			"MemoryRequestMB": formatMB(float64(pod.memoryRequestBytes)),
 			"PodAgeSeconds":   fmt.Sprintf("%d", int64(pod.podAge.Seconds())),
+		}
+		if pod.replicas != nil {
+			row["Replicas"] = fmt.Sprintf("%d", *pod.replicas)
 		}
 		setMB(row, "StartMemoryUsageMB", pod.startUsageBytes)
 		setMB(row, "EndMemoryUsageMB", pod.currentUsageBytes)
@@ -477,11 +574,17 @@ func (w *singletonPlacementCollector) WriteContentToStorage(ctx context.Context,
 		setMB(row, "AvgMemoryUsageMB", pod.avgUsageBytes)
 		podRows = append(podRows, row)
 	}
+	// The table and the Deployment column predate covering all control plane pods. Deployment holds
+	// the workload name for every WorkloadKind; the original singleton rows are those with
+	// WorkloadKind = 'Deployment' AND Replicas = 1 (rows loaded before WorkloadKind existed are all
+	// singletons).
 	podsFile := dataloader.DataFile{
 		TableName: "control_plane_singleton_pods",
 		Schema: map[string]dataloader.DataType{
 			"Namespace":          dataloader.DataTypeString,
 			"Deployment":         dataloader.DataTypeString,
+			"WorkloadKind":       dataloader.DataTypeString,
+			"Replicas":           dataloader.DataTypeInteger,
 			"PodName":            dataloader.DataTypeString,
 			"NodeName":           dataloader.DataTypeString,
 			"MemoryRequestMB":    dataloader.DataTypeFloat64,
@@ -497,30 +600,29 @@ func (w *singletonPlacementCollector) WriteContentToStorage(ctx context.Context,
 	placementRows := make([]map[string]string, 0, len(w.placement))
 	for _, p := range w.placement {
 		row := map[string]string{
-			"NodeName":                 p.nodeName,
-			"SingletonPods":            fmt.Sprintf("%d", p.singletonPods),
-			"SingletonMemoryRequestMB": formatMB(float64(p.memoryRequestBytes)),
-			"TotalMasters":             fmt.Sprintf("%d", len(w.placement)),
+			"NodeName":     p.nodeName,
+			"TotalMasters": fmt.Sprintf("%d", len(w.placement)),
 		}
-		setMB(row, "SingletonStartMemoryUsageMB", p.startUsageBytes)
-		setMB(row, "SingletonEndMemoryUsageMB", p.currentUsageBytes)
-		setMB(row, "SingletonPeakMemoryUsageMB", p.peakUsageBytes)
-		setMB(row, "SingletonAvgMemoryUsageMB", p.avgUsageBytes)
+		p.singletons.setRow(row, "Singleton")
+		p.all.setRow(row, "All")
 		placementRows = append(placementRows, row)
+	}
+	// Singleton* columns keep their original single-replica Deployment meaning; All* columns cover
+	// every control plane pod on the master and are NULL for rows loaded before they were added.
+	placementSchema := map[string]dataloader.DataType{
+		"NodeName":     dataloader.DataTypeString,
+		"TotalMasters": dataloader.DataTypeInteger,
+	}
+	for _, prefix := range []string{"Singleton", "All"} {
+		placementSchema[prefix+"Pods"] = dataloader.DataTypeInteger
+		for _, column := range []string{"MemoryRequestMB", "StartMemoryUsageMB", "EndMemoryUsageMB", "PeakMemoryUsageMB", "AvgMemoryUsageMB"} {
+			placementSchema[prefix+column] = dataloader.DataTypeFloat64
+		}
 	}
 	placementFile := dataloader.DataFile{
 		TableName: "control_plane_singleton_placement",
-		Schema: map[string]dataloader.DataType{
-			"NodeName":                    dataloader.DataTypeString,
-			"SingletonPods":               dataloader.DataTypeInteger,
-			"SingletonMemoryRequestMB":    dataloader.DataTypeFloat64,
-			"SingletonStartMemoryUsageMB": dataloader.DataTypeFloat64,
-			"SingletonEndMemoryUsageMB":   dataloader.DataTypeFloat64,
-			"SingletonPeakMemoryUsageMB":  dataloader.DataTypeFloat64,
-			"SingletonAvgMemoryUsageMB":   dataloader.DataTypeFloat64,
-			"TotalMasters":                dataloader.DataTypeInteger,
-		},
-		Rows: placementRows,
+		Schema:    placementSchema,
+		Rows:      placementRows,
 	}
 
 	for _, f := range []struct {
