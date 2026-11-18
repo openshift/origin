@@ -66,6 +66,7 @@ If this shows up in your build logs, restart docker and then resubmit a build:
     $ sudo systemctl restart docker
     $ oc start-build --from-build=<your build identifier>
 
+
 Docker Registry
 ---------------
 
