@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	machineconfigv1 "github.com/openshift/api/machineconfiguration/v1"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
@@ -984,4 +985,43 @@ func EnsureNodesReady(ctx context.Context, oc *exutil.CLI) {
 
 	o.Expect(notReadyNodes).To(o.BeEmpty(),
 		"Cannot start test: nodes not Ready: %v. Cluster may be recovering from previous test.", notReadyNodes)
+}
+
+func SkipOnHyperShift(ctx context.Context, oc *exutil.CLI) {
+	isHyperShift, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if isHyperShift {
+		g.Skip("Skipping test on HyperShift cluster - MachineConfig API not available")
+	}
+}
+
+func CreatePodAndWaitForRunning(ctx context.Context, oc *exutil.CLI, pod *corev1.Pod) *corev1.Pod {
+	_, err := oc.AdminKubeClient().CoreV1().Pods(pod.Namespace).Create(ctx, pod, metav1.CreateOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	err = e2epod.WaitForPodRunningInNamespace(ctx, oc.AdminKubeClient(), pod)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	created, err := oc.AdminKubeClient().CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return created
+}
+
+func createDirectoriesOnNode(oc *exutil.CLI, nodeName string, dirs []string) error {
+	args := append([]string{"mkdir", "-p"}, dirs...)
+	_, err := ExecOnNodeWithChroot(context.Background(), oc, nodeName, args...)
+	if err != nil {
+		return fmt.Errorf("failed to create directories %v on node %s: %v", dirs, nodeName, err)
+	}
+	framework.Logf("Node %s: directories created: %v", nodeName, dirs)
+	return nil
+}
+
+func cleanupDirectoriesOnNode(oc *exutil.CLI, nodeName string, dirs []string) error {
+	args := append([]string{"rm", "-rf"}, dirs...)
+	_, err := ExecOnNodeWithChroot(context.Background(), oc, nodeName, args...)
+	if err != nil {
+		return fmt.Errorf("failed to cleanup directories %v on node %s: %w", dirs, nodeName, err)
+	}
+	return nil
 }
