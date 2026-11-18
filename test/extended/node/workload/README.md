@@ -102,6 +102,16 @@ toward this plan's pass or fail decision.
    disabled feature gates, the worker inventory, and the selected and skipped
    tests. The DRA PodGroup specs carry a `KubeletMinVersion:1.36` label; confirm
    that the node kubelet versions satisfy it before interpreting any DRA result.
+6. Before the run, record a baseline for every Ready, schedulable node,
+   including schedulable control-plane nodes: the
+   `workload-scheduling.openshift.io/rack` label and the `status.capacity` and
+   `status.allocatable` values of `example.com/gang-slot` and
+   `example.com/combined-resource`, noting explicitly when a label or resource is
+   absent. The topology specs put back the previous label and `allocatable`
+   value, or remove what they added. Each upstream preemption spec instead sets
+   `example.com/combined-resource` to `2` on a randomly chosen Ready, schedulable
+   node and then deletes it, so an earlier value can only be restored from this
+   baseline.
 
 ## Test scenarios and expected results
 
@@ -225,11 +235,11 @@ gate is off, so a missing field fails the spec.
   run is not positive validation of the feature.
 - After the run, including after failures, confirm that test namespaces,
   PriorityClasses, DeviceTaintRules and DRA test-driver objects (such as
-  DeviceClasses and ResourceSlices) are gone, and that node topology labels and
-  extended resources are back to their previous state. The upstream preemption
-  specs remove their extended resource (`example.com/combined-resource`) from the
-  node instead of restoring an earlier value, so compare it with its pre-run
-  state. Treat any leftovers as a validation failure to investigate.
+  DeviceClasses and ResourceSlices) are gone. Compare each node's topology label
+  and extended resources with the baseline from prerequisite 6, and manually
+  restore any value that was overwritten or removed; check
+  `example.com/combined-resource` in particular. Treat any difference or leftover
+  as a validation failure to investigate.
 
 ## Running the suite
 
