@@ -315,17 +315,17 @@ func imageSetsForImage(image extension.Image, ref reference.DockerImageReference
 	return original, map[k8simage.ImageID]k8simage.Config{id: config}
 }
 
-// extractSourceImages extracts source images from mirror list lines.
+// extractSourceImages extracts unique source images from mirror list lines.
 // Each line is expected to be in the format: "source-image target-image"
 func extractSourceImages(lines []string) []string {
-	var sourceImages []string
+	sourceImages := sets.NewString()
 	for _, line := range lines {
 		parts := strings.Fields(line)
 		if len(parts) >= 1 {
-			sourceImages = append(sourceImages, parts[0])
+			sourceImages.Insert(parts[0])
 		}
 	}
-	return sourceImages
+	return sourceImages.List()
 }
 
 // setLogLevel configures the logrus log level based on the provided string
