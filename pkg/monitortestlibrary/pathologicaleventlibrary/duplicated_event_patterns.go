@@ -33,6 +33,12 @@ const (
 
 	singleNodeUpgradeProbeRepeatThreshold            = 30
 	singleNodeUpgradeInstallSucceededRepeatThreshold = 60
+
+	// singleNodeUpgradeCompatibilityRequirementsProbeRepeatThreshold bounds the compatibility-requirements
+	// operator and controllers readyz connection-refused ProbeError allowances during SNO upgrades. The
+	// highest count observed across sampled single-node upgrade runs was 49 (operator); 60 tolerates that
+	// with headroom while still tripping the pathological-events test on a genuine escalation.
+	singleNodeUpgradeCompatibilityRequirementsProbeRepeatThreshold = 60
 )
 
 type EventMatcher interface {
@@ -164,6 +170,44 @@ func claimsPathologicalEventFamily(i monitorapi.Interval, namespaceRegex, podReg
 	// Probe-family content plus either locator claims one-field variants without
 	// capturing unrelated events from the same pod.
 	return messageMatches && (namespaceMatches || podMatches)
+}
+
+// probeErrorRequestedVsDialedAddressRegex extracts the requested URL address and the dialed address
+// from a probe error message of the form:
+//
+//	... Get "<scheme>://<host:port>/<path>": dial tcp <host:port>: connect: connection refused ...
+//
+// Group 1 is the URL host:port, group 2 is the dialed host:port.
+var probeErrorRequestedVsDialedAddressRegex = regexp.MustCompile(`Get "https?://([0-9]{1,3}(?:\.[0-9]{1,3}){3}:[0-9]+)[^"]*": dial tcp ([0-9]{1,3}(?:\.[0-9]{1,3}){3}:[0-9]+): connect: connection refused`)
+
+// probeErrorDialsRequestedAddress reports whether a connection-refused probe error dialed the same
+// address it requested. Go's RE2 has no backreferences, so a single message regex cannot require the
+// two addresses to be equal; this performs that equality check in Go.
+func probeErrorDialsRequestedAddress(humanMessage string) bool {
+	groups := probeErrorRequestedVsDialedAddressRegex.FindStringSubmatch(humanMessage)
+	if groups == nil {
+		return false
+	}
+	return groups[1] == groups[2]
+}
+
+// sameAddressProbeErrorMatcher wraps a SimplePathologicalEventMatcher and additionally requires that a
+// connection-refused probe error dialed the same address it requested. This tightens the allowance
+// beyond what the RE2 message regex can express on its own (no backreferences), without changing the
+// authoritative-family integration the wrapped matcher participates in.
+type sameAddressProbeErrorMatcher struct {
+	*SimplePathologicalEventMatcher
+}
+
+func (m *sameAddressProbeErrorMatcher) Matches(i monitorapi.Interval) bool {
+	return m.SimplePathologicalEventMatcher.Matches(i) && probeErrorDialsRequestedAddress(i.Message.HumanMessage)
+}
+
+func (m *sameAddressProbeErrorMatcher) Allows(i monitorapi.Interval, topology v1.TopologyMode) bool {
+	if !probeErrorDialsRequestedAddress(i.Message.HumanMessage) {
+		return false
+	}
+	return m.SimplePathologicalEventMatcher.Allows(i, topology)
 }
 
 // AddPathologicalEventMatcher registers an event matcher by its unique name.
@@ -843,6 +887,60 @@ func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals
 			machineAPIStartupProbeError.locatorKeyRegexes[monitorapi.LocatorPodKey],
 			machineAPIStartupTimeoutFamily)
 	}, machineAPIStartupProbeError, machineAPIStartupProbeFailed)
+
+	// Observed SingleReplica (SNO) upgrade runs produced repeated readiness connection-refused
+	// ProbeError events on the compatibility-requirements operator and controllers pods, in the
+	// openshift-compatibility-requirements-operator namespace, against their :9440/readyz endpoints.
+	// This allowance only caps how many such events are tolerated during upgrade on SingleReplica; it
+	// does not change any restart or availability monitor, and the startup cause behind the events is
+	// tracked separately. The allowance is deliberately scoped to the exact namespace, the two
+	// deployment-managed pod name shapes, the readyz connection-refused readiness ProbeError (HTTP
+	// :9440/readyz followed by a connection-refused dial to the same address), and SingleReplica
+	// topology, bounded just above the observed maximum of 49. (The scope here is the allowance, not a
+	// claim that these components run only on SingleReplica.) The operator and controllers are
+	// deliberately separate named matchers so each component is bounded on its own and a blow-up in one
+	// is not hidden by the other.
+	//
+	// Go's RE2 has no backreferences, so the message regex alone can only assert that the requested URL
+	// address and the dialed address are each an IPv4 address on :9440/readyz; it cannot assert they are
+	// equal. The sameAddressProbeErrorMatcher wrapper adds that equality check in Go so a message that
+	// dials a different address than it requested is rejected.
+	compatibilityRequirementsReadinessConnectionRefusedMessage := regexp.MustCompile(`^Readiness probe error: Get "http://[0-9]{1,3}(\.[0-9]{1,3}){3}:9440/readyz": dial tcp [0-9]{1,3}(\.[0-9]{1,3}){3}:9440: connect: connection refused\nbody: \n$`)
+	compatibilityRequirementsOperatorReadinessProbeError := &sameAddressProbeErrorMatcher{SimplePathologicalEventMatcher: &SimplePathologicalEventMatcher{
+		name: "SingleNodeCompatibilityRequirementsOperatorReadinessProbeError",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-compatibility-requirements-operator$`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^compatibility-requirements-operator-[a-z0-9]+-[a-z0-9]+$`),
+		},
+		messageReasonRegex:      regexp.MustCompile(`^ProbeError$`),
+		messageHumanRegex:       compatibilityRequirementsReadinessConnectionRefusedMessage,
+		repeatThresholdOverride: singleNodeUpgradeCompatibilityRequirementsProbeRepeatThreshold,
+		topology:                &singleReplicaTopology,
+	}}
+	compatibilityRequirementsControllersReadinessProbeError := &sameAddressProbeErrorMatcher{SimplePathologicalEventMatcher: &SimplePathologicalEventMatcher{
+		name: "SingleNodeCompatibilityRequirementsControllersReadinessProbeError",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-compatibility-requirements-operator$`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^compatibility-requirements-controllers-[a-z0-9]+-[a-z0-9]+$`),
+		},
+		messageReasonRegex:      regexp.MustCompile(`^ProbeError$`),
+		messageHumanRegex:       compatibilityRequirementsReadinessConnectionRefusedMessage,
+		repeatThresholdOverride: singleNodeUpgradeCompatibilityRequirementsProbeRepeatThreshold,
+		topology:                &singleReplicaTopology,
+	}}
+	// Claim the whole readiness connection-refused family for these pods so that a recognizable
+	// variant (wrong port/path/scheme, mismatched dial address, over the bound, or a non-SingleReplica
+	// topology) is rejected by these exact allowances rather than slipping through to a broader matcher
+	// such as ConnectionErrorDuringSingleNodeAPIServerTargetDown during an overlapping TargetDown window.
+	compatibilityRequirementsNamespaceFamily := regexp.MustCompile(`^openshift-compatibility-requirements-operator$`)
+	compatibilityRequirementsPodFamily := regexp.MustCompile(`^compatibility-requirements-(operator|controllers)-[a-z0-9]+-[a-z0-9]+$`)
+	compatibilityRequirementsReadinessConnectionRefusedFamily := regexp.MustCompile(`^Readiness probe error: .*connect: connection refused`)
+	registry.addAuthoritativePathologicalEventFamilyOrDie(func(i monitorapi.Interval) bool {
+		return claimsPathologicalEventFamily(i,
+			compatibilityRequirementsNamespaceFamily,
+			compatibilityRequirementsPodFamily,
+			compatibilityRequirementsReadinessConnectionRefusedFamily)
+	}, compatibilityRequirementsOperatorReadinessProbeError, compatibilityRequirementsControllersReadinessProbeError)
 
 	// OLM reports the successful packageserver install repeatedly during SNO upgrades.
 	// Only the exact successful CSV event is allowed, bounded just above the observed 55.

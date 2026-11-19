@@ -415,6 +415,15 @@ func TestSingleNodeUpgradePathologicalEventAllowances(t *testing.T) {
 		machineAPIStartupProbeError   = "Startup probe error: Get \"http://10.128.0.56:9441/readyz\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)\nbody: \n"
 		machineAPIStartupProbeFailed  = "Startup probe failed: Get \"http://10.128.0.56:9441/readyz\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
 		packageServerInstallSucceeded = "install strategy completed with no errors"
+		// Fixture built from the publicly observed SNO-upgrade monitor message (reason/ProbeError, HTTP
+		// :9440/readyz followed by a connection-refused dial to the same address). The requested/dialed
+		// address is normalized to a representative pod-network address (10.128.0.99); the pod names below
+		// are representative deployment-shaped names taken from the public CI sample (replica-set hash plus
+		// suffix), not sensitive host identifiers.
+		compatibilityRequirementsReadinessProbeError = "Readiness probe error: Get \"http://10.128.0.99:9440/readyz\": dial tcp 10.128.0.99:9440: connect: connection refused\nbody: \n"
+		compatibilityRequirementsNamespace           = "openshift-compatibility-requirements-operator"
+		compatibilityRequirementsOperatorPod         = "compatibility-requirements-operator-86dbfd6999-kgvvq"
+		compatibilityRequirementsControllersPod      = "compatibility-requirements-controllers-7b6cbb6f9-xhbk5"
 	)
 
 	packageServerEvent := func(namespace, csv, reason, message string, count int) monitorapi.Interval {
@@ -589,6 +598,116 @@ func TestSingleNodeUpgradePathologicalEventAllowances(t *testing.T) {
 			topology: v1.SingleReplicaTopologyMode,
 		},
 		{
+			name:              "allows compatibility-requirements operator readiness probe at observed operator max on single replica",
+			interval:          BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsOperatorPod, "ProbeError", compatibilityRequirementsReadinessProbeError, 49),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "SingleNodeCompatibilityRequirementsOperatorReadinessProbeError",
+		},
+		{
+			name:              "allows compatibility-requirements controllers readiness probe at observed count 29 on single replica",
+			interval:          BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsControllersPod, "ProbeError", compatibilityRequirementsReadinessProbeError, 29),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "SingleNodeCompatibilityRequirementsControllersReadinessProbeError",
+		},
+		{
+			name:              "allows compatibility-requirements controllers readiness probe at observed count 30 on single replica",
+			interval:          BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsControllersPod, "ProbeError", compatibilityRequirementsReadinessProbeError, 30),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "SingleNodeCompatibilityRequirementsControllersReadinessProbeError",
+		},
+		{
+			name:              "allows compatibility-requirements controllers readiness probe at observed count 35 on single replica",
+			interval:          BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsControllersPod, "ProbeError", compatibilityRequirementsReadinessProbeError, 35),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "SingleNodeCompatibilityRequirementsControllersReadinessProbeError",
+		},
+		{
+			name:              "allows compatibility-requirements operator readiness probe at boundary 60 on single replica",
+			interval:          BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsOperatorPod, "ProbeError", compatibilityRequirementsReadinessProbeError, singleNodeUpgradeCompatibilityRequirementsProbeRepeatThreshold),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "SingleNodeCompatibilityRequirementsOperatorReadinessProbeError",
+		},
+		{
+			name:              "allows compatibility-requirements controllers readiness probe at boundary 60 on single replica",
+			interval:          BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsControllersPod, "ProbeError", compatibilityRequirementsReadinessProbeError, singleNodeUpgradeCompatibilityRequirementsProbeRepeatThreshold),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "SingleNodeCompatibilityRequirementsControllersReadinessProbeError",
+		},
+		{
+			name:     "rejects compatibility-requirements operator readiness probe above bound",
+			interval: BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsOperatorPod, "ProbeError", compatibilityRequirementsReadinessProbeError, singleNodeUpgradeCompatibilityRequirementsProbeRepeatThreshold+1),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects compatibility-requirements controllers readiness probe above bound",
+			interval: BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsControllersPod, "ProbeError", compatibilityRequirementsReadinessProbeError, singleNodeUpgradeCompatibilityRequirementsProbeRepeatThreshold+1),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects compatibility-requirements operator readiness probe on highly available topology",
+			interval: BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsOperatorPod, "ProbeError", compatibilityRequirementsReadinessProbeError, 30),
+			topology: v1.HighlyAvailableTopologyMode,
+		},
+		{
+			name:     "rejects compatibility-requirements controllers readiness probe on highly available topology",
+			interval: BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsControllersPod, "ProbeError", compatibilityRequirementsReadinessProbeError, 30),
+			topology: v1.HighlyAvailableTopologyMode,
+		},
+		{
+			name:     "rejects compatibility-requirements readiness probe in another namespace",
+			interval: BuildTestDupeKubeEvent("openshift-compatibility-requirements", compatibilityRequirementsOperatorPod, "ProbeError", compatibilityRequirementsReadinessProbeError, 30),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects compatibility-requirements readiness probe for an unmanaged pod name",
+			interval: BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, "compatibility-requirements-operator", "ProbeError", compatibilityRequirementsReadinessProbeError, 30),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects compatibility-requirements readiness probe with another reason",
+			interval: BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsOperatorPod, "Unhealthy", compatibilityRequirementsReadinessProbeError, 30),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects compatibility-requirements readiness probe on another endpoint path",
+			interval: BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsControllersPod, "ProbeError", "Readiness probe error: Get \"http://10.128.0.99:9440/healthz\": dial tcp 10.128.0.99:9440: connect: connection refused\nbody: \n", 30),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects compatibility-requirements readiness probe on another port",
+			interval: BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsControllersPod, "ProbeError", "Readiness probe error: Get \"http://10.128.0.99:8443/readyz\": dial tcp 10.128.0.99:8443: connect: connection refused\nbody: \n", 30),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects compatibility-requirements readiness probe on https scheme",
+			interval: BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsControllersPod, "ProbeError", "Readiness probe error: Get \"https://10.128.0.99:9440/readyz\": dial tcp 10.128.0.99:9440: connect: connection refused\nbody: \n", 30),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects compatibility-requirements startup probe type variant",
+			interval: BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsControllersPod, "ProbeError", "Startup probe error: Get \"http://10.128.0.99:9440/readyz\": dial tcp 10.128.0.99:9440: connect: connection refused\nbody: \n", 30),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "rejects compatibility-requirements readiness probe timeout error variant",
+			interval: BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsControllersPod, "ProbeError", "Readiness probe error: Get \"http://10.128.0.99:9440/readyz\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)\nbody: \n", 30),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			// Go RE2 cannot require the requested URL address and the dialed address to be equal; the
+			// sameAddressProbeErrorMatcher wrapper enforces that, so a message that dials a different
+			// address than it requested must be rejected.
+			name:     "rejects compatibility-requirements readiness probe whose dial address differs from the requested address",
+			interval: BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsControllersPod, "ProbeError", "Readiness probe error: Get \"http://10.128.0.99:9440/readyz\": dial tcp 10.128.0.50:9440: connect: connection refused\nbody: \n", 30),
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:              "allows unrelated compatibility-requirements readiness failure through universal matcher",
+			interval:          BuildTestDupeKubeEvent(compatibilityRequirementsNamespace, compatibilityRequirementsControllersPod, "Unhealthy", "Readiness probe failed: HTTP probe failed with statuscode: 500", 21),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "KubeletUnhealthyReadinessProbeFailed",
+		},
+		{
 			name: "keeps no CNI pod sandbox event rejected",
 			interval: BuildTestDupeKubeEvent("openshift-insights", "periodic-gathering-7rrt5-bx7ts", "FailedCreatePodSandBox",
 				"Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox: no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
@@ -626,6 +745,11 @@ func TestSingleNodeUpgradeBoundedAllowancesTakePrecedenceOverOverlapMatchers(t *
 		consoleReadinessProbeError   = "Readiness probe error: Get \"https://10.128.0.18:8443/readyz\": dial tcp 10.128.0.18:8443: connect: connection refused\nbody: \n"
 		machineAPIStartupProbeError  = "Startup probe error: Get \"http://10.128.0.56:9441/readyz\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)\nbody: \n"
 		machineAPIStartupProbeFailed = "Startup probe failed: Get \"http://10.128.0.56:9441/readyz\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+
+		compatibilityRequirementsReadinessProbeError = "Readiness probe error: Get \"http://10.128.0.99:9440/readyz\": dial tcp 10.128.0.99:9440: connect: connection refused\nbody: \n"
+		compatibilityRequirementsNamespace           = "openshift-compatibility-requirements-operator"
+		compatibilityRequirementsOperatorPod         = "compatibility-requirements-operator-86dbfd6999-kgvvq"
+		compatibilityRequirementsControllersPod      = "compatibility-requirements-controllers-7b6cbb6f9-xhbk5"
 	)
 
 	eventTime := time.Unix(1728589300, 0)
@@ -739,6 +863,36 @@ func TestSingleNodeUpgradeBoundedAllowancesTakePrecedenceOverOverlapMatchers(t *
 			expectedAllowName: "KubeAPIServerProgressingDuringSingleNodeUpgrade",
 		},
 		{
+			name:     "rejects compatibility-requirements operator probe above bound during TargetDown",
+			interval: buildEvent(compatibilityRequirementsNamespace, compatibilityRequirementsOperatorPod, "ProbeError", compatibilityRequirementsReadinessProbeError, singleNodeUpgradeCompatibilityRequirementsProbeRepeatThreshold+1),
+		},
+		{
+			name:     "rejects compatibility-requirements controllers probe above bound during TargetDown",
+			interval: buildEvent(compatibilityRequirementsNamespace, compatibilityRequirementsControllersPod, "ProbeError", compatibilityRequirementsReadinessProbeError, singleNodeUpgradeCompatibilityRequirementsProbeRepeatThreshold+1),
+		},
+		{
+			name:     "rejects compatibility-requirements probe for an unmanaged pod name during TargetDown",
+			interval: buildEvent(compatibilityRequirementsNamespace, "compatibility-requirements-operator", "ProbeError", compatibilityRequirementsReadinessProbeError, singleNodeUpgradeCompatibilityRequirementsProbeRepeatThreshold),
+		},
+		{
+			name:     "rejects compatibility-requirements probe on another port during TargetDown",
+			interval: buildEvent(compatibilityRequirementsNamespace, compatibilityRequirementsControllersPod, "ProbeError", "Readiness probe error: Get \"http://10.128.0.99:8443/readyz\": dial tcp 10.128.0.99:8443: connect: connection refused\nbody: \n", singleNodeUpgradeCompatibilityRequirementsProbeRepeatThreshold),
+		},
+		{
+			name:     "rejects compatibility-requirements probe with mismatched dial address during TargetDown",
+			interval: buildEvent(compatibilityRequirementsNamespace, compatibilityRequirementsControllersPod, "ProbeError", "Readiness probe error: Get \"http://10.128.0.99:9440/readyz\": dial tcp 10.128.0.50:9440: connect: connection refused\nbody: \n", singleNodeUpgradeCompatibilityRequirementsProbeRepeatThreshold),
+		},
+		{
+			name:              "allows bounded compatibility-requirements operator probe during TargetDown",
+			interval:          buildEvent(compatibilityRequirementsNamespace, compatibilityRequirementsOperatorPod, "ProbeError", compatibilityRequirementsReadinessProbeError, singleNodeUpgradeCompatibilityRequirementsProbeRepeatThreshold),
+			expectedAllowName: "SingleNodeCompatibilityRequirementsOperatorReadinessProbeError",
+		},
+		{
+			name:              "allows bounded compatibility-requirements controllers probe during TargetDown",
+			interval:          buildEvent(compatibilityRequirementsNamespace, compatibilityRequirementsControllersPod, "ProbeError", compatibilityRequirementsReadinessProbeError, singleNodeUpgradeCompatibilityRequirementsProbeRepeatThreshold),
+			expectedAllowName: "SingleNodeCompatibilityRequirementsControllersReadinessProbeError",
+		},
+		{
 			name: "keeps no CNI pod sandbox event rejected during overlap windows",
 			interval: buildEvent("openshift-insights", "periodic-gathering-7rrt5-bx7ts", "FailedCreatePodSandBox",
 				"Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox: no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
@@ -759,6 +913,37 @@ func TestSingleNodeUpgradeBoundedAllowancesTakePrecedenceOverOverlapMatchers(t *
 			require.NotNil(t, matcher)
 			assert.Equal(t, test.expectedAllowName, matcher.Name())
 		})
+	}
+}
+
+// TestCompatibilityRequirementsProbeNotAllowedByStableRegistry confirms the compatibility-requirements
+// readiness ProbeError allowances exist only in the upgrade registry. On a normal (stable) system the
+// evaluator must not tolerate these repeats, even on SingleReplica, so a genuine steady-state blow-up is
+// still caught.
+func TestCompatibilityRequirementsProbeNotAllowedByStableRegistry(t *testing.T) {
+	const (
+		namespace                     = "openshift-compatibility-requirements-operator"
+		operatorPod                   = "compatibility-requirements-operator-86dbfd6999-kgvvq"
+		controllersPod                = "compatibility-requirements-controllers-7b6cbb6f9-xhbk5"
+		readinessProbeConnectionError = "Readiness probe error: Get \"http://10.128.0.99:9440/readyz\": dial tcp 10.128.0.99:9440: connect: connection refused\nbody: \n"
+	)
+
+	stableRegistry := NewUniversalPathologicalEventMatchers(nil, nil)
+
+	for _, name := range []string{
+		"SingleNodeCompatibilityRequirementsOperatorReadinessProbeError",
+		"SingleNodeCompatibilityRequirementsControllersReadinessProbeError",
+	} {
+		if _, err := stableRegistry.GetMatcherByName(name); err == nil {
+			t.Errorf("matcher %q must not be registered in the stable registry", name)
+		}
+	}
+
+	for _, pod := range []string{operatorPod, controllersPod} {
+		interval := BuildTestDupeKubeEvent(namespace, pod, "ProbeError", readinessProbeConnectionError, 30)
+		allowed, matcher := stableRegistry.AllowedByAny(interval, v1.SingleReplicaTopologyMode)
+		require.False(t, allowed, "stable registry must not allow compatibility-requirements probe for pod %s", pod)
+		require.Nil(t, matcher)
 	}
 }
 
