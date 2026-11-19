@@ -108,7 +108,7 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) Cleanup(ctx context.Contex
 // generateTestCase asserts that an OpenShift managed namespace sets the enforce, audit and
 // warn pod-security.kubernetes.io/ labels and no longer opts into the PSA label syncer.
 // Both are prerequisites for retiring the syncer without weakening PSA enforcement.
-func (n *noPodSecurityAdmissionLabelNamespaceChecker) generateTestCase(namespace corev1.Namespace, isMicroShift bool, isHyperShift bool) []*junitapi.JUnitTestCase {
+func (n *noPodSecurityAdmissionLabelNamespaceChecker) generateTestCase(ctx context.Context, namespace corev1.Namespace, isMicroShift bool, isHyperShift bool) []*junitapi.JUnitTestCase {
 	if n.configClient == nil || n.kubeClient == nil || n.wngCollector == nil {
 		return nil
 	}
@@ -140,7 +140,7 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) generateTestCase(namespace
 		// request with this run and the namespace under test; that is what lets the
 		// resulting warning be attributed here rather than to whichever namespace pops
 		// the buffer next.
-		dryRunCtx := context.WithValue(context.Background(), nsKey{}, requestTag{
+		dryRunCtx := context.WithValue(ctx, nsKey{}, requestTag{
 			runID:     n.wngCollector.runID,
 			namespace: nsCopy.Name,
 		})
@@ -293,7 +293,7 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) CollectData(ctx context.Co
 		if !isManagedNamespace {
 			continue
 		}
-		junits = append(junits, n.generateTestCase(ns, isMicroShift, isHyperShift)...)
+		junits = append(junits, n.generateTestCase(ctx, ns, isMicroShift, isHyperShift)...)
 	}
 	return nil, junits, nil
 }
@@ -358,8 +358,6 @@ type requestTag struct {
 }
 
 type collectedWarning struct {
-	// namespace is empty for requests that were not tagged by this run, such as the
-	// List calls in CollectData.
 	namespace string
 	text      string
 }
@@ -379,14 +377,14 @@ func (w *warningCollector) HandleWarningHeaderWithContext(ctx context.Context, c
 	// client-go invokes this synchronously, on the goroutine making the request, with
 	// that request's own context - so the tag identifies the caller unambiguously.
 	// A tag from a different run is treated as untagged rather than trusted.
-	namespace := ""
-	if tag, ok := ctx.Value(nsKey{}).(requestTag); ok && tag.runID == w.runID {
-		namespace = tag.namespace
+	tag, ok := ctx.Value(nsKey{}).(requestTag)
+	if !ok || tag.runID != w.runID || tag.namespace == "" {
+		return
 	}
 
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	w.warnings = append(w.warnings, collectedWarning{namespace: namespace, text: text})
+	w.warnings = append(w.warnings, collectedWarning{namespace: tag.namespace, text: text})
 }
 
 func (w *warningCollector) PopWarnings(namespace string) []string {
@@ -394,11 +392,14 @@ func (w *warningCollector) PopWarnings(namespace string) []string {
 	defer w.mu.Unlock()
 
 	var out []string
+	remaining := w.warnings[:0]
 	for _, warning := range w.warnings {
 		if warning.namespace == namespace {
 			out = append(out, warning.text)
+		} else {
+			remaining = append(remaining, warning)
 		}
 	}
-	w.warnings = nil
+	w.warnings = remaining
 	return out
 }
