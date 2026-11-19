@@ -30,6 +30,10 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] API Server Error M
 		oc.SetupProject()
 		debugNamespace := oc.Namespace()
 
+		g.By("0.1) Set privileged pod security labels on debug namespace")
+		_, err := oc.AsAdmin().WithoutNamespace().Run("label").Args("ns", debugNamespace, "security.openshift.io/scc.podSecurityLabelSync=false", "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "pod-security.kubernetes.io/warn=privileged", "--overwrite").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		g.By("1) Create log arrays")
 		podAbnormalLogs := make([]string, 0)
 		masterNodeAbnormalLogs := make([]string, 0)
@@ -85,7 +89,7 @@ sed -E "s/%s/../g" /tmp/OCP-39601-kaso-errors.log > /tmp/OCP-39601-kaso-filtered
 echo '%s'
 cat /tmp/OCP-39601-kaso-filtered.log
 echo '%s'`, frontwords, keywords, afterwords, exceptions, format, startTag, endTag)
-		masterNode, err := oc.WithoutNamespace().Run("get").Args("po", "-n", clusterOperator, "-o", `jsonpath={.items[0].spec.nodeName}`).Output()
+		masterNode, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("po", "-n", clusterOperator, "-o", `jsonpath={.items[0].spec.nodeName}`).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("4.1) Get log file from %s", masterNode))
@@ -221,6 +225,10 @@ echo '%s'`, keywords, exceptions, startTag, endTag)
 		g.By("0) Create test namespace for debug pods")
 		oc.SetupProject()
 		debugNamespace := oc.Namespace()
+
+		g.By("0.1) Set privileged pod security labels on debug namespace")
+		_, err := oc.AsAdmin().WithoutNamespace().Run("label").Args("ns", debugNamespace, "security.openshift.io/scc.podSecurityLabelSync=false", "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "pod-security.kubernetes.io/warn=privileged", "--overwrite").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("1) Create log arrays")
 		masterNodeAbnormalLogs := make([]string, 0)

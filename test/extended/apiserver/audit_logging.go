@@ -404,6 +404,10 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Audit Logging and 
 		oc.SetupProject()
 		debugNamespace := oc.Namespace()
 
+		g.By("0.1) Set privileged pod security labels on debug namespace")
+		_, err = oc.AsAdmin().WithoutNamespace().Run("label").Args("ns", debugNamespace, "security.openshift.io/scc.podSecurityLabelSync=false", "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "pod-security.kubernetes.io/warn=privileged", "--overwrite").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		g.By("1) Create log arrays")
 		podAbnormalLogs := make([]string, 0)
 		externalPanicLogs := make([]string, 0)
@@ -439,7 +443,7 @@ while read line; do
     grep "$line" /tmp/OCP-38865-oaso-errors.log | head -1
 done < <(grep -oP "\w+?\.go\:[0-9]+" /tmp/OCP-38865-oaso-uniq-errors.log | uniq | head -10)
 echo '%s'`, frontwords, keywords, afterwords, exceptions, startTag, format, endTag)
-		masterNode, err := oc.WithoutNamespace().Run("get").Args("po", "-n", clusterOperator, "-o", `jsonpath={.items[0].spec.nodeName}`).Output()
+		masterNode, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("po", "-n", clusterOperator, "-o", `jsonpath={.items[0].spec.nodeName}`).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("4.1) Get log file from %s", masterNode))
@@ -559,6 +563,10 @@ var _ = g.Describe("[sig-api-machinery] Kube APIServer Error Checking", func() {
 		g.By("0) Create test namespace for debug pods")
 		oc.SetupProject()
 		debugNamespace := oc.Namespace()
+
+		g.By("0.1) Set privileged pod security labels on debug namespace")
+		_, err = oc.AsAdmin().WithoutNamespace().Run("label").Args("ns", debugNamespace, "security.openshift.io/scc.podSecurityLabelSync=false", "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "pod-security.kubernetes.io/warn=privileged", "--overwrite").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		var (
 			keywords = "(error|fail|tcp dial timeout|connect: connection refused|Unable to connect to the server: dial tcp|remote error: tls: bad certificate)"
