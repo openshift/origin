@@ -400,6 +400,14 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Audit Logging and 
 			g.Skip("HyperShift hosts the control plane externally; apiserver logs are not accessible via node debug")
 		}
 
+		g.By("0) Create test namespace for debug pods")
+		oc.SetupProject()
+		debugNamespace := oc.Namespace()
+
+		g.By("0.1) Set privileged pod security labels on debug namespace")
+		_, err = oc.AsAdmin().WithoutNamespace().Run("label").Args("ns", debugNamespace, "security.openshift.io/scc.podSecurityLabelSync=false", "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "pod-security.kubernetes.io/warn=privileged", "--overwrite").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		g.By("1) Create log arrays")
 		podAbnormalLogs := make([]string, 0)
 		externalPanicLogs := make([]string, 0)
@@ -435,11 +443,11 @@ while read line; do
     grep "$line" /tmp/OCP-38865-oaso-errors.log | head -1
 done < <(grep -oP "\w+?\.go\:[0-9]+" /tmp/OCP-38865-oaso-uniq-errors.log | uniq | head -10)
 echo '%s'`, frontwords, keywords, afterwords, exceptions, startTag, format, endTag)
-		masterNode, err := oc.WithoutNamespace().Run("get").Args("po", "-n", clusterOperator, "-o", `jsonpath={.items[0].spec.nodeName}`).Output()
+		masterNode, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("po", "-n", clusterOperator, "-o", `jsonpath={.items[0].spec.nodeName}`).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("4.1) Get log file from %s", masterNode))
-		podLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=openshift-kube-apiserver"}, "bash", "-c", cmd)
+		podLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=" + debugNamespace + ""}, "bash", "-c", cmd)
 		o.Expect(checkLogFileErr).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("4.2) Format log file from %s", masterNode))
@@ -468,7 +476,7 @@ echo '%s'`, exceptions, startTag, exceptions, endTag)
 
 		for i, masterNode := range masterNodes {
 			g.By(fmt.Sprintf("5.%d) Get log file from %s", i+1, masterNode))
-			externalLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=openshift-kube-apiserver"}, "bash", "-c", cmd)
+			externalLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=" + debugNamespace + ""}, "bash", "-c", cmd)
 			o.Expect(checkLogFileErr).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("5.%d.1) Format log file from %s", i+1, masterNode))
@@ -494,7 +502,7 @@ echo '%s'`, frontwords, keywords, afterwords, exceptions, startTag, format, endT
 
 		for i, masterNode := range masterNodes {
 			g.By(fmt.Sprintf("6.%d) Get log file from %s", i+1, masterNode))
-			masterNodeLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=openshift-kube-apiserver"}, "bash", "-c", cmd)
+			masterNodeLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=" + debugNamespace + ""}, "bash", "-c", cmd)
 			o.Expect(checkLogFileErr).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("6.%d.1) Format log file from %s", i+1, masterNode))
@@ -521,7 +529,7 @@ echo '%s'`, keywords, exceptions, startTag, endTag)
 
 		for i, masterNode := range masterNodes {
 			g.By(fmt.Sprintf("7.%d) Get log file from %s", i+1, masterNode))
-			auditLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=openshift-kube-apiserver"}, "bash", "-c", cmd)
+			auditLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=" + debugNamespace + ""}, "bash", "-c", cmd)
 			o.Expect(checkLogFileErr).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("7.%d.1) Format log file from %s", i+1, masterNode))
@@ -551,6 +559,14 @@ var _ = g.Describe("[sig-api-machinery] Kube APIServer Error Checking", func() {
 		if isHyperShift {
 			g.Skip("HyperShift hosts the control plane externally; apiserver logs are not accessible via node debug")
 		}
+
+		g.By("0) Create test namespace for debug pods")
+		oc.SetupProject()
+		debugNamespace := oc.Namespace()
+
+		g.By("0.1) Set privileged pod security labels on debug namespace")
+		_, err = oc.AsAdmin().WithoutNamespace().Run("label").Args("ns", debugNamespace, "security.openshift.io/scc.podSecurityLabelSync=false", "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "pod-security.kubernetes.io/warn=privileged", "--overwrite").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		var (
 			keywords = "(error|fail|tcp dial timeout|connect: connection refused|Unable to connect to the server: dial tcp|remote error: tls: bad certificate)"
@@ -590,7 +606,7 @@ var _ = g.Describe("[sig-api-machinery] Kube APIServer Error Checking", func() {
 		cmd = fmt.Sprintf(`grep -rhiE '%s' /var/log/pods/openshift-kube-apiserver_kube-apiserver*/*/* | grep -iEv '%s' | grep -oiE '%s' | sed -E 's/%s/../g'`, regexToGrep2, exceptions, regexToGrep2, format)
 		var kasPodLogFiles []string
 		for i := 0; i < len(masterName); i++ {
-			logfile, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args("-n", "openshift-kube-apiserver", "node/"+masterName[i], "--", "chroot", "/host", "bash", "-c", cmd).OutputToFile("OCP-43889/kas_pod.log." + masterName[i])
+			logfile, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args("-n", debugNamespace, "node/"+masterName[i], "--", "chroot", "/host", "bash", "-c", cmd).OutputToFile("OCP-43889/kas_pod.log." + masterName[i])
 			o.Expect(err).NotTo(o.HaveOccurred())
 			kasPodLogFiles = append(kasPodLogFiles, logfile)
 		}
@@ -603,7 +619,7 @@ var _ = g.Describe("[sig-api-machinery] Kube APIServer Error Checking", func() {
 		cmd = fmt.Sprintf(`grep -rhiE '%s' /var/log/kube-apiserver/audit*.log | grep -iEv '%s' | grep -oiE '%s' | sed -E 's/%s/../g'`, regexToGrep2, exceptions, regexToGrep2, format)
 		var kasAuditLogFiles []string
 		for i := 0; i < len(masterName); i++ {
-			logfile, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args("-n", "openshift-kube-apiserver", "node/"+masterName[i], "--", "chroot", "/host", "bash", "-c", cmd).OutputToFile("OCP-43889/kas_audit.log." + masterName[i])
+			logfile, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args("-n", debugNamespace, "node/"+masterName[i], "--", "chroot", "/host", "bash", "-c", cmd).OutputToFile("OCP-43889/kas_audit.log." + masterName[i])
 			o.Expect(err).NotTo(o.HaveOccurred())
 			kasAuditLogFiles = append(kasAuditLogFiles, logfile)
 		}
