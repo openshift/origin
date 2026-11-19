@@ -26,6 +26,10 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] API Server Error M
 	})
 
 	g.It("[OTP][OCP-39601] should not have critical errors in openshift-kube-apiserver related log files", ote.Informing(), func() {
+		g.By("0) Create test namespace for debug pods")
+		oc.SetupProject()
+		debugNamespace := oc.Namespace()
+
 		g.By("1) Create log arrays")
 		podAbnormalLogs := make([]string, 0)
 		masterNodeAbnormalLogs := make([]string, 0)
@@ -85,7 +89,7 @@ echo '%s'`, frontwords, keywords, afterwords, exceptions, format, startTag, endT
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("4.1) Get log file from %s", masterNode))
-		podLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=openshift-kube-apiserver"}, "bash", "-c", cmd)
+		podLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=" + debugNamespace + ""}, "bash", "-c", cmd)
 		o.Expect(checkLogFileErr).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("4.2) Format log file from %s", masterNode))
@@ -111,7 +115,7 @@ echo '%s'`, frontwords, keywords, afterwords, exceptions, format, startTag, endT
 
 		for i, masterNode := range masterNodes {
 			g.By(fmt.Sprintf("5.%d) Get log file from %s", i+1, masterNode))
-			masterNodeLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=openshift-kube-apiserver"}, "bash", "-c", cmd)
+			masterNodeLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=" + debugNamespace + ""}, "bash", "-c", cmd)
 			o.Expect(checkLogFileErr).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("5.%d.1) Format log file from %s", i+1, masterNode))
@@ -141,7 +145,7 @@ echo '%s'`, exceptions, startTag, exceptions, endTag)
 
 		for i, masterNode := range masterNodes {
 			g.By(fmt.Sprintf("6.%d) Get panic log file from %s", i+1, masterNode))
-			externalLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=openshift-kube-apiserver"}, "bash", "-c", cmd)
+			externalLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=" + debugNamespace + ""}, "bash", "-c", cmd)
 			o.Expect(checkLogFileErr).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("6.%d.1) Format panic log file from %s", i+1, masterNode))
@@ -194,7 +198,7 @@ echo '%s'`, keywords, exceptions, startTag, endTag)
 
 		for i, masterNode := range masterNodes {
 			g.By(fmt.Sprintf("7.%d) Get audit log file from %s", i+1, masterNode))
-			auditLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=openshift-kube-apiserver"}, "bash", "-c", cmd)
+			auditLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=" + debugNamespace + ""}, "bash", "-c", cmd)
 			o.Expect(checkLogFileErr).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("7.%d.1) Format audit log file from %s", i+1, masterNode))
@@ -214,6 +218,10 @@ echo '%s'`, keywords, exceptions, startTag, endTag)
 	})
 
 	g.It("[OTP][OCP-42937] should not have critical errors in oauth-apiserver related log files", ote.Informing(), func() {
+		g.By("0) Create test namespace for debug pods")
+		oc.SetupProject()
+		debugNamespace := oc.Namespace()
+
 		g.By("1) Create log arrays")
 		masterNodeAbnormalLogs := make([]string, 0)
 		externalPanicLogs := make([]string, 0)
@@ -249,7 +257,7 @@ echo '%s'`, frontwords, keywords, afterwords, exceptions, format, startTag, endT
 
 		for i, masterNode := range masterNodes {
 			g.By(fmt.Sprintf("4.%d) Get log file from %s", i+1, masterNode))
-			masterNodeLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=openshift-kube-apiserver"}, "bash", "-c", cmd)
+			masterNodeLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=" + debugNamespace + ""}, "bash", "-c", cmd)
 			o.Expect(checkLogFileErr).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("4.%d.1) Format log file from %s", i+1, masterNode))
@@ -279,7 +287,7 @@ echo '%s'`, exceptions, startTag, exceptions, endTag)
 
 		for i, masterNode := range masterNodes {
 			g.By(fmt.Sprintf("5.%d) Get panic log file from %s", i+1, masterNode))
-			externalLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=openshift-kube-apiserver"}, "bash", "-c", cmd)
+			externalLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=" + debugNamespace + ""}, "bash", "-c", cmd)
 			o.Expect(checkLogFileErr).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("5.%d.1) Format panic log file from %s", i+1, masterNode))
@@ -306,7 +314,7 @@ echo '%s'`, keywords, exceptions, startTag, endTag)
 
 		for i, masterNode := range masterNodes {
 			g.By(fmt.Sprintf("6.%d) Get audit log file from %s", i+1, masterNode))
-			auditLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=openshift-kube-apiserver"}, "bash", "-c", cmd)
+			auditLogs, checkLogFileErr := compat_otp.DebugNodeRetryWithOptionsAndChroot(oc, masterNode, []string{"--quiet=true", "--to-namespace=" + debugNamespace + ""}, "bash", "-c", cmd)
 			o.Expect(checkLogFileErr).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("6.%d.1) Format audit log file from %s", i+1, masterNode))
