@@ -3,7 +3,6 @@ package psalabelchecker
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -95,10 +94,6 @@ var hypershiftExceptedNamespaces = map[string]string{
 	"openshift-route-controller-manager": "CNTRLPLANE-4825",
 }
 
-// psaViolationRegex is used later to check dry-run warnings for
-// namespace violations.
-var psaViolationRegex = regexp.MustCompile(`existing pods in namespace "([^"]+)" violate the new PodSecurity enforce level "([^"]+)"`)
-
 type noPodSecurityAdmissionLabelNamespaceChecker struct {
 	kubeClient   kubernetes.Interface
 	configClient configv1client.Interface
@@ -129,13 +124,6 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) generateTestCase(namespace
 	}
 
 	problems := []string{}
-	for _, key := range []string{psapi.EnforceLevelLabel, psapi.AuditLevelLabel, psapi.WarnLevelLabel} {
-		_, ok := nsCopy.Labels[key]
-		if !ok {
-			problems = append(problems, fmt.Sprintf("%s is not set", key))
-			continue
-		}
-	}
 
 	// The namespace needs to be checked if it can enforce restricted PSS.
 	// This check occurs only if the namespace does not have enforce label.
@@ -143,6 +131,8 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) generateTestCase(namespace
 	// enforcement applied.
 	_, ok := nsCopy.Labels[psapi.EnforceLevelLabel]
 	if !ok {
+		problems = append(problems, fmt.Sprintf("%s is not set", psapi.EnforceLevelLabel))
+
 		nsCopy.Labels[psapi.EnforceLevelLabel] = string(psapi.LevelRestricted)
 		nsCopy.Labels[psapi.EnforceVersionLabel] = psapi.LatestVersion().String()
 
@@ -165,12 +155,24 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) generateTestCase(namespace
 			problems = append(problems, fmt.Sprintf("namespace %s failed to update with dry run: %v", nsCopy.Name, err))
 		}
 
+		// Every warning here came from this run's tagged dry-run, so all of them describe
+		// applying restricted to this namespace and none needs filtering out. Reporting
+		// them all keeps the per-pod detail and any caveat that only part of the
+		// namespace was evaluated, both of which name what actually has to be fixed.
+		// Joined into one entry so the enforce findings stay together.
 		warnings := n.wngCollector.PopWarnings(nsCopy.Name)
 
-		for _, warning := range warnings {
-			if psaViolationRegex.MatchString(warning) {
-				problems = append(problems, fmt.Sprintf("[URGENT] namespace %s cannot enforce restricted PSS: %s", nsCopy.Name, warning))
-			}
+		if len(warnings) > 0 {
+			problems = append(problems, fmt.Sprintf("[URGENT] dry-run of %q enforcement on namespace %s reported: %s",
+				psapi.LevelRestricted, nsCopy.Name, strings.Join(warnings, "; ")))
+		}
+	}
+
+	for _, key := range []string{psapi.AuditLevelLabel, psapi.WarnLevelLabel} {
+		_, ok := nsCopy.Labels[key]
+		if !ok {
+			problems = append(problems, fmt.Sprintf("%s is not set", key))
+			continue
 		}
 	}
 
