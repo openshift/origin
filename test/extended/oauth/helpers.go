@@ -42,10 +42,10 @@ func deployOAuthServerWithHTPasswd(oc *util.CLI, username string, idpNames ...st
 			Name:          name,
 			MappingMethod: "claim",
 			Provider:      *providerConfig,
-			// only the first provider logs users in, so we know where
-			// the identity comes from (see the comment above)
+			// login must be enabled on every provider so the oauth server
+			// registers per-provider /login/<name> paths
 			UseAsChallenger: i == 0,
-			UseAsLogin:      i == 0,
+			UseAsLogin:      true,
 		})
 	}
 
