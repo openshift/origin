@@ -2,6 +2,8 @@ package authproxy
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net"
@@ -34,6 +36,12 @@ import (
 
 const (
 	proxyTrafficPollInterval = 10 * time.Second
+
+	tlsVerifyPollInterval = 10 * time.Second
+	tlsVerifyTimeout      = 2 * time.Minute
+
+	certPropagationPollInterval = 10 * time.Second
+	certPropagationTimeout      = 3 * time.Minute
 )
 
 var (
@@ -70,12 +78,15 @@ func DeployAuthProxyComponent(ctx context.Context, oc *exutil.CLI) (authProxy Au
 	authProxy.oc = oc
 	kubeClient := oc.AdminKubeClient()
 
+	nsLabels := ComponentProxyTestLabels()
+	nsLabels["pod-security.kubernetes.io/enforce"] = "restricted"
+
 	namespace, err := kubeClient.CoreV1().
 		Namespaces().
 		Create(ctx, &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "e2e-proxy-",
-				Labels:       ComponentProxyTestLabels(),
+				Labels:       nsLabels,
 			},
 		}, metav1.CreateOptions{})
 	if err != nil {
@@ -524,7 +535,7 @@ func (aP *AuthenticationProxyComponent) RotateProxyCertificates(ctx context.Cont
 	}
 
 	g.GinkgoWriter.Println("Waiting for authentication proxy TLS Secret to propagate to pod volume")
-	err = wait.PollUntilContextTimeout(ctx, 10*time.Second, 3*time.Minute, true, func(ctx context.Context) (done bool, err error) {
+	err = wait.PollUntilContextTimeout(ctx, certPropagationPollInterval, certPropagationTimeout, true, func(ctx context.Context) (done bool, err error) {
 		return aP.podFileContentMatches(ctx, *squidPod, "squid", "/etc/squid/tls/tls.crt", certs.serverCertPEM)
 	})
 	if err != nil {
@@ -535,18 +546,55 @@ func (aP *AuthenticationProxyComponent) RotateProxyCertificates(ctx context.Cont
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("%w: before authentication proxy reconfiguration: %w", ErrProxyCertificateRotationIncomplete, err)
 	}
-	output, err := adminClient.Run("exec").Args(
-		"-n", aP.namespace,
-		squidPod.Name,
-		"-c", "squid",
-		"--", "/usr/sbin/squid", "-k", "reconfigure",
-	).Output()
+	output, err := adminClient.Run("exec").
+		Args(
+			"-n", aP.namespace,
+			squidPod.Name,
+			"-c", "squid",
+			"--", "/usr/sbin/squid", "-k", "reconfigure",
+		).
+		Output()
 	if err != nil {
 		return nil, fmt.Errorf("%w: authentication proxy reconfiguration failed (%q): %w", ErrProxyCertificateRotationIncomplete, string(output), err)
 	}
 
+	g.GinkgoWriter.Println("Verifying the authentication proxy serves the rotated certificate")
+	if err := aP.verifyProxyServesCertificate(ctx, certs.serviceHost, certs.caCertPEM); err != nil {
+		return nil, fmt.Errorf("%w: proxy does not serve the rotated certificate: %w", ErrProxyCertificateRotationIncomplete, err)
+	}
+
 	aP.CACertPEM = certs.caCertPEM
 	return aP.CACertPEM, nil
+}
+
+// verifyProxyServesCertificate performs a TLS handshake against the running proxy,
+// trusting only caCertPEM. A successful `squid -k reconfigure` does not prove the
+// TLS listener picked up the new certificate.
+func (aP *AuthenticationProxyComponent) verifyProxyServesCertificate(ctx context.Context, serviceHost string, caCertPEM []byte) error {
+	roots := x509.NewCertPool()
+	if !roots.AppendCertsFromPEM(caCertPEM) {
+		return errors.New("no CA certificate in rotated PEM")
+	}
+
+	return exutil.ForwardPortAndExecute(squidServiceName, aP.namespace, strconv.Itoa(int(squidHTTPSPort)), func(localPort int) error {
+		tlsAddr := net.JoinHostPort("127.0.0.1", strconv.Itoa(localPort))
+		return wait.PollUntilContextTimeout(ctx, tlsVerifyPollInterval, tlsVerifyTimeout, true, func(ctx context.Context) (bool, error) {
+			dialer := &tls.Dialer{
+				Config: &tls.Config{
+					ServerName: serviceHost,
+					RootCAs:    roots,
+				},
+			}
+			conn, err := dialer.DialContext(ctx, "tcp", tlsAddr)
+			if err != nil {
+				// verifyProxyServesCertificate retries here: the proxy may still serve
+				// the old certificate for a while after reconfiguration.
+				g.GinkgoWriter.Printf("authentication proxy not yet serving the rotated certificate: %v\n", err)
+				return false, nil
+			}
+			return true, conn.Close()
+		})
+	})
 }
 
 // certificateRotationResources performs no writes and does not validate PEM syntax,
