@@ -231,6 +231,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/oauth-apiserver-tests-ext.gz",
 	},
 	{
+		imageTag:   "ovn-kubernetes",
+		binaryPath: "/usr/bin/ovn-kubernetes-tests-ext.gz",
+	},
+	{
 		imageTag:   "service-ca-operator",
 		binaryPath: "/usr/bin/service-ca-operator-tests-ext.gz",
 	},
