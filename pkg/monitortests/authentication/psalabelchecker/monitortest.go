@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -145,8 +146,17 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) generateTestCase(namespace
 		nsCopy.Labels[psapi.EnforceLevelLabel] = string(psapi.LevelRestricted)
 		nsCopy.Labels[psapi.EnforceVersionLabel] = psapi.LatestVersion().String()
 
+		// The collector is shared by every API call this monitor test makes, so tag the
+		// request with this run and the namespace under test; that is what lets the
+		// resulting warning be attributed here rather than to whichever namespace pops
+		// the buffer next.
+		dryRunCtx := context.WithValue(context.Background(), nsKey{}, requestTag{
+			runID:     n.wngCollector.runID,
+			namespace: nsCopy.Name,
+		})
+
 		_, err := n.kubeClient.CoreV1().Namespaces().Update(
-			context.Background(),
+			dryRunCtx,
 			nsCopy,
 			metav1.UpdateOptions{DryRun: []string{metav1.DryRunAll}},
 		)
@@ -155,17 +165,14 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) generateTestCase(namespace
 			problems = append(problems, fmt.Sprintf("namespace %s failed to update with dry run: %v", nsCopy.Name, err))
 		}
 
-		warnings := n.wngCollector.PopWarnings()
+		warnings := n.wngCollector.PopWarnings(nsCopy.Name)
 
 		for _, warning := range warnings {
 			if psaViolationRegex.MatchString(warning) {
-				problems = append(problems, fmt.Sprintf("namespace %s cannot enforce restricted PSS: %s", nsCopy.Name, warning))
+				problems = append(problems, fmt.Sprintf("[URGENT] namespace %s cannot enforce restricted PSS: %s", nsCopy.Name, warning))
 			}
 		}
 	}
-
-	// reset nsCopy since we modified its labels...
-	nsCopy = namespace.DeepCopy()
 
 	// The syncer opt-in becomes a no-op once the syncer is disabled, so it has to be
 	// cleaned up rather than left behind as a false signal.
@@ -307,8 +314,8 @@ func (n *noPodSecurityAdmissionLabelNamespaceChecker) PrepareCollection(ctx cont
 // StartCollection implements monitortestframework.MonitorTest.
 func (n *noPodSecurityAdmissionLabelNamespaceChecker) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	cfg := rest.CopyConfig(adminRESTConfig)
-	n.wngCollector = &warningCollector{}
-	cfg.WarningHandler = n.wngCollector
+	n.wngCollector = &warningCollector{runID: uuid.New().String()}
+	cfg.WarningHandlerWithContext = n.wngCollector
 
 	var err error
 
@@ -334,22 +341,62 @@ func NewAnalyzer() monitortestframework.MonitorTest {
 	return &noPodSecurityAdmissionLabelNamespaceChecker{}
 }
 
+// nsKey carries a requestTag on a request context so the collector can attribute the
+// warnings that request provokes.
+type nsKey struct{}
+
+// requestTag identifies which run issued a request, and for which namespace.
+// Namespace alone is not a sufficient tag: two runs inspecting the same namespace
+// would be indistinguishable, so the run ID is what ties a tag to one specific run.
+// It is a UUID rather than a sequence number so that it cannot coincide with an ID
+// minted by any other collector.
+type requestTag struct {
+	runID     string
+	namespace string
+}
+
+type collectedWarning struct {
+	// namespace is empty for requests that were not tagged by this run, such as the
+	// List calls in CollectData.
+	namespace string
+	text      string
+}
+
 type warningCollector struct {
+	// runID is fixed at construction and read-only thereafter, so it needs no locking.
+	runID    string
 	mu       sync.Mutex
-	warnings []string
+	warnings []collectedWarning
 }
 
-// HandleWarningHeader is invoked by client-go whenever the API server returns a "Warning" HTTP header.
-func (w *warningCollector) HandleWarningHeader(code int, agent string, text string) {
+// Using HandleWarningHeaderWithContext allows us to ensure that,
+// even if there are other warning handlers set up in the tests,
+// our context provided is unique enough to filter out any warnings
+// we do not need.
+func (w *warningCollector) HandleWarningHeaderWithContext(ctx context.Context, code int, agent string, text string) {
+	// client-go invokes this synchronously, on the goroutine making the request, with
+	// that request's own context - so the tag identifies the caller unambiguously.
+	// A tag from a different run is treated as untagged rather than trusted.
+	namespace := ""
+	if tag, ok := ctx.Value(nsKey{}).(requestTag); ok && tag.runID == w.runID {
+		namespace = tag.namespace
+	}
+
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	w.warnings = append(w.warnings, text)
+	w.warnings = append(w.warnings, collectedWarning{namespace: namespace, text: text})
 }
 
-func (w *warningCollector) PopWarnings() []string {
+func (w *warningCollector) PopWarnings(namespace string) []string {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	out := w.warnings
+
+	var out []string
+	for _, warning := range w.warnings {
+		if warning.namespace == namespace {
+			out = append(out, warning.text)
+		}
+	}
 	w.warnings = nil
 	return out
 }
