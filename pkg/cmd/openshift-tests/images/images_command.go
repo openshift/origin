@@ -197,6 +197,8 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 	openshiftDefaults := image.OriginalImages()
 	openshiftUpdated := image.GetMappedImages(openshiftDefaults, imagesetup.DefaultTestImageMirrorLocation)
 
+	// TODO: Reject destinations claimed by different original sources before
+	// rewriting sources here; first-wins selection depends on binary completion order.
 	// if we've mirrored, then the source is going to be our repo, not upstream's
 	if mirrored {
 		baseRef, err := reference.Parse(imagesetup.DefaultTestImageMirrorLocation)
@@ -249,7 +251,14 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		}
 	}
 
-	covered := sets.NewString()
+	return deduplicatedMirrorLines(prefix, defaultImageSets, updatedImageSets, openshiftUpdated), nil
+}
+
+// deduplicatedMirrorLines renders sorted 'oc image mirror' mapping lines from the
+// collected image sets. One source may legitimately map to several destinations,
+// so only destinations are deduplicated: each destination tag may only be
+// specified once in a mirror list.
+func deduplicatedMirrorLines(prefix string, defaultImageSets, updatedImageSets []extensions.ImageSet, openshiftUpdated map[string]string) []string {
 	coveredDestinations := sets.NewString()
 	var lines []string
 	for i := range updatedImageSets {
@@ -259,14 +268,10 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 			if from == to {
 				continue
 			}
-			if covered.Has(from) {
-				continue
-			}
 			dest := fmt.Sprintf("%s%s", prefix, to)
 			if coveredDestinations.Has(dest) {
 				continue
 			}
-			covered.Insert(from)
 			coveredDestinations.Insert(dest)
 			lines = append(lines, fmt.Sprintf("%s %s", from, dest))
 		}
@@ -276,20 +281,16 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		if from == to {
 			continue
 		}
-		if covered.Has(from) {
-			continue
-		}
 		dest := fmt.Sprintf("%s%s", prefix, to)
 		if coveredDestinations.Has(dest) {
 			continue
 		}
-		covered.Insert(from)
 		coveredDestinations.Insert(dest)
 		lines = append(lines, fmt.Sprintf("%s %s", from, dest))
 	}
 
 	sort.Strings(lines)
-	return lines, nil
+	return lines
 }
 
 // imageSetsForImage converts an image reported by an external binary into an
@@ -314,17 +315,17 @@ func imageSetsForImage(image extension.Image, ref reference.DockerImageReference
 	return original, map[k8simage.ImageID]k8simage.Config{id: config}
 }
 
-// extractSourceImages extracts source images from mirror list lines.
+// extractSourceImages extracts unique source images from mirror list lines.
 // Each line is expected to be in the format: "source-image target-image"
 func extractSourceImages(lines []string) []string {
-	var sourceImages []string
+	sourceImages := sets.NewString()
 	for _, line := range lines {
 		parts := strings.Fields(line)
 		if len(parts) >= 1 {
-			sourceImages = append(sourceImages, parts[0])
+			sourceImages.Insert(parts[0])
 		}
 	}
-	return sourceImages
+	return sourceImages.List()
 }
 
 // setLogLevel configures the logrus log level based on the provided string
