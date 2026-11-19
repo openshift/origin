@@ -61,11 +61,13 @@ However, origin needs to be able to **construct** the mapping from `--from-repos
 
 ### 3.1 New `--mirrored-images` flag on `run` and `run-upgrade`
 
-Add a `--mirrored-images <path>` flag to the `run`, `run-upgrade`, and `run-monitor` subcommands (the same commands that already accept `--from-repository`).
+Add a `--mirrored-images <path>` flag to the `run` and `run-upgrade` subcommands (which invoke extension binaries as subprocesses via `GinkgoRunSuiteOptions` and propagate environment through `CommandEnv`).
+
+**Note on `run-monitor`:** The `run-monitor` command runs monitors in-process and calls `image.InitializeImages()` directly — it does not launch extension binaries as subprocesses and does not use `GinkgoRunSuiteOptions` or `CommandEnv`. Therefore, `run-monitor` does not need `--mirrored-images` or `MIRRORED_IMAGES_FILE` propagation. If a future need arises to pass mirrored image data to in-process monitors, that would require wiring the mapping into the `image.InitializeImages()` path, which is a separate concern.
 
 - When `--mirrored-images` is provided, origin reads the JSON file and passes it through to extension binaries.
 - When `--mirrored-images` is **not** provided but `--from-repository` is set, origin **generates** the mapping by querying all extension binaries for images (via `ListImages()`) and computing the mirrored pull specs (using the same logic as the `images` subcommand). The generated mapping is written to a temporary file.
-- When neither flag is set, no mirrored-images data is passed (extensions use original pull specs).
+- When neither flag is set, no mirrored-images data is passed. To prevent extensions from inheriting a stale `MIRRORED_IMAGES_FILE` value from the parent process environment, `TestCommandEnvironment()` must explicitly unset the variable (e.g., include `MIRRORED_IMAGES_FILE=` in `CommandEnv` so that `updateEnvVars()` clears it in the child process). Extensions use their original pull specs in this case.
 
 ### 3.2 JSON format for mirrored images
 
@@ -119,20 +121,22 @@ This ensures that in the common `--from-repository` flow, extension binaries aut
 **Details:**
 - Define a `MirroredImages` type (likely `map[string]string`) with `Load(path) error` and `Save(path) error` methods.
 - Add a `GenerateFromRepository(repo string, extensionImages []extension.Image, internalImages map[string]k8simage.ImageID) (*MirroredImages, error)` function that computes the full mapping.
-- This logic can largely reuse `imageSetsForImage()` from `images_command.go` and `GetMappedImages()` from `image.go`.
+- **Key derivation:** Each mapping key must be the **original pull spec** (e.g., `registry/name:version` as declared by the extension binary), not the mirror-list source URL. For extension images, build the key from `image.Registry`, `image.Name`, and `image.Version`. The mapped value is computed by applying the `--from-repository` target, reusing the logic from `imageSetsForImage()`. This distinction matters because `imageSetsForImage()` produces `oc image mirror` pairs where the source may differ from the original pull spec; the JSON mapping must be keyed by what the OTE `LocationFor()` helper receives as input.
+- This logic can largely reuse `imageSetsForImage()` from `images_command.go` and `GetMappedImages()` from `image.go`, but must extract the original pull spec separately for use as the JSON key.
 
-### Step 2: Add `--mirrored-images` flag to `run`, `run-upgrade`, and `run-monitor`
+### Step 2: Add `--mirrored-images` flag to `run` and `run-upgrade`
 
 **Files to change:**
 - `pkg/cmd/openshift-tests/run/flags.go` — add `MirroredImagesFile string` field and bind `--mirrored-images` flag
 - `pkg/cmd/openshift-tests/run/options.go` — add `MirroredImagesFile string` field, propagate via `TestCommandEnvironment()`
 - `pkg/cmd/openshift-tests/run-upgrade/flags.go` — same changes
 - `pkg/cmd/openshift-tests/run-upgrade/options.go` — same changes
-- `pkg/cmd/openshift-tests/monitor/run/run_monitor_command.go` — same changes
+
+**Not included:** `run-monitor` does not need this flag because it runs monitors in-process and does not invoke extension binaries as subprocesses (see section 3.1).
 
 **Details:**
 - Add `--mirrored-images` flag: `flags.StringVar(&f.MirroredImagesFile, "mirrored-images", "", "Path to a JSON file mapping original image pull specs to their mirrored equivalents.")`
-- In `TestCommandEnvironment()`, append `MIRRORED_IMAGES_FILE=<path>` when the value is non-empty.
+- In `TestCommandEnvironment()`, always include `MIRRORED_IMAGES_FILE` in the returned environment: set it to the file path when non-empty, or set it to an empty string (`MIRRORED_IMAGES_FILE=`) when no mapping is configured. This ensures the variable is explicitly cleared in the child process and prevents extensions from inheriting a stale value from the parent environment.
 - In `ToOptions()`, validate the file exists and is readable if specified.
 
 ### Step 3: Auto-generate mirrored-images mapping when `--from-repository` is set
@@ -150,6 +154,8 @@ This ensures that in the common `--from-repository` flow, extension binaries aut
 - This requires the mapping generation to happen inside `GinkgoRunSuiteOptions.Run()` where the binaries are available. Consider:
   - Adding `MirroredImagesFile` to `GinkgoRunSuiteOptions` and generating it there, or
   - Generating it in `RunSuiteOptions.Run()` / `RunUpgradeSuiteOptions.Run()` and passing it via `CommandEnv`.
+
+**Failure policy for `ListImages()`:** If a binary's `images` command fails (non-zero exit, timeout, or unsupported), that binary's images are excluded from the generated mapping — the auto-generation does not abort. A warning is logged identifying the binary and the error. This is consistent with the existing `TestBinaries.ListImages()` behavior in the `images` subcommand, which already tolerates per-binary failures. Binaries that do not support the `images` command (older OTE versions or non-OTE binaries like `k8s-tests-ext`) simply contribute no entries to the mapping; their tests continue to run and resolve images through their own mechanisms (e.g., `KUBE_TEST_REPO`).
 
 **Assumption:** The auto-generation happens in `GinkgoRunSuiteOptions.Run()` after binary extraction since that's where the binaries are available. This keeps the generation close to where `CommandEnv` is consumed.
 
@@ -180,6 +186,7 @@ This ensures that in the common `--from-repository` flow, extension binaries aut
 
 **Details:**
 - Add an option to output the mapping as a JSON file (the `map[string]string` format) instead of or in addition to the `oc image mirror` text format.
+- **Important:** The JSON mapping keys must be **original pull specs** (the image's declared `registry/name:version`), not mirror-list source URLs. The `oc image mirror` text format uses `GetMirrorSourceImage()` as the source column, which for some internal images points to an official mirror URL — not the original pull spec that an OTE extension would pass to `LocationFor()`. The JSON generation must build keys directly from each image's original pull spec (`image.Registry + "/" + image.Name + ":" + image.Version` for extension images, or `image.GetOriginalImage()` for internal images), independent of the mirror-list source/target pairs.
 - This allows CI pipelines to produce the JSON file that `--mirrored-images` consumes:
   ```
   openshift-tests images --to-repository mirror.example.com/test/repo --output-mirrored-images /path/to/mirrored-images.json
@@ -191,7 +198,7 @@ This ensures that in the common `--from-repository` flow, extension binaries aut
 ### Unit Tests
 
 - **Serialization round-trip:** Test `MirroredImages.Save()` / `MirroredImages.Load()` with valid and invalid JSON.
-- **Mapping generation:** Test `GenerateFromRepository()` with known extension images and verify the output matches expected mirrored pull specs.
+- **Mapping generation:** Test `GenerateFromRepository()` with known extension images and verify the output matches expected mirrored pull specs. Include coverage for the default mirror mode (where the official mirror URL differs from the original pull spec) to verify that an OTE lookup by original pull spec correctly finds the mirrored target.
 - **Environment propagation:** Test `TestCommandEnvironment()` includes `MIRRORED_IMAGES_FILE` when set, and omits it when empty.
 - **Flag validation:** Test that `--mirrored-images` with a non-existent file path produces a clear error.
 
@@ -217,6 +224,7 @@ This ensures that in the common `--from-repository` flow, extension binaries aut
 - The `--mirrored-images` flag is entirely opt-in. Existing invocations without the flag behave identically.
 - Auto-generation from `--from-repository` is additive: it sets an env var that old extension binaries will simply ignore.
 - Extension binaries that don't understand `MIRRORED_IMAGES_FILE` are unaffected; they continue using their original pull specs (which may fail in disconnected environments, but that's the existing behavior).
+- **`images` command invocation during auto-generation:** When `--from-repository` triggers auto-generation, origin calls `<binary> images` on each extension binary. Binaries that do not support the `images` command (older OTE versions, non-OTE binaries) will fail this call. Per the failure policy in Step 3, such failures are non-fatal — the binary's images are excluded from the generated mapping, a warning is logged, and tests proceed normally. This ensures that adding auto-generation does not break existing binaries that lack the `images` subcommand.
 
 ### Ordering / Sequencing
 
