@@ -37,13 +37,20 @@ objects:
             name: "${SERVICENAME}"
     scope: Namespaced
     names:
-      plural: testcrdwebhooks
-      singular: testcrdwebhooks
+      plural: "${PLURALNAME}"
+      singular: "${SINGULARNAME}"
       kind: TestCrdWebhook
       shortNames:
       - tcw
 parameters:
 - name: NAME
+- name: PLURALNAME
+  value: testcrdwebhooks
+- name: SINGULARNAME
+  value: testcrdwebhook
+- name: KIND
+- name: SHORTNAME
+- name: VERSION
 - name: WEBHOOKNAME
 - name: SERVICENAMESPACE
 - name: SERVICENAME

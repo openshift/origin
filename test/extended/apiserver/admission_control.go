@@ -265,4 +265,132 @@ var _ = g.Describe("[sig-api-machinery] API_Server", func() {
 		defer resp.Body.Close()
 		o.Expect(resp.Header.Get("Access-Control-Allow-Origin")).To(o.Equal("http://localhost"))
 	})
+
+	g.It("[OTP][OCP-21246] should expose prometheus workqueue metrics for control plane operators", ote.Informing(), func(ctx context.Context) {
+		g.By("1) Get serviceaccount token")
+		token, err := compat_otp.GetSAToken(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Control plane operators that must expose workqueue metrics
+		resources := []string{
+			"openshift-apiserver-operator",
+			"kube-apiserver-operator",
+			"kube-storage-version-migrator-operator",
+			"kube-controller-manager-operator",
+		}
+
+		// Standard client-go workqueue metrics that all operators should expose
+		patterns := []string{
+			"workqueue_adds",
+			"workqueue_depth",
+			"workqueue_queue_duration",
+			"workqueue_retries",
+			"workqueue_work_duration",
+		}
+
+		step := 2
+		for _, resource := range resources {
+			g.By(fmt.Sprintf("%v) For resource %s, check the exposed prometheus metrics", step, resource))
+
+			// Determine namespace: kube-* operators are in openshift-kube-* namespaces
+			namespace := resource
+			if strings.Contains(resource, "kube-") {
+				namespace = "openshift-" + resource
+			}
+
+			label := "app=" + resource
+			g.By(fmt.Sprintf("%v.1) Wait for a pod with label %s to be ready", step, label))
+			pods, err := compat_otp.GetAllPodsWithLabel(oc, namespace, label)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(pods).ShouldNot(o.BeEmpty(), "Expected at least one pod with label %s in namespace %s", label, namespace)
+
+			pod := pods[0]
+			compat_otp.AssertPodToBeReady(oc, pod, namespace)
+
+			g.By(fmt.Sprintf("%v.2) Request exposed prometheus metrics on pod %s", step, pod))
+			command := []string{
+				pod,
+				"-n", namespace,
+				"--",
+				"curl",
+				"--connect-timeout", "30",
+				"--retry", "3",
+				"-N",
+				"-k",
+				"-H", fmt.Sprintf("Authorization: Bearer %v", token),
+				"https://localhost:8443/metrics",
+			}
+			output, err := oc.Run("exec").Args(command...).Output()
+			o.Expect(err).NotTo(o.HaveOccurred(), "Failed to retrieve metrics from pod %s in namespace %s", pod, namespace)
+
+			g.By(fmt.Sprintf("%v.3) Check the output contains the following patterns: %s", step, strings.Join(patterns, ", ")))
+			for _, pattern := range patterns {
+				o.Expect(output).Should(o.ContainSubstring(pattern),
+					"Expected metric pattern %q not found in output from pod %s", pattern, pod)
+			}
+
+			e2e.Logf("Successfully validated workqueue metrics for %s", resource)
+			step++
+		}
+	})
+
+	// OCP-53085: Test Holes in EndpointSlice Validation Enable Host Network Hijack
+	g.It("[OTP][OCP-53085] should validate EndpointSlice to prevent host network hijack via loopback addresses", ote.Informing(), func() {
+		var (
+			ns = "tmp53085"
+		)
+
+		defer oc.WithoutNamespace().AsAdmin().Run("delete").Args("ns", ns, "--ignore-not-found").Execute()
+		err := oc.WithoutNamespace().AsAdmin().Run("create").Args("ns", ns).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		compat_otp.By("1) Check Holes in EndpointSlice Validation Enable Host Network Hijack")
+		endpointSliceConfig := apiserverAuthFixture("endpointslice.yaml")
+		sliceCreateOut, sliceCreateError := oc.AsAdmin().WithoutNamespace().Run("create").Args("-n", ns, "-f", endpointSliceConfig).Output()
+		o.Expect(sliceCreateOut).Should(o.ContainSubstring(`Invalid value: "127.0.0.1": may not be in the loopback range`))
+		o.Expect(sliceCreateError).To(o.HaveOccurred())
+	})
+
+	// OCP-53229: Test Arbitrary path injection via type field in CNI configuration
+	g.It("[OTP][OCP-53229] should prevent arbitrary path injection via type field in CNI configuration", ote.Informing(), func() {
+		compat_otp.By("1) Create new project")
+		oc.SetupProject()
+		namespace := oc.Namespace()
+
+		compat_otp.By("2) Create NetworkAttachmentDefinition with name nefarious-conf using nefarious.yaml")
+		nefariousConfTemplate := apiserverAuthFixture("ocp53229-nefarious.yaml")
+		defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", namespace, "-f", nefariousConfTemplate).Execute()
+		nefariousConfErr := oc.AsAdmin().WithoutNamespace().Run("create").Args("-n", namespace, "-f", nefariousConfTemplate).Execute()
+		o.Expect(nefariousConfErr).NotTo(o.HaveOccurred())
+
+		compat_otp.By("3) Create Pod by using created NetworkAttachmentDefinition in annotations")
+		nefariousPodTemplate := apiserverAuthFixture("ocp53229-nefarious-pod.yaml")
+		defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", namespace, "-f", nefariousPodTemplate).Execute()
+		nefariousPodErr := oc.AsAdmin().WithoutNamespace().Run("create").Args("-n", namespace, "-f", nefariousPodTemplate).Execute()
+		o.Expect(nefariousPodErr).NotTo(o.HaveOccurred())
+
+		compat_otp.By("4) Check pod should be in creating or failed status and event should show error message invalid plugin")
+		podStatus, podErr := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", namespace, "-f", nefariousPodTemplate, "-o", "jsonpath={.status.phase}").Output()
+		o.Expect(podErr).NotTo(o.HaveOccurred())
+		o.Expect(podStatus).ShouldNot(o.ContainSubstring("Running"))
+
+		err := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 2*time.Minute, false, func(cxt context.Context) (bool, error) {
+			podEvent, podEventErr := oc.AsAdmin().WithoutNamespace().Run("describe").Args("-n", namespace, "-f", nefariousPodTemplate).Output()
+			o.Expect(podEventErr).NotTo(o.HaveOccurred())
+			matched, _ := regexp.MatchString("error adding pod.*to CNI network.*invalid plugin name: ../../../../usr/sbin/reboot", podEvent)
+			if matched {
+				e2e.Logf("Step 4. Test Passed")
+				return true, nil
+			}
+			return false, nil
+		})
+		compat_otp.AssertWaitPollNoErr(err, "Detected event CNI network invalid plugin")
+
+		compat_otp.By("5) Check pod created on node should not be rebooting and appear offline")
+		nodeName, nodeErr := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", namespace, "-f", nefariousPodTemplate, "-o", "jsonpath={.spec.nodeName}").Output()
+		o.Expect(nodeErr).NotTo(o.HaveOccurred())
+		nodeStatus, nodeStatusErr := oc.AsAdmin().WithoutNamespace().Run("get").Args("node", nodeName, "--no-headers").Output()
+		o.Expect(nodeStatusErr).NotTo(o.HaveOccurred())
+		o.Expect(nodeStatus).Should(o.ContainSubstring("Ready"))
+	})
 })

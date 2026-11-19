@@ -10,6 +10,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	ote "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 	"github.com/stretchr/objx"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -23,6 +24,8 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/origin/test/extended/apiserverauth"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var (
@@ -186,6 +189,74 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 			o.Expect(operator.Version).To(o.Equal(cv.Status.Desired.Version), msg)
 		}
 		o.Expect(cvoManaged).NotTo(o.BeZero(), "expected at least one CVO-managed ClusterOperator, but none had a ClusterVersion ownerReference")
+	})
+
+})
+
+var _ = g.Describe("[sig-arch] kube-storage-version-migrator", func() {
+	defer g.GinkgoRecover()
+
+	oc := exutil.NewCLIWithoutNamespace("storage-version-migrator")
+
+	g.It("[OTP][OCP-27665] have kube-storage-version-migrator operator manifests loaded [apigroup:config.openshift.io][apigroup:operator.openshift.io]", ote.Informing(), func() {
+
+		g.By("1) Check if CRDs are available: storagestates.migration.k8s.io, storageversionmigrations.migration.k8s.io, kubestorageversionmigrators.operator.openshift.io")
+		resource := "customresourcedefinition"
+		resourceNames := []string{"storagestates.migration.k8s.io", "storageversionmigrations.migration.k8s.io", "kubestorageversionmigrators.operator.openshift.io"}
+		_, isAvailable := apiserverauth.CheckIfResourceAvailable(oc, resource, resourceNames)
+		o.Expect(isAvailable).Should(o.BeTrue(), "Expected CRDs not found: %v", resourceNames)
+
+		g.By("2) Check if ClusterOperator kube-storage-version-migrator is available")
+		resource = "clusteroperators"
+		resourceNames = []string{"kube-storage-version-migrator"}
+		_, isAvailable = apiserverauth.CheckIfResourceAvailable(oc, resource, resourceNames)
+		o.Expect(isAvailable).Should(o.BeTrue(), "Expected ClusterOperator not found: kube-storage-version-migrator")
+
+		namespace := "openshift-kube-storage-version-migrator-operator"
+
+		g.By("3) Check if Lease openshift-kube-storage-version-migrator-operator-lock is available in namespace " + namespace)
+		resource = "lease"
+		resourceNames = []string{"openshift-kube-storage-version-migrator-operator-lock"}
+		_, isAvailable = apiserverauth.CheckIfResourceAvailable(oc, resource, resourceNames, namespace)
+		o.Expect(isAvailable).Should(o.BeTrue(), "Expected Lease not found in namespace %s: %v", namespace, resourceNames)
+
+		g.By("4) Check if ConfigMap config is available in namespace " + namespace)
+		resource = "configmap"
+		resourceNames = []string{"config"}
+		_, isAvailable = apiserverauth.CheckIfResourceAvailable(oc, resource, resourceNames, namespace)
+		o.Expect(isAvailable).Should(o.BeTrue(), "Expected ConfigMap not found in namespace %s: %v", namespace, resourceNames)
+
+		g.By("5) Check if Service metrics is available in namespace " + namespace)
+		resource = "service"
+		resourceNames = []string{"metrics"}
+		_, isAvailable = apiserverauth.CheckIfResourceAvailable(oc, resource, resourceNames, namespace)
+		o.Expect(isAvailable).Should(o.BeTrue(), "Expected Service not found in namespace %s: %v", namespace, resourceNames)
+
+		g.By("6) Check if ServiceAccount kube-storage-version-migrator-operator is available in namespace " + namespace)
+		resource = "serviceaccount"
+		resourceNames = []string{"kube-storage-version-migrator-operator"}
+		_, isAvailable = apiserverauth.CheckIfResourceAvailable(oc, resource, resourceNames, namespace)
+		o.Expect(isAvailable).Should(o.BeTrue(), "Expected ServiceAccount not found in namespace %s: %v", namespace, resourceNames)
+
+		g.By("7) Check if Deployment kube-storage-version-migrator-operator is available in namespace " + namespace)
+		resource = "deployment"
+		resourceNames = []string{"kube-storage-version-migrator-operator"}
+		_, isAvailable = apiserverauth.CheckIfResourceAvailable(oc, resource, resourceNames, namespace)
+		o.Expect(isAvailable).Should(o.BeTrue(), "Expected Deployment not found in namespace %s: %v", namespace, resourceNames)
+
+		namespace = "openshift-kube-storage-version-migrator"
+
+		g.By("8) Check if ServiceAccount kube-storage-version-migrator-sa is available in namespace " + namespace)
+		resource = "serviceaccount"
+		resourceNames = []string{"kube-storage-version-migrator-sa"}
+		_, isAvailable = apiserverauth.CheckIfResourceAvailable(oc, resource, resourceNames, namespace)
+		o.Expect(isAvailable).Should(o.BeTrue(), "Expected ServiceAccount not found in namespace %s: %v", namespace, resourceNames)
+
+		g.By("9) Check if Deployment migrator is available in namespace " + namespace)
+		resource = "deployment"
+		resourceNames = []string{"migrator"}
+		_, isAvailable = apiserverauth.CheckIfResourceAvailable(oc, resource, resourceNames, namespace)
+		o.Expect(isAvailable).Should(o.BeTrue(), "Expected Deployment not found in namespace %s: %v", namespace, resourceNames)
 	})
 })
 

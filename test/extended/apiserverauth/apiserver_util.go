@@ -302,9 +302,10 @@ func getCoStatus(oc *exutil.CLI, coName string, statusToCompare map[string]strin
 	return newStatusToCompare
 }
 
-// Check ciphers for authentication operator cliconfig, openshiftapiservers.operator.openshift.io and kubeapiservers.operator.openshift.io:
-// Check ciphers for authentication operator cliconfig, openshiftapiservers.operator.openshift.io and kubeapiservers.operator.openshift.io:
-func verifyCiphers(oc *exutil.CLI, expectedCipher string, operator string) error {
+// VerifyCiphers checks that the specified operator has the expected cipher configuration.
+// The expectedCipher parameter should be in the format: `["cipher1","cipher2"] VersionTLSXX`
+// Supported operators: "openshift-authentication", "openshiftapiservers.operator", "kubeapiservers.operator"
+func VerifyCiphers(oc *exutil.CLI, expectedCipher string, operator string) error {
 	return wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 300*time.Second, false,
 		func(ctx context.Context) (bool, error) {
 			// --- Parse expectedCipher into suites + TLS ---
@@ -404,7 +405,10 @@ func verifyCiphers(oc *exutil.CLI, expectedCipher string, operator string) error
 		})
 }
 
-func restoreClusterOcp41899(oc *exutil.CLI) {
+// RestoreClusterOcp41899 restores the cluster configuration after OCP-41899 test
+// by waiting for openshift-controller-manager to become available and cleaning up
+// the custom client-ca configmap if it exists.
+func RestoreClusterOcp41899(oc *exutil.CLI) {
 	e2e.Logf("Checking openshift-controller-manager operator should be Available")
 	expectedStatus := map[string]string{"Available": "True", "Progressing": "False", "Degraded": "False"}
 	err := waitCoBecomes(oc, "openshift-controller-manager", 500, expectedStatus)
@@ -1036,6 +1040,11 @@ func getPodsListByLabel(oc *exutil.CLI, namespace string, selectorLabel string) 
 	return strings.Split(podsOp, " ")
 }
 
+// GetPodsListByLabel returns a list of pod names matching the given label selector
+func GetPodsListByLabel(oc *exutil.CLI, namespace string, selectorLabel string) []string {
+	return getPodsListByLabel(oc, namespace, selectorLabel)
+}
+
 func checkApiserversAuditPolicies(oc *exutil.CLI, auditPolicyName string) {
 	e2e.Logf("Checking the current %s audit policy of cluster", auditPolicyName)
 	defaultProfile := getResourceToBeReady(oc, asAdmin, withoutNamespace, "apiserver/cluster", `-o=jsonpath={.spec.audit.profile}`)
@@ -1078,6 +1087,26 @@ func checkAuditLogs(oc *exutil.CLI, script string, masterNode string, namespace 
 	o.Expect(checkLogFileErr).NotTo(o.HaveOccurred())
 	errCount := len(strings.TrimSpace(masterNodeLogs))
 	return masterNodeLogs, errCount
+}
+
+// CheckAuditLogs retrieves and checks audit logs from a master node
+func CheckAuditLogs(oc *exutil.CLI, script string, masterNode string, namespace string) (string, int) {
+	return checkAuditLogs(oc, script, masterNode, namespace)
+}
+
+// CheckApiserversAuditPolicies verifies the audit policy is set correctly on all API servers
+func CheckApiserversAuditPolicies(oc *exutil.CLI, auditPolicyName string) {
+	checkApiserversAuditPolicies(oc, auditPolicyName)
+}
+
+// WaitCoBecomes waits for a ClusterOperator to reach the expected status conditions
+func WaitCoBecomes(oc *exutil.CLI, coName string, baseWaitTime int, expectedStatus map[string]string) error {
+	return waitCoBecomes(oc, coName, baseWaitTime, expectedStatus)
+}
+
+// CheckCoStatus verifies a ClusterOperator has the expected status conditions
+func CheckCoStatus(oc *exutil.CLI, coName string, statusToCompare map[string]string) {
+	checkCoStatus(oc, coName, statusToCompare)
 }
 
 func setAuditProfile(oc *exutil.CLI, patchNamespace string, patch string) string {
@@ -2246,9 +2275,11 @@ func syncRapidastResultsFromJobPod(oc *exutil.CLI, ns, jobPodName, tmpdir string
 // rapidastScan performs comprehensive RapiDAST security scanning of OpenShift API Server endpoints
 // The function performs the following security tests:
 // - Core Kubernetes APIs (/api/v1/*) - componentstatuses, persistentvolumes, nodes, namespaces, etc.
+// RapidastScan performs comprehensive security vulnerability scanning of:
+// - Core Kubernetes APIs (/api/v1/*)
 // - OpenShift-specific APIs (route.openshift.io, security.openshift.io, operator.openshift.io, etc.)
 // - Apps, Build, and Image APIs
-func rapidastScan(oc *exutil.CLI, ns, configFile, tmpdir string) {
+func RapidastScan(oc *exutil.CLI, ns, configFile, tmpdir string) {
 	e2e.Logf("rapidastScan called with namespace: '%s'", ns)
 	if ns == "" {
 		e2e.Failf("Namespace parameter is empty - cannot proceed with RapiDAST scan")
@@ -2283,13 +2314,12 @@ func rapidastScanAttempt(oc *exutil.CLI, ns, configFile, tmpdir string, attempt 
 
 	var (
 		serviceAccountName = "rapidast-privileged-sa"
-		configMapName      = "rapidast-configmap"
-		podName            = "rapidast-pod"
+		configMapName      = "rapidast-job"
+		jobName            = "rapidast-job"
 	)
 
-	buildPruningBaseDir := compat_otp.FixturePath("testdata", "apiserverauth")
-	rbacTemplate := filepath.Join(buildPruningBaseDir, "rapidast-privileged-sa.yaml")
-	podTemplate := filepath.Join(buildPruningBaseDir, "rapidast-pod.yaml")
+	rbacTemplate := exutil.FixturePath("testdata", "oap", "certmanager", "rapidast-privileged-sa.yaml")
+	jobTemplate := exutil.FixturePath("testdata", "apiserverauth", "rapidast-job.yaml")
 
 	// explicitly skip non-amd64 arch since RapiDAST image only supports amd64
 	architecture.SkipNonAmd64SingleArch(oc)
@@ -2354,19 +2384,18 @@ func rapidastScanAttempt(oc *exutil.CLI, ns, configFile, tmpdir string, attempt 
 	defer compat_otp.RecoverNamespaceRestricted(oc, ns)
 
 	e2e.Logf("=> create a Job to deploy RapiDAST image and perform scan")
-	e2e.Logf("Job template: %s", podTemplate)
-	e2e.Logf("Job name: %s", podName)
-	e2e.Logf("Service account: %s", serviceAccountName)
-	e2e.Logf("ConfigMap: %s", configMapName)
-	params = []string{"-f", podTemplate, "-p", "POD_NAME=" + podName, "SA_NAME=" + serviceAccountName, "CONFIGMAP_NAME=" + configMapName}
+	e2e.Logf("Job template: %s", jobTemplate)
+	e2e.Logf("Job name: %s", jobName)
+	e2e.Logf("ConfigMap name: %s", configMapName)
+	params = []string{"-f", jobTemplate, "-p", "NAME=" + jobName}
 	compat_otp.ApplyNsResourceFromTemplate(oc, ns, params...)
 	defer func() {
-		oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", ns, "job", podName).Execute()
+		oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", ns, "job", jobName, "--ignore-not-found").Execute()
 	}()
 
 	// wait for the RapiDAST Job completed (optimized timeout for reliability)
-	waitErr := wait.PollUntilContextTimeout(context.Background(), 30*time.Second, 10*time.Minute, false, func(context.Context) (bool, error) {
-		output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ns, "job", podName).Output()
+	waitErr := wait.PollUntilContextTimeout(context.Background(), 30*time.Second, 30*time.Minute, false, func(context.Context) (bool, error) {
+		output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ns, "job", jobName).Output()
 		if err != nil {
 			e2e.Logf("Error getting job status: %v", err)
 			return false, nil
@@ -2388,9 +2417,9 @@ func rapidastScanAttempt(oc *exutil.CLI, ns, configFile, tmpdir string, attempt 
 	})
 
 	// Get the job pod name and wait for it to be ready
-	jobPodNames := getPodsListByLabel(oc, ns, "job-name="+podName)
+	jobPodNames := getPodsListByLabel(oc, ns, "job-name="+jobName)
 	if len(jobPodNames) == 0 {
-		e2e.Failf("No pods found for job %s", podName)
+		e2e.Failf("No pods found for job %s", jobName)
 	}
 	jobPodName := jobPodNames[0]
 
@@ -2426,7 +2455,7 @@ func rapidastScanAttempt(oc *exutil.CLI, ns, configFile, tmpdir string, attempt 
 	}
 
 	// Check if job failed or timed out
-	output, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ns, "job", podName).Output()
+	output, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ns, "job", jobName).Output()
 	if strings.Contains(output, "Failed") {
 		e2e.Logf("RapiDAST Job failed: %s", output)
 		e2e.Logf("Job pod logs: %s", podLogs)
@@ -2589,7 +2618,7 @@ func rapidastScanAttempt(oc *exutil.CLI, ns, configFile, tmpdir string, attempt 
 		e2e.Logf("==================================================================")
 		e2e.Logf("All 16 requested Kubernetes API v1 endpoints were successfully scanned:")
 		for _, endpoint := range requestedEndpoints {
-			e2e.Logf("  ✓ %s - No security issues detected", endpoint)
+			e2e.Logf("  %s - No security issues detected", endpoint)
 		}
 		e2e.Logf("==================================================================")
 		e2e.Logf("Security scan completed successfully with no High/Medium risk findings.")
@@ -2703,6 +2732,11 @@ func friendlyTime(t time.Time) string {
 	return t.UTC().Format("Jan 02 2006 15:04:05 MST")
 }
 
+// ParseAndCheckPEMs parses and validates PEM-encoded certificates
+func ParseAndCheckPEMs(pemData []byte, name string) (anyFail bool) {
+	return parseAndCheckPEMs(pemData, name)
+}
+
 func parseAndCheckPEMs(pemData []byte, name string) (anyFail bool) {
 	anyFail = false
 
@@ -2710,13 +2744,13 @@ func parseAndCheckPEMs(pemData []byte, name string) (anyFail bool) {
 	if len(blocks) == 0 {
 		// maybe raw DER
 		if cert, err := x509.ParseCertificate(pemData); err == nil {
-			e2e.Logf("🔍 %s\n", name)
+			e2e.Logf("Checking %s\n", name)
 			pass, _ := checkAndPrint(cert, name)
 			if !pass {
 				anyFail = true
 			}
 		} else {
-			e2e.Logf("    ⚠️ failed to parse raw DER certificate in %s: %v\n", name, err)
+			e2e.Logf("    Warning: failed to parse raw DER certificate in %s: %v\n", name, err)
 			anyFail = true
 		}
 		return anyFail
@@ -2728,12 +2762,12 @@ func parseAndCheckPEMs(pemData []byte, name string) (anyFail bool) {
 		}
 		certs, err := x509.ParseCertificates(block.Bytes)
 		if err != nil || len(certs) == 0 {
-			e2e.Logf("    ⚠️ failed to parse certificate in %s: %v\n", name, err)
+			e2e.Logf("    Warning: failed to parse certificate in %s: %v\n", name, err)
 			anyFail = true
 			continue
 		}
 		for _, cert := range certs {
-			e2e.Logf("🔍 %s\n", name)
+			e2e.Logf("Checking %s\n", name)
 			pass, _ := checkAndPrint(cert, name)
 			if !pass {
 				anyFail = true
@@ -2849,7 +2883,7 @@ func checkAndPrint(cert *x509.Certificate, name string) (pass bool, warning bool
 	if isWeak {
 		if isTrustedCABundle && isSelfSigned {
 			// External trusted root CA → warning
-			e2e.Logf("    ⚠️ Warning: %s - External root CA detected\n", name)
+			e2e.Logf("    Warning: %s - External root CA detected\n", name)
 			e2e.Logf("        - The failing cert is an external well-known CA (e.g. GlobalSign).\n")
 			e2e.Logf("        - P-256 (prime256v1) does not meet your ≥384-bit ECDSA compliance requirement.\n")
 			e2e.Logf("        - This is expected; you likely cannot rotate this root inside the cluster.\n")
@@ -2865,7 +2899,7 @@ func checkAndPrint(cert *x509.Certificate, name string) (pass bool, warning bool
 			return true, true
 		} else {
 			// Internal/serving certs → failure
-			e2e.Logf("❌ %s", name)
+			e2e.Logf("FAIL: %s", name)
 			e2e.Logf("    Signature Algorithm: %s", sigAlgo)
 			e2e.Logf("    Public-Key: (%d bit)", keySizeBits)
 			e2e.Logf("    Reason: %s", reason)
@@ -2878,7 +2912,7 @@ func checkAndPrint(cert *x509.Certificate, name string) (pass bool, warning bool
 	}
 
 	// Passed
-	e2e.Logf("✅ %s", name)
+	e2e.Logf("PASS: %s", name)
 	e2e.Logf("    Signature Algorithm: %s", sigAlgo)
 	e2e.Logf("    Public-Key: (%d bit)", keySizeBits)
 	return true, false

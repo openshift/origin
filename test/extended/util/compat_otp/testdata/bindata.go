@@ -2029,13 +2029,20 @@ objects:
             name: "${SERVICENAME}"
     scope: Namespaced
     names:
-      plural: testcrdwebhooks
-      singular: testcrdwebhooks
+      plural: "${PLURALNAME}"
+      singular: "${SINGULARNAME}"
       kind: TestCrdWebhook
       shortNames:
       - tcw
 parameters:
 - name: NAME
+- name: PLURALNAME
+  value: testcrdwebhooks
+- name: SINGULARNAME
+  value: testcrdwebhook
+- name: KIND
+- name: SHORTNAME
+- name: VERSION
 - name: WEBHOOKNAME
 - name: SERVICENAMESPACE
 - name: SERVICENAME
@@ -2085,6 +2092,8 @@ objects:
       service:
         namespace: "${SERVICENAMESPACE}"
         name: "${SERVICENAME}"
+    # the bad-webhook tests point at non-existent services; never let that reject requests
+    failurePolicy: Ignore
     admissionReviewVersions: ["v1"]
     sideEffects: None
 parameters:
@@ -2214,6 +2223,8 @@ objects:
         service:
           namespace: "${SERVICENAMESPACE}"
           name: "${SERVICENAME}"
+      # the bad-webhook tests point at non-existent services; never let that reject requests
+      failurePolicy: Ignore
       admissionReviewVersions: ["v1"]
       sideEffects: None
 parameters:
