@@ -294,7 +294,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 
 	oc := exutil.NewCLIWithoutNamespace("apiserver-upgrade-webhooks")
 
-	g.It("[OTP][OCP-50362] Verify cluster handles bad admission webhooks correctly [Serial][apigroup:config.openshift.io][apigroup:admissionregistration.k8s.io][apigroup:apiextensions.k8s.io]",
+	g.It("[OTP][OCP-50362] Verify cluster handles bad admission webhooks correctly [APIServer_Disruptive][Serial][apigroup:config.openshift.io][apigroup:admissionregistration.k8s.io][apigroup:apiextensions.k8s.io]",
 		ote.Informing(), func() {
 			var (
 				namespace                    = "ocp-50362-" + compat_otp.GetRandomString()
@@ -380,7 +380,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			}
 		})
 
-	g.It("[OTP][OCP-50223] Checks on different bad admission webhook errors and kube-apiserver status [Serial][apigroup:admissionregistration.k8s.io][apigroup:apiextensions.k8s.io][Timeout:15m]",
+	g.It("[OTP][OCP-50223] Checks on different bad admission webhook errors and kube-apiserver status [APIServer_Disruptive][Serial][apigroup:admissionregistration.k8s.io][apigroup:apiextensions.k8s.io][Timeout:15m]",
 		ote.Informing(), func() {
 			var (
 				validatingWebhookNameNotFound     = "test-validating-notfound-cfg"
@@ -1187,7 +1187,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 	})
 
 	// OCP-53095: RapiDAST API Security Scan for OpenShift and Kubernetes API endpoints
-	g.It("[OTP][OCP-53095] should perform RapiDAST API security scan for OpenShift and Kubernetes API endpoints [Slow]", ote.Informing(), func() {
+	g.It("[OTP][OCP-53095] should perform RapiDAST API security scan for OpenShift and Kubernetes API endpoints [APIServer_Disruptive][Slow]", ote.Informing(), func() {
 		tmpdir := filepath.Join(os.TempDir(), "rapidast-"+compat_otp.GetRandomString())
 		defer os.RemoveAll(tmpdir)
 		o.Expect(os.MkdirAll(tmpdir, 0755)).To(o.Succeed())

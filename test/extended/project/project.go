@@ -602,7 +602,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	// 1. Projects created BEFORE template is configured don't get the resources
 	// 2. Projects created AFTER template is configured automatically get the resources
 	// 3. The template configuration propagates through openshift-apiserver properly
-	g.It("[Serial][Slow][OTP] should apply a customized project request template with ResourceQuota and LimitRange [apigroup:project.openshift.io][apigroup:config.openshift.io][apigroup:template.openshift.io]", ote.Informing(), func(ctx g.SpecContext) {
+	g.It("[Serial][Slow][OTP] should apply a customized project request template with ResourceQuota and LimitRange [APIServer_Disruptive][apigroup:project.openshift.io][apigroup:config.openshift.io][apigroup:template.openshift.io]", ote.Informing(), func(ctx g.SpecContext) {
 		const caseID = "project-request-template"
 		suffix := rand.String(5)
 		templateName := "project-request-template-request-" + suffix

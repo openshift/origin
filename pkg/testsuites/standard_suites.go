@@ -687,6 +687,18 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		Parallelism: 1,
 	},
+	{
+		Name: "openshift/apiserver-isolated",
+		Description: templates.LongDesc(`
+		Run apiserver disruptive long-running tests.
+		`),
+		Qualifiers: []string{
+			`name.contains("[APIServer_Disruptive]")`,
+		},
+		Parallelism:                1,
+		TestTimeout:                90 * time.Hour,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
 }
 
 // mergeParentQualifiers appends each suite's qualifiers to its declared parent
