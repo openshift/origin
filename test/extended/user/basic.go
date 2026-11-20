@@ -9,9 +9,11 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
+	authenticationv1 "k8s.io/api/authentication/v1"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
@@ -44,10 +46,22 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 		})
 
 		g.By("make sure that user/~ returns groups for unbacked users", func() {
-			// Compatible with some setups use system:cluster-admins instead of system:masters
-			allowedGroups := [][]string{
-				{"system:authenticated", "system:masters"},
-				{"system:authenticated", "system:cluster-admins"},
+			// Most admin identities have no backing User resource, so user/~ returns a
+			// virtual User built from the identity the kube-apiserver resolved for the
+			// request. The contract under test is that mirroring -- not any particular
+			// group membership, which varies with how the caller authenticated (client
+			// certificate, ServiceAccount token, OIDC, ...). Asserting a fixed group set
+			// here would only encode one cluster's default admin configuration.
+			//
+			// SelfSubjectReview reports what the kube-apiserver resolved; user/~ must
+			// agree. Both clients are built from oc.AdminConfig(), so they are the same
+			// caller.
+			ssrCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			ssr, err := oc.AdminKubeClient().AuthenticationV1().SelfSubjectReviews().Create(
+				ssrCtx, &authenticationv1.SelfSubjectReview{}, metav1.CreateOptions{})
+			if err != nil {
+				t.Fatalf("SelfSubjectReview request failed: %v", err)
 			}
 
 			clusterAdminUser, err := clusterAdminUserClient.Users().Get(context.Background(), "~", metav1.GetOptions{})
@@ -55,15 +69,16 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			matched := false
-			for _, expectedGroups := range allowedGroups {
-				if reflect.DeepEqual(clusterAdminUser.Groups, expectedGroups) {
-					matched = true
-					break
-				}
+			if clusterAdminUser.Name != ssr.Status.UserInfo.Username {
+				t.Errorf("user/~ name does not match the name the kube-apiserver resolved for the request")
 			}
-			if !matched {
-				t.Errorf("unexpected groups returned for user/~: got %v, expected one of %v", clusterAdminUser.Groups, allowedGroups)
+
+			// user/~ sorts and deduplicates the groups it returns, so compare as sets.
+			gotGroups := sets.NewString(clusterAdminUser.Groups...)
+			expectedGroups := sets.NewString(ssr.Status.UserInfo.Groups...)
+			if !gotGroups.Equal(expectedGroups) {
+				t.Errorf("user/~ returned groups %v, but the request was authenticated with groups %v",
+					gotGroups.List(), expectedGroups.List())
 			}
 		})
 
