@@ -14,7 +14,7 @@ how to judge the results; it does not record the outcome of any run.
 ## Scope
 
 The plan covers the workload-aware scheduling feature gates on an OCP 5.1
-cluster running the `TechPreviewNoUpgrade` feature set:
+cluster or greater.
 
 - Workload and PodGroup API operations
 - Gang and basic PodGroup scheduling
