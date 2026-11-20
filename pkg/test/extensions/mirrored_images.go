@@ -94,14 +94,20 @@ func WriteMirroredImagesFile(mapping map[string]string) (string, error) {
 	}
 
 	if _, err := f.Write(data); err != nil {
-		f.Close()
-		os.Remove(f.Name())
+		if closeErr := f.Close(); closeErr != nil {
+			logrus.Warnf("Failed to close temp file during cleanup: %v", closeErr)
+		}
+		if removeErr := os.Remove(f.Name()); removeErr != nil {
+			logrus.Warnf("Failed to remove temp file during cleanup: %v", removeErr)
+		}
 		return "", fmt.Errorf("failed to write mirrored images file: %v", err)
 	}
 
 	path := f.Name()
 	if err := f.Close(); err != nil {
-		os.Remove(path)
+		if removeErr := os.Remove(path); removeErr != nil {
+			logrus.Warnf("Failed to remove temp file during cleanup: %v", removeErr)
+		}
 		return "", fmt.Errorf("failed to close mirrored images file: %v", err)
 	}
 
