@@ -2,12 +2,15 @@ package nodeprovisioninglatency
 
 import (
 	"context"
+	"io"
 	"sort"
 	"sync"
 	"time"
 
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
@@ -174,9 +177,8 @@ func (c *collectionState) observeNodeDeleted(obj any) {
 }
 
 // rows correlates Machines with Nodes and produces one row per observed Machine, ordered by
-// Machine name so the autodl file is stable across runs. Masters that predate the run are
-// dropped: they are created by the installer, so their timestamps measure install time rather
-// than Machine API provisioning.
+// Machine name so the autodl file is stable across runs. No Machine is dropped: MachineRole and
+// CreatedDuringRun let analysis separate Machines that predate the run from those created during it.
 func (c *collectionState) rows(beginning time.Time) []provisioningRow {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -198,11 +200,7 @@ func (c *collectionState) rows(beginning time.Time) []provisioningRow {
 		if node == nil {
 			node = nodesByMachine[rec.Name]
 		}
-		row := buildRow(rec, node, beginning)
-		if installerCreatedMaster(row) {
-			continue
-		}
-		rows = append(rows, row)
+		rows = append(rows, buildRow(rec, node, beginning))
 	}
 
 	sort.Slice(rows, func(i, j int) bool { return rows[i].MachineName < rows[j].MachineName })
@@ -225,6 +223,9 @@ func (m *nodeProvisioningLatency) startInformers(ctx context.Context) {
 		m.logger.Printf("unable to add Machine event handler: %v", err)
 		return
 	}
+	if err := machineInformer.SetWatchErrorHandler(m.watchErrorHandler("Machine")); err != nil {
+		m.logger.Printf("unable to set Machine watch error handler: %v", err)
+	}
 
 	nodeInformer := informerscorev1.NewNodeInformer(m.kubeClient, 0, cache.Indexers{})
 	if _, err := nodeInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -234,6 +235,9 @@ func (m *nodeProvisioningLatency) startInformers(ctx context.Context) {
 	}); err != nil {
 		m.logger.Printf("unable to add Node event handler: %v", err)
 		return
+	}
+	if err := nodeInformer.SetWatchErrorHandler(m.watchErrorHandler("Node")); err != nil {
+		m.logger.Printf("unable to set Node watch error handler: %v", err)
 	}
 
 	go machineInformer.Run(ctx.Done())
@@ -246,12 +250,27 @@ func (m *nodeProvisioningLatency) startInformers(ctx context.Context) {
 	}
 }
 
+// watchErrorHandler replaces the informer default, which logs the raw error and with it the
+// request URL containing the cluster's internal apiserver address. Watch closures that the default
+// only reports at debug verbosity are skipped; the reflector retries on its own either way. EOF is
+// compared exactly, as the default does, so a list request that failed with a wrapped EOF is still
+// reported.
+func (m *nodeProvisioningLatency) watchErrorHandler(kind string) cache.WatchErrorHandler {
+	return func(_ *cache.Reflector, err error) {
+		if err == io.EOF || err == io.ErrUnexpectedEOF ||
+			apierrors.IsResourceExpired(err) || apierrors.IsGone(err) {
+			return
+		}
+		m.logger.Warnf("%s watch failed: %s", kind, utility.ErrorSummary(err))
+	}
+}
+
 // listFinalState lists Machines and Nodes one last time so objects that were missed by the
 // watch are still recorded. Any error is logged and ignored.
 func (m *nodeProvisioningLatency) listFinalState(ctx context.Context) {
 	if machines, err := m.machineClient.MachineV1beta1().Machines(machineAPINamespace).List(ctx,
 		metav1.ListOptions{}); err != nil {
-		m.logger.Printf("final Machine list failed: %v", err)
+		m.logger.Warnf("final Machine list failed: %s", utility.ErrorSummary(err))
 	} else {
 		for i := range machines.Items {
 			m.state.observeMachine(&machines.Items[i])
@@ -259,7 +278,7 @@ func (m *nodeProvisioningLatency) listFinalState(ctx context.Context) {
 	}
 
 	if nodes, err := m.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{}); err != nil {
-		m.logger.Printf("final Node list failed: %v", err)
+		m.logger.Warnf("final Node list failed: %s", utility.ErrorSummary(err))
 	} else {
 		for i := range nodes.Items {
 			m.state.observeNode(&nodes.Items[i])

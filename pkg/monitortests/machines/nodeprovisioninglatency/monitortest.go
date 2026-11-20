@@ -1,6 +1,9 @@
 // Package nodeprovisioninglatency measures how long each Machine takes to get a provider
-// instance, a Node object and a Ready Node, and publishes the durations through autodl so
-// regressions can be detected across runs.
+// instance, a Node object and a Ready Node, and publishes the durations through autodl.
+//
+// The monitor only collects data and produces no latency pass/fail results. Single-run hard limits
+// proved unsustainable for comparable signals such as disruption, so limits should only be
+// considered once the autodl data has been analyzed across many runs.
 //
 // Timestamps come from Machine.metadata.creationTimestamp, the Machine InstanceExists
 // condition, Node.metadata.creationTimestamp and the Node Ready condition. The
@@ -8,8 +11,10 @@
 // trail actual cloud creation by up to MAO's requeue interval; InstanceExistsSource records
 // whether the condition or the observed phase was used.
 //
-// Masters that already existed when the run started are ignored. They are created by the
-// installer, so their timestamps measure install time rather than Machine API provisioning.
+// Every observed Machine produces a row. Masters that predate the run are usually created by the
+// installer, so their timestamps measure install time rather than Machine API provisioning, but a
+// Machine API replacement can also predate the run. MachineRole and CreatedDuringRun are exported
+// so analysis can separate these cohorts instead of the monitor discarding them.
 package nodeprovisioninglatency
 
 import (
@@ -19,6 +24,7 @@ import (
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,52 +33,48 @@ import (
 )
 
 type nodeProvisioningLatency struct {
-	flakeJunits monitortestframework.FlakeJunits
-	logger      *logrus.Entry
+	logger *logrus.Entry
 
-	machineClient   machineclient.Interface
-	kubeClient      kubernetes.Interface
-	adminRESTConfig *rest.Config
+	machineClient machineclient.Interface
+	kubeClient    kubernetes.Interface
 
 	state       *collectionState
 	unavailable bool
 
-	beginning time.Time
-	rows      []provisioningRow
+	rows []provisioningRow
 }
 
-func NewNodeProvisioningLatency(flakeJunits monitortestframework.FlakeJunits) monitortestframework.MonitorTest {
+func NewNodeProvisioningLatency() monitortestframework.MonitorTest {
 	return &nodeProvisioningLatency{
-		flakeJunits: flakeJunits,
-		logger:      logrus.WithField("monitor", "node-provisioning-latency"),
-		state:       newCollectionState(),
+		logger: logrus.WithField("monitor", "node-provisioning-latency"),
+		state:  newCollectionState(),
 	}
 }
 
-func (m *nodeProvisioningLatency) markUnavailable(format string, args ...interface{}) {
+// markUnavailable logs only a summary of err because client errors embed the request URL, which
+// would publish the cluster's internal apiserver address in CI artifacts.
+func (m *nodeProvisioningLatency) markUnavailable(reason string, err error) {
 	m.unavailable = true
-	m.logger.Warnf(format+" (node provisioning latency will not be collected)", args...)
+	m.logger.Warnf("%s: %s (node provisioning latency will not be collected)", reason, utility.ErrorSummary(err))
 }
 
 func (m *nodeProvisioningLatency) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
-	m.adminRESTConfig = adminRESTConfig
-
 	machineClient, err := machineclient.NewForConfig(adminRESTConfig)
 	if err != nil {
-		m.markUnavailable("unable to build Machine client: %v", err)
+		m.markUnavailable("unable to build Machine client", err)
 		return nil
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {
-		m.markUnavailable("unable to build Kubernetes client: %v", err)
+		m.markUnavailable("unable to build Kubernetes client", err)
 		return nil
 	}
 
 	// Clusters without MAPI (HyperShift guests, MicroShift, UPI without Machines) must not
-	// produce rows, junits or errors.
+	// produce rows or errors.
 	if _, err := machineClient.MachineV1beta1().Machines(machineAPINamespace).List(ctx, metav1.ListOptions{Limit: 1}); err != nil {
-		m.markUnavailable("unable to list Machines in %s: %v", machineAPINamespace, err)
+		m.markUnavailable("unable to list Machines in "+machineAPINamespace, err)
 		return nil
 	}
 
@@ -92,11 +94,10 @@ func (m *nodeProvisioningLatency) StartCollection(ctx context.Context, adminREST
 }
 
 func (m *nodeProvisioningLatency) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-	if m.unavailable {
+	if m.unavailable || m.machineClient == nil || m.kubeClient == nil {
 		return nil, nil, nil
 	}
 
-	m.beginning = beginning
 	m.listFinalState(ctx)
 	m.rows = m.state.rows(beginning)
 	m.logger.Infof("collected %d node provisioning rows", len(m.rows))
@@ -105,6 +106,12 @@ func (m *nodeProvisioningLatency) CollectData(ctx context.Context, storageDir st
 }
 
 func (m *nodeProvisioningLatency) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+	return nil, nil
+}
+
+// EvaluateTestsFromConstructedIntervals deliberately produces no test cases: this monitor only
+// collects data for offline analysis.
+func (m *nodeProvisioningLatency) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	return nil, nil
 }
 

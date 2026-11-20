@@ -1,6 +1,7 @@
 package nodeprovisioninglatency
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -77,33 +78,107 @@ func TestCollectionStateRows(t *testing.T) {
 	}
 }
 
-func TestCollectionStateExcludesPreExistingMasters(t *testing.T) {
+func TestCollectionStateKeepsPreExistingMasters(t *testing.T) {
 	beginning := time.Date(2026, 1, 1, 10, 0, 0, 0, time.UTC)
-	state := newCollectionState()
 
-	preExistingMaster := testMachine("master-0", types.UID("uid-master-0"), beginning.Add(-time.Hour), nil)
-	preExistingMaster.Labels[machineRoleLabel] = roleMaster
-	preExistingWorker := testMachine("worker-0", types.UID("uid-worker-0"), beginning.Add(-time.Hour), nil)
-	newMaster := testMachine("master-1", types.UID("uid-master-1"), beginning.Add(time.Minute), nil)
-	newMaster.Labels[machineRoleLabel] = roleMaster
-
-	state.observeMachine(preExistingMaster)
-	state.observeMachine(preExistingWorker)
-	state.observeMachine(newMaster)
-
-	rowsByName := map[string]provisioningRow{}
-	for _, row := range state.rows(beginning) {
-		rowsByName[row.MachineName] = row
+	master := func(name string, created time.Time) *machinev1beta1.Machine {
+		machine := testMachine(name, types.UID("uid-"+name), created, nil)
+		machine.Labels[machineRoleLabel] = roleMaster
+		return machine
+	}
+	masterNode := func(name string, created time.Time) *corev1.Node {
+		node := testNode(name, types.UID("node-uid-"+name), created, created.Add(time.Minute), "openshift-machine-api/"+name)
+		node.Labels = map[string]string{"node-role.kubernetes.io/master": ""}
+		return node
 	}
 
-	if _, ok := rowsByName["master-0"]; ok {
-		t.Errorf("expected the install-time master to be excluded")
+	tests := []struct {
+		name             string
+		machine          *machinev1beta1.Machine
+		node             *corev1.Node
+		deleteDuringRun  bool
+		wantRole         string
+		wantCreatedInRun bool
+		wantDeleted      bool
+	}{
+		{
+			name:     "master that predates the run is kept with its cohort",
+			machine:  master("master-0", beginning.Add(-time.Hour)),
+			wantRole: roleMaster,
+		},
+		{
+			name:            "master that predates the run and is deleted during it is kept",
+			machine:         master("master-1", beginning.Add(-time.Hour)),
+			deleteDuringRun: true,
+			wantRole:        roleMaster,
+			wantDeleted:     true,
+		},
+		{
+			name: "master that predates the run is kept when its role comes from the Node",
+			machine: func() *machinev1beta1.Machine {
+				machine := testMachine("master-2", types.UID("uid-master-2"), beginning.Add(-time.Hour), nil)
+				delete(machine.Labels, machineRoleLabel)
+				return machine
+			}(),
+			node:     masterNode("master-2", beginning.Add(-time.Hour)),
+			wantRole: roleMaster,
+		},
+		{
+			name:             "master created during the run is in the run cohort",
+			machine:          master("master-abcde-0", beginning.Add(time.Minute)),
+			wantRole:         roleMaster,
+			wantCreatedInRun: true,
+		},
+		{
+			name:     "worker that predates the run is kept with its cohort",
+			machine:  testMachine("worker-0", types.UID("uid-worker-0"), beginning.Add(-time.Hour), nil),
+			wantRole: roleWorker,
+		},
 	}
-	if _, ok := rowsByName["worker-0"]; !ok {
-		t.Errorf("expected the install-time worker to be kept")
-	}
-	if _, ok := rowsByName["master-1"]; !ok {
-		t.Errorf("expected the master created during the run to be kept")
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			state := newCollectionState()
+			state.observeMachine(test.machine)
+			if test.node != nil {
+				state.observeNode(test.node)
+			}
+			if test.deleteDuringRun {
+				state.observeMachineDeleted(test.machine)
+			}
+
+			rows := state.rows(beginning)
+			if len(rows) != 1 {
+				t.Fatalf("expected the Machine to produce 1 row, got %d", len(rows))
+			}
+			row := rows[0]
+			if row.MachineRole != test.wantRole {
+				t.Errorf("MachineRole = %q, want %q", row.MachineRole, test.wantRole)
+			}
+			if row.CreatedDuringRun != test.wantCreatedInRun {
+				t.Errorf("CreatedDuringRun = %t, want %t", row.CreatedDuringRun, test.wantCreatedInRun)
+			}
+			if row.MachineDeletedDuringRun != test.wantDeleted {
+				t.Errorf("MachineDeletedDuringRun = %t, want %t", row.MachineDeletedDuringRun, test.wantDeleted)
+			}
+
+			// The cohort metadata must reach autodl so analysis can separate the samples.
+			exported := provisioningDataFile(rows).Rows
+			if len(exported) != 1 {
+				t.Fatalf("expected 1 autodl row, got %d", len(exported))
+			}
+			wantExported := map[string]string{
+				"MachineName":             test.machine.Name,
+				"MachineRole":             test.wantRole,
+				"CreatedDuringRun":        strconv.FormatBool(test.wantCreatedInRun),
+				"MachineDeletedDuringRun": strconv.FormatBool(test.wantDeleted),
+			}
+			for column, want := range wantExported {
+				if got := exported[0][column]; got != want {
+					t.Errorf("autodl %s = %q, want %q", column, got, want)
+				}
+			}
+		})
 	}
 }
 

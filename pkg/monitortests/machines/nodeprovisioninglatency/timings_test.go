@@ -184,27 +184,6 @@ func TestBuildRow(t *testing.T) {
 	}
 }
 
-func TestMedianDuration(t *testing.T) {
-	tests := []struct {
-		name   string
-		values []time.Duration
-		want   time.Duration
-	}{
-		{name: "empty", values: nil, want: 0},
-		{name: "single", values: []time.Duration{5 * time.Second}, want: 5 * time.Second},
-		{name: "odd", values: []time.Duration{30 * time.Second, 10 * time.Second, 20 * time.Second}, want: 20 * time.Second},
-		{name: "even", values: []time.Duration{40 * time.Second, 10 * time.Second, 30 * time.Second, 20 * time.Second}, want: 25 * time.Second},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if got := medianDuration(test.values); got != test.want {
-				t.Errorf("medianDuration(%v) = %v, want %v", test.values, got, test.want)
-			}
-		})
-	}
-}
-
 func TestInstanceTypeFromMachine(t *testing.T) {
 	tests := []struct {
 		name string
@@ -243,27 +222,6 @@ func TestMachineNameFromAnnotation(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			if got := machineNameFromAnnotation(test.annotation); got != test.want {
 				t.Errorf("machineNameFromAnnotation(%q) = %q, want %q", test.annotation, got, test.want)
-			}
-		})
-	}
-}
-
-func TestInstallerCreatedMaster(t *testing.T) {
-	tests := []struct {
-		name string
-		row  provisioningRow
-		want bool
-	}{
-		{name: "master that predates the run", row: provisioningRow{MachineRole: roleMaster}, want: true},
-		{name: "master created during the run", row: provisioningRow{MachineRole: roleMaster, CreatedDuringRun: true}, want: false},
-		{name: "worker that predates the run", row: provisioningRow{MachineRole: roleWorker}, want: false},
-		{name: "unknown role", row: provisioningRow{MachineRole: roleUnknown}, want: false},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if got := installerCreatedMaster(test.row); got != test.want {
-				t.Errorf("installerCreatedMaster(%+v) = %t, want %t", test.row, got, test.want)
 			}
 		})
 	}

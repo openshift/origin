@@ -179,7 +179,8 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 
 	// Machines
 	monitorTestRegistry.AddMonitorTestOrDie("machine-lifecycle", "Cluster-Lifecycle / machine-api", watchmachines.NewMachineWatcher())
-	monitorTestRegistry.AddMonitorTestOrDie("node-provisioning-latency", "Cluster-Lifecycle / machine-api", nodeprovisioninglatency.NewNodeProvisioningLatency(monitortestframework.HardFail))
+	// Collection only: exports provisioning latency through autodl and produces no latency pass/fail results.
+	monitorTestRegistry.AddMonitorTestOrDie("node-provisioning-latency", "Cluster-Lifecycle / machine-api", nodeprovisioninglatency.NewNodeProvisioningLatency())
 
 	// Image Registry
 	monitorTestRegistry.AddMonitorTestOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewAvailabilityInvariant())

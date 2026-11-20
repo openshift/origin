@@ -2,7 +2,6 @@ package nodeprovisioninglatency
 
 import (
 	"encoding/json"
-	"slices"
 	"strings"
 	"time"
 
@@ -25,12 +24,6 @@ const (
 	sourceCondition = "condition"
 	sourceObserved  = "observed"
 	sourceMissing   = "missing"
-
-	segmentMachineToInstance = "MachineToInstanceSeconds"
-	segmentInstanceToNode    = "InstanceToNodeSeconds"
-	segmentNodeToReady       = "NodeToReadySeconds"
-	segmentMachineToReady    = "MachineToReadySeconds"
-	segmentMachineToNode     = "MachineToNodeSeconds"
 )
 
 // machineRecord is the accumulated view of one Machine. Records are kept after the Machine is
@@ -244,25 +237,4 @@ func buildRow(rec *machineRecord, node *nodeRecord, beginning time.Time) provisi
 		MachineToNode:            secondsBetween(rec.Creation, nodeCreation),
 		MachineToReady:           secondsBetween(rec.Creation, nodeReady),
 	}
-}
-
-// installerCreatedMaster reports whether the row describes a master that already existed when the
-// run began. Those Machines belong to the install rather than to Machine API provisioning, so
-// including them would compare install time against provisioning time.
-func installerCreatedMaster(row provisioningRow) bool {
-	return row.MachineRole == roleMaster && !row.CreatedDuringRun
-}
-
-// medianDuration returns the middle value, averaging the two middle values for an even count.
-func medianDuration(values []time.Duration) time.Duration {
-	if len(values) == 0 {
-		return 0
-	}
-	sorted := slices.Clone(values)
-	slices.Sort(sorted)
-	middle := len(sorted) / 2
-	if len(sorted)%2 == 1 {
-		return sorted[middle]
-	}
-	return (sorted[middle-1] + sorted[middle]) / 2
 }
