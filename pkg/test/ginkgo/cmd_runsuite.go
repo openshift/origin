@@ -364,17 +364,16 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	if len(mirroredImages) > 0 {
 		mirroredImagesPath, err := extensions.WriteMirroredImagesFile(mirroredImages)
 		if err != nil {
-			logrus.Warnf("Failed to write mirrored images file: %v", err)
-		} else {
-			if !o.PrintCommands {
-				defer func() {
-					if err := os.Remove(mirroredImagesPath); err != nil {
-						logrus.Warnf("Failed to remove mirrored images file: %v", err)
-					}
-				}()
-			}
-			o.CommandEnv = append(o.CommandEnv, fmt.Sprintf("%s=%s", extensions.MirroredImagesEnvVar, mirroredImagesPath))
+			return fmt.Errorf("failed to write mirrored images file: %w", err)
 		}
+		if !o.PrintCommands {
+			defer func() {
+				if err := os.Remove(mirroredImagesPath); err != nil {
+					logrus.Warnf("Failed to remove mirrored images file: %v", err)
+				}
+			}()
+		}
+		o.CommandEnv = append(o.CommandEnv, fmt.Sprintf("%s=%s", extensions.MirroredImagesEnvVar, mirroredImagesPath))
 	}
 
 	// List tests from all available binaries and convert them to origin's testCase format
