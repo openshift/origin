@@ -117,6 +117,12 @@ func TestComputeMirroredImages(t *testing.T) {
 			fromRepository: "://invalid",
 			wantErr:        true,
 		},
+		{
+			name:           "from-repository without registry/namespace returns error",
+			extensions:     []*Extension{},
+			fromRepository: "mirror",
+			wantErr:        true,
+		},
 	}
 
 	for _, tt := range tests {

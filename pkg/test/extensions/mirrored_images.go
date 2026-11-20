@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/openshift/library-go/pkg/image/reference"
@@ -25,6 +26,9 @@ func ComputeMirroredImages(extensionsInfo []*Extension, fromRepository string) (
 	ref, err := reference.Parse(fromRepository)
 	if err != nil {
 		return nil, fmt.Errorf("invalid from-repository %q: %v", fromRepository, err)
+	}
+	if !strings.Contains(ref.Exact(), "/") {
+		return nil, fmt.Errorf("invalid from-repository %q: expected a registry and repository, such as registry.example.com/repo", fromRepository)
 	}
 
 	mapping := make(map[string]string)
@@ -88,14 +92,20 @@ func WriteMirroredImagesFile(mapping map[string]string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to create mirrored images file: %v", err)
 	}
-	defer f.Close()
 
 	if _, err := f.Write(data); err != nil {
+		f.Close()
 		os.Remove(f.Name())
 		return "", fmt.Errorf("failed to write mirrored images file: %v", err)
 	}
 
-	return f.Name(), nil
+	path := f.Name()
+	if err := f.Close(); err != nil {
+		os.Remove(path)
+		return "", fmt.Errorf("failed to close mirrored images file: %v", err)
+	}
+
+	return path, nil
 }
 
 // ReadMirroredImagesFile reads a mirrored images mapping from a JSON file.

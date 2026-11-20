@@ -366,7 +366,9 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		if err != nil {
 			logrus.Warnf("Failed to write mirrored images file: %v", err)
 		} else {
-			defer os.Remove(mirroredImagesPath)
+			if !o.PrintCommands {
+				defer os.Remove(mirroredImagesPath)
+			}
 			o.CommandEnv = append(o.CommandEnv, fmt.Sprintf("%s=%s", extensions.MirroredImagesEnvVar, mirroredImagesPath))
 		}
 	}
