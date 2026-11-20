@@ -50,67 +50,46 @@ var (
 	prerequisitesError     error
 )
 
-var _ = g.Describe("[sig-scheduling][Feature:NVIDIA-DRA][Suite:openshift/nvidia-dra][Serial]", func() {
+// ensurePrerequisites validates the NVIDIA GPU stack exactly once per process and records the
+// outcome in prerequisitesInstalled/prerequisitesError. Every Describe in this package calls it
+// from BeforeEach, so the gate is populated no matter which spec Ginkgo happens to run first.
+func ensurePrerequisites(ctx context.Context, prereqInstaller *PrerequisitesInstaller) {
+	prerequisitesOnce.Do(func() {
+		framework.Logf("Checking NVIDIA GPU stack prerequisites")
+
+		// Check if prerequisites are already installed
+		if prereqInstaller.IsGPUOperatorInstalled(ctx) && prereqInstaller.IsDRADriverInstalled(ctx) {
+			framework.Logf("Prerequisites already installed, skipping installation")
+			prerequisitesInstalled = true
+			return
+		}
+
+		framework.Logf("Validating GPU Operator and installing DRA driver if needed...")
+		// Validate GPU Operator presence and install DRA driver
+		if err := prereqInstaller.InstallAll(ctx); err != nil {
+			prerequisitesError = err
+			framework.Logf("ERROR: Failed to validate/install prerequisites: %v", err)
+			framework.Logf("Ensure GPU Operator is installed on the cluster before running these tests")
+			return
+		}
+
+		prerequisitesInstalled = true
+		framework.Logf("Prerequisites validation completed successfully")
+	})
+}
+
+var _ = g.Describe("[sig-scheduling][Feature:NVIDIA-DRA][Suite:openshift/nvidia-dra][Serial][Skipped:Disconnected]", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLIWithPodSecurityLevel("nvidia-dra", admissionapi.LevelPrivileged)
 
 	var (
-		prereqInstaller *PrerequisitesInstaller
-		validator       *GPUValidator
-		builder         *ResourceBuilder
+		validator *GPUValidator
+		builder   *ResourceBuilder
 	)
 
 	g.BeforeEach(func(ctx context.Context) {
-		// Initialize helpers
-		validator = NewGPUValidator(oc.KubeFramework())
-		builder = NewResourceBuilder(oc.Namespace())
-		prereqInstaller = NewPrerequisitesInstaller(oc.KubeFramework())
-
-		// IMPORTANT: Check for GPU nodes FIRST before attempting installation
-		// This ensures tests skip cleanly on non-GPU clusters
-		nodes, err := validator.GetGPUNodes(ctx)
-		if err != nil {
-			g.Fail(fmt.Sprintf("Failed to discover GPU nodes: %v", err))
-		}
-		if len(nodes) == 0 {
-			g.Skip("No GPU nodes available in the cluster - skipping NVIDIA DRA tests")
-		}
-		framework.Logf("Found %d GPU node(s) available for testing", len(nodes))
-
-		// Install prerequisites if needed (runs once via sync.Once)
-		// NOTE: GPU Operator must be pre-installed on the cluster
-		// Tests will validate GPU Operator presence and install DRA driver if needed
-		prerequisitesOnce.Do(func() {
-			framework.Logf("Checking NVIDIA GPU stack prerequisites")
-
-			// Check if prerequisites are already installed
-			if prereqInstaller.IsGPUOperatorInstalled(ctx) && prereqInstaller.IsDRADriverInstalled(ctx) {
-				framework.Logf("Prerequisites already installed, skipping installation")
-				prerequisitesInstalled = true
-				return
-			}
-
-			framework.Logf("Validating GPU Operator and installing DRA driver if needed...")
-			// Validate GPU Operator presence and install DRA driver
-			if err := prereqInstaller.InstallAll(ctx); err != nil {
-				prerequisitesError = err
-				framework.Logf("ERROR: Failed to validate/install prerequisites: %v", err)
-				framework.Logf("Ensure GPU Operator is installed on the cluster before running these tests")
-				return
-			}
-
-			prerequisitesInstalled = true
-			framework.Logf("Prerequisites validation completed successfully")
-		})
-
-		// Verify prerequisites are installed
-		if prerequisitesError != nil {
-			g.Fail(fmt.Sprintf("Prerequisites validation failed: %v. Ensure GPU Operator is installed on cluster.", prerequisitesError))
-		}
-		if !prerequisitesInstalled {
-			g.Fail("Prerequisites not installed - cannot run tests")
-		}
+		validator, builder = setupGPUTest(ctx, oc, "NVIDIA DRA")
 	})
 
 	g.Context("Basic GPU Allocation", func() {
@@ -123,22 +102,23 @@ var _ = g.Describe("[sig-scheduling][Feature:NVIDIA-DRA][Suite:openshift/nvidia-
 			deviceClass := builder.BuildDeviceClass(deviceClassName)
 			err := createDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClass)
 			framework.ExpectNoError(err, "Failed to create DeviceClass")
-			defer func() {
-				deleteDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClassName)
-			}()
+			g.DeferCleanup(func(ctx context.Context) error {
+				return deleteDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClassName)
+			})
 
 			g.By("Creating ResourceClaim requesting 1 GPU")
 			claim := builder.BuildResourceClaim(claimName, deviceClassName, 1)
 			err = createResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claim)
 			framework.ExpectNoError(err, "Failed to create ResourceClaim")
-			defer func() {
-				deleteResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claimName)
-			}()
+			g.DeferCleanup(func(ctx context.Context) error {
+				return deleteResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claimName)
+			})
 
 			g.By("Creating Pod using the ResourceClaim")
 			pod := builder.BuildPodWithClaim(podName, claimName, "")
 			pod, err = oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Create(ctx, pod, metav1.CreateOptions{})
 			framework.ExpectNoError(err, "Failed to create pod")
+			registerPodCleanup(oc.KubeFramework().ClientSet, oc.Namespace(), podName, claimName)
 
 			g.By("Waiting for pod to be running")
 			err = e2epod.WaitForPodRunningInNamespace(ctx, oc.KubeFramework().ClientSet, pod)
@@ -166,18 +146,23 @@ var _ = g.Describe("[sig-scheduling][Feature:NVIDIA-DRA][Suite:openshift/nvidia-
 			deviceClass := builder.BuildDeviceClass(deviceClassName)
 			err := createDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClass)
 			framework.ExpectNoError(err)
-			defer deleteDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClassName)
+			g.DeferCleanup(func(ctx context.Context) error {
+				return deleteDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClassName)
+			})
 
 			g.By("Creating ResourceClaim")
 			claim := builder.BuildResourceClaim(claimName, deviceClassName, 1)
 			err = createResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claim)
 			framework.ExpectNoError(err)
-			defer deleteResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claimName)
+			g.DeferCleanup(func(ctx context.Context) error {
+				return deleteResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claimName)
+			})
 
 			g.By("Creating and verifying pod with GPU")
 			pod := builder.BuildLongRunningPodWithClaim(podName, claimName, "")
 			pod, err = oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Create(ctx, pod, metav1.CreateOptions{})
 			framework.ExpectNoError(err)
+			registerPodCleanup(oc.KubeFramework().ClientSet, oc.Namespace(), podName, claimName)
 
 			err = e2epod.WaitForPodRunningInNamespace(ctx, oc.KubeFramework().ClientSet, pod)
 			framework.ExpectNoError(err)
@@ -194,26 +179,15 @@ var _ = g.Describe("[sig-scheduling][Feature:NVIDIA-DRA][Suite:openshift/nvidia-
 			err = e2epod.WaitForPodNotFoundInNamespace(ctx, oc.KubeFramework().ClientSet, podName, oc.Namespace(), 1*time.Minute)
 			framework.ExpectNoError(err)
 
-			g.By("Verifying ResourceClaim still exists but is not reserved")
-			claimObj, err := oc.KubeFramework().DynamicClient.Resource(resourceClaimGVR).Namespace(oc.Namespace()).Get(ctx, claimName, metav1.GetOptions{})
-			framework.ExpectNoError(err)
-			o.Expect(claimObj).NotTo(o.BeNil())
-
-			// Verify the claim is no longer reserved by the deleted pod
-			reservedFor, found, err := unstructured.NestedSlice(claimObj.Object, "status", "reservedFor")
-			framework.ExpectNoError(err)
-			if found && len(reservedFor) > 0 {
-				// Check if any reservation references the deleted pod
-				for _, reservation := range reservedFor {
-					if resMap, ok := reservation.(map[string]interface{}); ok {
-						if uid, found := resMap["uid"]; found {
-							// If any reservation still references the deleted pod, fail the test
-							framework.Logf("Found reservation with UID: %v", uid)
-							g.Fail(fmt.Sprintf("ResourceClaim %s still reserved after pod deletion: %+v", claimName, reservedFor))
-						}
-					}
+			g.By("Waiting for the ResourceClaim allocation and reservation to clear")
+			err = wait.PollUntilContextTimeout(ctx, 2*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
+				claimObj, err := oc.KubeFramework().ClientSet.ResourceV1().ResourceClaims(oc.Namespace()).Get(ctx, claimName, metav1.GetOptions{})
+				if err != nil {
+					return false, err
 				}
-			}
+				return claimObj.Status.Allocation == nil && len(claimObj.Status.ReservedFor) == 0, nil
+			})
+			framework.ExpectNoError(err, "ResourceClaim %s should remain but become unallocated and unreserved after pod deletion", claimName)
 
 			framework.Logf("ResourceClaim %s successfully cleaned up after pod deletion (no reservations)", claimName)
 		})
@@ -238,18 +212,23 @@ var _ = g.Describe("[sig-scheduling][Feature:NVIDIA-DRA][Suite:openshift/nvidia-
 			deviceClass := builder.BuildDeviceClass(deviceClassName)
 			err := createDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClass)
 			framework.ExpectNoError(err)
-			defer deleteDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClassName)
+			g.DeferCleanup(func(ctx context.Context) error {
+				return deleteDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClassName)
+			})
 
 			g.By("Creating ResourceClaim requesting 2 GPUs")
 			claim := builder.BuildResourceClaim(claimName, deviceClassName, 2)
 			err = createResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claim)
 			framework.ExpectNoError(err)
-			defer deleteResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claimName)
+			g.DeferCleanup(func(ctx context.Context) error {
+				return deleteResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claimName)
+			})
 
 			g.By("Creating Pod using the multi-GPU claim")
 			pod := builder.BuildPodWithClaim(podName, claimName, "")
 			pod, err = oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Create(ctx, pod, metav1.CreateOptions{})
 			framework.ExpectNoError(err)
+			registerPodCleanup(oc.KubeFramework().ClientSet, oc.Namespace(), podName, claimName)
 
 			g.By("Waiting for pod to be running or checking for insufficient resources")
 			err = e2epod.WaitForPodRunningInNamespace(ctx, oc.KubeFramework().ClientSet, pod)
@@ -301,18 +280,23 @@ var _ = g.Describe("[sig-scheduling][Feature:NVIDIA-DRA][Suite:openshift/nvidia-
 			deviceClass := builder.BuildDeviceClass(deviceClassName)
 			err := createDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClass)
 			framework.ExpectNoError(err)
-			defer deleteDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClassName)
+			g.DeferCleanup(func(ctx context.Context) error {
+				return deleteDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClassName)
+			})
 
 			g.By("Creating shared ResourceClaim")
 			claim := builder.BuildResourceClaim(claimName, deviceClassName, 1)
 			err = createResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claim)
 			framework.ExpectNoError(err)
-			defer deleteResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claimName)
+			g.DeferCleanup(func(ctx context.Context) error {
+				return deleteResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claimName)
+			})
 
 			g.By("Creating first pod using the shared claim")
 			pod1 := builder.BuildLongRunningPodWithClaim(pod1Name, claimName, "")
 			pod1, err = oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Create(ctx, pod1, metav1.CreateOptions{})
 			framework.ExpectNoError(err, "Failed to create first pod")
+			registerPodsCleanup(oc.KubeFramework().ClientSet, oc.Namespace(), claimName, pod1Name, pod2Name)
 
 			g.By("Waiting for first pod to be running")
 			err = e2epod.WaitForPodRunningInNamespace(ctx, oc.KubeFramework().ClientSet, pod1)
@@ -390,13 +374,17 @@ var _ = g.Describe("[sig-scheduling][Feature:NVIDIA-DRA][Suite:openshift/nvidia-
 			deviceClass := builder.BuildDeviceClass(deviceClassName)
 			err := createDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClass)
 			framework.ExpectNoError(err)
-			defer deleteDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClassName)
+			g.DeferCleanup(func(ctx context.Context) error {
+				return deleteDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClassName)
+			})
 
 			g.By("Creating ResourceClaimTemplate")
 			template := builder.BuildResourceClaimTemplate(templateName, deviceClassName, 1)
 			err = createResourceClaimTemplate(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), template)
 			framework.ExpectNoError(err)
-			defer deleteResourceClaimTemplate(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), templateName)
+			g.DeferCleanup(func(ctx context.Context) error {
+				return deleteResourceClaimTemplate(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), templateName)
+			})
 
 			g.By("Creating Pod with ResourceClaimTemplate reference")
 			pod := builder.BuildPodWithInlineClaim(podName, deviceClassName)
@@ -404,6 +392,29 @@ var _ = g.Describe("[sig-scheduling][Feature:NVIDIA-DRA][Suite:openshift/nvidia-
 			*pod.Spec.ResourceClaims[0].ResourceClaimTemplateName = templateName
 			pod, err = oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Create(ctx, pod, metav1.CreateOptions{})
 			framework.ExpectNoError(err, "Failed to create pod")
+			g.DeferCleanup(func(ctx context.Context) error {
+				deleteErr := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Delete(ctx, podName, metav1.DeleteOptions{})
+				if deleteErr != nil && !errors.IsNotFound(deleteErr) {
+					return fmt.Errorf("delete template workload pod %s/%s: %w", oc.Namespace(), podName, deleteErr)
+				}
+				if deleteErr == nil {
+					if waitErr := e2epod.WaitForPodNotFoundInNamespace(ctx, oc.KubeFramework().ClientSet, podName, oc.Namespace(), 2*time.Minute); waitErr != nil {
+						return fmt.Errorf("wait for template workload pod %s/%s deletion: %w", oc.Namespace(), podName, waitErr)
+					}
+				}
+				return wait.PollUntilContextTimeout(ctx, 2*time.Second, 2*time.Minute, false, func(ctx context.Context) (bool, error) {
+					claims, err := oc.KubeFramework().DynamicClient.Resource(resourceClaimGVR).Namespace(oc.Namespace()).List(ctx, metav1.ListOptions{})
+					if err != nil {
+						return false, err
+					}
+					for _, claim := range claims.Items {
+						if strings.HasPrefix(claim.GetName(), podName+"-gpu") {
+							return false, nil
+						}
+					}
+					return true, nil
+				})
+			})
 
 			g.By("Waiting for pod to be running")
 			err = e2epod.WaitForPodRunningInNamespace(ctx, oc.KubeFramework().ClientSet, pod)

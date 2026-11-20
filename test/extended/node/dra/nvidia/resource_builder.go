@@ -10,10 +10,16 @@ import (
 )
 
 const (
-	defaultDeviceClassName = "nvidia-gpu"
-	resourceBuilderDriver  = "gpu.nvidia.com"
-	defaultCudaImage       = "nvcr.io/nvidia/cuda:12.0.0-base-ubuntu22.04"
+	defaultDeviceClassName  = "nvidia-gpu"
+	resourceBuilderDriver   = "gpu.nvidia.com"
+	defaultGPUWorkloadImage = "nvcr.io/nvidia/cuda:12.0.0-base-ubuntu22.04"
 )
+
+// defaultGPUImage returns the image used by GPU workload pods in this suite. The generic release
+// tools image does not provide the NVIDIA workload utilities these specs invoke.
+func defaultGPUImage() string {
+	return defaultGPUWorkloadImage
+}
 
 // ResourceBuilder helps build DRA resource objects
 type ResourceBuilder struct {
@@ -82,7 +88,7 @@ func (rb *ResourceBuilder) BuildResourceClaim(name, deviceClassName string, coun
 // BuildPodWithClaim creates a Pod that uses a ResourceClaim
 func (rb *ResourceBuilder) BuildPodWithClaim(name, claimName, image string) *corev1.Pod {
 	if image == "" {
-		image = defaultCudaImage
+		image = defaultGPUImage()
 	}
 
 	return &corev1.Pod{
@@ -92,6 +98,10 @@ func (rb *ResourceBuilder) BuildPodWithClaim(name, claimName, image string) *cor
 		},
 		Spec: corev1.PodSpec{
 			RestartPolicy: corev1.RestartPolicyNever,
+			SecurityContext: &corev1.PodSecurityContext{
+				RunAsNonRoot:   ptr.To(true),
+				SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault},
+			},
 			Containers: []corev1.Container{
 				{
 					Name:    "gpu-container",
@@ -144,7 +154,7 @@ func (rb *ResourceBuilder) BuildPodWithInlineClaim(name, deviceClassName string)
 			Containers: []corev1.Container{
 				{
 					Name:    "gpu-container",
-					Image:   defaultCudaImage,
+					Image:   defaultGPUImage(),
 					Command: []string{"sh", "-c", "nvidia-smi && sleep infinity"},
 					Resources: corev1.ResourceRequirements{
 						Claims: []corev1.ResourceClaim{
@@ -174,12 +184,164 @@ func (rb *ResourceBuilder) BuildPodWithInlineClaim(name, deviceClassName string)
 // BuildLongRunningPodWithClaim creates a long-running Pod for testing
 func (rb *ResourceBuilder) BuildLongRunningPodWithClaim(name, claimName, image string) *corev1.Pod {
 	if image == "" {
-		image = defaultCudaImage
+		image = defaultGPUImage()
 	}
 
 	pod := rb.BuildPodWithClaim(name, claimName, image)
 	pod.Spec.Containers[0].Command = []string{"sh", "-c", "while true; do nvidia-smi; sleep 60; done"}
 	return pod
+}
+
+// BuildMultiContainerPodWithClaim creates a Pod with two containers sharing the same GPU claim
+func (rb *ResourceBuilder) BuildMultiContainerPodWithClaim(name, claimName, image string) *corev1.Pod {
+	if image == "" {
+		image = defaultGPUImage()
+	}
+
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: rb.namespace,
+		},
+		Spec: corev1.PodSpec{
+			RestartPolicy: corev1.RestartPolicyNever,
+			Containers: []corev1.Container{
+				{
+					Name:    "gpu-container-1",
+					Image:   image,
+					Command: []string{"sh", "-c", "nvidia-smi && sleep infinity"},
+					Resources: corev1.ResourceRequirements{
+						Claims: []corev1.ResourceClaim{
+							{
+								Name: "gpu",
+							},
+						},
+					},
+					SecurityContext: restrictedGPUContext(),
+				},
+				{
+					Name:    "gpu-container-2",
+					Image:   image,
+					Command: []string{"sh", "-c", "nvidia-smi && sleep infinity"},
+					Resources: corev1.ResourceRequirements{
+						Claims: []corev1.ResourceClaim{
+							{
+								Name: "gpu",
+							},
+						},
+					},
+					SecurityContext: restrictedGPUContext(),
+				},
+			},
+			ResourceClaims: []corev1.PodResourceClaim{
+				{
+					Name:              "gpu",
+					ResourceClaimName: &claimName,
+				},
+			},
+		},
+	}
+}
+
+// BuildPodWithInitContainerAndClaim creates a Pod with an init container and main container both using the GPU claim
+func (rb *ResourceBuilder) BuildPodWithInitContainerAndClaim(name, claimName, image string) *corev1.Pod {
+	if image == "" {
+		image = defaultGPUImage()
+	}
+
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: rb.namespace,
+		},
+		Spec: corev1.PodSpec{
+			RestartPolicy: corev1.RestartPolicyNever,
+			InitContainers: []corev1.Container{
+				{
+					Name:    "gpu-init",
+					Image:   image,
+					Command: []string{"nvidia-smi"},
+					Resources: corev1.ResourceRequirements{
+						Claims: []corev1.ResourceClaim{
+							{
+								Name: "gpu",
+							},
+						},
+					},
+					SecurityContext: restrictedGPUContext(),
+				},
+			},
+			Containers: []corev1.Container{
+				{
+					Name:    "gpu-container",
+					Image:   image,
+					Command: []string{"sh", "-c", "nvidia-smi && sleep infinity"},
+					Resources: corev1.ResourceRequirements{
+						Claims: []corev1.ResourceClaim{
+							{
+								Name: "gpu",
+							},
+						},
+					},
+					SecurityContext: restrictedGPUContext(),
+				},
+			},
+			ResourceClaims: []corev1.PodResourceClaim{
+				{
+					Name:              "gpu",
+					ResourceClaimName: &claimName,
+				},
+			},
+		},
+	}
+}
+
+func restrictedGPUContext() *corev1.SecurityContext {
+	return &corev1.SecurityContext{
+		AllowPrivilegeEscalation: ptr.To(false),
+		Capabilities: &corev1.Capabilities{
+			Drop: []corev1.Capability{"ALL"},
+		},
+	}
+}
+
+// BuildResourceClaimWithCELSelector creates a ResourceClaim that narrows the devices of a
+// DeviceClass with an extra CEL selector on the request itself. deviceClassName is required by
+// the resource.k8s.io/v1 API even when request-level selectors are supplied.
+func (rb *ResourceBuilder) BuildResourceClaimWithCELSelector(name, deviceClassName, celExpression string, count int) *resourceapi.ResourceClaim {
+	if count <= 0 {
+		panic(fmt.Sprintf("BuildResourceClaimWithCELSelector: count must be > 0, got %d", count))
+	}
+	if deviceClassName == "" {
+		deviceClassName = defaultDeviceClassName
+	}
+
+	return &resourceapi.ResourceClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: rb.namespace,
+		},
+		Spec: resourceapi.ResourceClaimSpec{
+			Devices: resourceapi.DeviceClaim{
+				Requests: []resourceapi.DeviceRequest{
+					{
+						Name: "gpu",
+						Exactly: &resourceapi.ExactDeviceRequest{
+							DeviceClassName: deviceClassName,
+							Count:           int64(count),
+							Selectors: []resourceapi.DeviceSelector{
+								{
+									CEL: &resourceapi.CELDeviceSelector{
+										Expression: celExpression,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 }
 
 // BuildResourceClaimTemplate creates a ResourceClaimTemplate
