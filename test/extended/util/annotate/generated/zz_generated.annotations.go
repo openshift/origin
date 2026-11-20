@@ -1667,6 +1667,8 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes check traffic with IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]": "",
 
+	"[sig-network][Feature:Layer2LiveMigration][Feature:baremetal][OCPFeatureGate:NetworkSegmentation][Suite:openshift/network/virtualization] primary UDN migration egress when using openshift ovn-kubernetes should consistently egress through each VM's own node while another VM migrates": "",
+
 	"[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:NetworkSegmentation][Suite:openshift/network/virtualization] primary UDN smoke test when using openshift ovn-kubernetes assert the primary UDN feature works as expected": "",
 
 	"[sig-network][Feature:Layer2LiveMigration][Suite:openshift/network/virtualization] Kubevirt Virtual Machines Placeholder test for GA": "",
