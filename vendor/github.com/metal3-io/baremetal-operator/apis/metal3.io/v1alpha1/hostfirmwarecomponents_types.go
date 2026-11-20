@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"fmt"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -45,6 +46,12 @@ const (
 
 	// Indicates if the updates are valid and can be configured on the host.
 	HostFirmwareComponentsValid UpdatesConditionType = "Valid"
+)
+
+// Firmware component constants.
+const (
+	// NICComponentPrefix is the prefix for NIC firmware components.
+	NICComponentPrefix = "nic:"
 )
 
 // HostFirmwareComponentsSpec defines the desired state of HostFirmwareComponents.
@@ -101,8 +108,8 @@ func (host *HostFirmwareComponents) ValidateHostFirmwareComponents() error {
 	allowedNames := map[string]struct{}{"bmc": {}, "bios": {}}
 	for _, update := range host.Spec.Updates {
 		componentName := update.Component
-		if _, ok := allowedNames[componentName]; !ok {
-			return fmt.Errorf("component %s is invalid, only 'bmc' or 'bios' are allowed as update names", update.Component)
+		if _, ok := allowedNames[componentName]; !ok && !strings.HasPrefix(componentName, NICComponentPrefix) {
+			return fmt.Errorf("component %s is invalid, only 'bmc', 'bios', or names starting with '%s' are allowed as update names", update.Component, NICComponentPrefix)
 		}
 	}
 
