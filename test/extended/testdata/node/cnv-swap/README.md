@@ -67,31 +67,42 @@ systemctl restart kubelet
 
 ## Test Cases
 
-The configuration files support the following automated tests in `node_swap_cnv.go`:
+The configuration files support the following automated tests in `node_swap_cnv.go`.
+They are split into two tests:
 
-| TC | Description |
-|----|-------------|
-| TC1 | Verify silent creation and ownership of drop-in directory on CNV nodes |
-| TC2 | Verify kubelet starts normally with empty directory |
-| TC3 | Apply LimitedSwap configuration from drop-in file |
-| TC4 | Revert to NoSwap when drop-in file is removed |
-| TC5 | Verify control plane kubelets ignore drop-in config |
-| TC6 | Verify drop-in directory is auto-recreated after deletion |
-| TC7 | Validate security and permissions of drop-in directory |
-| TC8 | Verify cluster stability with LimitedSwap enabled |
-| TC9 | Verify non-CNV workers have no swap configuration |
-| TC10 | Apply correct precedence with multiple files |
-| TC11 | Maintain consistent configuration with checksum verification across CNV nodes |
-| TC12 | Handle LimitedSwap config gracefully when OS swap is disabled |
-| TC13 | Work correctly with various swap sizes |
-| TC14 | Expose swap metrics correctly via Prometheus |
+- `... Kubelet LimitedSwap Drop-in Configuration for CNV with CNV installed` installs CNV
+  once, runs the CNV swap cases, then removes CNV and every artifact it adds (namespace,
+  autopilot MachineConfigs, kubelet drop-in, `psi=1` and node labels).
+- `... Kubelet LimitedSwap Drop-in Configuration without CNV non-CNV kubelet drop-in cases`
+  runs on a CNV-free cluster and skips if CNV is already installed.
+
+| TC   | Test        | Description                                                                                                      |
+| ---- | ----------- | ---------------------------------------------------------------------------------------------------------------- |
+| TC1  | with CNV    | Verify the drop-in directory exists on all worker and control-plane nodes with correct ownership and permissions |
+| TC2  | with CNV    | Verify kubelet starts normally with an empty drop-in directory                                                   |
+| TC3  | without CNV | Apply LimitedSwap configuration from a drop-in file                                                              |
+| TC4  | without CNV | Revert to NoSwap when the drop-in file is removed                                                                |
+| TC5  | without CNV | Validate security and permissions of the drop-in directory                                                       |
+| TC6  | without CNV | Verify cluster stability with LimitedSwap enabled                                                                |
+| TC7  | without CNV | Verify non-CNV workers have no swap configuration                                                                |
+| TC8  | with CNV    | Verify 99-* takes precedence over 98-* with multiple drop-in files                                               |
+| TC10 | with CNV    | Handle LimitedSwap gracefully when OS-level swap is disabled                                                     |
+| TC11 | with CNV    | Work correctly with various swap sizes                                                                           |
+| TC12 | with CNV    | Expose swap metrics via Prometheus                                                                               |
+
+TC9 (multi-node consistency: identical drop-in checksum and `swapBehavior` across CNV
+nodes) is not included. It required at least two CNV-labeled NodeResource nodes, but the
+`openshift/nodes/isolated` suite reserves a single node per test, so it always skipped.
 
 ## Running Tests
 
 ```bash
-# Run individual test
-./openshift-tests run-test "[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disruptive][Suite:openshift/nodes/cnv] Kubelet LimitedSwap Drop-in Configuration for CNV TC1: should verify silent creation and ownership of drop-in directory on CNV nodes"
+# CNV cases (installs CNV once, then removes it and all its artifacts)
+./openshift-tests run-test "[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:openshift/nodes/isolated] Kubelet LimitedSwap Drop-in Configuration for CNV with CNV installed [Timeout:90m]"
 
-# Run entire suite
-./openshift-tests run openshift/nodes/cnv
+# Cases that expect a CNV-free cluster
+./openshift-tests run-test "[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:openshift/nodes/isolated] Kubelet LimitedSwap Drop-in Configuration without CNV non-CNV kubelet drop-in cases"
+
+# Run the whole isolated suite
+./openshift-tests run openshift/nodes/isolated
 ```

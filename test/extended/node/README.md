@@ -27,7 +27,7 @@ NodeResource scheduler (Parallelism: 3).
 - **node_sizing.go** - Node sizing auto-sizing reserved CPU configuration
 - **additional_storage_e2e.go** - Additional Storage configuration and functional tests - Verifies ContainerRuntimeConfig with additionalImageStores, additionalLayerStores, and additionalArtifactStores \[Disruptive\]
 - **system_compressible.go** - System compressible CPU enforcement and configuration
-- **node_swap_cnv.go** - Kubelet LimitedSwap drop-in configuration for CNV (12 test cases)
+- **node_swap_cnv.go** - Kubelet LimitedSwap drop-in configuration for CNV (11 test cases: CNV-installed and CNV-free blocks)
 - **node_e2e/probe_termination.go** - Probe-level terminationGracePeriodSeconds (OCP-44493) - 3 test cases
 - **node_e2e/pdb_drain.go** - PodDisruptionBudget drain blocking (OCP-67564) \[Disruptive\] \[Lifecycle:informing\]
 - **runc_upgrade_cases.go** - runc RHCOS 10 upgrade guard tests (OSStreams feature gate) - 3 test cases
