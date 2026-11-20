@@ -354,6 +354,23 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		logrus.Infof("Extension %s found in %s:%s using API version %s", id, e.Source.SourceImage, e.Source.SourceBinary, e.APIVersion)
 	}
 
+	// Compute mirrored image mappings so extension binaries can resolve
+	// original image pull specs to their mirrored locations.
+	fromRepository := extractEnvValue(o.CommandEnv, "KUBE_TEST_REPO")
+	mirroredImages, err := extensions.ComputeMirroredImages(extensionsInfo, fromRepository)
+	if err != nil {
+		logrus.Warnf("Failed to compute mirrored images: %v", err)
+	}
+	if len(mirroredImages) > 0 {
+		mirroredImagesPath, err := extensions.WriteMirroredImagesFile(mirroredImages)
+		if err != nil {
+			logrus.Warnf("Failed to write mirrored images file: %v", err)
+		} else {
+			defer os.Remove(mirroredImagesPath)
+			o.CommandEnv = append(o.CommandEnv, fmt.Sprintf("%s=%s", extensions.MirroredImagesEnvVar, mirroredImagesPath))
+		}
+	}
+
 	// List tests from all available binaries and convert them to origin's testCase format
 	listContext, listContextCancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer listContextCancel()
@@ -1587,4 +1604,16 @@ func detectPreconditionChecks(tests []*testCase) *junitapi.JUnitTestCase {
 			Output: fmt.Sprintf("Cluster preconditions not met - %d test(s) skipped\n\n\n%s", len(skips), details.String()),
 		},
 	}
+}
+
+// extractEnvValue returns the value of a KEY=VALUE entry in env, or empty
+// string if not found.
+func extractEnvValue(env []string, key string) string {
+	prefix := key + "="
+	for _, entry := range env {
+		if strings.HasPrefix(entry, prefix) {
+			return entry[len(prefix):]
+		}
+	}
+	return ""
 }
