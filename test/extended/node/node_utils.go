@@ -3,6 +3,7 @@ package node
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -355,18 +356,29 @@ func cleanupDropInAndRestartKubelet(ctx context.Context, oc *exutil.CLI, nodeNam
 // CNV Operator Installation/Uninstallation Functions
 // ============================================================================
 
-// isCNVInstalled checks if CNV operator is installed
-func isCNVInstalled(ctx context.Context, oc *exutil.CLI) bool {
+// isCNVInstalled checks if CNV operator is installed. Lookup errors are returned
+// instead of being treated as "not installed", so a transient API failure cannot send
+// the test down the install path and tear down an installation it did not create.
+func isCNVInstalled(ctx context.Context, oc *exutil.CLI) (bool, error) {
 	// Check if CNV namespace exists
 	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, cnvNamespace, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return false, nil
+	}
 	if err != nil {
-		return false
+		return false, fmt.Errorf("failed to get namespace %s: %w", cnvNamespace, err)
 	}
 
 	// Check if HyperConverged CR exists
 	dynamicClient := oc.AdminDynamicClient()
 	_, err = dynamicClient.Resource(hyperConvergedGVR).Namespace(cnvNamespace).Get(ctx, cnvHyperConverged, metav1.GetOptions{})
-	return err == nil
+	if apierrors.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("failed to get HyperConverged %s/%s: %w", cnvNamespace, cnvHyperConverged, err)
+	}
+	return true, nil
 }
 
 // installCNVOperator installs the CNV operator and creates HyperConverged CR
@@ -515,8 +527,13 @@ func installCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 		return fmt.Errorf("failed to create MC client for MCP check: %w", err)
 	}
 
-	err = WaitForMCP(ctx, mcClient, "worker", 15*time.Minute)
+	machineCount, err := workerPoolMachineCount(ctx, mcClient)
 	if err != nil {
+		return fmt.Errorf("failed to check worker MachineConfigPool: %w", err)
+	}
+	if machineCount == 0 {
+		framework.Logf("Worker MachineConfigPool has no machines, skipping the rollout wait")
+	} else if err = WaitForMCP(ctx, mcClient, "worker", workerRolloutTimeout(machineCount)); err != nil {
 		return fmt.Errorf("MCP rollout failed after CNV installation: %w", err)
 	}
 
@@ -608,6 +625,24 @@ func WaitMCPAllowDegraded() func(*waitMCPOptions) {
 	return func(o *waitMCPOptions) {
 		o.allowDegraded = true
 	}
+}
+
+// workerPoolMachineCount returns the number of machines in the worker MachineConfigPool.
+// It is 0 on single-node topologies, where the only node belongs to master and
+// WaitForMCP (which requires MachineCount > 0) would never succeed.
+func workerPoolMachineCount(ctx context.Context, mcClient *machineconfigclient.Clientset) (int32, error) {
+	mcp, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, "worker", metav1.GetOptions{})
+	if err != nil {
+		return 0, fmt.Errorf("failed to get worker MachineConfigPool: %w", err)
+	}
+	return mcp.Status.MachineCount, nil
+}
+
+// workerRolloutTimeout scales the worker pool rollout budget with the pool size: on
+// AWS each worker takes roughly 2m20s to drain and reboot, so a fixed 15m is right at
+// the edge for a 6-node pool.
+func workerRolloutTimeout(machineCount int32) time.Duration {
+	return max(15*time.Minute, time.Duration(machineCount)*5*time.Minute)
 }
 
 // WaitForMCP waits for a MachineConfigPool to be ready (not updating, updated, and all machines ready).
@@ -774,6 +809,172 @@ func unlabelWorkerNodesForCNV(ctx context.Context, oc *exutil.CLI) error {
 	return nil
 }
 
+// cnvAutopilotManagedBySelector selects the MachineConfigs created by CNV's
+// virt-platform-autopilot (swap drop-in, PSI karg).
+const cnvAutopilotManagedBySelector = "platform.kubevirt.io/managed-by=virt-platform-autopilot"
+
+// removeCNVMachineConfigs deletes the MachineConfigs owned by CNV's
+// virt-platform-autopilot. They are cluster-scoped with no ownerReference and CNV
+// never deletes them, so uninstalling CNV would otherwise leave the
+// /etc/openshift/kubelet.conf.d/90-swap.conf drop-in (swapBehavior=LimitedSwap)
+// and the psi=1 kernel argument on every worker.
+// Returns whether at least one MachineConfig was deleted. Deletion can be partial
+// (the autopilot recreates one while its namespace is still terminating), but any
+// deletion can re-render the worker config, so the caller syncs the rollout whenever
+// this returns true, even alongside an error.
+func removeCNVMachineConfigs(ctx context.Context, mcClient *machineconfigclient.Clientset) (bool, error) {
+	mcV1 := mcClient.MachineconfigurationV1()
+	deletedAny := false
+
+	// The autopilot recreates its MachineConfigs while it is still running, so keep
+	// deleting until the namespace teardown has stopped it for good.
+	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
+		mcs, err := mcV1.MachineConfigs().List(ctx, metav1.ListOptions{LabelSelector: cnvAutopilotManagedBySelector})
+		if err != nil {
+			return false, err
+		}
+		if len(mcs.Items) == 0 {
+			return true, nil
+		}
+
+		for _, mc := range mcs.Items {
+			framework.Logf("Deleting CNV MachineConfig %s", mc.Name)
+		}
+		deletedAny = true
+		if err := mcV1.MachineConfigs().DeleteCollection(ctx, metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: cnvAutopilotManagedBySelector}); err != nil {
+			return false, fmt.Errorf("failed to delete CNV MachineConfigs: %w", err)
+		}
+		return false, nil
+	})
+	if err != nil {
+		return deletedAny, fmt.Errorf("CNV autopilot MachineConfigs still present after CNV uninstall: %w", err)
+	}
+	return deletedAny, nil
+}
+
+// cleanupCNVMachineConfigs deletes any MachineConfigs created by CNV's
+// virt-platform-autopilot and waits for the worker pool to roll the change out, so
+// the swap drop-in and PSI karg it owns are gone from the nodes.
+func cleanupCNVMachineConfigs(ctx context.Context, oc *exutil.CLI) error {
+	mcClient, err := machineconfigclient.NewForConfig(oc.AdminConfig())
+	if err != nil {
+		return fmt.Errorf("failed to create MachineConfig client: %w", err)
+	}
+
+	// Even when nothing was deleted, the worker pool may still be rolling out a config
+	// that carried the CNV content (an earlier cleanup may have stopped mid-rollout), so
+	// always converge on a rendered config without it.
+	deletedAny, removeErr := removeCNVMachineConfigs(ctx, mcClient)
+	var errs []error
+	if removeErr != nil {
+		errs = append(errs, fmt.Errorf("failed to remove CNV autopilot MachineConfigs: %w", removeErr))
+	} else {
+		framework.Logf("Deleted CNV autopilot MachineConfigs: %t", deletedAny)
+	}
+
+	// WaitForMCP is deliberately not used here: it only reads pool conditions, so right
+	// after the delete it still sees the stale Updated=True and returns, and a pool that
+	// degrades mid-rollout would only surface as a generic timeout. The settle check
+	// verifies the rendered config and reports a degraded pool itself.
+	machineCount, err := workerPoolMachineCount(ctx, mcClient)
+	if err != nil {
+		errs = append(errs, err)
+		return errors.Join(errs...)
+	}
+	if machineCount == 0 {
+		framework.Logf("Worker MachineConfigPool has no machines, skipping the rollout wait")
+		return errors.Join(errs...)
+	}
+	if err := waitForWorkerConfigWithoutCNV(ctx, mcClient, workerRolloutTimeout(machineCount)); err != nil {
+		errs = append(errs, err)
+	}
+	return errors.Join(errs...)
+}
+
+// waitForWorkerConfigWithoutCNV waits until the worker pool is stable on a rendered
+// config that no longer carries CNV autopilot's content. The rendered config name can
+// stay the same when the deleted MachineConfigs were never rendered, so this checks
+// the content instead of the name.
+func waitForWorkerConfigWithoutCNV(ctx context.Context, mcClient *machineconfigclient.Clientset, timeout time.Duration) error {
+	mcV1 := mcClient.MachineconfigurationV1()
+	stableChecks := 0
+
+	framework.Logf("Waiting for the worker pool to settle without the CNV MachineConfigs...")
+	err := wait.PollUntilContextTimeout(ctx, 10*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		mcp, err := mcV1.MachineConfigPools().Get(ctx, "worker", metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		if machineConfigPoolConditionTrue(mcp, machineconfigv1.MachineConfigPoolDegraded) ||
+			machineConfigPoolConditionTrue(mcp, machineconfigv1.MachineConfigPoolRenderDegraded) {
+			return false, fmt.Errorf("worker MachineConfigPool is degraded while waiting for the CNV MachineConfig removal (spec=%s status=%s updated=%d/%d)",
+				mcp.Spec.Configuration.Name, mcp.Status.Configuration.Name, mcp.Status.UpdatedMachineCount, mcp.Status.MachineCount)
+		}
+		framework.Logf("Worker pool settling: spec=%s status=%s updated=%d/%d",
+			mcp.Spec.Configuration.Name, mcp.Status.Configuration.Name, mcp.Status.UpdatedMachineCount, mcp.Status.MachineCount)
+		if mcp.Spec.Configuration.Name != mcp.Status.Configuration.Name || !machineConfigPoolConditionTrue(mcp, machineconfigv1.MachineConfigPoolUpdated) {
+			stableChecks = 0
+			return false, nil
+		}
+
+		rendered, err := mcV1.MachineConfigs().Get(ctx, mcp.Status.Configuration.Name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		if workerConfigHasCNVSwapDropIn(rendered) {
+			framework.Logf("Rendered worker config %s still contains the CNV swap drop-in", mcp.Status.Configuration.Name)
+			stableChecks = 0
+			return false, nil
+		}
+
+		// Require two consecutive stable checks so a render built from a stale source
+		// set cannot slip in between the pool and rendered-config reads.
+		stableChecks++
+		return stableChecks >= 2, nil
+	})
+	if err != nil {
+		return fmt.Errorf("worker pool never settled on a config without the CNV MachineConfigs: %w", err)
+	}
+	return nil
+}
+
+// workerConfigHasCNVSwapDropIn reports whether a rendered MachineConfig still carries
+// the swap kubelet drop-in written by CNV's autopilot. The rendered config merges every
+// MachineConfig in the pool, so this only checks the CNV-specific path; the PSI karg is
+// covered by removeCNVMachineConfigs leaving no autopilot-labeled MachineConfig behind.
+func workerConfigHasCNVSwapDropIn(mc *machineconfigv1.MachineConfig) bool {
+	if len(mc.Spec.Config.Raw) == 0 {
+		return false
+	}
+	var cfg struct {
+		Storage struct {
+			Files []struct {
+				Path string `json:"path"`
+			} `json:"files"`
+		} `json:"storage"`
+	}
+	if err := json.Unmarshal(mc.Spec.Config.Raw, &cfg); err != nil {
+		framework.Logf("Warning: failed to parse rendered MachineConfig %s: %v", mc.Name, err)
+		return true
+	}
+	for _, file := range cfg.Storage.Files {
+		if file.Path == cnvDropInDir+"/90-swap.conf" {
+			return true
+		}
+	}
+	return false
+}
+
+// machineConfigPoolConditionTrue reports whether the pool condition has status True.
+func machineConfigPoolConditionTrue(mcp *machineconfigv1.MachineConfigPool, conditionType machineconfigv1.MachineConfigPoolConditionType) bool {
+	for _, condition := range mcp.Status.Conditions {
+		if condition.Type == conditionType {
+			return condition.Status == corev1.ConditionTrue
+		}
+	}
+	return false
+}
+
 // uninstallCNVOperator uninstalls the CNV operator and all related resources
 func uninstallCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 	framework.Logf("Uninstalling CNV operator...")
@@ -849,9 +1050,11 @@ func uninstallCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 		framework.Logf("Warning: failed to delete namespace: %v", err)
 	}
 
-	// Wait for namespace to be deleted
+	// Wait for namespace to be deleted. While it exists the autopilot can recreate its
+	// MachineConfigs, so a timeout here must fail the cleanup instead of reporting success.
 	framework.Logf("Waiting for namespace to be deleted...")
-	_ = wait.PollUntilContextTimeout(ctx, 10*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
+	var cleanupErrs []error
+	err = wait.PollUntilContextTimeout(ctx, 10*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
 		_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, cnvNamespace, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			return true, nil
@@ -859,21 +1062,23 @@ func uninstallCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 		framework.Logf("Waiting for namespace %s to be deleted...", cnvNamespace)
 		return false, nil
 	})
-
-	// Step 7: Wait for MCP rollout to complete (if any MachineConfigs were removed)
-	framework.Logf("Checking MCP rollout status after CNV uninstallation...")
-	mcClient, err := machineconfigclient.NewForConfig(oc.AdminConfig())
 	if err != nil {
-		framework.Logf("Warning: failed to create MC client for MCP check: %v", err)
-	} else {
-		err = WaitForMCP(ctx, mcClient, "worker", 15*time.Minute)
-		if err != nil {
-			framework.Logf("Warning: MCP rollout check failed: %v", err)
-		}
+		cleanupErrs = append(cleanupErrs, fmt.Errorf("namespace %s was not deleted, CNV autopilot may still be running: %w", cnvNamespace, err))
+	}
+
+	// Step 7: Delete the MachineConfigs CNV's virt-platform-autopilot created and wait
+	// for the worker pool to roll the change out. Without this they outlive CNV and keep
+	// overriding swapBehavior=NoSwap on every worker.
+	framework.Logf("Removing CNV-managed MachineConfigs...")
+	if err := cleanupCNVMachineConfigs(ctx, oc); err != nil {
+		cleanupErrs = append(cleanupErrs, err)
 	}
 
 	if err := waitForKubevirtClusterCleanup(ctx, oc); err != nil {
-		return fmt.Errorf("kubevirt cluster cleanup incomplete after CNV uninstall: %w", err)
+		cleanupErrs = append(cleanupErrs, fmt.Errorf("kubevirt cluster cleanup incomplete after CNV uninstall: %w", err))
+	}
+	if len(cleanupErrs) > 0 {
+		return errors.Join(cleanupErrs...)
 	}
 
 	framework.Logf("CNV operator uninstalled successfully")

@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -46,9 +48,8 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 		var oc = exutil.NewCLI("cnv-swap")
 
 		var (
-			cnvWorkerNode      string
-			nonCNVWorkerNode   string
-			cnvInstalledByTest bool
+			cnvWorkerNode    string
+			nonCNVWorkerNode string
 		)
 
 		// Setup: Install CNV operator and enable swap before all tests
@@ -67,14 +68,34 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 			framework.Logf("Using CNV worker node for all tests: %s", cnvWorkerNode)
 
 			// Check if CNV is already installed
-			if !isCNVInstalled(ctx, oc) {
+			cnvInstalled, err := isCNVInstalled(ctx, oc)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to determine whether CNV is installed")
+			if !cnvInstalled {
+				// Pair teardown with the installation and register it as a Ginkgo cleanup so a
+				// failed spec or a failed/partial install still removes CNV and the
+				// MachineConfigs its autopilot leaves behind.
+				g.DeferCleanup(func(ctx context.Context) {
+					_, lookupErr := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, cnvNamespace, metav1.GetOptions{})
+					if apierrors.IsNotFound(lookupErr) {
+						framework.Logf("CNV namespace %s not found, removing any leftover CNV artifacts", cnvNamespace)
+						o.Expect(cleanupCNVMachineConfigs(ctx, oc)).To(o.Succeed(), "leftover CNV MachineConfigs must be removed")
+						o.Expect(unlabelWorkerNodesForCNV(ctx, oc)).To(o.Succeed(), "leftover CNV node labels must be removed")
+						return
+					}
+					if lookupErr != nil {
+						framework.Logf("Could not check whether CNV namespace %s exists: %v; running uninstall anyway", cnvNamespace, lookupErr)
+					}
+					framework.Logf("Uninstalling CNV operator...")
+					uninstallErr := uninstallCNVOperator(ctx, oc)
+					o.Expect(errors.Join(lookupErr, uninstallErr)).To(o.Succeed(), "CNV uninstall must remove CNV MachineConfigs, kubevirt cluster RBAC and API extensions")
+				})
+
 				framework.Logf("CNV operator not installed, installing...")
 				err := installCNVOperator(ctx, oc)
 				if err != nil {
 					framework.Logf("Failed to install CNV operator: %v", err)
 					e2eskipper.Skipf("Failed to install CNV operator: %v", err)
 				}
-				cnvInstalledByTest = true
 				framework.Logf("CNV operator installed successfully")
 			} else {
 				framework.Logf("CNV operator already installed, skipping installation")
@@ -84,15 +105,6 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 			err = ensureDropInDirectoryExists(ctx, oc, cnvDropInDir)
 			if err != nil {
 				framework.Logf("Warning: failed to ensure drop-in directory exists: %v", err)
-			}
-		})
-
-		// Teardown: Uninstall CNV operator after all tests
-		g.AfterAll(func(ctx context.Context) {
-			if cnvInstalledByTest {
-				framework.Logf("Uninstalling CNV operator...")
-				err := uninstallCNVOperator(ctx, oc)
-				o.Expect(err).NotTo(o.HaveOccurred(), "CNV uninstall must remove kubevirt cluster RBAC and API extensions")
 			}
 		})
 
