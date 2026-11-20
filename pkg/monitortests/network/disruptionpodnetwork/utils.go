@@ -35,7 +35,7 @@ func GetOpenshiftTestsImagePullSpec(ctx context.Context, adminRESTConfig *rest.C
 	// runImageExtract extracts src from specified image to dst
 
 	// Extract the openshift-tests image from the release payload
-	openshiftTestsImagePullSpec, err := payload.ExtractImageFromReleasePayload(suggestedPayloadImage, "tests", oc)
+	openshiftTestsImagePullSpec, err := payload.ExtractImageFromReleasePayload(ctx, suggestedPayloadImage, "tests", oc)
 	if err != nil {
 		logrus.WithError(err).Errorf("unable to determine openshift-tests image through ExtractImageFromReleasePayload: %v", err)
 		// Now try the wrapper to see if it makes a difference
