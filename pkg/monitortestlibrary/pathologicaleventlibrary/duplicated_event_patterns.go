@@ -1,9 +1,11 @@
 package pathologicaleventlibrary
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -747,60 +749,11 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		messageReasonRegex: regexp.MustCompile(`^SuccessfulCreate$`),
 	})
 
-	// AuthenticationComponentProxy tests intentionally trigger multiple oauth-openshift rollouts
-	// (set proxy → operator rolls out → restore → operator rolls out again), repeated for each
-	// test in the suite. This causes DeploymentUpdated, OperatorStatusChanged, and ScalingReplicaSet events in the
-	// authentication namespaces to exceed the default threshold of 20.
-	if windows := eligibleWindows(
-		finalIntervals,
-		authenticationComponentProxyEligibleTestNames,
-		authenticationComponentProxyPostTestGrace,
-	); len(windows) > 0 {
-		for _, delegate := range []*SimplePathologicalEventMatcher{
-			{
-				name: "AuthenticationComponentProxyDeploymentUpdated",
-				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication-operator$`),
-					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^authentication-operator$`),
-				},
-				messageReasonRegex: regexp.MustCompile(`^DeploymentUpdated$`),
-				// If all the authentication component proxy tests would be grouped together, the amount
-				// of events are ~60. This amount it's ~15%.
-				repeatThresholdOverride: 70,
-			},
-			{
-				name: "AuthenticationComponentProxyOperatorStatusChanged",
-				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication-operator$`),
-					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^authentication-operator$`),
-				},
-				messageReasonRegex: regexp.MustCompile(`^OperatorStatusChanged$`),
-				// Observed 21 times as the proxy tests complete rollouts, including cleanup.
-				repeatThresholdOverride: 30,
-			},
-			{
-				name: "AuthenticationComponentProxyScalingReplicaSet",
-				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication$`),
-					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^oauth-openshift$`),
-				},
-				messageReasonRegex: regexp.MustCompile(`^ScalingReplicaSet$`),
-				// Observed cumulative counts up to 103 within eligible proxy-test windows.
-				// The 120 limit provides bounded headroom while retaining a finite cap.
-				repeatThresholdOverride: authenticationComponentProxyScalingReplicaSetRepeatLimit,
-			},
-		} {
-			matcher := &OverlapOtherIntervalsPathologicalEventMatcher{
-				delegate:               delegate,
-				allowIfWithinIntervals: windows,
-				useLastTimestamp:       true,
-			}
-
-			// Other serial tests (e.g. the OAuthServer IdP ones) also roll oauth-openshift after
-			// the proxy tests; they must not be charged for the occurrences the proxy tests produced.
-			matcher.discountInWindowOccurrences(finalIntervals)
-			registry.AddPathologicalEventMatcherOrDie(matcher)
-		}
+	// The AuthenticationComponentProxy and AuthenticationComponentProxyExternalOIDC
+	// tests roll the authentication operands; their pathological-event matchers are
+	// created next to the eligible test names they are scoped to.
+	for _, matcher := range authenticationComponentProxyEventMatchers(finalIntervals) {
+		registry.AddPathologicalEventMatcherOrDie(matcher)
 	}
 
 	// OVN-Kuberentes EVPN e2e tests running in parallel incorrectly create
@@ -1366,6 +1319,16 @@ func newFailedSchedulingDuringNodeUpdatePathologicalEventMatcher(finalIntervals 
 	}
 }
 
+// scalingMatcherSpec declares one operand's ScalingReplicaSet matcher: the gate whose
+// eligible windows authorize the allowance and the cap that bounds the in-window occurrences.
+type scalingMatcherSpec struct {
+	gate           string
+	windows        monitorapi.Intervals
+	namespace      string
+	deployment     string
+	repeatOverride int
+}
+
 // OverlapOtherIntervalsPathologicalEventMatcher is an implementation containing a regular
 // matcher, plus additional logic that will allow the event only if it is contained
 // within another set of intervals provided. (i.e. used to allow FailedScheduling pathological
@@ -1475,11 +1438,11 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) discountInWindowOccurr
 
 	ade.inWindowOccurrences = map[eventObservation]int{}
 	for _, observations := range observationsByEvent {
-		sort.SliceStable(observations, func(a, b int) bool {
-			if !observations[a].From.Equal(observations[b].From) {
-				return observations[a].From.Before(observations[b].From)
+		slices.SortStableFunc(observations, func(a, b monitorapi.Interval) int {
+			if c := a.From.Compare(b.From); c != 0 {
+				return c
 			}
-			return GetTimesAnEventHappened(observations[a].Message) < GetTimesAnEventHappened(observations[b].Message)
+			return cmp.Compare(GetTimesAnEventHappened(a.Message), GetTimesAnEventHappened(b.Message))
 		})
 
 		var previous *monitorapi.Interval
@@ -1517,17 +1480,22 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) withinAllowedIntervals
 // withinSameAllowedInterval reports whether a single one of allowIfWithinIntervals contains
 // both events, so that everything that happened between them is inside it too.
 func (ade *OverlapOtherIntervalsPathologicalEventMatcher) withinSameAllowedInterval(a, b monitorapi.Interval) bool {
-	containsA := sets.New[int](ade.allowedIntervalsContaining(a)...)
+	containsA := sets.New(ade.allowedIntervalsContaining(a)...)
 	return containsA.HasAny(ade.allowedIntervalsContaining(b)...)
 }
 
 // allowedIntervalsContaining returns the indexes of the allowIfWithinIntervals containing the event.
 func (ade *OverlapOtherIntervalsPathologicalEventMatcher) allowedIntervalsContaining(i monitorapi.Interval) []int {
+	return intervalsContaining(i, ade.useLastTimestamp, ade.allowIfWithinIntervals)
+}
+
+// intervalsContaining returns the indexes of the candidate intervals containing the event.
+func intervalsContaining(i monitorapi.Interval, useLastTimestamp bool, candidates monitorapi.Intervals) []int {
 	// Pathological event intervals set From to LastTimestamp (the most recent occurrence),
 	// but the event may have first fired much earlier. Use firstTimestamp from the
 	// annotations when available so the overlap check covers the full span of the event.
 	eventFrom := i.From
-	if !ade.useLastTimestamp {
+	if !useLastTimestamp {
 		if ft, ok := i.Message.Annotations["firstTimestamp"]; ok {
 			if parsed, err := time.Parse(time.RFC3339, ft); err == nil {
 				eventFrom = parsed
@@ -1536,7 +1504,7 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) allowedIntervalsContai
 	}
 
 	var containing []int
-	for idx, nui := range ade.allowIfWithinIntervals {
+	for idx, nui := range candidates {
 		if nui.From.Before(eventFrom) && nui.To.After(i.To) {
 			containing = append(containing, idx)
 		}
