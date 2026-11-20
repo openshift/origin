@@ -499,14 +499,14 @@ func TestAuthenticationComponentProxy_CollidingEventIdentities(t *testing.T) {
 			registry := NewUniversalPathologicalEventMatchers(nil, events)
 			matcher, err := registry.GetMatcherByName("AuthenticationComponentProxyDeploymentUpdated")
 			require.NoError(t, err)
-			replay := matcher.(*OverlapOtherIntervalsPathologicalEventMatcher)
+			replay := matcher.(*CrossGateOverlapPathologicalEventMatcher)
 			wantCredits := 0
 			if tc.wantDiscounted {
 				wantCredits = 12
 			}
-			assert.Equalf(t, wantCredits, replay.inWindowOccurrences[newEventObservation(outside)],
+			assert.Equalf(t, wantCredits, replay.tally[newEventObservation(outside)].inUnionWindows,
 				"only observations of the same identified Event may supply credits (in-window count=%d)", GetTimesAnEventHappened(inside[len(inside)-1].Message))
-			for observation := range replay.inWindowOccurrences {
+			for observation := range replay.tally {
 				assert.True(t, observation.event.valid, "UID-less observations must not enter the credit map")
 			}
 			assert.Equalf(t, tc.wantDiscounted, matcher.Allows(outside, v1.HighlyAvailableTopologyMode),
@@ -551,7 +551,7 @@ func TestAuthenticationComponentProxy_UIDLessInWindowCap(t *testing.T) {
 			registry := NewUniversalPathologicalEventMatchers(nil, events)
 			matcher, err := registry.GetMatcherByName("AuthenticationComponentProxyOperatorStatusChanged")
 			require.NoError(t, err)
-			assert.Empty(t, matcher.(*OverlapOtherIntervalsPathologicalEventMatcher).inWindowOccurrences,
+			assert.Empty(t, matcher.(*CrossGateOverlapPathologicalEventMatcher).tally,
 				"UID-less observations must not contribute cumulative credits")
 			assert.True(t, matcher.Allows(atCap, v1.HighlyAvailableTopologyMode),
 				"the direct in-window allowance must still apply without a UID")
