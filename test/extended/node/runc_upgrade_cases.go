@@ -102,6 +102,13 @@ var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node][OCPFeatureGate:OS
 	g.It("blocks RHCOS 9 to 10 osImageStream upgrade when ContainerRuntimeConfig sets runc default runtime",
 		g.Label("NodeResource", "NodeResourceNumNodes=1", "NodeResourceName=runc_upgrade"),
 		ote.Informing(), func(ctx context.Context) {
+			// MCO's machineconfigpool-osimagestream-reference-validation rejects pools
+			// pinned to rhel-9 when the cluster default OS stream is rhel-10/centos-10
+			// (OCPBUGS-129614), so the RHCOS 9 -> 10 scenario cannot be set up there.
+			if clusterDefaultStream != streamRHEL9 {
+				g.Skip(fmt.Sprintf("cluster default OS stream is %q; pools can only pin rhel-9 when the default is %q", clusterDefaultStream, streamRHEL9))
+			}
+
 			testPoolName = runcRHCOS10GuardPool
 			cleanupCRCName = runcGuardCRCName
 
@@ -183,6 +190,13 @@ var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node][OCPFeatureGate:OS
 	g.It("allows RHCOS 9 to 10 osImageStream upgrade when default runtime is crun",
 		g.Label("NodeResource", "NodeResourceNumNodes=1", "NodeResourceName=runc_upgrade"),
 		ote.Informing(), func(ctx context.Context) {
+			// MCO's machineconfigpool-osimagestream-reference-validation rejects pools
+			// pinned to rhel-9 when the cluster default OS stream is rhel-10/centos-10
+			// (OCPBUGS-129614), so the RHCOS 9 -> 10 scenario cannot be set up there.
+			if clusterDefaultStream != streamRHEL9 {
+				g.Skip(fmt.Sprintf("cluster default OS stream is %q; pools can only pin rhel-9 when the default is %q", clusterDefaultStream, streamRHEL9))
+			}
+
 			testPoolName = crunRHCOS10UpgradePool
 
 			g.By("Creating custom MachineConfigPool pinned to rhel-9 with default runtime crun")
