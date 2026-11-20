@@ -17,6 +17,7 @@ import (
 
 	"github.com/openshift/origin/test/extended/testdata"
 	exutil "github.com/openshift/origin/test/extended/util"
+	utilimage "github.com/openshift/origin/test/extended/util/image"
 )
 
 var (
@@ -554,7 +555,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 
 	g.It("release extract image-references", func() {
 		expected := string(testdata.MustAsset("test/extended/testdata/cli/test-release-image-references.json"))
-		out, err := oc.Run("adm", "release", "extract").Args("--file", "image-references", "quay.io/openshift-release-dev/ocp-release:4.13.0-rc.0-x86_64").Output()
+		out, err := oc.Run("adm", "release", "extract").Args("--file", "image-references", utilimage.LocationFor("quay.io/openshift-release-dev/ocp-release:4.13.0-rc.0-x86_64")).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.Equal(expected))
 	})

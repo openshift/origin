@@ -20,6 +20,7 @@ import (
 
 	nodeutils "github.com/openshift/origin/test/extended/node"
 	exutil "github.com/openshift/origin/test/extended/util"
+	utilimage "github.com/openshift/origin/test/extended/util/image"
 	"github.com/openshift/origin/test/extended/util/operator"
 )
 
@@ -79,7 +80,7 @@ var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node] PodDisruptionBudg
 						Containers: []corev1.Container{
 							{
 								Name:  "test-container",
-								Image: "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83",
+								Image: utilimage.LocationFor("quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83"),
 								SecurityContext: &corev1.SecurityContext{
 									AllowPrivilegeEscalation: ptr.To(false),
 									Capabilities: &corev1.Capabilities{

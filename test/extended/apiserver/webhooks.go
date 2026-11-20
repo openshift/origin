@@ -19,6 +19,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	compat_otp "github.com/openshift/origin/test/extended/util/compat_otp"
 	"github.com/openshift/origin/test/extended/util/compat_otp/architecture"
+	utilimage "github.com/openshift/origin/test/extended/util/image"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -111,7 +112,7 @@ EOF`, serverconf)
 		o.Expect(policyerr).NotTo(o.HaveOccurred())
 		o.Expect(policyOutput).Should(o.ContainSubstring(`clusterrole.rbac.authorization.k8s.io/system:openshift:scc:privileged added: "default"`))
 
-		admissionTemplate := apiserverAuthFixture("ocp55494-admission-controller.yaml")
+		admissionTemplate := exutil.FixturePath("testdata", "apiserverauth", "ocp55494-admission-controller.yaml")
 		admissionOutput, admissionerr := oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", admissionTemplate).Output()
 		o.Expect(admissionerr).NotTo(o.HaveOccurred())
 		admissionOutput1 := regexp.MustCompile(`\n`).ReplaceAllString(admissionOutput, "")
@@ -169,7 +170,7 @@ EOF`, serverconf)
 
 			var deployerr error
 			deployconfigerr := wait.PollUntilContextTimeout(context.Background(), 30*time.Second, 300*time.Second, false, func(ctx context.Context) (bool, error) {
-				_, deployerr = oc.WithoutNamespace().AsAdmin().Run("create").Args("deploymentconfig", "mydc", "--image", "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83", "-n", "test-ns"+randomStr).Output()
+				_, deployerr = oc.WithoutNamespace().AsAdmin().Run("create").Args("deploymentconfig", "mydc", "--image", utilimage.LocationFor("quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83"), "-n", "test-ns"+randomStr).Output()
 				return deployerr == nil, nil
 			})
 			compat_otp.AssertWaitPollNoErr(deployconfigerr, fmt.Sprintf("Not able to create mydc deploymentconfig :: %v", deployerr))
@@ -224,7 +225,7 @@ EOF`, dcpolicyrepo)
 
 			var deployErr error
 			deployConfigErr := wait.PollUntilContextTimeout(context.Background(), 30*time.Second, 300*time.Second, false, func(ctx context.Context) (bool, error) {
-				_, deployErr = oc.WithoutNamespace().AsAdmin().Run("create").Args("deploymentconfig", "mydc", "--image", "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83", "-n", "test-ns"+randomStr).Output()
+				_, deployErr = oc.WithoutNamespace().AsAdmin().Run("create").Args("deploymentconfig", "mydc", "--image", utilimage.LocationFor("quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83"), "-n", "test-ns"+randomStr).Output()
 				return deployErr == nil, nil
 			})
 			compat_otp.AssertWaitPollNoErr(deployConfigErr, fmt.Sprintf("Not able to create mydc deploymentconfig :: %v", deployErr))
@@ -677,7 +678,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			o.Expect(err).NotTo(o.HaveOccurred(), "ClusterResourceQuota did not sync pod count in time")
 
 			o.Expect(oc.WithoutNamespace().AsAdmin().Run("create").Args("-n", namespace, "-f", apiserverAuthFixture("service-monitor.yaml")).Execute()).To(o.Succeed())
-			image := "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83"
+			image := utilimage.LocationFor("quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83")
 			deploymentLimit, err := strconv.Atoi(crqLimits["count/deployments.apps"])
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to parse deployment limit %s", crqLimits["count/deployments.apps"])
 			for count := 1; count < 3; count++ {

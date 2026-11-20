@@ -38,6 +38,25 @@ var (
 		// used by open ldap tests
 		"quay.io/openshifttest/ldap:1.2": -1,
 
+		// used by node and API server webhook tests
+		"quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83": -1,
+		"quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339": -1,
+		"docker.io/openpolicyagent/opa:0.69.0":    -1,
+		"docker.io/openpolicyagent/kube-mgmt:0.8": -1,
+
+		// used by service CA serving certificate tests
+		"quay.io/openshifttest/nginx-alpine@sha256:04f316442d48ba60e3ea0b5a67eb89b0b667abf1c198a3d0056ca748736336a0": -1,
+		"quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4":    -1,
+
+		// used by API server security scans
+		"quay.io/redhatproductsecurity/rapidast:2.9.1": -1,
+
+		// used by release extraction tests
+		"quay.io/openshift-release-dev/ocp-release:4.13.0-rc.0-x86_64": -1,
+
+		// used by Jenkins RHEL pipeline tests
+		"registry.redhat.io/ocp-tools-4/jenkins-rhel8:v4.13.0-1686682222": -1,
+
 		// used by oc mirror test, should be moved to publish to quay
 		"docker.io/library/registry:2.8.0-beta.1": -1,
 

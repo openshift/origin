@@ -57,6 +57,7 @@
 // test/extended/testdata/apiserver/ocp9853-quota.yaml
 // test/extended/testdata/apiserver/operator-kube-apiserver-cr.yaml
 // test/extended/testdata/apiserverauth/CRDWebhookConfigurationTemplate.yaml
+// test/extended/testdata/apiserverauth/ocp55494-admission-controller.yaml
 // test/extended/testdata/apiserverauth/rapidast-job.yaml
 // test/extended/testdata/builds/application-template-custombuild.json
 // test/extended/testdata/builds/build-postcommit/docker.yaml
@@ -17340,6 +17341,162 @@ func testExtendedTestdataApiserverauthCrdwebhookconfigurationtemplateYaml() (*as
 	return a, nil
 }
 
+var _testExtendedTestdataApiserverauthOcp55494AdmissionControllerYaml = []byte(`# Grant OPA/kube-mgmt read-only access to resources. This lets kube-mgmt
+# replicate resources into OPA so they can be used in policies.
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: opa-viewer
+roleRef:
+  kind: ClusterRole
+  name: view
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: Group
+  name: system:serviceaccounts:opa
+  apiGroup: rbac.authorization.k8s.io
+---
+# Define role for OPA/kube-mgmt to update configmaps with policy status.
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: opa
+  name: configmap-modifier
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["update", "patch"]
+---
+# Grant OPA/kube-mgmt role defined above.
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: opa
+  name: opa-configmap-modifier
+roleRef:
+  kind: Role
+  name: configmap-modifier
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: Group
+  name: system:serviceaccounts:opa
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: opa
+  namespace: opa
+spec:
+  selector:
+    app: opa
+  ports:
+  - name: https
+    protocol: TCP
+    port: 443
+    targetPort: 443
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: opa
+  namespace: opa
+  name: opa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opa
+  template:
+    metadata:
+      labels:
+        app: opa
+      name: opa
+    spec:
+      containers:
+        # WARNING: OPA is NOT running with an authorization policy configured. This
+        # means that clients can read and write policies in OPA. If you are
+        # deploying OPA in an insecure environment, be sure to configure
+        # authentication and authorization on the daemon. See the Security page for
+        # details: https://www.openpolicyagent.org/docs/security.html.
+        - name: opa
+          image: 'docker.io/openpolicyagent/opa:0.69.0'
+          securityContext:
+             privileged: true
+             runAsUser: 0
+          args:
+            - "run"
+            - "--server"
+            - "--tls-cert-file=/certs/tls.crt"
+            - "--tls-private-key-file=/certs/tls.key"
+            - "--addr=0.0.0.0:443"
+            - "--addr=http://127.0.0.1:8181"
+            - '--log-level=debug'
+          volumeMounts:
+            - readOnly: true
+              mountPath: /certs
+              name: opa-server
+        - name: kube-mgmt
+          image: docker.io/openpolicyagent/kube-mgmt:0.8
+          args:
+            - "--replicate-cluster=v1/namespaces"
+            - '--replicate=config.openshift.io/v1/ingresses'
+      volumes:
+        - name: opa-server
+          secret:
+            secretName: opa-server
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: opa-default-system-main
+  namespace: opa
+data:
+  main: |
+    package system
+
+    import data.kubernetes.admission
+
+    main = {
+      "apiVersion": "admission.k8s.io/v1",
+      "kind": "AdmissionReview",
+      "response": response,
+    }
+
+    default uid := ""
+
+    uid := input.request.uid
+
+    response = {
+        "allowed": false,
+        "uid": uid,
+        "status": {
+            "reason": reason,
+        },
+    } {
+        reason = concat(", ", admission.deny)
+        reason != ""
+    }
+
+    else := {"allowed": true, "uid": uid}
+`)
+
+func testExtendedTestdataApiserverauthOcp55494AdmissionControllerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataApiserverauthOcp55494AdmissionControllerYaml, nil
+}
+
+func testExtendedTestdataApiserverauthOcp55494AdmissionControllerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataApiserverauthOcp55494AdmissionControllerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/apiserverauth/ocp55494-admission-controller.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataApiserverauthRapidastJobYaml = []byte(`kind: Template
 apiVersion: template.openshift.io/v1
 metadata:
@@ -19429,7 +19586,7 @@ func testExtendedTestdataBuildsDockerAddDockerfile() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile = []byte(`FROM registry.redhat.io/ubi8/ubi-minimal
+var _testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile = []byte(`FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 ENV foo=foo
 ADD ./${foo} /tmp/foo
 `)
@@ -19998,7 +20155,7 @@ spec:
         version: 2.x
       from:
         kind: DockerImage
-        name: registry.redhat.io/ocp-tools-4/jenkins-rhel8:v4.13.0
+        name: registry.redhat.io/ocp-tools-4/jenkins-rhel8:v4.13.0-1686682222
       referencePolicy:
         type: Local
     - name: "scheduled-upgrade-redeploy"
@@ -20016,7 +20173,7 @@ spec:
         version: 2.x
       from:
         kind: DockerImage
-        name: registry.redhat.io/ocp-tools-4/jenkins-rhel8:v4.13.0
+        name: registry.redhat.io/ocp-tools-4/jenkins-rhel8:v4.13.0-1686682222
       importPolicy:
         scheduled: true
       referencePolicy:
@@ -21213,7 +21370,7 @@ items:
     mountTrustedCA: true
     source:
       dockerfile: |
-        FROM registry.redhat.io/ubi8/ubi:latest
+        FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         RUN cat /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
     strategy:
       dockerStrategy:
@@ -21221,9 +21378,8 @@ items:
           - name: "BUILD_LOGLEVEL"
             value: "2"
         from:
-          kind: ImageStreamTag
-          name: cli
-          namespace: openshift
+          kind: DockerImage
+          name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 `)
 
 func testExtendedTestdataBuildsTestBuildProxyYamlBytes() ([]byte, error) {
@@ -21518,7 +21674,7 @@ items:
     source:
       type: Dockerfile
       dockerfile: |-
-        FROM registry.access.redhat.com/ubi8/ruby-27
+        FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         ARG foofoo
         RUN echo $foofoo
     strategy:
@@ -21547,7 +21703,7 @@ items:
     source:
       type: Dockerfile
       dockerfile: |-
-        FROM registry.access.redhat.com/ubi8/ruby-27
+        FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         ARG foofoo
         RUN echo $foofoo
     strategy:
@@ -57587,6 +57743,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/apiserver/ocp9853-quota.yaml":                                                    testExtendedTestdataApiserverOcp9853QuotaYaml,
 	"test/extended/testdata/apiserver/operator-kube-apiserver-cr.yaml":                                       testExtendedTestdataApiserverOperatorKubeApiserverCrYaml,
 	"test/extended/testdata/apiserverauth/CRDWebhookConfigurationTemplate.yaml":                              testExtendedTestdataApiserverauthCrdwebhookconfigurationtemplateYaml,
+	"test/extended/testdata/apiserverauth/ocp55494-admission-controller.yaml":                                testExtendedTestdataApiserverauthOcp55494AdmissionControllerYaml,
 	"test/extended/testdata/apiserverauth/rapidast-job.yaml":                                                 testExtendedTestdataApiserverauthRapidastJobYaml,
 	"test/extended/testdata/builds/application-template-custombuild.json":                                    testExtendedTestdataBuildsApplicationTemplateCustombuildJson,
 	"test/extended/testdata/builds/build-postcommit/docker.yaml":                                             testExtendedTestdataBuildsBuildPostcommitDockerYaml,
@@ -58190,6 +58347,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"apiserverauth": {nil, map[string]*bintree{
 					"CRDWebhookConfigurationTemplate.yaml": {testExtendedTestdataApiserverauthCrdwebhookconfigurationtemplateYaml, map[string]*bintree{}},
+					"ocp55494-admission-controller.yaml":   {testExtendedTestdataApiserverauthOcp55494AdmissionControllerYaml, map[string]*bintree{}},
 					"rapidast-job.yaml":                    {testExtendedTestdataApiserverauthRapidastJobYaml, map[string]*bintree{}},
 				}},
 				"builds": {nil, map[string]*bintree{
