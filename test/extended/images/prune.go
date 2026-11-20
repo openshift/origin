@@ -22,13 +22,14 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	utilimage "github.com/openshift/origin/test/extended/util/image"
 )
 
 const (
 	testImageSize     = 1024
 	mirrorBlobTimeout = time.Second * 30
-	// this image has a high number of relatively small blobs
-	externalImageReference = "docker.io/openshift/origin-release:golang-1.4"
+	// Use an already mirrored external image with non-empty blobs for pruning.
+	externalImageReference = "docker.io/library/registry:2.8.0-beta.1"
 )
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune [apigroup:user.openshift.io]", func() {
@@ -377,7 +378,7 @@ func testPruneAllImages(oc *exutil.CLI, setAllImagesToFalse bool, schemaVersion 
 	managedImage, err := oc.AsAdmin().ImageClient().ImageV1().Images().Get(context.Background(), managedImageName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	externalImage, blobdgst, err := importImageAndMirrorItsSmallestBlob(oc, externalImageReference, "origin-release:latest")
+	externalImage, blobdgst, err := importImageAndMirrorItsSmallestBlob(oc, utilimage.LocationFor(externalImageReference), "origin-release:latest")
 	o.Expect(err).NotTo(o.HaveOccurred())
 	cleanUp.AddImage(externalImage.Name, "", "")
 	cleanUp.AddImageStream("origin-release")

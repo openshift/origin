@@ -1,3 +1,3 @@
-FROM registry.redhat.io/ubi8/ubi-minimal
+FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 ENV foo=foo
 ADD ./${foo} /tmp/foo

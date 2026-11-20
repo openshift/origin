@@ -4081,7 +4081,7 @@ spec:
         # authentication and authorization on the daemon. See the Security page for
         # details: https://www.openpolicyagent.org/docs/security.html.
         - name: opa
-          image: 'openpolicyagent/opa:0.69.0'
+          image: 'docker.io/openpolicyagent/opa:0.69.0'
           securityContext:
              privileged: true
              runAsUser: 0
@@ -4098,7 +4098,7 @@ spec:
               mountPath: /certs
               name: opa-server
         - name: kube-mgmt
-          image: openpolicyagent/kube-mgmt:0.8
+          image: docker.io/openpolicyagent/kube-mgmt:0.8
           args:
             - "--replicate-cluster=v1/namespaces"
             - '--replicate=config.openshift.io/v1/ingresses'
