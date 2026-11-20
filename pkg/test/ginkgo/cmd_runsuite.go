@@ -1095,16 +1095,24 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 		// Execute retries
 		q.Execute(ctx, retries, parallelism, testOutputConfig, abortFn)
 
-		// Process results and update attempts
+		// Process results and update attempts.
+		// For the aggressive strategy, check the duration policy on every
+		// completed retry — including flake-marked results — before the
+		// flake-discard path can bypass it.
 		for _, retry := range retries {
 			if retry.flake {
-				// Skip flaky retries, keep original failure
-				fmt.Fprintf(o.Out, "Ignoring retry that returned a flake, original failure is authoritative for test: %s\n", retry.name)
+				if o.RetryStrategy.Name() == "aggressive" && retry.duration >= aggressiveAdditionalAttemptDurationCutoff {
+					testAttempts[retry.name] = append(testAttempts[retry.name], retry)
+					completedTests.Insert(retry.name)
+					logrus.Infof("Duration policy: flake retry for %s took %s (cutoff %s), stopping retries",
+						retry.name, retry.duration, aggressiveAdditionalAttemptDurationCutoff)
+				} else {
+					fmt.Fprintf(o.Out, "Ignoring retry that returned a flake, original failure is authoritative for test: %s\n", retry.name)
+				}
 				continue
 			}
 
 			testAttempts[retry.name] = append(testAttempts[retry.name], retry)
-			// Don't add individual retry attempts to tests list yet - we'll decide later based on strategy outcome
 		}
 	}
 
@@ -1112,6 +1120,7 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 	var finalFlaky []string
 	var finalSkipped []string
 	var stillFailing []*testCase
+	replacedFailing := sets.NewString()
 
 	for testName, attempts := range testAttempts {
 		// Use the retry strategy to determine the outcome
@@ -1131,7 +1140,7 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 				}
 			}
 
-		case RetryOutcomeFail:
+		case RetryOutcomeFail, RetryOutcomeDurationPolicyFail:
 			rollupTest := o.createSingleFailureRollupTest(testName, attempts)
 
 			// Replace original failed test with rollup test
@@ -1141,25 +1150,31 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 					break
 				}
 			}
+			replacedFailing.Insert(testName)
 			stillFailing = append(stillFailing, rollupTest)
 		}
 	}
 
-	// Remove flaky tests from failing list
-	if len(finalFlaky) > 0 {
-		var withoutFlakes []*testCase
-	flakeLoop:
+	// Remove flaky and replaced-by-rollup tests from failing list
+	if len(finalFlaky) > 0 || replacedFailing.Len() > 0 {
+		var filteredFailing []*testCase
+	filterLoop:
 		for _, t := range failing {
+			if replacedFailing.Has(t.name) {
+				continue filterLoop
+			}
 			for _, f := range finalFlaky {
 				if t.name == f {
-					continue flakeLoop
+					continue filterLoop
 				}
 			}
-			withoutFlakes = append(withoutFlakes, t)
+			filteredFailing = append(filteredFailing, t)
 		}
-		failing = withoutFlakes
-		sort.Strings(finalFlaky)
-		fmt.Fprintf(o.Out, "Flaky tests:\n\n%s\n\n", strings.Join(finalFlaky, "\n"))
+		failing = filteredFailing
+		if len(finalFlaky) > 0 {
+			sort.Strings(finalFlaky)
+			fmt.Fprintf(o.Out, "Flaky tests:\n\n%s\n\n", strings.Join(finalFlaky, "\n"))
+		}
 	}
 	failing = append(failing, stillFailing...)
 
@@ -1219,7 +1234,19 @@ func (o *GinkgoRunSuiteOptions) createSingleFailureRollupTest(testName string, a
 		}
 	}
 
-	if successCount > 0 {
+	// Check for duration-policy violation (aggressive strategy only)
+	var durationPolicyAttemptNum int
+	var durationPolicyDuration time.Duration
+	if o.RetryStrategy.Name() == "aggressive" {
+		durationPolicyAttemptNum, durationPolicyDuration = findDurationPolicyViolation(attempts)
+	}
+
+	if durationPolicyAttemptNum > 0 {
+		combinedOutput.WriteString(fmt.Sprintf(
+			"Test '%s' failed due to duration policy: attempt %d took %s (cutoff: %s). "+
+				"Further retries were stopped.\n\n",
+			testName, durationPolicyAttemptNum, durationPolicyDuration, aggressiveAdditionalAttemptDurationCutoff))
+	} else if successCount > 0 {
 		combinedOutput.WriteString(fmt.Sprintf("Test '%s' failed %d out of %d attempts but had some successes (retry strategy marked as failure).\n\n",
 			testName, failureCount, len(attempts)))
 	} else {
@@ -1233,6 +1260,8 @@ func (o *GinkgoRunSuiteOptions) createSingleFailureRollupTest(testName string, a
 			status = "PASSED"
 		} else if attempt.skipped {
 			status = "SKIPPED"
+		} else if attempt.flake {
+			status = "FLAKE"
 		}
 
 		combinedOutput.WriteString(fmt.Sprintf("=== Attempt %d: %s ===\n", i+1, status))
