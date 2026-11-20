@@ -796,6 +796,9 @@ spec:
         set the condition to false if there are no nodes able to host the source pods'
   - featureGate: NetworkSegmentation
     tests:
+    - testName: '[sig-network][Feature:Layer2LiveMigration][Feature:baremetal][OCPFeatureGate:NetworkSegmentation][Suite:openshift/network/virtualization]
+        primary UDN migration egress when using openshift ovn-kubernetes should consistently
+        egress through each VM''s own node while another VM migrates'
     - testName: '[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:NetworkSegmentation][Suite:openshift/network/virtualization]
         primary UDN smoke test when using openshift ovn-kubernetes assert the primary
         UDN feature works as expected'
