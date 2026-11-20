@@ -24,7 +24,7 @@ cluster running the `TechPreviewNoUpgrade` feature set:
 
 ## Suite definition
 
-The suite is defined in
+The `openshift/workload-scheduling` suite is defined in
 [`pkg/testsuites/standard_suites.go`](../../../../pkg/testsuites/standard_suites.go)
 and was added by [openshift/origin#31813](https://github.com/openshift/origin/pull/31813).
 It selects tests whose name contains any of:
@@ -56,12 +56,18 @@ only with integration tests
 ([`test/integration/scheduler/podgroup/topology_aware_scheduling`](https://github.com/openshift/kubernetes/tree/release-5.1/test/integration/scheduler/podgroup/topology_aware_scheduling)),
 which run against an in-process API server, so the topology specs live here.
 
-`openshift-tests` drops a test when any gate named in its `[FeatureGate:...]` or
-`[OCPFeatureGate:...]` labels is reported as disabled by the cluster (see
-[`pkg/test/filters/cluster_state.go`](../../../../pkg/test/filters/cluster_state.go)).
-Dropped tests are not selected at all, so they never show up as skipped. A test
-that names a gate the cluster does not report, such as an upstream-only gate, is
-still selected.
+Before the run, `openshift-tests` checks the gates named in each test's
+`[FeatureGate:...]` and `[OCPFeatureGate:...]` labels against the gates the
+cluster reports as enabled or disabled (see
+[`pkg/test/filters/cluster_state.go`](../../../../pkg/test/filters/cluster_state.go)):
+
+- If any of those gates is reported as disabled, the test is removed from the
+  run. It does not appear in the results, not even as skipped.
+- Otherwise the filter keeps the test, even when it names a gate that the
+  cluster does not report at all, such as an upstream gate that openshift/api
+  does not define. It treats an unreported gate as enabled, so it does not keep
+  out a test whose gate is actually off. The next section describes one such
+  spec.
 
 ### Selected spec outside this plan
 
