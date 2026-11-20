@@ -16,7 +16,8 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use private repositories as build input", func() {
+// All authentication variants clone a private repository hosted on GitHub.
+var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use private repositories as build input [Skipped:Disconnected]", func() {
 	defer g.GinkgoRecover()
 
 	const (

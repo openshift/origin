@@ -37,7 +37,8 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][php][Slow] hot deploy fo
 		})
 
 		g.Describe("CakePHP example", func() {
-			g.It(fmt.Sprintf("should work with hot deploy [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io]"), func() {
+			// The sample template builds CakePHP source from GitHub.
+			g.It(fmt.Sprintf("should work with hot deploy [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io][Skipped:Disconnected]"), func() {
 
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc new-app %q -p %q", cakephpTemplate, hotDeployParam))

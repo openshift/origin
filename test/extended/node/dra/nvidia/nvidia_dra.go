@@ -50,7 +50,8 @@ var (
 	prerequisitesError     error
 )
 
-var _ = g.Describe("[sig-scheduling][Feature:NVIDIA-DRA][Suite:openshift/nvidia-dra][Serial]", func() {
+// Prerequisites use NVIDIA's external Helm repository, and test pods pull CUDA images from nvcr.io.
+var _ = g.Describe("[sig-scheduling][Feature:NVIDIA-DRA][Suite:openshift/nvidia-dra][Serial][Skipped:Disconnected]", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLIWithPodSecurityLevel("nvidia-dra", admissionapi.LevelPrivileged)

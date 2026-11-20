@@ -45,7 +45,8 @@ const (
 	invalidEmailPKIClusterImagePolicyName  = "invalid-email-pki-cluster-image-policy"
 )
 
-var _ = g.Describe("[sig-imagepolicy][Suite:openshift/disruptive-longrunning][Disruptive][OCPFeatureGate:SigstoreImageVerification][Serial]", g.Ordered, func() {
+// Signature policies use hardcoded quay.io image scopes and signatures.
+var _ = g.Describe("[sig-imagepolicy][Suite:openshift/disruptive-longrunning][Disruptive][OCPFeatureGate:SigstoreImageVerification][Serial][Skipped:Disconnected]", g.Ordered, func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                       = exutil.NewCLIWithoutNamespace("cluster-image-policy")
@@ -59,7 +60,7 @@ var _ = g.Describe("[sig-imagepolicy][Suite:openshift/disruptive-longrunning][Di
 	)
 
 	g.BeforeAll(func() {
-		// skip test on disconnected clusters.
+		// Skip IPv6 clusters; disconnected clusters are excluded by the suite annotation.
 		networkConfig, err := oc.AdminConfigClient().ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
 		if err != nil {
 			e2e.Failf("unable to get cluster network config: %v", err)
@@ -76,7 +77,7 @@ var _ = g.Describe("[sig-imagepolicy][Suite:openshift/disruptive-longrunning][Di
 			}
 		}
 		if usingIPv6 {
-			g.Skip("skipping test on disconnected platform")
+			g.Skip("skipping test on IPv6 clusters")
 		}
 	})
 
