@@ -96,6 +96,16 @@ type InvariantInClusterDisruption struct {
 	hostedClusterType           HostedClusterType
 	adminRESTConfig             *rest.Config
 	kubeClient                  kubernetes.Interface
+
+	// clusterProxy holds the cluster-wide egress proxy configuration (from
+	// proxies.config.openshift.io/cluster status). On topologies where the
+	// apiserver endpoint the internal-lb poller targets is only reachable via
+	// the cluster proxy (e.g. NodePort-published HyperShift control planes behind
+	// a proxy), the poller pods must honor it; otherwise their direct dial to the
+	// apiserver times out and the monitor reports missing sampler output.
+	clusterProxyHTTPSProxy string
+	clusterProxyHTTPProxy  string
+	clusterProxyNoProxy    string
 }
 
 func NewInvariantInClusterDisruption(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
@@ -167,6 +177,58 @@ func (i *InvariantInClusterDisruption) setKubernetesServiceEnvVars(envVars []cor
 	return envVars
 }
 
+// setProxyEnvVars appends HTTP_PROXY/HTTPS_PROXY/NO_PROXY to the container env when
+// the cluster has an egress proxy configured. The poller's sampler transport uses
+// http.ProxyFromEnvironment, so these env vars make it route apiserver requests
+// through the proxy on topologies where the targeted endpoint is only reachable
+// that way (e.g. a NodePort-published HyperShift control plane behind a proxy).
+//
+// This is intentionally scoped to hosted clusters: there the poller targets the
+// control-plane endpoint parsed from adminRESTConfig.Host, which on a proxied
+// NodePort-published control plane is only reachable via the proxy. On standalone
+// clusters the poller targets the internal LB (api-int), which the Proxy operator
+// always excludes from noProxy and which nodes reach directly, so injecting proxy
+// env there is unnecessary and we avoid any change to that path.
+//
+// When no proxy is configured, or on a non-hosted cluster, the env is returned
+// unchanged (no-op). Existing proxy entries (if any) are replaced to keep a single
+// authoritative value.
+func (i *InvariantInClusterDisruption) setProxyEnvVars(envVars []corev1.EnvVar) []corev1.EnvVar {
+	isHostedCluster := i.hostedClusterType == HostedClusterTypeAROHCP ||
+		i.hostedClusterType == HostedClusterTypeBareMetal ||
+		i.hostedClusterType == HostedClusterTypeOther
+	if !isHostedCluster {
+		return envVars
+	}
+	if i.clusterProxyHTTPSProxy == "" && i.clusterProxyHTTPProxy == "" {
+		return envVars
+	}
+
+	proxyValues := map[string]string{}
+	if i.clusterProxyHTTPProxy != "" {
+		proxyValues["HTTP_PROXY"] = i.clusterProxyHTTPProxy
+	}
+	if i.clusterProxyHTTPSProxy != "" {
+		proxyValues["HTTPS_PROXY"] = i.clusterProxyHTTPSProxy
+	}
+	if i.clusterProxyNoProxy != "" {
+		proxyValues["NO_PROXY"] = i.clusterProxyNoProxy
+	}
+
+	// Drop any pre-existing proxy entries so we don't leave stale duplicates.
+	filtered := envVars[:0:0]
+	for _, env := range envVars {
+		if _, isProxy := proxyValues[env.Name]; isProxy {
+			continue
+		}
+		filtered = append(filtered, env)
+	}
+	for name, value := range proxyValues {
+		filtered = append(filtered, corev1.EnvVar{Name: name, Value: value})
+	}
+	return filtered
+}
+
 func (i *InvariantInClusterDisruption) createDeploymentAndWaitToRollout(ctx context.Context, deploymentObj *appsv1.Deployment) error {
 	deploymentID := uuid.New().String()
 	deploymentObj = disruptionlibrary.UpdateDeploymentENVs(deploymentObj, deploymentID, "")
@@ -211,6 +273,14 @@ func (i *InvariantInClusterDisruption) createInternalLBDeployment(ctx context.Co
 	// Set the correct host and port for internal API server based on cluster type
 	deploymentObj.Spec.Template.Spec.Containers[0].Env = i.setKubernetesServiceEnvVars(
 		deploymentObj.Spec.Template.Spec.Containers[0].Env, apiIntHost, apiIntPort)
+
+	// On a hosted cluster behind an egress proxy, the poller targets the
+	// control-plane endpoint from adminRESTConfig.Host, which may only be reachable
+	// through that proxy (e.g. a NodePort-published HyperShift control plane). The
+	// poller's sampler transport honors http.ProxyFromEnvironment, so pass the proxy
+	// settings through as env. This is a no-op on standalone or non-proxied clusters.
+	deploymentObj.Spec.Template.Spec.Containers[0].Env = i.setProxyEnvVars(
+		deploymentObj.Spec.Template.Spec.Containers[0].Env)
 
 	err := i.createDeploymentAndWaitToRollout(ctx, deploymentObj)
 	if err != nil {
@@ -542,6 +612,34 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 		}
 	}
 
+	// On hosted clusters the internal-lb poller targets the control-plane endpoint
+	// from adminRESTConfig.Host, which on a NodePort-published HyperShift control
+	// plane behind a proxy is only reachable via the cluster egress proxy. Read the
+	// proxy so the poller pods can be given these values; their sampler transport
+	// (http.ProxyFromEnvironment) then routes through the proxy instead of dialing
+	// the endpoint directly. Read status (the effective, operator-computed values,
+	// including the generated noProxy) and tolerate its absence. This read is gated
+	// on hosted clusters because the env is only injected there (setProxyEnvVars);
+	// standalone pollers target the internal LB, which the Proxy operator excludes
+	// from noProxy and nodes reach directly.
+	isHostedCluster := i.hostedClusterType == HostedClusterTypeAROHCP ||
+		i.hostedClusterType == HostedClusterTypeBareMetal ||
+		i.hostedClusterType == HostedClusterTypeOther
+	if isHostedCluster {
+		var clusterProxy *configv1.Proxy
+		if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+			var getErr error
+			clusterProxy, getErr = configClient.ConfigV1().Proxies().Get(ctx, "cluster", metav1.GetOptions{})
+			return getErr
+		}); err != nil {
+			log.WithError(err).Warning("could not read proxies.config.openshift.io/cluster; proceeding without proxy settings for pollers")
+		} else if clusterProxy != nil {
+			i.clusterProxyHTTPSProxy = clusterProxy.Status.HTTPSProxy
+			i.clusterProxyHTTPProxy = clusterProxy.Status.HTTPProxy
+			i.clusterProxyNoProxy = clusterProxy.Status.NoProxy
+		}
+	}
+
 	if len(i.payloadImagePullSpec) == 0 {
 		i.payloadImagePullSpec, err = extensions.DetermineReleasePayloadImage()
 		if err != nil {
@@ -575,10 +673,6 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	var apiIntHost string
 	var apiIntPort string
 	// Hosted clusters use adminRESTConfig.Host, standalone clusters use APIServerInternalURL
-	isHostedCluster := i.hostedClusterType == HostedClusterTypeAROHCP ||
-		i.hostedClusterType == HostedClusterTypeBareMetal ||
-		i.hostedClusterType == HostedClusterTypeOther
-
 	if isHostedCluster {
 		apiIntHost, apiIntPort, err = i.parseAdminRESTConfigHost()
 		if err != nil {
