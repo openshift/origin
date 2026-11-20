@@ -25,23 +25,24 @@ const componentProxyCAConfigMapName = "v4-0-config-system-auth-proxy-ca"
 // saveAndRestoreAuthState snapshots the proxy and identity providers changed by
 // these tests, returning a cleanup function that restores them without replacing
 // operator-owned configuration. If either changed, it waits for stabilization.
-func saveAndRestoreAuthState(ctx context.Context, oc *exutil.CLI) (removalFunc, error) {
+// The returned proxy snapshot lets callers assert a clean starting state.
+func saveAndRestoreAuthState(ctx context.Context, oc *exutil.CLI) (originalProxy operatorv1.AuthenticationProxyConfig, cleanup removalFunc, err error) {
 	operatorClient := oc.AdminOperatorClient()
 	oauthClient := oc.AdminConfigClient().ConfigV1().OAuths()
 
 	auth, err := operatorClient.OperatorV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("getting authentication/cluster: %w", err)
+		return operatorv1.AuthenticationProxyConfig{}, nil, fmt.Errorf("getting authentication/cluster: %w", err)
 	}
-	originalProxy := auth.Spec.DeepCopy().Proxy
+	originalProxy = auth.Spec.DeepCopy().Proxy
 
 	oauth, err := oauthClient.Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("getting oauth/cluster: %w", err)
+		return operatorv1.AuthenticationProxyConfig{}, nil, fmt.Errorf("getting oauth/cluster: %w", err)
 	}
 	originalIdentityProviders := oauth.Spec.DeepCopy().IdentityProviders
 
-	return func(ctx context.Context) error {
+	return originalProxy, func(ctx context.Context) error {
 		var changed bool
 
 		g.GinkgoWriter.Println("cleanup: restoring authentication/cluster")

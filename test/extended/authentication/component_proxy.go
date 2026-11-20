@@ -52,9 +52,13 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 		coreV1 = oc.AdminKubeClient().CoreV1()
 
 		g.By("Saving auth state for restore after test")
-		authRestore, err := saveAndRestoreAuthState(ctx, oc)
+		originalProxy, authRestore, err := saveAndRestoreAuthState(ctx, oc)
 		cleanups = append(cleanups, authRestore)
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Checking that no earlier test left a component proxy behind")
+		o.Expect(originalProxy).To(o.BeZero(),
+			"authentication/cluster spec.proxy is already set, so an earlier test did not restore it")
 
 		g.By("Getting the actual oauth-server proxy configuration")
 		oauthServerProxyConfig, err = authproxy.DeploymentProxyConfig(ctx,
