@@ -76,7 +76,7 @@ func Test_execute(t *testing.T) {
 	tests := makeTestCases()
 	testSuiteRunner := &testingSuiteRunner{}
 	parallelism := 30
-	execute(context.TODO(), testSuiteRunner, tests, parallelism)
+	execute(context.TODO(), testSuiteRunner, tests, parallelism, 0)
 
 	testsCompleted := testSuiteRunner.getTestsRun()
 	if len(tests) != len(testsCompleted) {
