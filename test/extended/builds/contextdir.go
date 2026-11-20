@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds with a context dir
 		})
 
 		g.Describe("s2i context directory build", func() {
-			g.It(fmt.Sprintf("should s2i build an application using a context directory [apigroup:build.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should s2i build an application using a context directory [apigroup:build.openshift.io] [Skipped:Disconnected]"), func() {
 
 				exutil.WaitForImageStreamImport(oc)
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)

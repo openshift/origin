@@ -54,7 +54,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 		})
 
 		g.Describe("Build status postcommit hook failure", func() {
-			g.It("should contain the post commit hook failure reason and message [apigroup:build.openshift.io]", func() {
+			g.It("should contain the post commit hook failure reason and message [apigroup:build.openshift.io] [Skipped:Disconnected]", func() {
 				err := oc.Run("create").Args("-f", postCommitHookFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -162,7 +162,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 		})
 
 		g.Describe("Build status OutOfMemoryKilled", func() {
-			g.It("should contain OutOfMemoryKilled failure reason and message [apigroup:build.openshift.io]", func() {
+			g.It("should contain OutOfMemoryKilled failure reason and message [apigroup:build.openshift.io] [Skipped:Disconnected]", func() {
 				err := oc.Run("create").Args("-f", oomkilled).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -208,7 +208,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 		})
 
 		g.Describe("Build status S2I bad context dir failure", func() {
-			g.It("should contain the S2I bad context dir failure reason and message [apigroup:build.openshift.io]", func() {
+			g.It("should contain the S2I bad context dir failure reason and message [apigroup:build.openshift.io] [Skipped:Disconnected]", func() {
 				err := oc.Run("create").Args("-f", badContextDirS2ISrc).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -246,7 +246,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 		})
 
 		g.Describe("Build status push image to registry failure", func() {
-			g.It("should contain the image push to registry failure reason and message [apigroup:build.openshift.io]", func() {
+			g.It("should contain the image push to registry failure reason and message [apigroup:build.openshift.io] [Skipped:Disconnected]", func() {
 				err := oc.Run("create").Args("-f", pushToRegistryFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 

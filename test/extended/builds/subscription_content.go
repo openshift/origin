@@ -13,7 +13,8 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-builds][Feature:Builds][subscription-content] builds installing subscription content", func() {
+// Every build installs packages from entitled Red Hat repositories using yum.
+var _ = g.Describe("[sig-builds][Feature:Builds][subscription-content] builds installing subscription content [Skipped:Disconnected]", func() {
 
 	defer g.GinkgoRecover()
 
