@@ -27,6 +27,7 @@ import (
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/util/retry"
 
+	operatorwait "github.com/openshift/origin/test/extended/authentication/operatorwait"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 )
@@ -104,7 +105,7 @@ func saveAndRestoreAuthState(ctx context.Context, oc *exutil.CLI) (removalFunc, 
 
 		if changed {
 			g.GinkgoWriter.Println("cleanup: waiting for operator to stabilize")
-			if err := waitForOperatorToPickUpChanges(ctx, oc, "authentication"); err != nil {
+			if err := operatorwait.WaitForOperatorToPickUpChanges(ctx, oc, "authentication"); err != nil {
 				g.GinkgoWriter.Printf("cleanup: operator did not recover: %v\n", err)
 			}
 		}

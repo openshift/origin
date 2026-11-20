@@ -1,4 +1,4 @@
-package authentication
+package operatorwait
 
 import (
 	"testing"
