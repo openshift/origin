@@ -159,11 +159,18 @@ func SkipIfVersionBelow(oc *exutil.CLI, minMajor, minMinor uint64) {
 	}
 }
 
-// SkipIfClusterIsNotHealthy skips the test if cluster health checks fail.
-// Performs comprehensive validation: all nodes ready, all cluster operators healthy,
-// etcd pods running, two voting etcd members, cluster-etcd-operator healthy, and
-// API services available (no stale GroupVersions).
-// Skips are detected by the test runner via preconditions.SkipMarker for JUnit generation.
+// SkipIfClusterIsNotHealthy skips the test when the cluster does not meet
+// the minimum prerequisites for TNF recovery tests.
+//
+// The skip decision is based on essential operators only
+// (RecoveryEssentialOperators), plus node readiness, etcd pods, etcd
+// membership, and the etcd ClusterOperator.  Non-essential operators such
+// as image-registry are audited and logged but do not block test execution.
+// Callers should use AuditNonEssentialOperators after recovery to detect
+// and report persistent non-essential failures as primary diagnostics.
+//
+// Skips are detected by the test runner via preconditions.SkipMarker for
+// JUnit generation.
 //
 //	SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
 func SkipIfClusterIsNotHealthy(oc *exutil.CLI, ecf *helpers.EtcdClientFactoryImpl) {
@@ -184,9 +191,18 @@ func SkipIfClusterIsNotHealthy(oc *exutil.CLI, ecf *helpers.EtcdClientFactoryImp
 		skipReasons = append(skipReasons, fmt.Sprintf("expected 2 nodes for two-node cluster, found %d", len(nodes.Items)))
 	}
 
-	if err := IsClusterHealthyWithTimeout(oc, PreconditionClusterHealthyTimeout); err != nil {
-		skipReasons = append(skipReasons, fmt.Sprintf("cluster-wide health failed: %v", err))
+	// Pacemaker cleanup and node readiness
+	TryPacemakerCleanup(oc)
+	if nodeErr := nodehelper.AllNodesReady(context.Background(), oc.AdminKubeClient(), PreconditionClusterHealthyTimeout); nodeErr != nil {
+		skipReasons = append(skipReasons, fmt.Sprintf("not all nodes ready: %v", nodeErr))
 	}
+
+	// Essential operators only — non-essential operators (e.g. image-registry)
+	// are not required for recovery test execution and are audited separately.
+	if err := WaitForEssentialOperatorsHealthy(oc, PreconditionClusterHealthyTimeout); err != nil {
+		skipReasons = append(skipReasons, fmt.Sprintf("essential operators unhealthy: %v", err))
+	}
+
 	if err := ensureEtcdPodsAreRunning(oc, PreconditionEtcdHealthyTimeout); err != nil {
 		skipReasons = append(skipReasons, fmt.Sprintf("etcd pods not running: %v", err))
 	}
@@ -198,6 +214,13 @@ func SkipIfClusterIsNotHealthy(oc *exutil.CLI, ecf *helpers.EtcdClientFactoryImp
 	}
 	if err := ensureClusterOperatorHealthy(oc, PreconditionClusterHealthyTimeout); err != nil {
 		skipReasons = append(skipReasons, fmt.Sprintf("cluster-etcd-operator not healthy: %v", err))
+	}
+
+	// Audit non-essential operators — informational, does not block
+	if status, err := AuditNonEssentialOperators(context.Background(), oc); err != nil {
+		framework.Logf("WARNING: failed to audit non-essential operators: %v", err)
+	} else if status.HasFailures() {
+		framework.Logf("WARNING: non-essential operators unhealthy (will not block test):\n%s", status.Summary())
 	}
 
 	if len(skipReasons) > 0 {
@@ -820,21 +843,14 @@ func ValidateClusterOperatorsAvailable(oc *exutil.CLI) error {
 	return nil
 }
 
-// ValidateEssentialOperatorsAvailable validates that essential cluster operators are available for kubelet disruption tests.
-// This is more lenient than ValidateClusterOperatorsAvailable and only checks core operators needed for the test.
+// ValidateEssentialOperatorsAvailable validates that essential cluster
+// operators (RecoveryEssentialOperators) are Available=True and
+// Degraded=False.  This is more lenient than ValidateClusterOperatorsAvailable
+// — non-essential operators are logged but do not cause a failure.
 //
-//	if err := ValidateEssentialOperatorsAvailable(oc); err != nil { return err }
-func ValidateEssentialOperatorsAvailable(oc *exutil.CLI) error {
-	// Essential operators for kubelet disruption tests
-	essentialOperators := []string{
-		"etcd",                    // Core cluster state
-		"kube-apiserver",          // Kubernetes API
-		"openshift-apiserver",     // OpenShift API
-		"network",                 // Cluster networking
-		"kube-controller-manager", // Core controllers
-	}
-
-	clusterOperators, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().List(context.Background(), metav1.ListOptions{})
+//	if err := ValidateEssentialOperatorsAvailable(ctx, oc); err != nil { return err }
+func ValidateEssentialOperatorsAvailable(ctx context.Context, oc *exutil.CLI) error {
+	clusterOperators, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to list cluster operators: %v", err)
 	}
@@ -842,12 +858,11 @@ func ValidateEssentialOperatorsAvailable(oc *exutil.CLI) error {
 	var unavailableOperators []string
 	var degradedOperators []string
 
-	for _, operatorName := range essentialOperators {
-		// Find the operator in the list
+	for _, operatorName := range RecoveryEssentialOperators {
 		var operator *v1.ClusterOperator
-		for _, co := range clusterOperators.Items {
-			if co.Name == operatorName {
-				operator = &co
+		for i := range clusterOperators.Items {
+			if clusterOperators.Items[i].Name == operatorName {
+				operator = &clusterOperators.Items[i]
 				break
 			}
 		}
@@ -867,20 +882,13 @@ func ValidateEssentialOperatorsAvailable(oc *exutil.CLI) error {
 		}
 	}
 
-	// Log status of non-essential operators for info
 	nonEssentialCount := 0
 	nonEssentialUnavailable := 0
-	for _, co := range clusterOperators.Items {
-		isEssential := false
-		for _, essential := range essentialOperators {
-			if co.Name == essential {
-				isEssential = true
-				break
-			}
-		}
-		if !isEssential {
+	for i := range clusterOperators.Items {
+		co := &clusterOperators.Items[i]
+		if !isRecoveryEssentialOperator(co.Name) {
 			nonEssentialCount++
-			if !IsClusterOperatorAvailable(&co) {
+			if !IsClusterOperatorAvailable(co) {
 				nonEssentialUnavailable++
 				framework.Logf("Non-essential operator %s is not available (not blocking test)", co.Name)
 			}
@@ -895,7 +903,7 @@ func ValidateEssentialOperatorsAvailable(oc *exutil.CLI) error {
 	}
 
 	framework.Logf("All %d essential operators are available (%d non-essential operators, %d unavailable but not blocking)",
-		len(essentialOperators), nonEssentialCount, nonEssentialUnavailable)
+		len(RecoveryEssentialOperators), nonEssentialCount, nonEssentialUnavailable)
 	return nil
 }
 
