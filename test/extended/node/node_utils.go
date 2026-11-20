@@ -872,7 +872,50 @@ func uninstallCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 		}
 	}
 
+	if err := waitForKubevirtClusterCleanup(ctx, oc); err != nil {
+		return fmt.Errorf("kubevirt cluster cleanup incomplete after CNV uninstall: %w", err)
+	}
+
 	framework.Logf("CNV operator uninstalled successfully")
+	return nil
+}
+
+var kubevirtLeakClusterRoleBindingPrefixes = []string{
+	"kubevirt.io:",
+	"cdi.kubevirt.io:",
+	"instancetype.kubevirt.io:",
+}
+
+func kubevirtClusterLeaks(ctx context.Context, oc *exutil.CLI) string {
+	crbs, err := oc.AdminKubeClient().RbacV1().ClusterRoleBindings().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return fmt.Sprintf("list ClusterRoleBindings: %v", err)
+	}
+	for _, crb := range crbs.Items {
+		for _, prefix := range kubevirtLeakClusterRoleBindingPrefixes {
+			if strings.HasPrefix(crb.Name, prefix) {
+				return fmt.Sprintf("ClusterRoleBinding %q still present", crb.Name)
+			}
+		}
+	}
+	return ""
+}
+
+func waitForKubevirtClusterCleanup(ctx context.Context, oc *exutil.CLI) error {
+	framework.Logf("Waiting for kubevirt cluster RBAC to be removed after CNV uninstall...")
+	err := wait.PollUntilContextTimeout(ctx, 15*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
+		if leak := kubevirtClusterLeaks(ctx, oc); leak != "" {
+			framework.Logf("Still waiting: %s", leak)
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		if leak := kubevirtClusterLeaks(ctx, oc); leak != "" {
+			return fmt.Errorf("%s", leak)
+		}
+		return err
+	}
 	return nil
 }
 
@@ -996,6 +1039,24 @@ func EnsureNodesReady(ctx context.Context, oc *exutil.CLI) {
 		"Cannot start test: nodes not Ready: %v. Cluster may be recovering from previous test.", notReadyNodes)
 }
 
+// EnsureNodeResourceNodesReady checks only nodes reserved for this test label.
+// Unlike EnsureNodesReady, parallel NodeResource tests on other pool nodes
+// may temporarily leave a node NotReady without blocking this test.
+func EnsureNodeResourceNodesReady(ctx context.Context, oc *exutil.CLI, label string) {
+	nodes, err := GetNodeResourceNodes(ctx, oc, label)
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get NodeResource nodes for label %s", label)
+
+	var notReady []string
+	for _, node := range nodes {
+		if !isNodeInReadyState(&node) {
+			notReady = append(notReady, node.Name)
+		}
+	}
+
+	o.Expect(notReady).To(o.BeEmpty(),
+		"Cannot start test: NodeResource node(s) not Ready for label %s: %v. Assigned node(s) may still be recovering from this test's own setup.", label, notReady)
+}
+
 func CreatePodAndWaitForRunning(ctx context.Context, oc *exutil.CLI, pod *corev1.Pod) *corev1.Pod {
 	_, err := oc.AdminKubeClient().CoreV1().Pods(pod.Namespace).Create(ctx, pod, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -1025,4 +1086,32 @@ func cleanupDirectoriesOnNode(oc *exutil.CLI, nodeName string, dirs []string) er
 		return fmt.Errorf("failed to cleanup directories %v on node %s: %w", dirs, nodeName, err)
 	}
 	return nil
+}
+
+// NodeResourceLabelKey is the label key used by the NodeResource scheduler
+// to mark worker nodes as assigned to a specific test.
+const NodeResourceLabelKey = "noderesource.test.openshift.io/name"
+
+// GetNodeResourceNodes returns worker nodes assigned to a NodeResource test by label.
+// Tests declare their requirements via g.Label("NodeResource", "NodeResourceNumNodes=N",
+// "NodeResourceName=X") and should use this function to find their assigned nodes.
+func GetNodeResourceNodes(ctx context.Context, oc *exutil.CLI, label string) ([]corev1.Node, error) {
+	labelSelector := fmt.Sprintf("%s=%s", NodeResourceLabelKey, label)
+	nodes, err := getNodesByLabel(ctx, oc, labelSelector)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get NodeResource nodes with label %s: %w", label, err)
+	}
+	if len(nodes) == 0 {
+		return nil, fmt.Errorf("no nodes found with NodeResource label %s", label)
+	}
+	return nodes, nil
+}
+
+// GetNodeResource returns the name of the first node assigned to a NodeResource test.
+func GetNodeResource(ctx context.Context, oc *exutil.CLI, label string) (string, error) {
+	nodes, err := GetNodeResourceNodes(ctx, oc, label)
+	if err != nil {
+		return "", err
+	}
+	return nodes[0].Name, nil
 }
