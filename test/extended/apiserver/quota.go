@@ -28,7 +28,8 @@ var _ = g.Describe("[sig-api-machinery] API_Server", func() {
 		}
 	})
 
-	g.It("[OTP][OCP-11289] Check the imagestreams of quota in the project after build image [ConnectedOnly][Serial]", ote.Informing(), func() {
+	// The build imports a quay.io Ruby image and clones source from GitHub.
+	g.It("[OTP][OCP-11289] Check the imagestreams of quota in the project after build image [ConnectedOnly][Serial][Skipped:Disconnected]", ote.Informing(), func() {
 		if isBaselineCapsSet(oc) && !(isEnabledCapability(oc, "Build") && isEnabledCapability(oc, "DeploymentConfig")) {
 			g.Skip("Skipping the test as baselinecaps have been set and some of API capabilities are not enabled!")
 		}

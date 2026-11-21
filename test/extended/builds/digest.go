@@ -14,7 +14,8 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status", func() {
+// Both build strategies fetch nodejs-ex source from GitHub before producing an image digest.
+var _ = g.Describe("[sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status [Skipped:Disconnected]", func() {
 	defer g.GinkgoRecover()
 	var (
 		imageStreamFixture = exutil.FixturePath("testdata", "builds", "test-image-stream.json")

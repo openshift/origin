@@ -48,7 +48,8 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using pull secrets in a b
 			// Test pulling from registry.redhat.io - an authenticated registry
 			// CI clusters should have a pull secret to this registry in order for the samples operator to work
 			// Note that this registry is known to be flaky
-			g.Describe("pulling from an external authenticated registry", func() {
+			// Both builds clone nodejs-ex from GitHub, even when their builder image is internal.
+			g.Describe("pulling from an external authenticated registry [Skipped:Disconnected]", func() {
 				g.BeforeEach(func() {
 					g.By("copying the cluster pull secret to the namespace")
 					ps, err := oc.AsAdmin().AdminKubeClient().CoreV1().Secrets("openshift-config").Get(context.Background(), "pull-secret", metav1.GetOptions{})

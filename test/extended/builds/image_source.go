@@ -75,7 +75,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] build can have container 
 		})
 
 		g.Describe("buildconfig with input source image and s2i strategy", func() {
-			g.It("should complete successfully and contain the expected file [apigroup:build.openshift.io]", func() {
+			g.It("should complete successfully and contain the expected file [apigroup:build.openshift.io] [Skipped:Disconnected]", func() {
 				g.By("Creating build configs for source build")
 				err := oc.Run("create").Args("-f", buildConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -102,7 +102,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] build can have container 
 			})
 		})
 		g.Describe("buildconfig with input source image and docker strategy", func() {
-			g.It("should complete successfully and contain the expected file [apigroup:build.openshift.io]", func() {
+			g.It("should complete successfully and contain the expected file [apigroup:build.openshift.io] [Skipped:Disconnected]", func() {
 				g.By("Creating build configs for docker build")
 				err := oc.Run("create").Args("-f", buildConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())

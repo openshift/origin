@@ -20,6 +20,7 @@ import (
 
 	nodeutils "github.com/openshift/origin/test/extended/node"
 	exutil "github.com/openshift/origin/test/extended/util"
+	utilimage "github.com/openshift/origin/test/extended/util/image"
 )
 
 var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node] ContainerRuntimeConfig", func() {
@@ -188,11 +189,12 @@ var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node] ContainerRuntimeC
 			g.By("Create a pod on the target node to verify overlay size inside container")
 			podName := "pod-46313"
 			ns := oc.Namespace()
+			image := utilimage.LocationFor("quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339")
 			err = oc.AsAdmin().WithoutNamespace().Run("run").Args(
 				podName, "-n", ns,
-				"--image=quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339",
+				"--image="+image,
 				"--restart=Never",
-				"--overrides", `{"spec":{"nodeName":"`+workerNode+`","securityContext":{"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"`+podName+`","image":"quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339","command":["/bin/bash","-c","sleep 100000000"],"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}}`,
+				"--overrides", `{"spec":{"nodeName":"`+workerNode+`","securityContext":{"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"`+podName+`","image":"`+image+`","command":["/bin/bash","-c","sleep 100000000"],"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}}`,
 			).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to create pod")
 			defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("pod", podName, "-n", ns, "--ignore-not-found").Execute()
