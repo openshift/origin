@@ -32,7 +32,7 @@ spec:
           type: ""
         resources:
           requests:
-            memory: 2048M
+            memory: {{ .Memory }}
       networks:
       - name: underlay
         multus:
@@ -48,8 +48,8 @@ spec:
               version: 2                                                              
               ethernets:                                                              
                 eth0:                                                                 
-                  dhcp4: true                                                         
-                  dhcp6: true                                                         
+                  dhcp4: {{ .DHCPv4 }}
+                  dhcp6: {{ .DHCPv6 }}
             userData: |-
               #cloud-config
               password: fedora
@@ -66,6 +66,19 @@ spec:
   running: true
   template:
     spec:
+      {{- if .NodeNames }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            {{- range .NodeNames }}
+            - matchFields:
+              - key: metadata.name
+                operator: In
+                values:
+                - {{ printf "%q" . }}
+            {{- end }}
+      {{- end }}
       domain:
         devices:
           disks:
@@ -83,7 +96,7 @@ spec:
           type: ""
         resources:
           requests:
-            memory: 2048M
+            memory: {{ .Memory }}
       networks:
       - name: overlay
         pod: {}
@@ -98,8 +111,8 @@ spec:
               version: 2                                                              
               ethernets:                                                              
                 eth0:                                                                 
-                  dhcp4: true                                                         
-                  dhcp6: true                                                         
+                  dhcp4: {{ .DHCPv4 }}
+                  dhcp6: {{ .DHCPv6 }}
             userData: |-
               #cloud-config
               password: fedora
@@ -128,7 +141,7 @@ spec:
       rng: {}
     resources:
       requests:
-        memory: 2048M
+        memory: {{ .Memory }}
   networks:
   - multus:
       networkName: {{ .VMNamespace }}/{{ .NetworkName }}
@@ -143,8 +156,8 @@ spec:
         version: 2                                                              
         ethernets:                                                              
           eth0:                                                                 
-            dhcp4: true                                                         
-            dhcp6: true                                                         
+            dhcp4: {{ .DHCPv4 }}
+            dhcp6: {{ .DHCPv6 }}
       userData: |-
         #cloud-config
         password: fedora
@@ -175,7 +188,7 @@ spec:
       rng: {}
     resources:
       requests:
-        memory: 2048M
+        memory: {{ .Memory }}
   networks:
   - pod: {}
     name: overlay
@@ -189,8 +202,8 @@ spec:
         version: 2                                                              
         ethernets:                                                              
           eth0:                                                                 
-            dhcp4: true                                                         
-            dhcp6: true                                                         
+            dhcp4: {{ .DHCPv4 }}
+            dhcp6: {{ .DHCPv6 }}
       userData: |-
         #cloud-config
         password: fedora
@@ -232,7 +245,7 @@ spec:
           type: ""
         resources:
           requests:
-            memory: 2048M
+            memory: {{ .Memory }}
       networks:
       - name: overlay
         pod: {}
@@ -247,8 +260,8 @@ spec:
               version: 2                                                              
               ethernets:                                                              
                 eth0:                                                                 
-                  dhcp4: true                                                         
-                  dhcp6: true                                                         
+                  dhcp4: {{ .DHCPv4 }}
+                  dhcp6: {{ .DHCPv6 }}
             userData: |-
               #cloud-config
               password: fedora
@@ -266,6 +279,8 @@ spec:
 )
 
 type CreationTemplateParams struct {
+	Memory                    string
+	NodeNames                 []string
 	VMName                    string
 	VMNamespace               string
 	FedoraContainterDiskImage string
@@ -273,9 +288,14 @@ type CreationTemplateParams struct {
 	NetworkName               string
 	PreconfiguredIP           string
 	PreconfiguredMAC          string
+	DHCPv4                    bool
+	DHCPv6                    bool
 }
 
 func renderVMTemplate(vmTemplateString string, params CreationTemplateParams) (string, error) {
+	if params.Memory == "" {
+		params.Memory = "2048M"
+	}
 	vmTemplate, err := template.New(params.VMNamespace + "/" + params.VMName).Parse(vmTemplateString)
 	if err != nil {
 		return "", err
