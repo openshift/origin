@@ -747,47 +747,56 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		messageReasonRegex: regexp.MustCompile(`^SuccessfulCreate$`),
 	})
 
-	// AuthenticationComponentProxy tests intentionally trigger multiple oauth-openshift rollouts
-	// (set proxy → operator rolls out → restore → operator rolls out again), repeated for each
-	// test in the suite. This causes DeploymentUpdated, OperatorStatusChanged, and ScalingReplicaSet events in the
-	// authentication namespaces to exceed the default threshold of 20.
+	// The AuthenticationComponentProxy and AuthenticationComponentProxyExternalOIDC serial
+	// suites intentionally roll the authentication operator and its operands repeatedly (set
+	// proxy, roll out, restore, roll out again), per test, so DeploymentUpdated,
+	// OperatorStatusChanged, and ScalingReplicaSet events in the authentication namespaces
+	// exceed the default threshold of 20. The matchers share one window set built from both
+	// suites' eligible tests: a window opened by either suite authorizes all four matchers, and
+	// each matcher stays scoped to one deployment with its own cumulative cap. The operator caps
+	// were calibrated on the AuthenticationComponentProxy suite alone; no run has exercised them
+	// with both suites yet.
 	if windows := eligibleWindows(
 		finalIntervals,
-		authenticationComponentProxyEligibleTestNames,
-		authenticationComponentProxyPostTestGrace,
+		authenticationEligibleTestNames(),
+		authenticationPostTestGrace,
 	); len(windows) > 0 {
 		for _, delegate := range []*SimplePathologicalEventMatcher{
 			{
-				name: "AuthenticationComponentProxyDeploymentUpdated",
+				name: "AuthenticationOperatorDeploymentUpdated",
 				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication-operator$`),
 					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^authentication-operator$`),
 				},
-				messageReasonRegex: regexp.MustCompile(`^DeploymentUpdated$`),
-				// If all the authentication component proxy tests would be grouped together, the amount
-				// of events are ~60. This amount it's ~15%.
-				repeatThresholdOverride: 70,
+				messageReasonRegex:      regexp.MustCompile(`^DeploymentUpdated$`),
+				repeatThresholdOverride: authenticationOperatorDeploymentUpdatedRepeatLimit,
 			},
 			{
-				name: "AuthenticationComponentProxyOperatorStatusChanged",
+				name: "AuthenticationOperatorStatusChanged",
 				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication-operator$`),
 					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^authentication-operator$`),
 				},
-				messageReasonRegex: regexp.MustCompile(`^OperatorStatusChanged$`),
-				// Observed 21 times as the proxy tests complete rollouts, including cleanup.
-				repeatThresholdOverride: 30,
+				messageReasonRegex:      regexp.MustCompile(`^OperatorStatusChanged$`),
+				repeatThresholdOverride: authenticationOperatorStatusChangedRepeatLimit,
 			},
 			{
-				name: "AuthenticationComponentProxyScalingReplicaSet",
+				name: "AuthenticationOauthServerScalingReplicaSet",
 				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication$`),
 					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^oauth-openshift$`),
 				},
-				messageReasonRegex: regexp.MustCompile(`^ScalingReplicaSet$`),
-				// Observed cumulative counts up to 103 within eligible proxy-test windows.
-				// The 120 limit provides bounded headroom while retaining a finite cap.
+				messageReasonRegex:      regexp.MustCompile(`^ScalingReplicaSet$`),
 				repeatThresholdOverride: authenticationComponentProxyScalingReplicaSetRepeatLimit,
+			},
+			{
+				name: "AuthenticationOauthApiserverScalingReplicaSet",
+				locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+					monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-oauth-apiserver$`),
+					monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^apiserver$`),
+				},
+				messageReasonRegex:      regexp.MustCompile(`^ScalingReplicaSet$`),
+				repeatThresholdOverride: authenticationComponentProxyExternalOIDCScalingReplicaSetRepeatLimit,
 			},
 		} {
 			matcher := &OverlapOtherIntervalsPathologicalEventMatcher{
