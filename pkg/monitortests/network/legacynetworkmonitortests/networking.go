@@ -123,6 +123,13 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 		return false
 	})
 	eventsForPods := getEventsByPodName(events)
+	ovnDeletions := events.Filter(func(event monitorapi.Interval) bool {
+		return event.Source == monitorapi.SourcePodMonitor &&
+			event.Message.Reason == monitorapi.PodReasonGracefulDeleteStarted &&
+			event.Locator.Type == monitorapi.LocatorTypePod &&
+			event.Locator.Keys[monitorapi.LocatorNamespaceKey] == "openshift-ovn-kubernetes" &&
+			strings.HasPrefix(event.Locator.Keys[monitorapi.LocatorPodKey], "ovnkube-node-")
+	})
 
 	var platform configv1.PlatformType
 	platform, err := getPlatformType(clientConfig)
@@ -231,6 +238,12 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 
 		partialLocator := monitorapi.NonUniquePodLocatorFrom(event.Locator)
 		progressingOperatorName := getProgressingOperatorName(event, operatorsProgressing)
+		if len(progressingOperatorName) == 0 {
+			if excuse := sandboxFailureDuringOVNRollout(event, eventsForPods[partialLocator], ovnDeletions, operatorsProgressing); excuse != "" {
+				flakes = append(flakes, fmt.Sprintf("%v - %s - %v", event.Locator.OldLocator(), excuse, event.Message.OldMessage()))
+				continue
+			}
+		}
 		if deletionTime := getPodDeletionTime(eventsForPods[partialLocator], event.Locator); deletionTime == nil {
 			// Pod was never deleted
 			if len(progressingOperatorName) > 0 {
