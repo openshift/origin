@@ -194,7 +194,7 @@ func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, r
 			streamer := podaccess.NewOneTimePodStreamer(kubeClient, pod.Namespace, pod.Name, container.Name, logHandlers...)
 			if err := streamer.ReadLog(ctx); err != nil {
 				if isPodDeletedAfterListing(err, pod.Name) {
-					logrus.Infof("operator-log-scraper: skipping pods/%s -n %s -c %s: pod was deleted after it was listed",
+					logrus.Warnf("operator-log-scraper: skipping pods/%s -n %s -c %s: pod was deleted after it was listed",
 						pod.Name, pod.Namespace, container.Name)
 					continue
 				}

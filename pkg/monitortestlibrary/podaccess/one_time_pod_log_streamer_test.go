@@ -19,9 +19,9 @@ type capturedLines []LogLineContent
 
 func (c *capturedLines) HandleLogLine(line LogLineContent) { *c = append(*c, line) }
 
-// ReadLog tags only a failed pod lookup. The message, wrapped error, and API
-// status reason stay what existing callers already match on, such as
-// apierrors.IsNotFound.
+// ReadLog tags only a failed pod lookup. The message names the pod that was
+// looked up, while the wrapped error and API status reason stay what existing
+// callers already match on, such as apierrors.IsNotFound.
 func TestReadLogTagsOnlyPodLookupFailures(t *testing.T) {
 	const namespace, podName = "openshift-test-operator", "test-operator-abcde"
 	notFound := apierrors.NewNotFound(corev1.Resource("pods"), podName)
@@ -41,7 +41,7 @@ func TestReadLogTagsOnlyPodLookupFailures(t *testing.T) {
 			name:         "pod lookup NotFound",
 			lookupErr:    notFound,
 			wantTagged:   true,
-			wantMessage:  "error getting pod to read logs: " + notFound.Error(),
+			wantMessage:  "error getting pod to read logs for pods/test-operator-abcde -n openshift-test-operator: " + notFound.Error(),
 			wantReason:   metav1.StatusReasonNotFound,
 			wantRequests: []string{"get pods"},
 		},
@@ -49,7 +49,7 @@ func TestReadLogTagsOnlyPodLookupFailures(t *testing.T) {
 			name:         "pod lookup forbidden",
 			lookupErr:    forbidden,
 			wantTagged:   true,
-			wantMessage:  "error getting pod to read logs: " + forbidden.Error(),
+			wantMessage:  "error getting pod to read logs for pods/test-operator-abcde -n openshift-test-operator: " + forbidden.Error(),
 			wantReason:   metav1.StatusReasonForbidden,
 			wantRequests: []string{"get pods"},
 		},

@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
 	clienttesting "k8s.io/client-go/testing"
@@ -107,7 +108,7 @@ func TestCollectDataDoesNotExposeAPIServerURL(t *testing.T) {
 // to read, so it is skipped on every topology. Every other failure keeps its
 // topology classification: a flake on a reduced topology when transient, and a
 // failure otherwise. Each case runs StartCollection and then CollectData.
-func TestCollectDataClassifiesPodNotFoundByTopology(t *testing.T) {
+func TestCollectDataClassifiesPodScrapeErrorsByTopology(t *testing.T) {
 	const survivor, startVictim, finalVictim = "survivor-operator-aaaaa", "start-victim-operator-bbbbb", "final-victim-operator-ccccc"
 	victims := []string{startVictim, finalVictim}
 	notFound := func(resource schema.GroupResource, name string) apiResponse {
@@ -257,8 +258,14 @@ func TestCollectDataClassifiesPodNotFoundByTopology(t *testing.T) {
 				}
 
 				for _, pod := range api.pods {
-					if got, wantSkip := logs.skipped(pod), slices.Contains(tt.wantSkipped, pod); got != wantSkip {
+					levels := logs.skipLevels(pod)
+					if got, wantSkip := len(levels) > 0, slices.Contains(tt.wantSkipped, pod); got != wantSkip {
 						t.Errorf("logged skipping %s = %v, want %v", pod, got, wantSkip)
+					}
+					for _, level := range levels {
+						if level != logrus.WarnLevel {
+							t.Errorf("logged skipping %s at level %s, want %s", pod, level, logrus.WarnLevel)
+						}
 					}
 				}
 				if got := server.requestLog(); !slices.Equal(got, tt.wantRequests) {
@@ -441,15 +448,17 @@ type apiResponse struct {
 type operatorAPIServer struct {
 	operatorAPI
 	config *rest.Config
+	// known is pods as a set for lookups; pods keeps the order the list is served in.
+	known sets.Set[string]
 
 	mu       sync.Mutex
 	lists    int
-	deleted  map[string]bool
+	deleted  sets.Set[string]
 	requests []string
 }
 
 func (a operatorAPI) serve(t *testing.T) *operatorAPIServer {
-	s := &operatorAPIServer{operatorAPI: a, deleted: map[string]bool{}}
+	s := &operatorAPIServer{operatorAPI: a, known: sets.New(a.pods...), deleted: sets.New[string]()}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.handle(t, w, r)
 	}))
@@ -480,19 +489,19 @@ func (s *operatorAPIServer) handle(t *testing.T, w http.ResponseWriter, r *http.
 		}
 		list := &corev1.PodList{TypeMeta: metav1.TypeMeta{Kind: "PodList", APIVersion: "v1"}}
 		for _, pod := range s.pods {
-			if !s.deleted[pod] {
+			if !s.deleted.Has(pod) {
 				list.Items = append(list.Items, *testOperatorPod(pod))
 			}
 		}
 		writeJSON(t, w, http.StatusOK, list)
 		if s.lists < len(s.deleteAfterList) {
-			s.deleted[s.deleteAfterList[s.lists]] = true
+			s.deleted.Insert(s.deleteAfterList[s.lists])
 		}
 		s.lists++
-	case !strings.HasPrefix(r.URL.Path, podPrefix) || !slices.Contains(s.pods, name):
+	case !strings.HasPrefix(r.URL.Path, podPrefix) || !s.known.Has(name):
 		t.Errorf("unexpected API request: %s", r.URL.Path)
 		w.WriteHeader(http.StatusNotFound)
-	case s.deleted[name]:
+	case s.deleted.Has(name):
 		if isLog {
 			t.Errorf("requested the log of %s after its lookup found it deleted", name)
 		}
@@ -591,8 +600,13 @@ func outcomeOf(err error) outcome {
 
 // logCapture records the scraper's logrus messages for the duration of a test.
 type logCapture struct {
-	mu       sync.Mutex
-	messages []string
+	mu      sync.Mutex
+	entries []capturedLog
+}
+
+type capturedLog struct {
+	level   logrus.Level
+	message string
 }
 
 func captureLogs(t *testing.T) *logCapture {
@@ -609,13 +623,20 @@ func (c *logCapture) Levels() []logrus.Level { return logrus.AllLevels }
 func (c *logCapture) Fire(entry *logrus.Entry) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.messages = append(c.messages, entry.Message)
+	c.entries = append(c.entries, capturedLog{level: entry.Level, message: entry.Message})
 	return nil
 }
 
-func (c *logCapture) skipped(pod string) bool {
+// skipLevels returns the level of each message logged about skipping pod.
+func (c *logCapture) skipLevels(pod string) []logrus.Level {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	want := fmt.Sprintf("skipping pods/%s -n %s", pod, testOperatorNamespace)
-	return slices.ContainsFunc(c.messages, func(message string) bool { return strings.Contains(message, want) })
+	var levels []logrus.Level
+	for _, entry := range c.entries {
+		if strings.Contains(entry.message, want) {
+			levels = append(levels, entry.level)
+		}
+	}
+	return levels
 }
