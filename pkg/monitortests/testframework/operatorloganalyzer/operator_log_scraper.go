@@ -21,6 +21,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -142,7 +143,9 @@ func sanitizedScrapeError(err error) error {
 // scanAllOperatorPods feeds every platform operator container log through
 // logHandlers. On a reducedTopology cluster, transient errors from pods that are
 // still returning after a reboot are collected and returned so the caller can
-// report the scrape as a flake instead of silently dropping the failure.
+// report the scrape as a flake instead of silently dropping the failure. A pod
+// deleted between the list and its lookup has no log left to read, so it is
+// skipped on every topology.
 func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, reducedTopology bool, logHandlers ...podaccess.LogHandler) error {
 	var pods *corev1.PodList
 	var lastListErr error
@@ -190,6 +193,11 @@ func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, r
 		for _, container := range pod.Spec.Containers {
 			streamer := podaccess.NewOneTimePodStreamer(kubeClient, pod.Namespace, pod.Name, container.Name, logHandlers...)
 			if err := streamer.ReadLog(ctx); err != nil {
+				if isPodDeletedAfterListing(err, pod.Name) {
+					logrus.Infof("operator-log-scraper: skipping pods/%s -n %s -c %s: pod was deleted after it was listed",
+						pod.Name, pod.Namespace, container.Name)
+					continue
+				}
 				if reducedTopology && isTransientScrapeError(err) {
 					logrus.Infof("operator-log-scraper: recording transient error reading log for pods/%s -n %s -c %s: %s",
 						pod.Name, pod.Namespace, container.Name, utility.ErrorSummary(err))
@@ -202,6 +210,23 @@ func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, r
 	}
 
 	return errors.Join(errs...)
+}
+
+// isPodDeletedAfterListing reports whether err is ReadLog failing to look up
+// podName because the apiserver no longer has that pod. A NotFound from the log
+// request, one naming another object, or a 404 that is not an API status does
+// not show that the listed pod is gone.
+func isPodDeletedAfterListing(err error, podName string) bool {
+	var lookupErr *podaccess.PodLookupError
+	var status apierrors.APIStatus
+	if !errors.As(err, &lookupErr) || !errors.As(lookupErr, &status) ||
+		!apierrors.IsNotFound(lookupErr) || apierrors.IsUnexpectedServerError(lookupErr) {
+		return false
+	}
+	// A NotFound status names the resource, not the kind, in its details.
+	details := status.Status().Details
+	return details != nil && details.Name == podName &&
+		schema.GroupResource{Group: details.Group, Resource: details.Kind} == corev1.Resource("pods")
 }
 
 // CollectData takes the final pass over the operator logs. This runs after the

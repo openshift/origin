@@ -3,7 +3,6 @@ package podaccess
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -34,10 +33,28 @@ func NewOneTimePodStreamer(kubeClient kubernetes.Interface, namespace, podName, 
 	}
 }
 
+// PodLookupError is returned by ReadLog when the pod itself could not be fetched,
+// before any log was requested, so callers can tell a failed lookup apart from a
+// failed log read.
+type PodLookupError struct {
+	err error
+}
+
+func (e *PodLookupError) Error() string {
+	return "error getting pod to read logs: " + e.err.Error()
+}
+
+func (e *PodLookupError) Unwrap() error {
+	return e.err
+}
+
+// ReadLog fetches the pod and passes each line of the container's log to the log
+// handlers. A failure to fetch the pod is returned as a *PodLookupError; errors
+// reading the log are returned as they are.
 func (s *OneTimePodStreamer) ReadLog(ctx context.Context) error {
 	currPod, err := s.kubeClient.CoreV1().Pods(s.namespace).Get(ctx, s.podName, metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("error getting pod to read logs: %w", err)
+		return &PodLookupError{err: err}
 	}
 
 	return s.streamLogsReader(ctx, currPod)
