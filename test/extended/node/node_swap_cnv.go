@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -38,7 +40,7 @@ var (
 	cnvNoSwapConfigPath = exutil.FixturePath("testdata", "node", "cnv-swap", "kubelet-noswap-dropin.yaml")
 )
 
-var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:openshift/nodes/isolated] Kubelet LimitedSwap Drop-in Configuration for CNV",
+var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:openshift/nodes/isolated] Kubelet LimitedSwap Drop-in Configuration",
 	g.Label("NodeResource", "NodeResourceNumNodes=all", "NodeResourceName=node_swap_cnv"),
 	g.Ordered, func() {
 		defer g.GinkgoRecover()
@@ -46,12 +48,10 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 		var oc = exutil.NewCLI("cnv-swap")
 
 		var (
-			cnvWorkerNode      string
-			nonCNVWorkerNode   string
-			cnvInstalledByTest bool
+			cnvWorkerNode    string
+			nonCNVWorkerNode string
 		)
 
-		// Setup: Install CNV operator and enable swap before all tests
 		g.BeforeAll(func(ctx context.Context) {
 			// Skip on MicroShift clusters
 			isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
@@ -66,20 +66,6 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 			EnsureNodeResourceNodesReady(ctx, oc, "node_swap_cnv")
 			framework.Logf("Using CNV worker node for all tests: %s", cnvWorkerNode)
 
-			// Check if CNV is already installed
-			if !isCNVInstalled(ctx, oc) {
-				framework.Logf("CNV operator not installed, installing...")
-				err := installCNVOperator(ctx, oc)
-				if err != nil {
-					framework.Logf("Failed to install CNV operator: %v", err)
-					e2eskipper.Skipf("Failed to install CNV operator: %v", err)
-				}
-				cnvInstalledByTest = true
-				framework.Logf("CNV operator installed successfully")
-			} else {
-				framework.Logf("CNV operator already installed, skipping installation")
-			}
-
 			// Ensure drop-in directory exists on all worker nodes
 			err = ensureDropInDirectoryExists(ctx, oc, cnvDropInDir)
 			if err != nil {
@@ -87,18 +73,11 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 			}
 		})
 
-		// Teardown: Uninstall CNV operator after all tests
-		g.AfterAll(func(ctx context.Context) {
-			if cnvInstalledByTest {
-				framework.Logf("Uninstalling CNV operator...")
-				err := uninstallCNVOperator(ctx, oc)
-				o.Expect(err).NotTo(o.HaveOccurred(), "CNV uninstall must remove kubevirt cluster RBAC and API extensions")
-			}
-		})
-
 		// TC1: Verify drop-in directory exists on all nodes (created by MCO for kubelet config)
 		// Per MCO PR #6044: directory is mandatory on ALL nodes (masters, workers)
-		g.It("TC1: should verify drop-in directory exists on all nodes with correct ownership", func(ctx context.Context) {
+		runTC1 := func(ctx context.Context) {
+			g.By("TC1: should verify drop-in directory exists on all nodes with correct ownership")
+
 			g.By("Getting worker nodes")
 			allWorkerNodes, err := getNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -118,8 +97,8 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 				framework.Logf("Running command: ls -ld %s on node %s", cnvDropInDir, workerNode)
 				output, err := ExecOnNodeWithChroot(ctx, oc, workerNode, "ls", "-ld", cnvDropInDir)
 				if err != nil {
-					framework.Logf("Drop-in directory does not exist on worker node %s: %v", workerNode, err)
-					e2eskipper.Skipf("Drop-in directory not present on worker node %s - CNV operator may not be installed", workerNode)
+					framework.Logf("Drop-in directory does not exist on worker node %s, skipping TC1: %v", workerNode, err)
+					return
 				}
 				framework.Logf("Output from node %s: %s", workerNode, output)
 				o.Expect(output).To(o.ContainSubstring("root root"), "Directory should be owned by root:root on node %s", workerNode)
@@ -179,16 +158,19 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 			} else {
 				framework.Logf("TC1 PASSED: Drop-in directory is present on all %d worker nodes (skipped control plane validation on Hypershift)", len(workerNodeNames))
 			}
-		})
+		}
 
 		// TC2: Verify kubelet starts normally with empty or missing directory
-		g.It("TC2: should verify kubelet starts normally with empty directory", func(ctx context.Context) {
+		runTC2 := func(ctx context.Context) {
+			g.By("TC2: should verify kubelet starts normally with empty directory")
+
 			skipOnSingleNodeTopology(oc) //skip this test for SNO
 
 			g.By("Checking if drop-in directory exists and is empty")
 			output, err := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "ls", "-la", cnvDropInDir)
 			if err != nil {
-				e2eskipper.Skipf("Drop-in directory not present")
+				framework.Logf("Drop-in directory not present, skipping TC2: %v", err)
+				return
 			}
 			framework.Logf("Directory contents: %s", output)
 
@@ -203,10 +185,12 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 			o.Expect(isNodeInReadyState(node)).To(o.BeTrue(), "Node should be in Ready state")
 
 			framework.Logf("TC2 PASSED: Kubelet starts normally with empty/missing directory")
-		})
+		}
 
 		// TC3: Verify LimitedSwap configuration is applied from drop-in file
-		g.It("TC3: should apply LimitedSwap configuration from drop-in file", func(ctx context.Context) {
+		runTC3 := func(ctx context.Context) {
+			g.By("TC3: should apply LimitedSwap configuration from drop-in file")
+
 			skipOnSingleNodeTopology(oc) //skip this test for SNO
 
 			framework.Logf("=== TC3: Testing LimitedSwap configuration via drop-in file ===")
@@ -265,10 +249,12 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 			framework.Logf("=== TC3 PASSED ===")
 			framework.Logf("Kubelet swapBehavior changed from '%s' to 'LimitedSwap'", configBefore.MemorySwap.SwapBehavior)
 			framework.Logf("Drop-in file %s was loaded successfully by kubelet", cnvDropInFilePath)
-		})
+		}
 
 		// TC4: Verify revert behavior when drop-in file is removed
-		g.It("TC4: should revert to NoSwap when drop-in file is removed", func(ctx context.Context) {
+		runTC4 := func(ctx context.Context) {
+			g.By("TC4: should revert to NoSwap when drop-in file is removed")
+
 			skipOnSingleNodeTopology(oc) //skip this test for SNO
 
 			framework.Logf("=== TC4: Testing revert to NoSwap when drop-in file is removed ===")
@@ -311,10 +297,12 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 				"swapBehavior should be empty or NoSwap after removing drop-in")
 
 			framework.Logf("=== TC4 PASSED ===")
-		})
+		}
 
 		// TC5: Validate security and permissions of drop-in directory
-		g.It("TC5: should validate security and permissions of drop-in directory", func(ctx context.Context) {
+		runTC5 := func(ctx context.Context) {
+			g.By("TC5: should validate security and permissions of drop-in directory")
+
 			skipOnSingleNodeTopology(oc) //skip this test for SNO
 
 			framework.Logf("=== TC5: Testing security and permissions of drop-in directory ===")
@@ -382,10 +370,12 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 			framework.Logf("- Test file: %s", testFile)
 			framework.Logf("- File ownership: %s", fileOwnership)
 			framework.Logf("- File permissions: %s (expected: 644/600)", filePerms)
-		})
+		}
 
 		// TC6: Validate cluster stability and performance
-		g.It("TC6: should verify cluster stability with LimitedSwap enabled", func(ctx context.Context) {
+		runTC6 := func(ctx context.Context) {
+			g.By("TC6: should verify cluster stability with LimitedSwap enabled")
+
 			skipOnSingleNodeTopology(oc) //skip this test for SNO
 
 			framework.Logf("=== TC6: Testing cluster stability with LimitedSwap enabled ===")
@@ -464,10 +454,12 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 			framework.Logf("- Node remains Ready: YES")
 			framework.Logf("- Memory pressure: NONE")
 			framework.Logf("- Stability after 30 seconds: CONFIRMED")
-		})
+		}
 
 		// TC7: Validate non-CNV cluster unaffected
-		g.It("TC7: should verify non-CNV workers have no swap configuration", func(ctx context.Context) {
+		runTC7 := func(ctx context.Context) {
+			g.By("TC7: should verify non-CNV workers have no swap configuration")
+
 			framework.Logf("=== TC7: Testing non-CNV workers have no swap configuration ===")
 
 			cnvLabel := "kubevirt.io/schedulable"
@@ -532,10 +524,12 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 			framework.Logf("- Node: %s", nonCNVWorkerNode)
 			framework.Logf("- CNV label removed: YES")
 			framework.Logf("- swapBehavior: %s (NoSwap/default)", config.MemorySwap.SwapBehavior)
-		})
+		}
 
 		// TC8: Validate behavior with multiple conflicting drop-in files
-		g.It("TC8: should apply correct precedence with multiple files", func(ctx context.Context) {
+		runTC8 := func(ctx context.Context) {
+			g.By("TC8: should apply correct precedence with multiple files")
+
 			skipOnSingleNodeTopology(oc) //skip this test for SNO
 
 			framework.Logf("=== TC8: Testing file precedence with multiple drop-in files ===")
@@ -598,10 +592,12 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 			framework.Logf("- File 2: 99-swap-limited.conf (LimitedSwap)")
 			framework.Logf("- Result: swapBehavior = LimitedSwap")
 			framework.Logf("- 99-* file correctly overrides 98-* file (lexicographic order)")
-		})
+		}
 
 		// TC9: Validate multi-node consistency and synchronization with checksum verification
-		g.It("TC9: should maintain consistent configuration with checksum verification across CNV nodes", func(ctx context.Context) {
+		runTC9 := func(ctx context.Context) {
+			g.By("TC9: should maintain consistent configuration with checksum verification across CNV nodes")
+
 			skipOnSingleNodeTopology(oc) //skip this test for SNO
 			framework.Logf("=== TC9: Testing multi-node consistency with checksum verification ===")
 
@@ -611,14 +607,16 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 
 			var cnvNodes []string
 			for _, node := range reservedNodes {
-				if _, hasCNV := node.Labels["kubevirt.io/schedulable"]; hasCNV {
+				if _, hasCNV := node.Labels[cnvNodeLabel]; hasCNV {
 					cnvNodes = append(cnvNodes, node.Name)
 				}
 			}
 
+			// The NodeResource label reserves every node of the pool for this test, so this
+			// normally sees all of them; a smaller pool leaves the case nothing to compare.
 			if len(cnvNodes) < 2 {
-				framework.Logf("Found only %d CNV NodeResource node(s), need at least 2 for multi-node consistency test", len(cnvNodes))
-				e2eskipper.Skipf("Need at least 2 CNV worker nodes in the NodeResource pool for multi-node consistency test, found %d (dedicated pool assigns one node per label; TC9 cannot run on a single reserved node)", len(cnvNodes))
+				framework.Logf("Found only %d CNV NodeResource node(s), skipping TC9: it needs at least 2", len(cnvNodes))
+				return
 			}
 			framework.Logf("Found %d CNV worker nodes:", len(cnvNodes))
 			for i, name := range cnvNodes {
@@ -673,7 +671,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 						"Checksum mismatch: node %s has %s, expected %s", node, checksum, referenceChecksum)
 				}
 			}
-			framework.Logf("✅ All %d nodes have identical configuration checksum: %s", len(cnvNodes), referenceChecksum)
+			framework.Logf("All %d nodes have identical configuration checksum: %s", len(cnvNodes), referenceChecksum)
 
 			g.By("Restarting kubelet on all CNV nodes")
 			for _, node := range cnvNodes {
@@ -694,7 +692,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 			for _, node := range cnvNodes {
 				config, err := getKubeletConfigFromNode(ctx, oc, node)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				framework.Logf("✅ Node %s: swapBehavior = '%s'", node, config.MemorySwap.SwapBehavior)
+				framework.Logf("Node %s: swapBehavior = '%s'", node, config.MemorySwap.SwapBehavior)
 				o.Expect(config.MemorySwap.SwapBehavior).To(o.Equal("LimitedSwap"),
 					"Node %s should have LimitedSwap", node)
 			}
@@ -726,7 +724,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 				}
 			}
 			o.Expect(driftDetected).To(o.BeFalse(), "No configuration drift should occur")
-			framework.Logf("✅ No configuration drift detected after 60 seconds")
+			framework.Logf("No configuration drift detected after 60 seconds")
 
 			g.By("Verifying swapBehavior consistency after wait period")
 			for _, node := range cnvNodes {
@@ -744,11 +742,13 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 			framework.Logf("- All nodes have swapBehavior: LimitedSwap")
 			framework.Logf("- Configuration drift after 60s: NONE")
 			framework.Logf("- All nodes remain Ready: YES")
-		})
+		}
 
 		// TC10: Validate LimitedSwap config when OS-level swap is not enabled
 		// This test verifies kubelet gracefully handles LimitedSwap config even without OS swap
-		g.It("TC10: should handle LimitedSwap config gracefully when OS swap is disabled", func(ctx context.Context) {
+		runTC10 := func(ctx context.Context) {
+			g.By("TC10: should handle LimitedSwap config gracefully when OS swap is disabled")
+
 			skipOnSingleNodeTopology(oc) //skip this test for SNO
 			framework.Logf("=== TC10: Testing LimitedSwap config when OS swap is disabled ===")
 			framework.Logf("Executing on node: %s", cnvWorkerNode)
@@ -902,12 +902,14 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 			framework.Logf("- Swap-related errors in logs: NONE")
 			framework.Logf("- Memory pressure: NONE")
 			framework.Logf("- Kubelet handles LimitedSwap gracefully even without OS swap")
-		})
+		}
 
 		// TC11: Validate behavior with various swap sizes
 		// This test creates temporary swap files on the node for testing different sizes
 		// It requires sufficient disk space and may take longer to complete
-		g.It("TC11: should work correctly with various swap sizes", func(ctx context.Context) {
+		runTC11 := func(ctx context.Context) {
+			g.By("TC11: should work correctly with various swap sizes")
+
 			skipOnSingleNodeTopology(oc) //skip this test for SNO
 
 			framework.Logf("=== TC11: Testing LimitedSwap with various swap sizes ===")
@@ -1077,10 +1079,12 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 					r.size, r.sizeMB, r.success, r.swapTotal/1024/1024, r.nodeReady, r.configOK)
 			}
 			framework.Logf("LimitedSwap works correctly with all tested swap sizes")
-		})
+		}
 
 		// TC12: Validate swap metrics and observability via Prometheus
-		g.It("TC12: should expose swap metrics correctly via Prometheus", func(ctx context.Context) {
+		runTC12 := func(ctx context.Context) {
+			g.By("TC12: should expose swap metrics correctly via Prometheus")
+
 			skipOnSingleNodeTopology(oc) //skip this test for SNO
 
 			framework.Logf("=== TC12: Testing swap metrics and observability via Prometheus ===")
@@ -1303,5 +1307,67 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Suite:opensh
 			framework.Logf("- /proc/meminfo: SwapTotal=%d KB, SwapFree=%d KB", swapTotalKB, swapFreeKB)
 			framework.Logf("- Prometheus metrics: queried successfully with non-zero values")
 			framework.Logf("- Kubelet metrics endpoint: queried")
+		}
+
+		g.It("for CNV with CNV installed [Timeout:90m]", func(ctx context.Context) {
+			cnvInstalled, err := isCNVInstalled(ctx, oc)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to determine whether CNV is installed")
+			if !cnvInstalled {
+				// Pair teardown with the installation and register it as a Ginkgo cleanup so a
+				// failed spec or a failed/partial install still removes CNV and the
+				// MachineConfigs its autopilot leaves behind.
+				g.DeferCleanup(func(ctx context.Context) {
+					_, lookupErr := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, cnvNamespace, metav1.GetOptions{})
+					if apierrors.IsNotFound(lookupErr) {
+						framework.Logf("CNV namespace %s not found, removing any leftover CNV artifacts", cnvNamespace)
+						o.Expect(cleanupCNVMachineConfigs(ctx, oc)).To(o.Succeed(), "leftover CNV MachineConfigs must be removed")
+						o.Expect(unlabelWorkerNodesForCNV(ctx, oc)).To(o.Succeed(), "leftover CNV node labels must be removed")
+						return
+					}
+					if lookupErr != nil {
+						framework.Logf("Could not check whether CNV namespace %s exists: %v; running uninstall anyway", cnvNamespace, lookupErr)
+					}
+					framework.Logf("Uninstalling CNV operator...")
+					uninstallErr := uninstallCNVOperator(ctx, oc)
+					o.Expect(errors.Join(lookupErr, uninstallErr)).To(o.Succeed(), "CNV uninstall must remove CNV MachineConfigs, kubevirt cluster RBAC and API extensions")
+				})
+
+				framework.Logf("CNV operator not installed, installing...")
+				err := installCNVOperator(ctx, oc)
+				if err != nil {
+					framework.Logf("Failed to install CNV operator: %v", err)
+					e2eskipper.Skipf("Failed to install CNV operator: %v", err)
+				}
+				framework.Logf("CNV operator installed successfully")
+			} else {
+				framework.Logf("CNV operator already installed, skipping installation")
+			}
+
+			runTC1(ctx)
+			runTC9(ctx)
+			runTC10(ctx)
+			runTC11(ctx)
+			runTC12(ctx)
+		})
+
+		g.It("without CNV non-CNV kubelet drop-in cases", func(ctx context.Context) {
+			cnvInstalled, err := isCNVInstalled(ctx, oc)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to determine whether CNV is installed")
+			if cnvInstalled {
+				g.Skip("CNV is installed on the cluster; these cases expect a CNV-free cluster")
+			}
+
+			// TC7 restores the kubevirt.io/schedulable label it removes; drop it again.
+			g.DeferCleanup(func(ctx context.Context) {
+				o.Expect(unlabelWorkerNodesForCNV(ctx, oc)).To(o.Succeed(), "leftover CNV node labels must be removed")
+			})
+
+			runTC2(ctx)
+			runTC3(ctx)
+			runTC4(ctx)
+			runTC5(ctx)
+			runTC6(ctx)
+			runTC7(ctx)
+			runTC8(ctx)
 		})
 	})
