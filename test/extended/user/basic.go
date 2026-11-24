@@ -70,15 +70,16 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 			}
 
 			if clusterAdminUser.Name != ssr.Status.UserInfo.Username {
-				t.Errorf("user/~ name does not match the name the kube-apiserver resolved for the request")
+				t.Errorf("user/~ returned name %q, but the request was authenticated as %q",
+					clusterAdminUser.Name, ssr.Status.UserInfo.Username)
 			}
 
 			// user/~ sorts and deduplicates the groups it returns, so compare as sets.
-			gotGroups := sets.NewString(clusterAdminUser.Groups...)
-			expectedGroups := sets.NewString(ssr.Status.UserInfo.Groups...)
+			gotGroups := sets.New[string](clusterAdminUser.Groups...)
+			expectedGroups := sets.New[string](ssr.Status.UserInfo.Groups...)
 			if !gotGroups.Equal(expectedGroups) {
 				t.Errorf("user/~ returned groups %v, but the request was authenticated with groups %v",
-					gotGroups.List(), expectedGroups.List())
+					sets.List(gotGroups), sets.List(expectedGroups))
 			}
 		})
 
