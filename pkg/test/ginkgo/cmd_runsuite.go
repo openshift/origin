@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/test/extended/util"
 	"io/ioutil"
@@ -36,6 +37,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/openshift/origin/pkg/test/rosa"
 )
 
 const (
@@ -164,7 +166,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	if err != nil {
 		return fmt.Errorf("failed reading origin test suites: %w", err)
 	}
-
 	fmt.Fprintf(o.Out, "Found %d tests for in openshift-tests binary for suite %q\n", len(tests), suite.Name)
 
 	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
@@ -343,6 +344,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	} else {
 		fmt.Fprintf(o.Out, "Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set\n")
 	}
+	rosaTopology, err := rosaClusterTopology(ctx)
+	if err != nil {
+		return fmt.Errorf("could not determine whether the cluster is ROSA: %w", err)
+	}
+	tests = filterTestsByROSA(tests, rosaTopology)
 
 	fmt.Fprintf(o.Out, "Found %d tests (including externals)\n", len(tests))
 
@@ -784,4 +790,20 @@ outerLoop:
 		matches = append(matches, test)
 	}
 	return matches, nil
+}
+
+func rosaClusterTopology(ctx context.Context) (*configv1.TopologyMode, error) {
+	oc := util.NewCLIWithoutNamespace("default")
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+	switch {
+	case kapierrs.IsNotFound(err):
+		return nil, nil
+	case err != nil:
+		return nil, err
+	case !rosa.IsCluster(infra.Status.PlatformStatus):
+		return nil, nil
+	default:
+		topology := infra.Status.ControlPlaneTopology
+		return &topology, nil
+	}
 }
