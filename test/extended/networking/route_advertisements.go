@@ -25,6 +25,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
@@ -233,11 +235,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				waitForRouteAdvertisements(oc, "default")
 
 				g.By("Makes sure the FRR configuration is generated for each node")
-				for _, nodeName := range workerNodesOrderedNames {
-					frr, err := getGeneratedFrrConfigurationForNode(oc, nodeName, "default")
-					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(frr).NotTo(o.BeNil())
-				}
+				waitForGeneratedFrrConfigurations(oc, "default", workerNodesOrderedNames)
 
 				g.By("Deploy the test pods")
 				deployName, _, podList, err = setupTestDeployment(oc, clientset, targetNamespace, advertisedPodsNodes)
@@ -435,11 +433,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				waitForRouteAdvertisements(oc, testCUDNName)
 
 				g.By("Makes sure the FRR configuration is generated for each node")
-				for _, nodeName := range workerNodesOrderedNames {
-					frr, err := getGeneratedFrrConfigurationForNode(oc, nodeName, testCUDNName)
-					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(frr).NotTo(o.BeNil())
-				}
+				waitForGeneratedFrrConfigurations(oc, testCUDNName, workerNodesOrderedNames)
 
 				g.By("Deploy the test pods")
 				deployName, _, podList, err = setupTestDeployment(oc, clientset, targetNamespace, advertisedPodsNodes)
@@ -604,11 +598,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					waitForRouteAdvertisements(oc, "default")
 
 					g.By("Makes sure the FRR configuration is generated for each node")
-					for _, nodeName := range workerNodesOrderedNames {
-						frr, err := getGeneratedFrrConfigurationForNode(oc, nodeName, "default")
-						o.Expect(err).NotTo(o.HaveOccurred())
-						o.Expect(frr).NotTo(o.BeNil())
-					}
+					waitForGeneratedFrrConfigurations(oc, "default", workerNodesOrderedNames)
 				})
 
 				g.DescribeTable("Pods should have the assigned EgressIPs and EgressIPs can be created, updated and deleted [apigroup:route.openshift.io]",
@@ -944,9 +934,9 @@ func isRouteToEgressIPPresent(oc *exutil.CLI, eip, netName, nodeName string) boo
 
 // getRouteAdvertisements uses the dynamic admin client to return a pointer to
 // an existing RouteAdvertisements, or error.
-func getRouteAdvertisements(oc *exutil.CLI, name string) (*ratypes.RouteAdvertisements, error) {
+func getRouteAdvertisements(ctx context.Context, oc *exutil.CLI, name string) (*ratypes.RouteAdvertisements, error) {
 	dynamic := oc.AdminDynamicClient()
-	unstructured, err := dynamic.Resource(ratypes.SchemeGroupVersion.WithResource("routeadvertisements")).Namespace("").Get(context.TODO(), name, metav1.GetOptions{})
+	unstructured, err := dynamic.Resource(ratypes.SchemeGroupVersion.WithResource("routeadvertisements")).Namespace("").Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -958,10 +948,11 @@ func getRouteAdvertisements(oc *exutil.CLI, name string) (*ratypes.RouteAdvertis
 	return ra, nil
 }
 
-// getGeneratedFrrConfigurationForNode returns the FRR configuration for the node
-func getGeneratedFrrConfigurationForNode(oc *exutil.CLI, nodeName, raName string) (*frrapi.FRRConfiguration, error) {
+// listGeneratedFrrConfigurations returns the FRR configurations generated for
+// the RouteAdvertisements raName.
+func listGeneratedFrrConfigurations(ctx context.Context, oc *exutil.CLI, raName string) ([]frrapi.FRRConfiguration, error) {
 	dynamic := oc.AdminDynamicClient()
-	unstructuredList, err := dynamic.Resource(frrapi.SchemeGroupVersion.WithResource("frrconfigurations")).Namespace("").List(context.TODO(), metav1.ListOptions{
+	unstructuredList, err := dynamic.Resource(frrapi.SchemeGroupVersion.WithResource("frrconfigurations")).Namespace("").List(ctx, metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("%s=%s", raLabel, raName),
 	})
 	if err != nil {
@@ -972,7 +963,16 @@ func getGeneratedFrrConfigurationForNode(oc *exutil.CLI, nodeName, raName string
 	if err != nil {
 		return nil, err
 	}
-	for _, frr := range frrList.Items {
+	return frrList.Items, nil
+}
+
+// getGeneratedFrrConfigurationForNode returns the FRR configuration for the node
+func getGeneratedFrrConfigurationForNode(oc *exutil.CLI, nodeName, raName string) (*frrapi.FRRConfiguration, error) {
+	frrs, err := listGeneratedFrrConfigurations(context.TODO(), oc, raName)
+	if err != nil {
+		return nil, err
+	}
+	for _, frr := range frrs {
 		if frr.Spec.NodeSelector.MatchLabels["kubernetes.io/hostname"] == nodeName {
 			return &frr, nil
 		}
@@ -1265,7 +1265,7 @@ func setupPacketSnifferOnInterface(oc *exutil.CLI, clientset kubernetes.Interfac
 
 func waitForRouteAdvertisements(oc *exutil.CLI, name string) {
 	o.Eventually(func() bool {
-		ra, err := getRouteAdvertisements(oc, name)
+		ra, err := getRouteAdvertisements(context.TODO(), oc, name)
 		if err != nil {
 			return false
 		}
@@ -1275,6 +1275,68 @@ func waitForRouteAdvertisements(oc *exutil.CLI, name string) {
 		}
 		return condition.Status == metav1.ConditionTrue
 	}, 3*timeOut, interval).Should(o.BeTrue())
+}
+
+// waitForGeneratedFrrConfigurations waits until the FRR configurations
+// generated for the RouteAdvertisements raName select every node in
+// nodeNames. Accepted alone does not guarantee this: ovn-kubernetes versions
+// that separate acceptance from node programming keep a RouteAdvertisements
+// Accepted while reporting failed nodes through a Degraded condition. This
+// only checks that the configurations exist, not that FRR applied them or
+// that they already reflect a just-applied change to the RouteAdvertisements.
+func waitForGeneratedFrrConfigurations(oc *exutil.CLI, raName string, nodeNames []string) {
+	g.GinkgoHelper()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*timeOut)
+	defer cancel()
+
+	missing := nodeNames
+	var lastListErr error
+	err := wait.PollUntilContextCancel(ctx, interval, true, func(ctx context.Context) (bool, error) {
+		frrs, err := listGeneratedFrrConfigurations(ctx, oc, raName)
+		if err != nil {
+			// Errors caused by the deadline itself would hide the last
+			// meaningful API error.
+			if ctx.Err() == nil {
+				lastListErr = err
+			}
+			return false, nil
+		}
+		lastListErr = nil
+		configured := sets.New[string]()
+		for _, frr := range frrs {
+			configured.Insert(frr.Spec.NodeSelector.MatchLabels["kubernetes.io/hostname"])
+		}
+		missing = nil
+		for _, nodeName := range nodeNames {
+			if !configured.Has(nodeName) {
+				missing = append(missing, nodeName)
+			}
+		}
+		return len(missing) == 0, nil
+	})
+	if err == nil {
+		return
+	}
+
+	// The poll context is done, so read the conditions with a separate,
+	// bounded one.
+	diagnosticsCtx, diagnosticsCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer diagnosticsCancel()
+	conditions := "none"
+	if ra, raErr := getRouteAdvertisements(diagnosticsCtx, oc, raName); raErr != nil {
+		conditions = fmt.Sprintf("unavailable: %v", raErr)
+	} else if len(ra.Status.Conditions) > 0 {
+		formatted := make([]string, 0, len(ra.Status.Conditions))
+		for _, c := range ra.Status.Conditions {
+			formatted = append(formatted, fmt.Sprintf("%s=%s (reason: %q, message: %q)", c.Type, c.Status, c.Reason, c.Message))
+		}
+		conditions = strings.Join(formatted, "; ")
+	}
+	msg := fmt.Sprintf("FRR configurations for RouteAdvertisements %s not observed for nodes %v: %v; RouteAdvertisements conditions: %s", raName, missing, err, conditions)
+	if lastListErr != nil {
+		msg += fmt.Sprintf("; last error listing FRR configurations: %v", lastListErr)
+	}
+	g.Fail(msg)
 }
 
 func setupTestDeployment(oc *exutil.CLI, clientset kubernetes.Interface, targetNamespace string, advertisedPodsNodes []string) (string, string, *corev1.PodList, error) {
