@@ -30,7 +30,10 @@ common cleanup waits for claim release before the next serial test.
    (`cdi.enabled=true`)
 4. **Helm 3** installed and available in PATH if the suite needs to install the DRA driver
 5. **Cluster-admin** access
-6. Access to `nvcr.io/nvidia/cuda:12.0.0-base-ubuntu22.04`, used by the GPU workload pods
+
+GPU workload pods use the release payload's `tools` image. The DRA driver's CDI spec bind-mounts
+`nvidia-smi` and `libnvidia-ml` from the host driver into the container, so the specs need no CUDA
+userspace of their own and no image outside the payload.
 
 The GPU Operator's driver and CDI toolkit must be ready, and NFD must expose GPU nodes with the
 `nvidia.com/gpu.present=true` label. The DRA tests do not require the GPU Operator device plugin;
@@ -38,11 +41,11 @@ the suite uses the NVIDIA DRA driver to allocate GPUs through ResourceClaims.
 
 For installation instructions, see the [NVIDIA GPU Operator on OpenShift Installation Guide](https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/install-gpu-ocp.html).
 
-**Note**: The test framework installs the NVIDIA DRA driver if it is not already running. It uses
-the OCI chart `registry.k8s.io/dra-driver-nvidia/charts/dra-driver-nvidia-gpu` version `0.5.1` by
-default and leaves the driver installed after the suite. Installation requires Helm access to that
-registry. The suite is marked `[Skipped:Disconnected]` because the workload image and, when needed,
-the driver chart come from external registries.
+**Note**: The test framework installs the NVIDIA DRA driver only when the cluster has none. GPU
+Operator v26.7 and later deploy the driver themselves through `GPUCluster`, and the suite uses that
+one as is. When it does install the driver it uses the OCI chart
+`registry.k8s.io/dra-driver-nvidia/charts/dra-driver-nvidia-gpu` version `0.5.1` by default, needs
+Helm access to that registry, and leaves the driver installed after the suite.
 
 ## Quick Start
 
@@ -73,10 +76,14 @@ extract extension tests from the cluster release payload. `run-test` runs one sp
 cluster monitors; `run openshift/nvidia-dra` runs the suite with monitors.
 
 **What the tests do automatically:**
-- Verify the GPU Operator is installed and the required GPU labels are present
-- If no running DRA driver pod is detected, install the driver (version 0.5.1 by default), label
-  GPU nodes, grant the driver service accounts privileged SCC, and wait for controller, plugin,
-  and GPU ResourceSlice readiness
+- Detect an existing driver by capability rather than by deployment: a `gpu.nvidia.com` DeviceClass
+  plus ResourceSlices publishing at least one device. This covers a driver the GPU Operator
+  deployed through `GPUCluster` just as well as one this suite installed, since neither the
+  namespace, the release name nor the pod labels are the same between them
+- Only when no such driver is found: verify the GPU Operator is installed and the required GPU
+  labels are present, install the driver (version 0.5.1 by default), label GPU nodes, grant the
+  driver service accounts privileged SCC, and wait for controller, plugin, and GPU ResourceSlice
+  readiness
 
 To use a different chart version, set `NVIDIA_DRA_DRIVER_VERSION` before running the suite; to pull
 the chart from somewhere else entirely, set `NVIDIA_DRA_DRIVER_CHART` to that chart reference.
@@ -101,14 +108,19 @@ The suite currently covers these scenarios:
   claim-specific CDI spec creation and removal, multiple CDI devices, and
   init-container access.
 - `security.go`: GPU access in the confined `container_t` SELinux domain with no
-  matching AVC denial, GPU access under `restricted-v2`, and access from a
-  namespace-assigned non-root UID.
+  matching AVC denial, and GPU access from a workload admitted under
+  `restricted-v2` running as a namespace-assigned non-root UID.
 - `claim_lifecycle.go`: physical GPU UUID identity for two containers sharing a
   claim, plus matching and non-matching request-level CEL selectors against
   NVIDIA device capacity.
 - `kubelet_restart.go`: workload and claim recovery across kubelet restart, and
-  preparation of a new claim after the plugin re-registers. These specs restart
-  kubelet and are marked disruptive.
+  preparation of a new claim after the plugin re-registers. The recovery spec
+  then deletes the pod and checks the claim's CDI spec is removed, which is the
+  part that actually depends on kubelet recovering its DRA checkpoint: a running
+  pod keeps its sandbox across a restart, so kubelet never re-prepares it, and
+  only `NodeUnprepareResources` consults the checkpoint-backed claim cache.
+  These specs restart kubelet and are marked disruptive, so the suite declares
+  `ClusterStabilityDuringTest: Disruptive`.
 
 Specs run serially. Cleanup deletes workloads and waits for their ResourceClaims to release before
 the next spec starts. Multi-GPU specs skip when the required number of GPUs is unavailable.

@@ -7,18 +7,23 @@ import (
 	resourceapi "k8s.io/api/resource/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 const (
-	defaultDeviceClassName  = "nvidia-gpu"
-	resourceBuilderDriver   = "gpu.nvidia.com"
-	defaultGPUWorkloadImage = "nvcr.io/nvidia/cuda:12.0.0-base-ubuntu22.04"
+	defaultDeviceClassName = "nvidia-gpu"
 )
 
-// defaultGPUImage returns the image used by GPU workload pods in this suite. The generic release
-// tools image does not provide the NVIDIA workload utilities these specs invoke.
+// defaultGPUImage returns the image used by GPU workload pods in this suite.
+//
+// The payload's tools image is enough: the DRA driver's CDI spec bind-mounts nvidia-smi and
+// libnvidia-ml from the host driver into the container, so none of these specs need CUDA
+// userspace in the image itself. It is also RHEL-based, already allowed by the
+// "[sig-arch] Only known images used by tests" monitor, and present on disconnected clusters,
+// none of which is true of NVIDIA's published CUDA images.
 func defaultGPUImage() string {
-	return defaultGPUWorkloadImage
+	return image.ShellImage()
 }
 
 // ResourceBuilder helps build DRA resource objects
@@ -45,7 +50,7 @@ func (rb *ResourceBuilder) BuildDeviceClass(name string) *resourceapi.DeviceClas
 			Selectors: []resourceapi.DeviceSelector{
 				{
 					CEL: &resourceapi.CELDeviceSelector{
-						Expression: "device.driver == \"" + resourceBuilderDriver + "\"",
+						Expression: "device.driver == \"" + nvidiaDRADriverName + "\"",
 					},
 				},
 			},

@@ -40,6 +40,12 @@ const (
 	draDriverControllerSA    = "nvidia-dra-driver-gpu-service-account-controller"
 	draDriverKubeletPluginSA = "nvidia-dra-driver-gpu-service-account-kubeletplugin"
 	draDriverComputeDomainSA = "compute-domain-daemon-service-account"
+
+	// The DRA driver name and the DeviceClass the driver publishes for whole GPUs. These are
+	// part of the driver's API rather than of any one deployment, so they identify the driver
+	// whether it came from this suite's Helm install or from the GPU Operator.
+	nvidiaDRADriverName      = "gpu.nvidia.com"
+	nvidiaDRADeviceClassName = "gpu.nvidia.com"
 )
 
 // PrerequisitesInstaller validates GPU Operator and manages DRA driver installation
@@ -56,43 +62,45 @@ func NewPrerequisitesInstaller(f *framework.Framework) *PrerequisitesInstaller {
 	}
 }
 
-// InstallAll validates GPU Operator is present and installs DRA Driver
+// InstallAll makes sure a gpu.nvidia.com DRA driver is serving the cluster, installing one with
+// Helm only when none is.
 func (pi *PrerequisitesInstaller) InstallAll(ctx context.Context) error {
 	framework.Logf("=== Validating NVIDIA GPU Stack Prerequisites ===")
 
-	// Step 1: Validate GPU Operator is already installed
-	framework.Logf("Checking if GPU Operator is installed...")
+	// GPU Operator v26.7 and later deploy the DRA driver themselves through GPUCluster. When a
+	// driver is already publishing GPUs there is nothing left to install, and nothing worth
+	// checking about how it got there.
+	if pi.IsDRADriverInstalled(ctx) {
+		framework.Logf("A %s DRA driver is already serving the cluster; skipping installation", nvidiaDRADriverName)
+		framework.Logf("=== All prerequisites validated and ready ===")
+		return nil
+	}
+
+	// From here on this suite installs the driver itself, which needs the GPU Operator's NVIDIA
+	// driver and container toolkit already in place.
+	framework.Logf("No %s DRA driver found; validating the GPU Operator before installing one", nvidiaDRADriverName)
 	if !pi.IsGPUOperatorInstalled(ctx) {
 		return fmt.Errorf("GPU Operator not found - must be pre-installed on the cluster. " +
 			"Install GPU Operator via OLM before running these tests")
 	}
 	framework.Logf("GPU Operator detected")
 
-	// Step 2: Wait for GPU Operator to be ready
-	framework.Logf("Waiting for GPU Operator to be ready...")
 	if err := pi.WaitForGPUOperator(ctx, 5*time.Minute); err != nil {
 		return fmt.Errorf("GPU Operator not ready: %w. Ensure GPU Operator is fully deployed", err)
 	}
 	framework.Logf("GPU Operator is ready")
 
-	// Step 3: Check if DRA Driver already installed (skip if present)
-	if pi.IsDRADriverInstalled(ctx) {
-		framework.Logf("DRA Driver already installed, skipping installation")
-	} else {
-		// Step 4: Ensure Helm is available
-		if err := pi.ensureHelm(ctx); err != nil {
-			return fmt.Errorf("helm not available: %w", err)
-		}
-
-		// Step 5: Install DRA Driver (pinned version, pulled directly from the OCI registry)
-		if err := pi.InstallDRADriver(ctx); err != nil {
-			framework.Logf("DRA Driver installation failed, rolling back cluster mutations...")
-			pi.RollbackDRAMutations(ctx)
-			return fmt.Errorf("failed to install DRA Driver: %w", err)
-		}
+	if err := pi.ensureHelm(ctx); err != nil {
+		return fmt.Errorf("helm not available: %w", err)
 	}
 
-	// Step 6: Wait for DRA Driver to be ready
+	// Pinned version, pulled directly from the OCI registry.
+	if err := pi.InstallDRADriver(ctx); err != nil {
+		framework.Logf("DRA Driver installation failed, rolling back cluster mutations...")
+		pi.RollbackDRAMutations(ctx)
+		return fmt.Errorf("failed to install DRA Driver: %w", err)
+	}
+
 	framework.Logf("Waiting for DRA Driver to be ready...")
 	if err := pi.WaitForDRADriver(ctx, 5*time.Minute); err != nil {
 		framework.Logf("DRA Driver failed to become ready, rolling back cluster mutations...")
@@ -183,17 +191,24 @@ func (pi *PrerequisitesInstaller) InstallDRADriver(ctx context.Context) error {
 	return nil
 }
 
-// WaitForGPUOperator waits for GPU Operator to be ready
+// WaitForGPUOperator waits for the GPU Operator components this suite's own Helm install depends
+// on: the NVIDIA kernel driver and the container toolkit that provides CDI.
+//
+// Only the install path calls this. The DaemonSet names are not stable across GPU Operator
+// releases, and a cluster can run a pre-installed host driver with no DaemonSet at all, so a
+// missing DaemonSet is reported and tolerated while a present one must become ready. The
+// authoritative proof that the whole stack works is the ResourceSlice wait in WaitForDRADriver,
+// which no rename can satisfy by accident.
 func (pi *PrerequisitesInstaller) WaitForGPUOperator(ctx context.Context, timeout time.Duration) error {
 	framework.Logf("Waiting for GPU Operator to be ready (timeout: %v)", timeout)
 
-	// Wait for the driver; DRA tests do not require the device plugin daemonset.
-	if err := pi.waitForDaemonSetByPrefix(ctx, gpuOperatorNamespace, "nvidia-driver-daemonset", timeout); err != nil {
+	// The NVIDIA driver; DRA tests do not require the device plugin daemonset.
+	if err := pi.waitForOperatorDaemonSet(ctx, timeout, "NVIDIA driver", "nvidia-driver-daemonset", "driver-daemonset"); err != nil {
 		return fmt.Errorf("driver daemonset not ready: %w", err)
 	}
 
-	// Validate CDI is available (required for DRA)
-	if err := pi.waitForCDI(ctx, timeout); err != nil {
+	// The container toolkit, which provides the CDI support DRA needs.
+	if err := pi.waitForOperatorDaemonSet(ctx, timeout, "CDI container toolkit", "nvidia-container-toolkit"); err != nil {
 		return fmt.Errorf("CDI not available: %w", err)
 	}
 
@@ -206,7 +221,9 @@ func (pi *PrerequisitesInstaller) WaitForGPUOperator(ctx context.Context, timeou
 	return nil
 }
 
-// WaitForDRADriver waits for DRA Driver to be ready
+// WaitForDRADriver waits for the DRA driver this suite installed with Helm to be ready. It names
+// the chart's own resources, so it is only valid after InstallDRADriver; a driver deployed by the
+// GPU Operator is detected by IsDRADriverInstalled instead.
 func (pi *PrerequisitesInstaller) WaitForDRADriver(ctx context.Context, timeout time.Duration) error {
 	framework.Logf("Waiting for DRA Driver to be ready (timeout: %v)", timeout)
 
@@ -486,33 +503,28 @@ func (pi *PrerequisitesInstaller) waitForDaemonSet(ctx context.Context, namespac
 	})
 }
 
-func (pi *PrerequisitesInstaller) waitForDaemonSetByPrefix(ctx context.Context, namespace, namePrefix string, timeout time.Duration) error {
-	return wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
-		dsList, err := pi.client.AppsV1().DaemonSets(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			return false, err
-		}
+// waitForOperatorDaemonSet waits for the GPU Operator DaemonSet whose name contains any of
+// nameFragments. A DaemonSet that is absent right now is reported and tolerated, because the
+// operator has already been confirmed running and its component names change between releases;
+// one that exists must become ready within timeout.
+func (pi *PrerequisitesInstaller) waitForOperatorDaemonSet(ctx context.Context, timeout time.Duration, component string, nameFragments ...string) error {
+	dsList, err := pi.client.AppsV1().DaemonSets(gpuOperatorNamespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to list DaemonSets in %s: %w", gpuOperatorNamespace, err)
+	}
 
+	for _, fragment := range nameFragments {
 		for _, ds := range dsList.Items {
-			if strings.HasPrefix(ds.Name, namePrefix) {
-				ready := ds.Status.DesiredNumberScheduled > 0 &&
-					ds.Status.NumberReady == ds.Status.DesiredNumberScheduled &&
-					ds.Status.NumberUnavailable == 0
-
-				if !ready {
-					framework.Logf("DaemonSet %s/%s not ready: desired=%d, ready=%d, unavailable=%d",
-						namespace, ds.Name, ds.Status.DesiredNumberScheduled, ds.Status.NumberReady, ds.Status.NumberUnavailable)
-					return false, nil
-				}
-
-				framework.Logf("DaemonSet %s/%s is ready", namespace, ds.Name)
-				return true, nil
+			if strings.Contains(ds.Name, fragment) {
+				framework.Logf("Waiting for the %s DaemonSet %s/%s", component, gpuOperatorNamespace, ds.Name)
+				return pi.waitForDaemonSet(ctx, gpuOperatorNamespace, ds.Name, timeout)
 			}
 		}
+	}
 
-		framework.Logf("DaemonSet with prefix %s/%s not found yet", namespace, namePrefix)
-		return false, nil
-	})
+	framework.Logf("No %s DaemonSet in %s matching %v; continuing, the published %s ResourceSlices are the real check",
+		component, gpuOperatorNamespace, nameFragments, nvidiaDRADriverName)
+	return nil
 }
 
 func (pi *PrerequisitesInstaller) waitForDeployment(ctx context.Context, namespace, name string, timeout time.Duration) error {
@@ -562,39 +574,6 @@ func (pi *PrerequisitesInstaller) waitForGPUNodes(ctx context.Context, timeout t
 	})
 }
 
-// waitForCDI validates that CDI components are installed and healthy
-func (pi *PrerequisitesInstaller) waitForCDI(ctx context.Context, timeout time.Duration) error {
-	framework.Logf("Waiting for CDI to be available (timeout: %v)", timeout)
-
-	return wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
-		// Check for nvidia-container-toolkit daemonset (provides CDI support)
-		dsList, err := pi.client.AppsV1().DaemonSets(gpuOperatorNamespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			return false, err
-		}
-
-		for _, ds := range dsList.Items {
-			if strings.Contains(ds.Name, "nvidia-container-toolkit") {
-				ready := ds.Status.DesiredNumberScheduled > 0 &&
-					ds.Status.NumberReady == ds.Status.DesiredNumberScheduled &&
-					ds.Status.NumberUnavailable == 0
-
-				if !ready {
-					framework.Logf("CDI component %s not ready: desired=%d, ready=%d, unavailable=%d",
-						ds.Name, ds.Status.DesiredNumberScheduled, ds.Status.NumberReady, ds.Status.NumberUnavailable)
-					return false, nil
-				}
-
-				framework.Logf("CDI component %s is ready", ds.Name)
-				return true, nil
-			}
-		}
-
-		framework.Logf("CDI component (nvidia-container-toolkit) not found yet")
-		return false, nil
-	})
-}
-
 // IsGPUOperatorInstalled checks if GPU Operator is installed (via Helm or OLM)
 func (pi *PrerequisitesInstaller) IsGPUOperatorInstalled(ctx context.Context) bool {
 	// Check if the namespace exists
@@ -622,29 +601,35 @@ func (pi *PrerequisitesInstaller) IsGPUOperatorInstalled(ctx context.Context) bo
 	return false
 }
 
-// IsDRADriverInstalled checks if DRA Driver is installed (via Helm or other means)
+// IsDRADriverInstalled reports whether a gpu.nvidia.com DRA driver is already serving the
+// cluster, however it was deployed.
+//
+// Detection is by capability rather than by deployment. GPU Operator v26.7 and later deploy the
+// DRA driver themselves through GPUCluster, under their own namespace, release and label names,
+// so looking for this suite's Helm release reports "not installed" on a cluster where DRA works.
+//
+// Published ResourceSlices decide it: only a registered, running kubelet plugin for the driver
+// can publish them, and allocatable devices are exactly what these specs need. The driver's
+// DeviceClass is reported alongside, because that is what a claim which does not build its own
+// would reference, but it does not gate the result: a DeviceClass is an object anyone can create,
+// and refusing a driver that is demonstrably publishing GPUs would send the suite down the Helm
+// install path on a cluster that needs nothing, mutating node labels and cluster role bindings
+// for no reason.
 func (pi *PrerequisitesInstaller) IsDRADriverInstalled(ctx context.Context) bool {
-	// Check if the namespace exists
-	_, err := pi.client.CoreV1().Namespaces().Get(ctx, draDriverNamespace, metav1.GetOptions{})
+	gpus, err := NewGPUValidator(pi.framework).GetTotalGPUCount(ctx)
 	if err != nil {
+		framework.Logf("Failed to count devices published by %s: %v", nvidiaDRADriverName, err)
+		return false
+	}
+	if gpus == 0 {
+		framework.Logf("No %s ResourceSlices publish any device yet", nvidiaDRADriverName)
 		return false
 	}
 
-	// Check if DRA kubelet plugin pods are running
-	pods, err := pi.client.CoreV1().Pods(draDriverNamespace).List(ctx, metav1.ListOptions{
-		LabelSelector: "app.kubernetes.io/name=nvidia-dra-driver-gpu",
-	})
-	if err != nil || len(pods.Items) == 0 {
-		return false
+	if _, err := pi.client.ResourceV1().DeviceClasses().Get(ctx, nvidiaDRADeviceClassName, metav1.GetOptions{}); err != nil {
+		framework.Logf("DeviceClass %s is not readable (%v); the specs build their own DeviceClass, so continuing", nvidiaDRADeviceClassName, err)
 	}
 
-	// Check if at least one pod is running
-	for _, pod := range pods.Items {
-		if pod.Status.Phase == "Running" {
-			framework.Logf("Found running DRA Driver pod: %s", pod.Name)
-			return true
-		}
-	}
-
-	return false
+	framework.Logf("Found a %s DRA driver publishing %d GPU(s)", nvidiaDRADriverName, gpus)
+	return true
 }

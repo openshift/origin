@@ -411,14 +411,17 @@ var staticSuites = []ginkgo.TestSuite{
 		This test suite runs Dynamic Resource Allocation (DRA) tests against NVIDIA GPU hardware.
 
 		Requires a cluster with NVIDIA GPUs and the NVIDIA GPU Operator (with CDI enabled).
-		The suite installs the NVIDIA DRA driver with Helm when it is absent. Tests skip when
+		Recent GPU Operator releases deploy the DRA driver themselves; the suite installs it
+		with Helm only when no gpu.nvidia.com driver is serving the cluster. Tests skip when
 		no GPU nodes are present.
 		`),
 		Qualifiers: []string{
 			`name.contains("[Suite:openshift/nvidia-dra")`,
 		},
 		TestTimeout: 30 * time.Minute,
-		Parallelism: 1,
+		// Tests must run serially; the kubelet-restart specs disrupt the node on purpose.
+		Parallelism:                1,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
 		Name: "openshift/usernamespace",

@@ -114,8 +114,8 @@ func (gv *GPUValidator) ValidateDeviceAllocation(ctx context.Context, namespace,
 	// Validate allocation metadata for each device
 	for i, result := range claim.Status.Allocation.Devices.Results {
 		// Validate driver is NVIDIA DRA driver
-		if result.Driver != "gpu.nvidia.com" {
-			return fmt.Errorf("device %d has incorrect driver %q, expected %q", i, result.Driver, "gpu.nvidia.com")
+		if result.Driver != nvidiaDRADriverName {
+			return fmt.Errorf("device %d has incorrect driver %q, expected %q", i, result.Driver, nvidiaDRADriverName)
 		}
 
 		// Validate pool is not empty
@@ -194,7 +194,7 @@ func (gv *GPUValidator) GetTotalGPUCount(ctx context.Context) (int, error) {
 	totalGPUs := 0
 	for _, slice := range sliceList.Items {
 		// Count devices from gpu.nvidia.com driver
-		if slice.Spec.Driver == "gpu.nvidia.com" {
+		if slice.Spec.Driver == nvidiaDRADriverName {
 			totalGPUs += len(slice.Spec.Devices)
 		}
 	}
@@ -212,7 +212,7 @@ func (gv *GPUValidator) GetMaxGPUCountPerNode(ctx context.Context) (int, error) 
 	counts := map[string]int{}
 	maximum := 0
 	for _, slice := range slices.Items {
-		if slice.Spec.Driver != resourceBuilderDriver || slice.Spec.NodeName == nil {
+		if slice.Spec.Driver != nvidiaDRADriverName || slice.Spec.NodeName == nil {
 			continue
 		}
 		node := *slice.Spec.NodeName

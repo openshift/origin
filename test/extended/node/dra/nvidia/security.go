@@ -85,18 +85,17 @@ var _ = g.Describe("[sig-node][Feature:NVIDIA-DRA][Suite:openshift/nvidia-dra][S
 			framework.ExpectNoError(err, "No SELinux AVC denials should exist for NVIDIA GPU access")
 		})
 
-		g.It("should allow GPU access with restricted SCC (non-privileged workload)", func(ctx context.Context) {
+		g.It("should allow a non-root restricted-v2 workload to access GPU via DRA claim", func(ctx context.Context) {
 			deviceClassName := "test-restricted-scc-" + oc.Namespace()
 			claimName := "test-restricted-scc-claim"
 			podName := "test-restricted-scc-pod"
 
 			createGPUClaim(ctx, oc, builder, deviceClassName, claimName, 1)
-			startGPUPod(ctx, oc, oc.KubeClient(),
-				builder.BuildPodWithClaim(podName, claimName, ""), claimName, "restricted")
-
-			g.By("Verifying GPU access works without privileged SCC")
-			err := validator.ValidateGPUInPod(ctx, oc.Namespace(), podName, 1)
-			framework.ExpectNoError(err, "GPU should be accessible via CDI without privileged SCC")
+			// The pod leaves runAsUser unset so restricted-v2 assigns a UID from the namespace's
+			// range, which is the case typical OpenShift users hit. A hard-coded UID would be
+			// outside that range and could only be admitted under a more permissive SCC.
+			pod := startGPUPod(ctx, oc, oc.KubeClient(),
+				builder.BuildPodWithClaim(podName, claimName, ""), claimName, "restricted non-root")
 
 			// restricted-v2 is the SCC bound to system:authenticated. restricted-v3 is too, but it
 			// requires a pod-level user namespace and so cannot match this pod.
@@ -105,20 +104,6 @@ var _ = g.Describe("[sig-node][Feature:NVIDIA-DRA][Suite:openshift/nvidia-dra][S
 			framework.ExpectNoError(err, "Failed to read SCC for restricted workload %s", podName)
 			o.Expect(scc).To(o.Equal("restricted-v2"),
 				"GPU workload should be admitted under restricted-v2")
-			framework.Logf("GPU workload pod running with SCC: %s", scc)
-		})
-
-		g.It("should allow non-root user to access GPU via DRA claim", func(ctx context.Context) {
-			deviceClassName := "test-nonroot-" + oc.Namespace()
-			claimName := "test-nonroot-claim"
-			podName := "test-nonroot-pod"
-
-			createGPUClaim(ctx, oc, builder, deviceClassName, claimName, 1)
-			// The pod leaves runAsUser unset so restricted-v2 assigns a UID from the namespace's
-			// range, which is the case typical OpenShift users hit. A hard-coded UID would be
-			// outside that range and could only be admitted under a more permissive SCC.
-			pod := startGPUPod(ctx, oc, oc.KubeClient(),
-				builder.BuildPodWithClaim(podName, claimName, ""), claimName, "non-root")
 
 			g.By("Verifying the container is running as non-root")
 			stdout, _, err := e2epod.Exec(oc.KubeFramework().TContext(ctx), e2epod.ExecOptions{
@@ -132,14 +117,11 @@ var _ = g.Describe("[sig-node][Feature:NVIDIA-DRA][Suite:openshift/nvidia-dra][S
 			framework.ExpectNoError(err, "Failed to check user ID in container")
 			uid := strings.TrimSpace(stdout)
 			o.Expect(uid).To(o.MatchRegexp(`^[1-9][0-9]*$`), "Container should run with a non-root UID")
-			framework.Logf("Container running as UID: %s", uid)
-			scc, err := validator.GetPodSCC(ctx, oc.Namespace(), podName)
-			framework.ExpectNoError(err, "Failed to read SCC for non-root workload")
-			o.Expect(scc).To(o.Equal("restricted-v2"), "The project user should use restricted-v2")
+			framework.Logf("GPU workload pod running with SCC %s as UID %s", scc, uid)
 
-			g.By("Verifying GPU access as non-root user")
+			g.By("Verifying GPU access as a non-root user without privileged SCC")
 			err = validator.ValidateGPUInPod(ctx, oc.Namespace(), podName, 1)
-			framework.ExpectNoError(err, "GPU should be accessible as non-root user via DRA/CDI")
+			framework.ExpectNoError(err, "GPU should be accessible via CDI as non-root under restricted-v2")
 		})
 	})
 })

@@ -17,25 +17,18 @@ import (
 )
 
 // setupGPUTest runs the checks every spec in this suite needs and returns the two helpers they
-// all use. A cluster with no GPU nodes skips, while every other problem fails the spec, so a
-// broken prerequisite is never reported as "this cluster has no hardware".
+// all use. It validates prerequisites first (which is required for GPU nodes to be detected),
+// then checks for GPU nodes. A cluster with no GPU nodes after prerequisites are installed skips,
+// while every other problem fails the spec.
 //
 // area names the group of tests in the skip and failure messages.
 func setupGPUTest(ctx context.Context, oc *exutil.CLI, area string) (*GPUValidator, *ResourceBuilder) {
 	validator := NewGPUValidator(oc.KubeFramework(), oc)
 	builder := NewResourceBuilder(oc.Namespace())
 
-	// Look for GPU nodes before touching the installer so non-GPU clusters skip cleanly.
-	nodes, err := validator.GetGPUNodes(ctx)
-	if err != nil {
-		g.Fail(fmt.Sprintf("Failed to discover GPU nodes: %v", err))
-	}
-	if len(nodes) == 0 {
-		g.Skip(fmt.Sprintf("No GPU nodes available in the cluster - skipping %s tests", area))
-	}
-	framework.Logf("Found %d GPU node(s) available for %s tests", len(nodes), area)
-
-	// Installs the DRA driver with Helm when it is absent. The GPU Operator must already exist.
+	// Ensure prerequisites are installed first. This is required because without the GPU Operator
+	// and DRA driver, the cluster won't advertise GPU resources on nodes, so GPU node detection
+	// would fail on clusters that actually have GPUs but lack the software stack.
 	ensurePrerequisites(ctx, NewPrerequisitesInstaller(oc.KubeFramework()))
 
 	if prerequisitesError != nil {
@@ -44,6 +37,16 @@ func setupGPUTest(ctx context.Context, oc *exutil.CLI, area string) (*GPUValidat
 	if !prerequisitesInstalled {
 		g.Fail(fmt.Sprintf("Prerequisites not installed - cannot run %s tests", area))
 	}
+
+	// Now that prerequisites are in place, look for GPU nodes. Only skip if the hardware is truly absent.
+	nodes, err := validator.GetGPUNodes(ctx)
+	if err != nil {
+		g.Fail(fmt.Sprintf("Failed to discover GPU nodes: %v", err))
+	}
+	if len(nodes) == 0 {
+		g.Skip(fmt.Sprintf("No GPU nodes available in the cluster - skipping %s tests", area))
+	}
+	framework.Logf("Found %d GPU node(s) available for %s tests", len(nodes), area)
 
 	return validator, builder
 }

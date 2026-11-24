@@ -113,7 +113,7 @@ var _ = g.Describe("[sig-node][Feature:NVIDIA-DRA][Suite:openshift/nvidia-dra][S
 			framework.ExpectNoError(err, "Failed to get GPU pod %s after the kubelet restart", podName)
 			o.Expect(pod.Status.ContainerStatuses).NotTo(o.BeEmpty(), "GPU pod should report a container status after the restart")
 			o.Expect(pod.Status.ContainerStatuses[0].ContainerID).To(o.Equal(containerID),
-				"kubelet recreated the GPU container instead of recovering the prepared claim from its checkpoint")
+				"kubelet recreated the GPU container across the restart instead of keeping the running sandbox")
 			o.Expect(pod.Status.ContainerStatuses[0].RestartCount).To(o.Equal(restartCount),
 				"GPU container restarted across the kubelet restart")
 
@@ -127,6 +127,26 @@ var _ = g.Describe("[sig-node][Feature:NVIDIA-DRA][Suite:openshift/nvidia-dra][S
 			g.By("Verifying the injected CDI devices still work in the surviving container")
 			err = validator.ValidateGPUInPod(ctx, oc.Namespace(), podName, 1)
 			framework.ExpectNoError(err, "GPU is not accessible after the kubelet restart")
+
+			// Everything above survives a lost DRA checkpoint. Kubelet only calls
+			// PrepareDynamicResources on the sandbox-creation path of SyncPod, and a running pod
+			// keeps its sandbox across a restart, so kubelet never consults the DRA manager again
+			// and CRI-O keeps serving the already-injected devices either way.
+			//
+			// Teardown is what reads the checkpoint: unprepareResources skips any claim missing
+			// from the claim-info cache, and that cache is rebuilt from the checkpoint at startup.
+			// With the checkpoint lost, NodeUnprepareResources is never called, the CDI spec stays
+			// behind and the driver keeps the GPU pinned to the dead claim, which breaks every
+			// later GPU pod on the node.
+			g.By("Deleting the pod and verifying kubelet unprepared the recovered claim")
+			claim, err := oc.KubeFramework().ClientSet.ResourceV1().ResourceClaims(oc.Namespace()).Get(ctx, claimName, metav1.GetOptions{})
+			framework.ExpectNoError(err, "Failed to get ResourceClaim %s", claimName)
+			err = oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Delete(ctx, podName, metav1.DeleteOptions{})
+			framework.ExpectNoError(err, "Failed to delete GPU pod %s", podName)
+			err = e2epod.WaitForPodNotFoundInNamespace(ctx, oc.KubeFramework().ClientSet, podName, oc.Namespace(), 2*time.Minute)
+			framework.ExpectNoError(err, "GPU pod %s was not deleted", podName)
+			err = validator.ValidateCDISpecFilesOnNode(ctx, nodeName, string(claim.UID), false)
+			framework.ExpectNoError(err, "kubelet did not unprepare claim %s after the restart; was it recovered from the checkpoint?", claimName)
 		})
 
 		g.It("should prepare a new GPU claim after a kubelet restart", func(ctx context.Context) {

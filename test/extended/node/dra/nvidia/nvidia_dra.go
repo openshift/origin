@@ -57,15 +57,8 @@ func ensurePrerequisites(ctx context.Context, prereqInstaller *PrerequisitesInst
 	prerequisitesOnce.Do(func() {
 		framework.Logf("Checking NVIDIA GPU stack prerequisites")
 
-		// Check if prerequisites are already installed
-		if prereqInstaller.IsGPUOperatorInstalled(ctx) && prereqInstaller.IsDRADriverInstalled(ctx) {
-			framework.Logf("Prerequisites already installed, skipping installation")
-			prerequisitesInstalled = true
-			return
-		}
-
-		framework.Logf("Validating GPU Operator and installing DRA driver if needed...")
-		// Validate GPU Operator presence and install DRA driver
+		// InstallAll is a no-op when a gpu.nvidia.com driver already serves the cluster, and
+		// otherwise validates the GPU Operator and installs the driver with Helm.
 		if err := prereqInstaller.InstallAll(ctx); err != nil {
 			prerequisitesError = err
 			framework.Logf("ERROR: Failed to validate/install prerequisites: %v", err)
