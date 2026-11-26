@@ -76,12 +76,23 @@ func isNotSupportedForPlatformExternal(infra *configv1.Infrastructure) bool {
 	}
 
 	platformName := infra.Spec.PlatformSpec.External.PlatformName
-
 	fmt.Fprintf(os.Stderr, "external platform name: %s\n", platformName)
 
-	switch strings.ToLower(infra.Spec.PlatformSpec.External.PlatformName) {
-	case "vsphere":
-		notSupported = true
+	status := infra.Status.PlatformStatus
+	hasCCM := status != nil && status.External != nil &&
+		status.External.CloudControllerManager.State == configv1.CloudControllerManagerExternal
+	fmt.Fprintf(os.Stderr, "external platform has CloudControllerManagerExternal: %v\n", hasCCM)
+
+	// Platform External variant#1 (similar None) is not installed with external Cloud Controller Manager,
+	// thus external service type LoadBalancer is not supported.
+	if !hasCCM {
+		return true
+	}
+
+	// All providers which has external CCM, CloudControllerManager state set to External,
+	// must support service type LoadBalancer, except:
+	if strings.ToLower(infra.Spec.PlatformSpec.External.PlatformName) == "vsphere" {
+		return true
 	}
 
 	return notSupported
