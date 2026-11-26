@@ -2324,6 +2324,35 @@ func IsExternalPlatformCluster(ctx context.Context, configClient clientconfigv1.
 		infrastructure.Status.PlatformStatus.Type == configv1.ExternalPlatformType, nil
 }
 
+// GetExternalPlatformProviderNameWithCCM returns platform External configuration for
+// supported variants.
+// isPlatformExternal returns true if platform type is External.
+// hasExternalCCM returns true when CloudControllerManager is External, indicating external Cloud Controller Manager deployment.
+// platformName indicating the free-form name set by deployer when platform type is External.
+func GetExternalPlatformProviderNameWithCCM(infrastructure *configv1.Infrastructure) (bool, bool, string) {
+	if infrastructure == nil || infrastructure.Status.PlatformStatus == nil {
+		return false, false, ""
+	}
+
+	status := infrastructure.Status.PlatformStatus
+	isPlatformExternal := status.Type == configv1.ExternalPlatformType
+	if !isPlatformExternal {
+		return false, false, ""
+	}
+
+	// Discover with External CCM is supported
+	hasExternalCCM := status.External != nil &&
+		status.External.CloudControllerManager.State == configv1.CloudControllerManagerExternal
+
+	// Discover platformName when it is set
+	platformName := ""
+	if infrastructure.Spec.PlatformSpec.External != nil {
+		platformName = infrastructure.Spec.PlatformSpec.External.PlatformName
+	}
+
+	return isPlatformExternal, hasExternalCCM, platformName
+}
+
 // IsMicroShiftCluster returns "true" if a cluster is MicroShift,
 // "false" otherwise. It needs kube-admin client as input.
 //

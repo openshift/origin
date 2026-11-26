@@ -34,6 +34,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
 	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 )
@@ -68,21 +69,26 @@ type availability struct {
 // isNotSupportedForPlatformExternal if platform type is external, this checks to see if the
 // platform name is one that does not support a service load balancer.
 func isNotSupportedForPlatformExternal(infra *configv1.Infrastructure) bool {
-	notSupported := false
-	if infra.Spec.PlatformSpec.External == nil {
-		return notSupported
+	isExternal, hasCCM, platformName := exutil.GetExternalPlatformProviderNameWithCCM(infra)
+	if !isExternal {
+		return false
 	}
 
-	platformName := infra.Spec.PlatformSpec.External.PlatformName
+	logrus.Infof("external platform(%t) name(%s) with supported CloudControllerManagerExternal(%t)", isExternal, platformName, hasCCM)
 
-	fmt.Fprintf(os.Stderr, "external platform name: %s\n", platformName)
-
-	switch strings.ToLower(infra.Spec.PlatformSpec.External.PlatformName) {
-	case "vsphere":
-		notSupported = true
+	// Platform External variant#1 (similar None) is not installed with external Cloud Controller Manager,
+	// thus external service type LoadBalancer is not supported.
+	if !hasCCM {
+		return true
 	}
 
-	return notSupported
+	// All providers which has external CCM, CloudControllerManager state set to External,
+	// must support service type LoadBalancer, except:
+	if strings.EqualFold(platformName, "vsphere") {
+		return true
+	}
+
+	return false
 }
 
 func NewAvailabilityInvariant() monitortestframework.MonitorTest {
