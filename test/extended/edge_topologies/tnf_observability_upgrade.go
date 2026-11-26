@@ -9,6 +9,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	etcdv1 "github.com/openshift/api/etcd/v1"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/apis"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/services"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -136,10 +137,20 @@ func runTNFCollector(ctx context.Context, oc *exutil.CLI, cron *batchv1.CronJob,
 		}
 		return nil
 	})
-	o.Expect(wait.PollUntilContextTimeout(ctx, time.Second, tnfCommandTimeout, true, func(ctx context.Context) (bool, error) {
+	var lastStatusGetErr error
+	err = wait.PollUntilContextTimeout(ctx, time.Second, tnfCommandTimeout, true, func(ctx context.Context) (bool, error) {
 		current, err := jobs.Get(ctx, job.Name, metav1.GetOptions{})
 		if err != nil {
-			return false, err
+			if apierrors.IsForbidden(err) || apierrors.IsUnauthorized(err) || apierrors.IsNotFound(err) {
+				return false, err
+			}
+			if !apierrors.IsTimeout(err) && !apierrors.IsServerTimeout(err) && !utils.IsTransientKubernetesAPIError(err) {
+				return false, err
+			}
+			if ctx.Err() == nil {
+				lastStatusGetErr = err
+			}
+			return false, nil
 		}
 		for _, condition := range current.Status.Conditions {
 			if condition.Status != corev1.ConditionTrue {
@@ -153,5 +164,9 @@ func runTNFCollector(ctx context.Context, oc *exutil.CLI, cron *batchv1.CronJob,
 			}
 		}
 		return false, nil
-	})).To(o.Succeed(), "collector Job %s must complete successfully", job.Name)
+	})
+	if wait.Interrupted(err) && lastStatusGetErr != nil {
+		err = fmt.Errorf("%w (last Job status lookup error: %w)", err, lastStatusGetErr)
+	}
+	o.Expect(err).To(o.Succeed(), "collector Job %s must complete successfully", job.Name)
 }

@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
 	watchtools "k8s.io/client-go/tools/watch"
 )
 
@@ -172,9 +173,21 @@ func observeTNFRegistrationFault(ctx context.Context, oc *exutil.CLI, pcs *tnfPC
 	watchCtx, cancel := context.WithTimeout(ctx, tnfObservabilityTimeout)
 	defer cancel()
 
-	// Start before the mutation because a collector can repair the fault immediately after publishing it.
-	stream, err := oc.AdminDynamicClient().Resource(apis.PacemakerClusterGVR).Watch(watchCtx, metav1.ListOptions{
-		FieldSelector: "metadata.name=cluster", ResourceVersion: pc.ResourceVersion,
+	// Resume from the last event so a disconnect cannot hide the brief pre-repair status.
+	resource := oc.AdminDynamicClient().Resource(apis.PacemakerClusterGVR)
+	stream, err := watchtools.NewRetryWatcherWithContext(watchCtx, pc.ResourceVersion, &cache.ListWatch{
+		WatchFuncWithContext: func(ctx context.Context, options metav1.ListOptions) (watch.Interface, error) {
+			options.FieldSelector = "metadata.name=cluster"
+			stream, err := resource.Watch(ctx, options)
+			if apierrors.IsResourceExpired(err) || apierrors.IsGone(err) {
+				// RetryWatcher only treats expiration as terminal when it arrives as an event.
+				events := make(chan watch.Event, 1)
+				events <- watch.Event{Type: watch.Error, Object: &apierrors.NewResourceExpired(err.Error()).ErrStatus}
+				close(events)
+				return watch.NewProxyWatcher(events), nil
+			}
+			return stream, err
+		},
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	defer stream.Stop()
