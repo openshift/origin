@@ -2,6 +2,7 @@ package edge_topologies
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -72,6 +73,9 @@ func testTNFUnresolvedCollectorRelease(oc *exutil.CLI, pcs *tnfPCSRunner, nodes 
 }
 
 func waitForTNFCollectorWindow(ctx context.Context, oc *exutil.CLI) *batchv1.CronJob {
+	// Reserve time to inject the fault, run the one-off collector, and check status and the CIB.
+	const minWindow = 30 * time.Second
+
 	var cron *batchv1.CronJob
 	o.Expect(retryTNFOperation(ctx, time.Second, tnfObservabilityTimeout, func(ctx context.Context) error {
 		var err error
@@ -83,8 +87,8 @@ func waitForTNFCollectorWindow(ctx context.Context, oc *exutil.CLI) *batchv1.Cro
 		if scheduled == nil || completed == nil || completed.Before(scheduled) || len(cron.Status.Active) != 0 {
 			return fmt.Errorf("waiting for a scheduled collector to complete successfully")
 		}
-		if time.Until(scheduled.Add(time.Minute)) < 40*time.Second {
-			return fmt.Errorf("too little time before the next scheduled collection")
+		if remaining := time.Until(scheduled.Add(time.Minute)); remaining < minWindow {
+			return fmt.Errorf("need %s for fault injection and verification before the next scheduled collection, have %s", minWindow, remaining)
 		}
 		return nil
 	})).To(o.Succeed())
@@ -116,10 +120,21 @@ func runTNFCollector(ctx context.Context, oc *exutil.CLI, cron *batchv1.CronJob,
 		if err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
-		return wait.PollUntilContextTimeout(ctx, time.Second, tnfCommandTimeout, true, func(ctx context.Context) (bool, error) {
+		var lastGetErr error
+		err = wait.PollUntilContextTimeout(ctx, time.Second, tnfCommandTimeout, true, func(ctx context.Context) (bool, error) {
 			_, err := jobs.Get(ctx, job.Name, metav1.GetOptions{})
-			return apierrors.IsNotFound(err), nil
+			if apierrors.IsNotFound(err) {
+				return true, nil
+			}
+			if err != nil {
+				lastGetErr = err
+			}
+			return false, nil
 		})
+		if err != nil {
+			return fmt.Errorf("wait for collector Job %s to be deleted: %w", job.Name, errors.Join(err, lastGetErr))
+		}
+		return nil
 	})
 	o.Expect(wait.PollUntilContextTimeout(ctx, time.Second, tnfCommandTimeout, true, func(ctx context.Context) (bool, error) {
 		current, err := jobs.Get(ctx, job.Name, metav1.GetOptions{})
