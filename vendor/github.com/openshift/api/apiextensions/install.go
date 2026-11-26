@@ -4,6 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	apiextensionsv1 "github.com/openshift/api/apiextensions/v1"
 	apiextensionsv1alpha1 "github.com/openshift/api/apiextensions/v1alpha1"
 )
 
@@ -12,7 +13,7 @@ const (
 )
 
 var (
-	schemeBuilder = runtime.NewSchemeBuilder(apiextensionsv1alpha1.Install)
+	schemeBuilder = runtime.NewSchemeBuilder(apiextensionsv1alpha1.Install, apiextensionsv1.Install)
 	// Install is a function which adds every version of this group to a scheme
 	Install = schemeBuilder.AddToScheme
 )

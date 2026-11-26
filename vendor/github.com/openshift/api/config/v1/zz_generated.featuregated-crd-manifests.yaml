@@ -117,6 +117,7 @@ clusterimagepolicies.config.openshift.io:
 clusteroperators.config.openshift.io:
   Annotations:
     include.release.openshift.io/self-managed-high-availability: "true"
+    release.openshift.io/bootstrap-required: "true"
   ApprovedPRNumber: https://github.com/openshift/api/pull/497
   CRDName: clusteroperators.config.openshift.io
   Capability: ""
@@ -160,17 +161,17 @@ clusteroperators.config.openshift.io:
 clusterversions.config.openshift.io:
   Annotations:
     include.release.openshift.io/self-managed-high-availability: "true"
+    release.openshift.io/bootstrap-required: "true"
   ApprovedPRNumber: https://github.com/openshift/api/pull/495
   CRDName: clusterversions.config.openshift.io
   Capability: ""
   Category: ""
   FeatureGates:
   - CRDCompatibilityRequirementOperator
-  - CRDCompatibilityRequirementOperator+ClusterAPIMachineManagement
-  - ClusterAPIMachineManagement
+  - CRDCompatibilityRequirementOperator+ClusterAPIOperator
+  - ClusterAPIOperator
   - ClusterUpdateAcceptRisks
   - ClusterUpdatePreflight
-  - ImageStreamImportMode
   - SignatureStores
   FilenameOperatorName: cluster-version-operator
   FilenameOperatorOrdering: "01"
@@ -275,8 +276,7 @@ images.config.openshift.io:
   CRDName: images.config.openshift.io
   Capability: ""
   Category: ""
-  FeatureGates:
-  - ImageStreamImportMode
+  FeatureGates: []
   FilenameOperatorName: config-operator
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_10"
@@ -392,12 +392,12 @@ infrastructures.config.openshift.io:
   - AWSDualStackInstall
   - AzureDualStackInstall
   - BGPBasedVIPManagement
-  - DualReplica
   - DyanmicServiceEndpointIBMCloud
   - GCPSovereignCloudInstall
   - MutableTopology
   - NutanixMultiSubnets
   - OnPremDNSRecords
+  - OpenStackMaxAllowedAddressPairs
   - VSphereHostVMGroupZonal
   - VSphereMultiVCenterDay2
   FilenameOperatorName: config-operator

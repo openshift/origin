@@ -71,7 +71,13 @@ type IngressControllerStatusApplyConfiguration struct {
 	// been resolved by the operator or the feature is not enabled for this cluster.
 	//
 	// Examples for OpenShift 5.1:
-	// - "3.2": Using HAProxy 3.2
+	// - "3.2": Using the default HAProxy 3.2
+	// - "3.4": Using the explicitly selected, non-default HAProxy 3.4
+	//
+	// Planned lifecycle for later OpenShift releases:
+	// - OpenShift 5.2 plans to make HAProxy 3.4 the default while keeping
+	// HAProxy 3.2 selectable.
+	// - OpenShift 5.3 plans to retire HAProxy 3.2.
 	EffectiveHAProxyVersion *operatorv1.HAProxyVersion `json:"effectiveHAProxyVersion,omitempty"`
 }
 

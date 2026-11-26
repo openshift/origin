@@ -943,6 +943,31 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: com.github.openshift.api.operator.v1.ConsoleStatus
       default: {}
+- name: com.github.openshift.api.operator.v1.ConsoleAuthProxyConfig
+  map:
+    fields:
+    - name: httpProxy
+      type:
+        scalar: string
+    - name: httpsProxy
+      type:
+        scalar: string
+    - name: noProxy
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: associative
+    - name: trustedCA
+      type:
+        namedType: com.github.openshift.api.operator.v1.ConsoleAuthProxyTrustedCAConfigMapReference
+      default: {}
+- name: com.github.openshift.api.operator.v1.ConsoleAuthProxyTrustedCAConfigMapReference
+  map:
+    fields:
+    - name: name
+      type:
+        scalar: string
 - name: com.github.openshift.api.operator.v1.ConsoleConfigRoute
   map:
     fields:
@@ -1030,6 +1055,10 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: com.github.openshift.api.operator.v1.ConsoleSpec
   map:
     fields:
+    - name: authProxy
+      type:
+        namedType: com.github.openshift.api.operator.v1.ConsoleAuthProxyConfig
+      default: {}
     - name: customization
       type:
         namedType: com.github.openshift.api.operator.v1.ConsoleCustomization

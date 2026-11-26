@@ -175,7 +175,7 @@ func TestTNFMetricsSuiteSelectsOnlyTNFMetricsTests(t *testing.T) {
 	}
 }
 
-func TestTwoNodeSuiteExcludesDedicatedTNFMetricsTests(t *testing.T) {
+func TestTwoNodeSuiteExcludesDedicatedTNFTests(t *testing.T) {
 	var suite *ginkgo.TestSuite
 	for i := range staticSuites {
 		if staticSuites[i].Name == "openshift/two-node" {
@@ -191,17 +191,18 @@ func TestTwoNodeSuiteExcludesDedicatedTNFMetricsTests(t *testing.T) {
 		{Name: "[sig-etcd] existing two-node recovery [Suite:openshift/two-node][Serial]"},
 		{Name: "[sig-etcd] two-node feature gate [OCPFeatureGate:DualReplica][Serial]"},
 		{Name: "[sig-etcd] TNF metrics [Suite:openshift/two-node][OCPFeatureGate:DualReplica][TNFMetrics][Serial]"},
+		{Name: "[sig-etcd] TNF observability [Suite:openshift/two-node][OCPFeatureGate:DualReplica][TNFObservability][Serial]"},
 	}
 	filtered, err := candidates.Filter(suite.Qualifiers)
 	if err != nil {
 		t.Fatalf("filter two-node suite: %v", err)
 	}
 	if len(filtered) != 2 {
-		t.Fatalf("expected two existing two-node tests and no TNF metrics test, got %d: %#v", len(filtered), filtered)
+		t.Fatalf("expected two existing two-node tests and no dedicated TNF tests, got %d: %#v", len(filtered), filtered)
 	}
 	for _, test := range filtered {
-		if test.Name == candidates[2].Name {
-			t.Fatalf("dedicated TNF metrics test leaked into broad two-node suite: %s", test.Name)
+		if test.Name == candidates[2].Name || test.Name == candidates[3].Name {
+			t.Fatalf("dedicated TNF test leaked into broad two-node suite: %s", test.Name)
 		}
 	}
 }
@@ -374,6 +375,38 @@ func TestBGPVIPSuiteSelection(t *testing.T) {
 			}
 			if !slices.Equal(got, want) {
 				t.Errorf("selected %q, want %q", got, want)
+			}
+		})
+	}
+}
+
+func TestTNFObservabilitySuiteSelection(t *testing.T) {
+	var suite *ginkgo.TestSuite
+	for i := range staticSuites {
+		if staticSuites[i].Name == "openshift/two-node/tnf-observability" {
+			suite = &staticSuites[i]
+			break
+		}
+	}
+	if suite == nil {
+		t.Fatal("TNF observability suite not found")
+	}
+	if suite.Parallelism != 1 || suite.ClusterStabilityDuringTest != ginkgo.Disruptive {
+		t.Fatal("TNF observability requires serial execution with disruptive monitors")
+	}
+	for _, tc := range []struct {
+		name string
+		want int
+	}{
+		{"[Suite:openshift/two-node][TNFObservability][Serial] alert-agent status", 1},
+		{"[Suite:openshift/two-node][TNFObservability] missing serialization", 0},
+		{"[TNFObservability][Serial] another topology", 0},
+		{"[Suite:openshift/two-node][TNFMetrics][Serial] metrics", 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			filtered, err := (extensiontests.ExtensionTestSpecs{{Name: tc.name}}).Filter(suite.Qualifiers)
+			if err != nil || len(filtered) != tc.want {
+				t.Fatalf("suite matched %d tests, want %d; error: %v", len(filtered), tc.want, err)
 			}
 		})
 	}

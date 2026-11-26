@@ -35,12 +35,12 @@ controllerconfigs.machineconfiguration.openshift.io:
   - AWSEuropeanSovereignCloudInstall
   - AzureDualStackInstall
   - BGPBasedVIPManagement
-  - DualReplica
   - DyanmicServiceEndpointIBMCloud
   - GCPSovereignCloudInstall
   - MutableTopology
   - NutanixMultiSubnets
   - OnPremDNSRecords
+  - OpenStackMaxAllowedAddressPairs
   - VSphereHostVMGroupZonal
   - VSphereMultiVCenterDay2
   FilenameOperatorName: machine-config

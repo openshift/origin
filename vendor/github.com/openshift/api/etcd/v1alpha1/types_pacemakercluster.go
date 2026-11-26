@@ -14,6 +14,7 @@ const (
 	// Specifically, it aggregates the following conditions:
 	// - ClusterInServiceConditionType
 	// - ClusterNodeCountAsExpectedConditionType
+	// - ClusterFencingEnabledConditionType
 	// - NodeHealthyConditionType (for each node)
 	// When True, the cluster is healthy with reason "ClusterHealthy".
 	// When False, the cluster is unhealthy with reason "ClusterUnhealthy".
@@ -30,6 +31,16 @@ const (
 	// When True, the expected number of nodes are present with reason "AsExpected".
 	// When False, the node count is incorrect with reason "InsufficientNodes" or "ExcessiveNodes".
 	ClusterNodeCountAsExpectedConditionType = "NodeCountAsExpected"
+
+	// ClusterFencingEnabledConditionType tracks whether STONITH (fencing) is enabled in the cluster.
+	// Fencing is the mechanism that isolates failed nodes by powering them off via BMC. In Two Node
+	// OpenShift with Fencing, fencing is mandatory — without it, a network partition leaves both nodes
+	// running and data diverges. If someone runs `pcs property set stonith-enabled=false`, fencing is
+	// globally disabled and the cluster cannot recover from node failures.
+	// When True, fencing is enabled with reason "FencingEnabled". This is the normal operating state.
+	// When False, fencing is globally disabled with reason "FencingDisabled". This is a critical state.
+	// When Unknown, the fencing-enabled property has not yet been observed with reason "Pending".
+	ClusterFencingEnabledConditionType = "FencingEnabled"
 )
 
 // ClusterHealthy condition reasons
@@ -70,6 +81,23 @@ const (
 	// never happen during normal cluster operation. It is possible to enter this state with manual user intervention,
 	// but will also require user intervention to restore normal functionality.
 	ClusterNodeCountAsExpectedReasonExcessiveNodes = "ExcessiveNodes"
+)
+
+// ClusterFencingEnabled condition reasons
+const (
+	// ClusterFencingEnabledReasonEnabled means fencing (STONITH) is enabled in the cluster.
+	// This is the normal and expected operating state for Two Node OpenShift with Fencing.
+	ClusterFencingEnabledReasonEnabled = "FencingEnabled"
+
+	// ClusterFencingEnabledReasonDisabled means fencing (STONITH) is globally disabled in the cluster.
+	// Without fencing, the cluster cannot isolate failed nodes and etcd quorum recovery cannot happen.
+	// This is a critical state that should be investigated immediately.
+	ClusterFencingEnabledReasonDisabled = "FencingDisabled"
+
+	// ClusterFencingEnabledReasonPending means the fencing-enabled property has not yet been observed
+	// by the status collector. This is expected to be temporary, for example immediately after upgrade
+	// or before the first successful status collection.
+	ClusterFencingEnabledReasonPending = "Pending"
 )
 
 // Node-level condition types for PacemakerCluster.status.nodes[].conditions
@@ -476,7 +504,6 @@ const (
 // +kubebuilder:subresource:status
 // +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/2544
 // +openshift:file-pattern=cvoRunLevel=0000_25,operatorName=etcd,operatorOrdering=01,operatorComponent=two-node-fencing
-// +openshift:enable:FeatureGate=DualReplica
 // +kubebuilder:validation:XValidation:rule="self.metadata.name == 'cluster'",message="PacemakerCluster must be named 'cluster'"
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.status) || has(self.status)",message="status may not be removed once set"
 type PacemakerCluster struct {
@@ -502,11 +529,18 @@ type PacemakerCluster struct {
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.lastUpdated) || self.lastUpdated >= oldSelf.lastUpdated",message="lastUpdated may not be set to an earlier timestamp"
 type PacemakerClusterStatus struct {
 	// conditions represent the observations of the pacemaker cluster's current state.
-	// Known condition types are: "Healthy", "InService", "NodeCountAsExpected".
+	// Known condition types are: "Healthy", "InService", "NodeCountAsExpected", "FencingEnabled".
 	// The "Healthy" condition is an aggregate that tracks the overall health of the cluster.
 	// The "InService" condition tracks whether the cluster is in service (not in maintenance mode).
 	// The "NodeCountAsExpected" condition tracks whether the expected number of nodes are present.
-	// Each of these conditions is required, so the array must contain at least 3 items.
+	// The "FencingEnabled" condition tracks whether STONITH (fencing) is enabled in the cluster.
+	// The "Healthy", "InService", and "NodeCountAsExpected" conditions are required, so the array
+	// must contain at least 3 items. The "FencingEnabled" condition is optional and is omitted
+	// when the status collector has not yet observed the stonith-enabled property, for example
+	// immediately after an upgrade from a version that does not report it. The "FencingEnabled"
+	// condition is only reported when the TNFObservability feature gate is enabled. When the gate
+	// is enabled and the condition is present, its reason must be one of "FencingEnabled",
+	// "FencingDisabled", or "Pending".
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MinItems=3
@@ -514,6 +548,7 @@ type PacemakerClusterStatus struct {
 	// +kubebuilder:validation:XValidation:rule="self.exists(c, c.type == 'Healthy')",message="conditions must contain a condition of type Healthy"
 	// +kubebuilder:validation:XValidation:rule="self.exists(c, c.type == 'InService')",message="conditions must contain a condition of type InService"
 	// +kubebuilder:validation:XValidation:rule="self.exists(c, c.type == 'NodeCountAsExpected')",message="conditions must contain a condition of type NodeCountAsExpected"
+	// +openshift:validation:FeatureGateAwareXValidation:featureGate=TNFObservability,rule="self.all(c, c.type != 'FencingEnabled' || c.reason in ['FencingEnabled', 'FencingDisabled', 'Pending'])",message="the FencingEnabled condition reason must be one of FencingEnabled, FencingDisabled, Pending"
 	// +required
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 

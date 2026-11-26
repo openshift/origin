@@ -2189,6 +2189,10 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: platformStatus
       type:
         namedType: com.github.openshift.api.config.v1.PlatformStatus
+    - name: topologyTransitionStatus
+      type:
+        namedType: com.github.openshift.api.config.v1.TopologyTransitionStatus
+      default: {}
 - name: com.github.openshift.api.config.v1.Ingress
   map:
     fields:
@@ -3995,6 +3999,51 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: message
       type:
         scalar: string
+- name: com.github.openshift.api.config.v1.TopologyState
+  map:
+    fields:
+    - name: controlPlaneTopology
+      type:
+        scalar: string
+    - name: infrastructureTopology
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1.TopologyTransition
+  map:
+    fields:
+    - name: evaluations
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
+          elementRelationship: associative
+          keys:
+          - type
+    - name: source
+      type:
+        namedType: com.github.openshift.api.config.v1.TopologyState
+      default: {}
+    - name: target
+      type:
+        namedType: com.github.openshift.api.config.v1.TopologyState
+      default: {}
+- name: com.github.openshift.api.config.v1.TopologyTransitionStatus
+  map:
+    fields:
+    - name: conditions
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
+          elementRelationship: associative
+          keys:
+          - type
+    - name: transitions
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.config.v1.TopologyTransition
+          elementRelationship: atomic
 - name: com.github.openshift.api.config.v1.Update
   map:
     fields:
@@ -4478,46 +4527,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: com.github.openshift.api.config.v1alpha1.SecretKeySelector
       default: {}
-- name: com.github.openshift.api.config.v1alpha1.CRIOCredentialProviderConfig
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: com.github.openshift.api.config.v1alpha1.CRIOCredentialProviderConfigSpec
-    - name: status
-      type:
-        namedType: com.github.openshift.api.config.v1alpha1.CRIOCredentialProviderConfigStatus
-      default: {}
-- name: com.github.openshift.api.config.v1alpha1.CRIOCredentialProviderConfigSpec
-  map:
-    fields:
-    - name: matchImages
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: associative
-- name: com.github.openshift.api.config.v1alpha1.CRIOCredentialProviderConfigStatus
-  map:
-    fields:
-    - name: conditions
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
-          elementRelationship: associative
-          keys:
-          - type
 - name: com.github.openshift.api.config.v1alpha1.CertificateConfig
   map:
     fields:

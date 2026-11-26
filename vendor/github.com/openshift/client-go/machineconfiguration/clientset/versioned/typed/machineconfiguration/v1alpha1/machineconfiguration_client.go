@@ -12,6 +12,7 @@ import (
 
 type MachineconfigurationV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	BGPVIPConfigsGetter
 	InternalReleaseImagesGetter
 	OSImageStreamsGetter
 }
@@ -19,6 +20,10 @@ type MachineconfigurationV1alpha1Interface interface {
 // MachineconfigurationV1alpha1Client is used to interact with features provided by the machineconfiguration.openshift.io group.
 type MachineconfigurationV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *MachineconfigurationV1alpha1Client) BGPVIPConfigs() BGPVIPConfigInterface {
+	return newBGPVIPConfigs(c)
 }
 
 func (c *MachineconfigurationV1alpha1Client) InternalReleaseImages() InternalReleaseImageInterface {

@@ -470,6 +470,12 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.TokenRequiredClaimApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("TokenUserValidationRule"):
 		return &configv1.TokenUserValidationRuleApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("TopologyState"):
+		return &configv1.TopologyStateApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("TopologyTransition"):
+		return &configv1.TopologyTransitionApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("TopologyTransitionStatus"):
+		return &configv1.TopologyTransitionStatusApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("Update"):
 		return &configv1.UpdateApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("UpdateHistory"):
@@ -532,12 +538,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1alpha1.ControllerManagerApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ControllerManagerSpec"):
 		return &configv1alpha1.ControllerManagerSpecApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("CRIOCredentialProviderConfig"):
-		return &configv1alpha1.CRIOCredentialProviderConfigApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("CRIOCredentialProviderConfigSpec"):
-		return &configv1alpha1.CRIOCredentialProviderConfigSpecApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("CRIOCredentialProviderConfigStatus"):
-		return &configv1alpha1.CRIOCredentialProviderConfigStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("CustomPKIPolicy"):
 		return &configv1alpha1.CustomPKIPolicyApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("DefaultCertificateConfig"):

@@ -169,7 +169,6 @@ type ImagePolicyConfig struct {
 	// For manifest lists, the manifest list and all its sub-manifests will be imported.If this value
 	// is specified, this setting is applied to all newly created imagestreams which do not have the
 	// value set.
-	// +openshift:enable:FeatureGate=ImageStreamImportMode
 	// +optional
 	ImageStreamImportMode ImportModeType `json:"imageStreamImportMode"`
 }

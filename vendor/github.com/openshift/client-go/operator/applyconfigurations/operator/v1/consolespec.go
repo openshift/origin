@@ -13,6 +13,15 @@ import (
 // ConsoleSpec is the specification of the desired behavior of the Console.
 type ConsoleSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:""`
+	// authProxy configures proxy settings for outbound connections made by
+	// Console's OIDC login clients, including discovery, JWKS retrieval,
+	// code exchange, and token refresh. When set, it replaces the cluster-wide
+	// proxy (proxy.config.openshift.io/cluster) entirely for these connections;
+	// individual fields are not inherited from the cluster-wide configuration.
+	// At least one of httpProxy or httpsProxy must be specified.
+	// When omitted, the cluster-wide proxy is used if configured; otherwise no
+	// proxy is used. Other Console clients retain their existing proxy settings.
+	AuthProxy *ConsoleAuthProxyConfigApplyConfiguration `json:"authProxy,omitempty"`
 	// customization is used to optionally provide a small set of
 	// customization options to the web console.
 	Customization *ConsoleCustomizationApplyConfiguration `json:"customization,omitempty"`
@@ -80,6 +89,14 @@ func (b *ConsoleSpecApplyConfiguration) WithUnsupportedConfigOverrides(value run
 // If called multiple times, the ObservedConfig field is set to the value of the last call.
 func (b *ConsoleSpecApplyConfiguration) WithObservedConfig(value runtime.RawExtension) *ConsoleSpecApplyConfiguration {
 	b.OperatorSpecApplyConfiguration.ObservedConfig = &value
+	return b
+}
+
+// WithAuthProxy sets the AuthProxy field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the AuthProxy field is set to the value of the last call.
+func (b *ConsoleSpecApplyConfiguration) WithAuthProxy(value *ConsoleAuthProxyConfigApplyConfiguration) *ConsoleSpecApplyConfiguration {
+	b.AuthProxy = value
 	return b
 }
 
