@@ -41,23 +41,7 @@ var _ = g.Describe("[sig-etcd][apigroup:etcd.openshift.io][OCPFeatureGate:DualRe
 		if !enabled {
 			g.Skip("TNFObservability is disabled for the collector release")
 		}
-		utils.SkipIfClusterIsNotHealthy(oc, helpers.NewEtcdClientFactory(oc.KubeClient()))
-		ctx, cancel := context.WithTimeout(context.Background(), tnfCommandTimeout)
-		defer cancel()
-		core := oc.AdminKubeClient().CoreV1()
-		pcs = &tnfPCSRunner{oc: oc, namespaces: core.Namespaces(), serviceAccounts: core.ServiceAccounts}
-		g.DeferCleanup(func() {
-			o.Expect(pcs.cleanup(context.Background())).To(o.Succeed())
-		})
-		masters, err := core.Nodes().List(ctx, metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master="})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(masters.Items).To(o.HaveLen(2))
-		nodes = nil
-		for _, node := range masters.Items {
-			nodes = append(nodes, node.Name)
-			o.Expect(node.Annotations["machineconfiguration.openshift.io/state"]).To(o.Equal("Done"), "MCO must be healthy before fault injection")
-		}
-		sort.Strings(nodes)
+		pcs, nodes = setupTNFObservability(oc)
 		o.Expect(waitForTNFAlertStatus(context.Background(), oc, nodes, time.Now())).To(o.Succeed(), "establish fresh, healthy alert-agent status")
 	})
 
@@ -77,90 +61,50 @@ var _ = g.Describe("[sig-etcd][apigroup:etcd.openshift.io][OCPFeatureGate:DualRe
 			o.Expect(waitForTNFAlertStatus(context.Background(), oc, nodes, time.Now())).To(o.Succeed(), "recover after restoring registrations")
 			o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, tnfObservabilityTimeout)).To(o.Succeed())
 		})
-		// Save only the affected entries, including their metadata and recipients.
 		for _, id := range []string{services.TaintAlertID, services.UntaintAlertID} {
-			xpath := fmt.Sprintf("/cib/configuration/alerts/alert[@id='%s']", id)
-			backup := "/var/tmp/tnf-alert-" + string(uuid.NewUUID())
-			g.DeferCleanup(func() {
-				err := retryTNFOperation(context.Background(), tnfPollInterval, tnfCommandTimeout, func(ctx context.Context) error {
-					_, err := pcs.hostOutput(ctx, nodes[0], "bash", "-ceu", `if test -s "$2"; then
-	if cibadmin --query --xpath "$1" >/dev/null 2>&1; then
-		cibadmin --replace --xpath "$1" --xml-file "$2"
-	else
-		cibadmin --modify --scope alerts --xml-file "$2"
-	fi
-fi
-rm -f -- "$2"`, "--", xpath, backup)
-					return err
-				})
-				o.Expect(err).To(o.Succeed(), "restore the original alert registration")
-			})
-			_, err := pcs.hostOutput(ctx, nodes[0], "bash", "-ceu", `umask 077
-set -o noclobber
-cibadmin --query --xpath "$1" > "$2"`, "--", xpath, backup)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			backupTNFAlertRegistration(ctx, pcs, nodes[0], id)
 		}
 
-		pc, err := apis.GetPacemakerCluster(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		watchCtx, cancel := context.WithTimeout(ctx, tnfObservabilityTimeout)
-		defer cancel()
-		stream, err := oc.AdminDynamicClient().Resource(apis.PacemakerClusterGVR).Watch(watchCtx, metav1.ListOptions{
-			FieldSelector: "metadata.name=cluster", ResourceVersion: pc.ResourceVersion,
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		defer stream.Stop()
-
-		g.By("removing the taint registration and changing the untaint script path")
-		_, err = pcs.hostOutput(ctx, nodes[0], "bash", "-ceu", `pcs alert delete tnf-taint-alert
-pcs alert update tnf-untaint-alert path=/var/lib/pacemaker/alerts/tnf-e2e-invalid.sh`)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// Watch from before the mutation: repairs happen immediately after the failed
-		// observation is written, and polling could miss it before the next collection.
-		g.By("observing registration failures and their node/cluster health aggregation")
-		var failedAt time.Time
-		lastObservation := "no new collection observed"
-		_, err = watchtools.UntilWithoutRetry(watchCtx, stream, func(event watch.Event) (bool, error) {
-			if event.Type == watch.Error {
-				return false, apierrors.FromObject(event.Object)
-			}
-			if event.Type != watch.Modified {
-				return false, nil
-			}
-			obj, ok := event.Object.(*unstructured.Unstructured)
-			if !ok {
-				return false, fmt.Errorf("unexpected PacemakerCluster watch object %T", event.Object)
-			}
-			var observed etcdv1.PacemakerCluster
-			if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &observed); err != nil {
-				return false, err
-			}
-			if !observed.Status.LastUpdated.After(pc.Status.LastUpdated.Time) {
-				return false, nil
-			}
-			if err := expectTNFAlertStatus(&observed, nodes,
-				tnfAlertFailure{agent: etcdv1.PacemakerClusterAlertAgentNameTaint, condition: etcdv1.AlertAgentConfiguredConditionType, reason: etcdv1.AlertAgentConfiguredReasonNotRegistered},
-				tnfAlertFailure{agent: etcdv1.PacemakerClusterAlertAgentNameUntaint, condition: etcdv1.AlertAgentConfiguredConditionType, reason: etcdv1.AlertAgentConfiguredReasonMisconfigured},
-			); err != nil {
-				lastObservation = err.Error()
-				return false, nil
-			}
-			failedAt = observed.Status.LastUpdated.Time
-			return true, nil
-		})
-		o.Expect(err).NotTo(o.HaveOccurred(), "capture the pre-repair failure status: %s", lastObservation)
-
-		g.By("waiting for automatic repair and a subsequent healthy collection")
-		o.Expect(retryTNFOperation(ctx, tnfPollInterval, tnfObservabilityTimeout, func(ctx context.Context) error {
+		for _, fault := range []struct {
+			description string
+			agent       etcdv1.PacemakerClusterAlertAgentName
+			reason      string
+			command     []string
+		}{
+			{
+				description: "remove the taint registration",
+				agent:       etcdv1.PacemakerClusterAlertAgentNameTaint,
+				reason:      etcdv1.AlertAgentConfiguredReasonNotRegistered,
+				command:     []string{"pcs", "alert", "delete", services.TaintAlertID},
+			},
+			{
+				description: "change the untaint script path",
+				agent:       etcdv1.PacemakerClusterAlertAgentNameUntaint,
+				reason:      etcdv1.AlertAgentConfiguredReasonMisconfigured,
+				command:     []string{"pcs", "alert", "update", services.UntaintAlertID, "path=/var/lib/pacemaker/alerts/tnf-e2e-invalid.sh"},
+			},
+			{
+				description: "change only the taint event selector",
+				agent:       etcdv1.PacemakerClusterAlertAgentNameTaint,
+				reason:      etcdv1.AlertAgentConfiguredReasonMisconfigured,
+				command:     []string{"cibadmin", "--replace", "--xpath", tnfAlertXPath(services.TaintAlertID) + "/select", "--xml-text", "<select><select_nodes/></select>"},
+			},
+		} {
+			g.By(fault.description)
+			failedAt := observeTNFRegistrationFault(ctx, oc, pcs, nodes, fault.command, tnfAlertFailure{
+				agent: fault.agent, condition: etcdv1.AlertAgentConfiguredConditionType, reason: fault.reason,
+			})
+			g.By("waiting for automatic repair and a subsequent healthy collection")
+			o.Expect(waitForTNFAlertStatus(ctx, oc, nodes, failedAt)).To(o.Succeed())
 			output, err := pcs.output(ctx, nodes[0], "alert", "config", "--output-format", "json")
-			if err != nil {
-				return err
-			}
-			return expectTNFAlertRegistrations(output)
-		})).To(o.Succeed())
-		o.Expect(waitForTNFAlertStatus(ctx, oc, nodes, failedAt)).To(o.Succeed())
-		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, tnfObservabilityTimeout)).To(o.Succeed())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(expectTNFAlertRegistrations(output)).To(o.Succeed())
+			o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, tnfObservabilityTimeout)).To(o.Succeed())
+		}
+	})
+
+	g.It("retains alert observations and defers repairs when the collector release is unresolved", func() {
+		testTNFUnresolvedCollectorRelease(oc, pcs, nodes)
 	})
 
 	g.It("reports node-local alert script drift and recovers health after restoration", func() {
@@ -200,6 +144,74 @@ printf '\n# TNF observability drift test\n' >> "$1"`, "--", path, backup)
 		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, tnfObservabilityTimeout)).To(o.Succeed())
 	})
 })
+
+func setupTNFObservability(oc *exutil.CLI) (*tnfPCSRunner, []string) {
+	utils.SkipIfClusterIsNotHealthy(oc, helpers.NewEtcdClientFactory(oc.KubeClient()))
+	ctx, cancel := context.WithTimeout(context.Background(), tnfCommandTimeout)
+	defer cancel()
+	core := oc.AdminKubeClient().CoreV1()
+	pcs := &tnfPCSRunner{oc: oc, namespaces: core.Namespaces(), serviceAccounts: core.ServiceAccounts}
+	g.DeferCleanup(func() {
+		o.Expect(pcs.cleanup(context.Background())).To(o.Succeed())
+	})
+	masters, err := core.Nodes().List(ctx, metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master="})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(masters.Items).To(o.HaveLen(2))
+	var nodes []string
+	for _, node := range masters.Items {
+		nodes = append(nodes, node.Name)
+		o.Expect(node.Annotations["machineconfiguration.openshift.io/state"]).To(o.Equal("Done"), "MCO must be healthy before fault injection")
+	}
+	sort.Strings(nodes)
+	return pcs, nodes
+}
+
+func observeTNFRegistrationFault(ctx context.Context, oc *exutil.CLI, pcs *tnfPCSRunner, nodes, command []string, failure tnfAlertFailure) time.Time {
+	pc, err := apis.GetPacemakerCluster(oc)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	watchCtx, cancel := context.WithTimeout(ctx, tnfObservabilityTimeout)
+	defer cancel()
+
+	// Start before the mutation because a collector can repair the fault immediately after publishing it.
+	stream, err := oc.AdminDynamicClient().Resource(apis.PacemakerClusterGVR).Watch(watchCtx, metav1.ListOptions{
+		FieldSelector: "metadata.name=cluster", ResourceVersion: pc.ResourceVersion,
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	defer stream.Stop()
+
+	_, err = pcs.hostOutput(ctx, nodes[0], command...)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	var failedAt time.Time
+	lastObservation := "no new collection observed"
+	_, err = watchtools.UntilWithoutRetry(watchCtx, stream, func(event watch.Event) (bool, error) {
+		if event.Type == watch.Error {
+			return false, apierrors.FromObject(event.Object)
+		}
+		if event.Type != watch.Modified {
+			return false, nil
+		}
+		obj, ok := event.Object.(*unstructured.Unstructured)
+		if !ok {
+			return false, fmt.Errorf("unexpected PacemakerCluster watch object %T", event.Object)
+		}
+		var observed etcdv1.PacemakerCluster
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &observed); err != nil {
+			return false, err
+		}
+		if !observed.Status.LastUpdated.After(pc.Status.LastUpdated.Time) {
+			return false, nil
+		}
+		if err := expectTNFAlertStatus(&observed, nodes, failure); err != nil {
+			lastObservation = err.Error()
+			return false, nil
+		}
+		failedAt = observed.Status.LastUpdated.Time
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(), "capture the pre-repair failure status: %s", lastObservation)
+	return failedAt
+}
 
 func waitForTNFMCOState(ctx context.Context, oc *exutil.CLI, node, state, reason string) error {
 	return retryTNFOperation(ctx, 5*time.Second, tnfObservabilityTimeout, func(ctx context.Context) error {

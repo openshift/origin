@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	g "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
 	etcdv1 "github.com/openshift/api/etcd/v1"
 	"github.com/openshift/api/features"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/apis"
@@ -13,9 +15,17 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
 )
 
-const tnfObservabilityTimeout = 5 * time.Minute
+const (
+	tnfObservabilityTimeout = 5 * time.Minute
+	tnfCollectorNamespace   = "openshift-etcd"
+	tnfCollectorName        = "pacemaker-status-collector"
+	tnfCollectorVersionEnv  = "OPERATOR_IMAGE_VERSION"
+	alertAgentsObserved     = "AlertAgentsObserved"
+	featureGateUnresolved   = "FeatureGateUnresolved"
+)
 
 type tnfAlertFailure struct {
 	node      string // Empty means the cluster-wide registration failed on every node.
@@ -26,14 +36,14 @@ type tnfAlertFailure struct {
 
 // Use the collector's release, not any enabled entry from an in-progress upgrade.
 func tnfObservabilityEnabled(ctx context.Context, oc *exutil.CLI) (bool, error) {
-	cron, err := oc.AdminKubeClient().BatchV1().CronJobs("openshift-etcd").Get(ctx, "pacemaker-status-collector", metav1.GetOptions{})
+	cron, err := oc.AdminKubeClient().BatchV1().CronJobs(tnfCollectorNamespace).Get(ctx, tnfCollectorName, metav1.GetOptions{})
 	if err != nil {
 		return false, err
 	}
 	version := ""
 	for _, container := range cron.Spec.JobTemplate.Spec.Template.Spec.Containers {
 		for _, env := range container.Env {
-			if env.Name == "OPERATOR_IMAGE_VERSION" {
+			if env.Name == tnfCollectorVersionEnv {
 				version = env.Value
 			}
 		}
@@ -80,6 +90,10 @@ func expectTNFAlertStatus(pc *etcdv1.PacemakerCluster, nodes []string, failures 
 		}
 		if node == nil || len(node.AlertAgents) != 2 {
 			return fmt.Errorf("expected both alert agents on each control-plane node")
+		}
+		if observed := meta.FindStatusCondition(node.Conditions, alertAgentsObserved); observed != nil &&
+			observed.Status == metav1.ConditionFalse && observed.Reason == featureGateUnresolved {
+			return fmt.Errorf("node %s retained its alert-agent status because the feature gate is unresolved", name)
 		}
 		nodeHealthy := metav1.ConditionTrue
 		for _, agentName := range []etcdv1.PacemakerClusterAlertAgentName{etcdv1.PacemakerClusterAlertAgentNameTaint, etcdv1.PacemakerClusterAlertAgentNameUntaint} {
@@ -137,17 +151,19 @@ func waitForTNFAlertStatus(ctx context.Context, oc *exutil.CLI, nodes []string, 
 	})
 }
 
+type tnfAlertConfig struct {
+	Alerts []struct {
+		ID     string `json:"id"`
+		Path   string `json:"path"`
+		Select struct {
+			Fencing bool `json:"fencing"`
+			Nodes   bool `json:"nodes"`
+		} `json:"select"`
+	} `json:"alerts"`
+}
+
 func expectTNFAlertRegistrations(output string) error {
-	var config struct {
-		Alerts []struct {
-			ID     string `json:"id"`
-			Path   string `json:"path"`
-			Select struct {
-				Fencing bool `json:"fencing"`
-				Nodes   bool `json:"nodes"`
-			} `json:"select"`
-		} `json:"alerts"`
-	}
+	var config tnfAlertConfig
 	if err := json.Unmarshal([]byte(output), &config); err != nil {
 		return fmt.Errorf("invalid pcs alert configuration JSON")
 	}
@@ -166,4 +182,43 @@ func expectTNFAlertRegistrations(output string) error {
 		}
 	}
 	return nil
+}
+
+func tnfAlertXPath(id string) string {
+	return fmt.Sprintf("/cib/configuration/alerts/alert[@id='%s']", id)
+}
+
+func backupTNFAlertRegistration(ctx context.Context, pcs *tnfPCSRunner, node, id string) {
+	xpath := tnfAlertXPath(id)
+	backup := "/var/tmp/tnf-alert-" + string(uuid.NewUUID())
+	g.DeferCleanup(func() {
+		err := retryTNFOperation(context.Background(), tnfPollInterval, tnfCommandTimeout, func(ctx context.Context) error {
+			_, err := pcs.hostOutput(ctx, node, "bash", "-ceu", `if test -s "$2"; then
+	if cibadmin --query --xpath "$1" >/dev/null 2>&1; then
+		cibadmin --replace --xpath "$1" --xml-file "$2"
+	else
+		cibadmin --modify --scope alerts --xml-file "$2"
+	fi
+fi
+rm -f -- "$2"`, "--", xpath, backup)
+			return err
+		})
+		o.Expect(err).To(o.Succeed(), "restore alert registration %s", id)
+	})
+	// Save the original registration, including its metadata and recipients.
+	_, err := pcs.hostOutput(ctx, node, "bash", "-ceu", `umask 077
+set -o noclobber
+cibadmin --query --xpath "$1" > "$2"`, "--", xpath, backup)
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+func expectTNFAlertUnregistered(ctx context.Context, pcs *tnfPCSRunner, node, id string) {
+	output, err := pcs.output(ctx, node, "alert", "config", "--output-format", "json")
+	o.Expect(err).NotTo(o.HaveOccurred())
+	var config tnfAlertConfig
+	o.Expect(json.Unmarshal([]byte(output), &config)).To(o.Succeed())
+	o.Expect(config.Alerts).NotTo(o.BeNil(), "pcs must return an alerts array")
+	for _, alert := range config.Alerts {
+		o.Expect(alert.ID).NotTo(o.Equal(id), "the collector must leave the injected missing registration unrepaired")
+	}
 }
