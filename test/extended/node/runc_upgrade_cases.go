@@ -237,6 +237,13 @@ var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node][OCPFeatureGate:OS
 	g.It("blocks RHCOS 9 to 10 upgrade when MachineConfig osImageURL targets RHEL 10 and ContainerRuntimeConfig sets runc default runtime",
 		g.Label("NodeResource", "NodeResourceNumNodes=1", "NodeResourceName=runc_upgrade"),
 		ote.Informing(), func(ctx context.Context) {
+			// Same constraint as the osImageStream specs above: on rhel-10-default
+			// clusters this route is admitted but the rhel-9 node pivot never
+			// completes, so the spec hangs instead of failing fast.
+			if clusterDefaultStream != streamRHEL9 {
+				g.Skip(fmt.Sprintf("cluster default OS stream is %q; pools can only pin rhel-9 when the default is %q", clusterDefaultStream, streamRHEL9))
+			}
+
 			// This pool intentionally never sets spec.osImageStream (setting it alongside an
 			// osImageURL override is a separate, mutually-exclusive configuration error -- see
 			// assertMCPHasNoOSImageStream below), so it inherits its default stream from the
@@ -254,7 +261,8 @@ var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node][OCPFeatureGate:OS
 			// osImageURL directly at the rhel-10 stream image would be indistinguishable from
 			// that default and silently fall through to the pre-existing osImageStream-based
 			// guard instead, which would not actually exercise this guard. To guarantee a
-			// genuine override on any cluster, the RHEL 10 image is re-imported into an
+			// genuine override on any cluster this spec still runs on (rhel-9 default,
+			// see the skip above), the RHEL 10 image is re-imported into an
 			// in-cluster ImageStream (importOSImageToInternalRegistry) and that mirrored pull
 			// spec -- textually distinct from the upstream OSImageStream pull spec, but the
 			// identical image by digest -- is used as the osImageURL instead.
