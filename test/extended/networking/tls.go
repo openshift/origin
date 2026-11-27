@@ -13,6 +13,7 @@ import (
 	ote "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/api/features"
 	machineconfigv1 "github.com/openshift/api/machineconfiguration/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
@@ -306,10 +307,29 @@ func ConfigureTLSProfileWithAdherence(ctx context.Context, oc *exutil.CLI, tlsPr
 	return nil
 }
 
+// isAlreadyEnabled reports whether TLSAdherence is already provided by the cluster.
+// TechPreviewNoUpgrade and DevPreviewNoUpgrade include the gate and are immutable,
+// so the test must not rewrite them to CustomNoUpgrade.
 func isAlreadyEnabled(fg *configv1.FeatureGate) bool {
-	if fg.Spec.FeatureSet == configv1.CustomNoUpgrade && fg.Spec.CustomNoUpgrade != nil {
+	if fg == nil {
+		return false
+	}
+	for _, version := range fg.Status.FeatureGates {
+		for _, enabled := range version.Enabled {
+			if enabled.Name == features.FeatureGateTLSAdherence {
+				return true
+			}
+		}
+	}
+	switch fg.Spec.FeatureSet {
+	case configv1.TechPreviewNoUpgrade, configv1.DevPreviewNoUpgrade:
+		return true
+	case configv1.CustomNoUpgrade:
+		if fg.Spec.CustomNoUpgrade == nil {
+			return false
+		}
 		for _, enabled := range fg.Spec.CustomNoUpgrade.Enabled {
-			if enabled == "TLSAdherence" {
+			if enabled == features.FeatureGateTLSAdherence {
 				return true
 			}
 		}
