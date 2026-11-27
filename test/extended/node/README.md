@@ -34,6 +34,23 @@ NodeResource scheduler (Parallelism: 3).
 
 ### Suite: openshift/conformance/parallel
 
+- **CRI Pod and Container Stats** - Validates that when `PodAndContainerStatsFromCRI` is enabled, kubelet collects pod and container stats from CRI-O through the CRI stats API (KEP-2371) instead of cAdvisor, mirroring the upstream e2e_node CRI container metrics test.
+
+  **Availability:**
+  - **OCP 5.0:** TechPreview (requires TechPreviewNoUpgrade or DevPreviewNoUpgrade feature set)
+
+  **Suite:** `openshift/conformance/parallel`
+  **Sig Tag:** `[sig-node]`
+  **OCPFeatureGate:** `PodAndContainerStatsFromCRI`
+
+  **Test File:**
+  - **cri_stats.go** - Verifies kubelet runs with the gate enabled, then asserts per-container CPU/memory/fs/process metrics and pod-level network metrics on `/metrics/cadvisor`, and `kubelet_metrics_provider{provider="cri"}` on `/metrics`
+
+  **Requirements:**
+  - `PodAndContainerStatsFromCRI` feature gate must be enabled (skipped on Default/OKD clusters)
+  - Non-disruptive (read-only scraping), runs in parallel
+  - Skipped on disconnected clusters (upstream busybox test image)
+
 - **Additional Storage Support API Validation** - API validation tests for additionalArtifactStores, additionalImageStores, and additionalLayerStores CRI-O configuration
   
   **Availability:**
