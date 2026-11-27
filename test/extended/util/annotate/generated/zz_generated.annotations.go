@@ -2735,8 +2735,6 @@ var Annotations = map[string]string{
 
 	"[sig-node] Container Runtime blackbox test on terminated container should report termination message if TerminationMessagePath is set as non-root user and at a non-default path [NodeConformance] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-node] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret [NodeConformance]": " [Disabled:Broken] [Suite:k8s]",
-
 	"[sig-node] Container Runtime blackbox test when running a container with a new image should be able to pull image [NodeConformance]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-node] Container Runtime blackbox test when running a container with a new image should not be able to pull from private registry without secret [NodeConformance]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
@@ -16083,7 +16081,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] PersistentVolumes:vsphere [Feature:vsphere] should test that deleting the PV before the pod does not cause pod deletion to fail on vsphere volume detach": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] Pod Disks [Feature:StorageProvider] [Serial] attach on previously attached volumes should work": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] Pod Disks [Feature:StorageProvider] [Serial] attach on previously attached volumes should work": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] Pod Disks [Feature:StorageProvider] detach in a disrupted environment [Slow] [Disruptive] when node's API object is deleted": " [Serial] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
