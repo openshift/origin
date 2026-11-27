@@ -51,7 +51,7 @@ var _ = g.Describe("[sig-service-ca] Service CA serving certificate management",
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("service-ca-serving-cert")
 
-	g.It("[OTP][OCP-10873] should access app through secure service and regenerate service serving certs when about to expire [Slow][ConnectedOnly][Critical]", ote.Informing(), func() {
+	g.It("[OTP][OCP-10873] should access app through secure service and regenerate service serving certs when about to expire [APIServer_Disruptive][Slow][ConnectedOnly][Critical]", ote.Informing(), func() {
 		var (
 			filename     = "aosqe-pod-for-ping.json"
 			podName      = "hello-pod"
