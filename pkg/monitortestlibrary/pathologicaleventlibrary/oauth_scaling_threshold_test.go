@@ -15,7 +15,7 @@ import (
 // These tests pin the scoped, proximity-bounded tolerance for oauth-openshift ScalingReplicaSet
 // repeats during the AuthenticationComponentProxy serial tests. The finite cap (120) applies
 // only to repeats whose LATEST occurrence falls during one of the eligible passing tests or
-// within authenticationComponentProxyPostTestGrace AFTER that test ends (no pre-test grace).
+// within authenticationPostTestGrace AFTER that test ends (no pre-test grace).
 // Repeats outside those windows are allowed only if, once the occurrences of the same Event
 // object that happened inside the windows are subtracted, they are within the default
 // DuplicateEventThreshold. It is a bounded proximity allowance, not a causal claim that the
@@ -94,7 +94,7 @@ func oauthScaleEventNS(namespace, deployment, reason string, count int, latest t
 func scalingMatcher(t *testing.T, events monitorapi.Intervals) EventMatcher {
 	t.Helper()
 	reg := NewUniversalPathologicalEventMatchers(nil, events)
-	m, err := reg.GetMatcherByName("AuthenticationComponentProxyScalingReplicaSet")
+	m, err := reg.GetMatcherByName("AuthenticationOauthServerScalingReplicaSet")
 	require.NoError(t, err)
 	return m
 }
@@ -109,7 +109,7 @@ func onePassingWindow() (monitorapi.Intervals, time.Time, time.Time) {
 }
 
 func cpEventDetails(event monitorapi.Interval, from, to time.Time) string {
-	grace := authenticationComponentProxyPostTestGrace
+	grace := authenticationPostTestGrace
 	graceEnd := to.Add(grace)
 	return fmt.Sprintf("count=%d, firstTimestamp=%s, event cover=[%s, %s), cover duration=%s, test window=[%s, %s], test duration=%s, offset from test start=%s, offset from test end=%s, post-test grace=%s, grace end=%s, offset from grace end=%s, cover end offset from grace end=%s",
 		GetTimesAnEventHappened(event.Message), event.Message.Annotations["firstTimestamp"],
@@ -140,7 +140,7 @@ func TestAuthenticationComponentProxyScalingReplicaSet_PostTestGraceAndBoundarie
 		laterOffset     = 150 * time.Second
 		pastGraceOffset = 30 * time.Second
 	)
-	grace := authenticationComponentProxyPostTestGrace
+	grace := authenticationPostTestGrace
 	events, from, to := onePassingWindow()
 	m := scalingMatcher(t, events)
 	insideWindow := from.Add(2 * time.Minute)
@@ -180,7 +180,7 @@ func TestAuthenticationComponentProxyScalingReplicaSet_PostTestGraceAndBoundarie
 }
 
 func TestAuthenticationComponentProxyScalingReplicaSet_SecondPrecisionGraceBoundary(t *testing.T) {
-	grace := authenticationComponentProxyPostTestGrace
+	grace := authenticationPostTestGrace
 	events, from, to := onePassingWindow()
 	m := scalingMatcher(t, events)
 
@@ -229,7 +229,7 @@ func TestAuthenticationComponentProxyScalingReplicaSet_NegativeControls(t *testi
 
 	// Without eligible test intervals, the matcher is not registered and grants no exception.
 	withoutTests := NewUniversalPathologicalEventMatchers(nil, nil)
-	matcher, err := withoutTests.GetMatcherByName("AuthenticationComponentProxyScalingReplicaSet")
+	matcher, err := withoutTests.GetMatcherByName("AuthenticationOauthServerScalingReplicaSet")
 	assert.Error(t, err)
 	assert.Nil(t, matcher)
 	allowed, _ := withoutTests.AllowedByAny(oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, in), v1.HighlyAvailableTopologyMode)
@@ -301,7 +301,7 @@ func TestAuthenticationComponentProxyScalingReplicaSet_DegenerateWindowExcluded(
 // The operator event allowances apply only during eligible passing tests and their
 // post-test grace, with separate caps for DeploymentUpdated and OperatorStatusChanged.
 func TestAuthenticationComponentProxyOperatorEvents(t *testing.T) {
-	grace := authenticationComponentProxyPostTestGrace
+	grace := authenticationPostTestGrace
 	events, from, to := onePassingWindow()
 	duringTest := from.Add(time.Minute)
 	withinGrace := to.Add(grace - time.Minute)
@@ -311,13 +311,14 @@ func TestAuthenticationComponentProxyOperatorEvents(t *testing.T) {
 	reg := NewUniversalPathologicalEventMatchers(nil, events)
 	for _, event := range []struct {
 		reason string
+		name   string
 		cap    int
 	}{
-		{reason: "DeploymentUpdated", cap: 70},
-		{reason: "OperatorStatusChanged", cap: 30},
+		{reason: "DeploymentUpdated", name: "AuthenticationOperatorDeploymentUpdated", cap: 70},
+		{reason: "OperatorStatusChanged", name: "AuthenticationOperatorStatusChanged", cap: 30},
 	} {
 		t.Run(event.reason, func(t *testing.T) {
-			m, err := reg.GetMatcherByName("AuthenticationComponentProxy" + event.reason)
+			m, err := reg.GetMatcherByName(event.name)
 			require.NoError(t, err)
 			for _, tc := range []struct {
 				name   string
@@ -373,11 +374,11 @@ func TestAuthenticationComponentProxyScalingReplicaSet_ThroughLegacyConsumer(t *
 	assert.False(t, run(oauthScaleEvent(120, duringTest)).failed, "in-window event at the cap must pass the legacy consumer")
 	duringGrace := to.Add(90 * time.Second)
 	assert.Falsef(t, run(oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, duringGrace)).failed,
-		"event within the %s grace must pass", authenticationComponentProxyPostTestGrace)
+		"event within the %s grace must pass", authenticationPostTestGrace)
 	assert.True(t, run(oauthScaleEvent(121, duringTest)).failed, "over-cap event must be rejected")
-	afterGrace := to.Add(authenticationComponentProxyPostTestGrace + 30*time.Second)
+	afterGrace := to.Add(authenticationPostTestGrace + 30*time.Second)
 	assert.Truef(t, run(oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, afterGrace)).failed,
-		"event past the %s grace must be rejected", authenticationComponentProxyPostTestGrace)
+		"event past the %s grace must be rejected", authenticationPostTestGrace)
 }
 
 // cpNoProxyName is the exact noProxy bypass test added to the eligible set by this change.
@@ -432,12 +433,12 @@ func TestAuthenticationComponentProxyScalingReplicaSet_NoProxyWindow(t *testing.
 	withinGrace := oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, duringGrace)
 	assert.Truef(t, m.Allows(withinGrace, v1.HighlyAvailableTopologyMode),
 		"event within the grace of the noProxy window is accepted: %s", cpEventDetails(withinGrace, from, to))
-	afterGrace := to.Add(authenticationComponentProxyPostTestGrace + 30*time.Second)
+	afterGrace := to.Add(authenticationPostTestGrace + 30*time.Second)
 	pastGrace := oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, afterGrace)
 	assert.Falsef(t, m.Allows(pastGrace, v1.HighlyAvailableTopologyMode),
 		"event past the noProxy grace is rejected: %s", cpEventDetails(pastGrace, from, to))
 	// cover [end+grace-0.5s, end+grace+0.5s) straddles the grace boundary -> rejected.
-	straddlingGrace := to.Add(authenticationComponentProxyPostTestGrace - 500*time.Millisecond)
+	straddlingGrace := to.Add(authenticationPostTestGrace - 500*time.Millisecond)
 	straddles := oauthScaleEvent(authenticationComponentProxyScalingReplicaSetRepeatLimit, straddlingGrace)
 	assert.Falsef(t, m.Allows(straddles, v1.HighlyAvailableTopologyMode),
 		"event cover straddling the noProxy grace boundary is rejected: %s", cpEventDetails(straddles, from, to))
@@ -497,7 +498,7 @@ func TestAuthenticationComponentProxy_CollidingEventIdentities(t *testing.T) {
 			events := append(monitorapi.Intervals{cpTestInterval(cpNoProxyName, "Passed", from, to)}, inside...)
 			events = append(events, outside)
 			registry := NewUniversalPathologicalEventMatchers(nil, events)
-			matcher, err := registry.GetMatcherByName("AuthenticationComponentProxyDeploymentUpdated")
+			matcher, err := registry.GetMatcherByName("AuthenticationOperatorDeploymentUpdated")
 			require.NoError(t, err)
 			replay := matcher.(*OverlapOtherIntervalsPathologicalEventMatcher)
 			wantCredits := 0
@@ -549,7 +550,7 @@ func TestAuthenticationComponentProxy_UIDLessInWindowCap(t *testing.T) {
 			}
 			events = append(events, atCap, overCap)
 			registry := NewUniversalPathologicalEventMatchers(nil, events)
-			matcher, err := registry.GetMatcherByName("AuthenticationComponentProxyOperatorStatusChanged")
+			matcher, err := registry.GetMatcherByName("AuthenticationOperatorStatusChanged")
 			require.NoError(t, err)
 			assert.Empty(t, matcher.(*OverlapOtherIntervalsPathologicalEventMatcher).inWindowOccurrences,
 				"UID-less observations must not contribute cumulative credits")
