@@ -180,7 +180,7 @@ items:
     source:
       type: Dockerfile
       dockerfile: |-
-        FROM registry.access.redhat.com/ubi8/ruby-27
+        FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         ARG foofoo
         RUN echo $foofoo
     strategy:
@@ -209,7 +209,7 @@ items:
     source:
       type: Dockerfile
       dockerfile: |-
-        FROM registry.access.redhat.com/ubi8/ruby-27
+        FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         ARG foofoo
         RUN echo $foofoo
     strategy:

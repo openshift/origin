@@ -56,7 +56,8 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds should support pro
 			})
 		})
 
-		g.Describe("start build with broken proxy and a no_proxy override", func() {
+		// Bypassing the broken proxy must allow these builds to fetch GitHub source.
+		g.Describe("start build with broken proxy and a no_proxy override [Skipped:Disconnected]", func() {
 			g.It("should start an s2i build and wait for the build to succeed [apigroup:build.openshift.io]", func() {
 				g.By("starting the build")
 				br, _ := exutil.StartBuildAndWait(oc, "sample-s2i-build-noproxy", "--build-loglevel=5")

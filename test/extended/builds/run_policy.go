@@ -60,7 +60,8 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 		})
 
 		g.Describe("build configuration with Parallel build run policy", func() {
-			g.It("runs the builds in parallel [apigroup:build.openshift.io]", func() {
+			// The first GitHub-backed build must remain running while the others start.
+			g.It("runs the builds in parallel [apigroup:build.openshift.io] [Skipped:Disconnected]", func() {
 				g.By("starting multiple builds")
 				var (
 					startedBuilds []string
@@ -155,7 +156,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 		})
 
 		g.Describe("build configuration with Serial build run policy", func() {
-			g.It("runs the builds in serial order [apigroup:build.openshift.io]", func() {
+			g.It("runs the builds in serial order [apigroup:build.openshift.io] [Skipped:Disconnected]", func() {
 				g.By("starting multiple builds")
 				var (
 					startedBuilds []string
@@ -242,7 +243,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 		})
 
 		g.Describe("build configuration with Serial build run policy handling cancellation", func() {
-			g.It("starts the next build immediately after one is canceled [apigroup:build.openshift.io]", func() {
+			g.It("starts the next build immediately after one is canceled [apigroup:build.openshift.io] [Skipped:Disconnected]", func() {
 				g.By("starting multiple builds")
 				bcName := "sample-serial-build"
 
@@ -387,7 +388,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 		})
 
 		g.Describe("build configuration with Serial build run policy handling deletion", func() {
-			g.It("starts the next build immediately after running one is deleted [apigroup:build.openshift.io]", func() {
+			g.It("starts the next build immediately after running one is deleted [apigroup:build.openshift.io] [Skipped:Disconnected]", func() {
 				g.By("starting multiple builds")
 
 				bcName := "sample-serial-build"
@@ -453,7 +454,8 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 		})
 
 		g.Describe("build configuration with SerialLatestOnly build run policy", func() {
-			g.It("runs the builds in serial order but cancel previous builds [apigroup:build.openshift.io]", func() {
+			// The first GitHub-backed build must run long enough for the queued builds to coalesce.
+			g.It("runs the builds in serial order but cancel previous builds [apigroup:build.openshift.io] [Skipped:Disconnected]", func() {
 				g.By("starting multiple builds")
 				var (
 					startedBuilds        []string

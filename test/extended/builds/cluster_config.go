@@ -356,7 +356,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			})
 
 			// this replaces coverage from the TestBuildDefaultEnvironment integration test
-			g.It("Apply env configuration to build pod", func() {
+			g.It("Apply env configuration to build pod [Skipped:Disconnected]", func() {
 				g.By("apply env cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -409,7 +409,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			})
 
 			// this replaces coverage from the TestBuildDefaultLabels integration test
-			g.It("Apply default image label configuration to build pod", func() {
+			g.It("Apply default image label configuration to build pod [Skipped:Disconnected]", func() {
 				g.By("apply label cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -463,7 +463,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			})
 
 			// this replaces coverage from the TestBuildOverrideLabels integration test
-			g.It("Apply override image label configuration to build pod [apigroup:build.openshift.io]", func() {
+			g.It("Apply override image label configuration to build pod [apigroup:build.openshift.io] [Skipped:Disconnected]", func() {
 				g.By("apply label cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -552,7 +552,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			})
 
 			// this replaces coverage from the TestBuildOverrideTolerations integration test
-			g.It("Apply toleration override configuration to build pod", func() {
+			g.It("Apply toleration override configuration to build pod [Skipped:Disconnected]", func() {
 				g.By("apply toleration cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -605,7 +605,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				o.Expect(foundTwo).To(o.BeTrue())
 			})
 
-			g.It("Apply resource configuration to build pod", func() {
+			g.It("Apply resource configuration to build pod [Skipped:Disconnected]", func() {
 				g.By("apply resource cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())

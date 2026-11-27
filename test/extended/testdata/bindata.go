@@ -19429,7 +19429,7 @@ func testExtendedTestdataBuildsDockerAddDockerfile() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile = []byte(`FROM registry.redhat.io/ubi8/ubi-minimal
+var _testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile = []byte(`FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 ENV foo=foo
 ADD ./${foo} /tmp/foo
 `)
@@ -19998,7 +19998,7 @@ spec:
         version: 2.x
       from:
         kind: DockerImage
-        name: registry.redhat.io/ocp-tools-4/jenkins-rhel8:v4.13.0
+        name: registry.redhat.io/ocp-tools-4/jenkins-rhel8:v4.13.0-1686682222
       referencePolicy:
         type: Local
     - name: "scheduled-upgrade-redeploy"
@@ -20016,7 +20016,7 @@ spec:
         version: 2.x
       from:
         kind: DockerImage
-        name: registry.redhat.io/ocp-tools-4/jenkins-rhel8:v4.13.0
+        name: registry.redhat.io/ocp-tools-4/jenkins-rhel8:v4.13.0-1686682222
       importPolicy:
         scheduled: true
       referencePolicy:
@@ -21213,7 +21213,7 @@ items:
     mountTrustedCA: true
     source:
       dockerfile: |
-        FROM registry.redhat.io/ubi8/ubi:latest
+        FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         RUN cat /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
     strategy:
       dockerStrategy:
@@ -21221,9 +21221,8 @@ items:
           - name: "BUILD_LOGLEVEL"
             value: "2"
         from:
-          kind: ImageStreamTag
-          name: cli
-          namespace: openshift
+          kind: DockerImage
+          name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 `)
 
 func testExtendedTestdataBuildsTestBuildProxyYamlBytes() ([]byte, error) {
@@ -21518,7 +21517,7 @@ items:
     source:
       type: Dockerfile
       dockerfile: |-
-        FROM registry.access.redhat.com/ubi8/ruby-27
+        FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         ARG foofoo
         RUN echo $foofoo
     strategy:
@@ -21547,7 +21546,7 @@ items:
     source:
       type: Dockerfile
       dockerfile: |-
-        FROM registry.access.redhat.com/ubi8/ruby-27
+        FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         ARG foofoo
         RUN echo $foofoo
     strategy:

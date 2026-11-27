@@ -19,7 +19,8 @@ import (
 
 var _ = g.Describe("[Suite:openshift/usernamespace] [sig-node] [FeatureGate:ProcMountType] [FeatureGate:UserNamespacesSupport] nested container", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("nested-podman", admissionapi.LevelBaseline)
-	g.It("should pass podman localsystem test in baseline mode",
+	// Builds from Fedora with dnf downloads and a GitHub source checkout.
+	g.It("should pass podman localsystem test in baseline mode [Skipped:Disconnected]",
 		func(ctx context.Context) {
 			runNestedPod(ctx, oc)
 		},
