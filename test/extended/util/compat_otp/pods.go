@@ -103,6 +103,19 @@ func RemoteShPod(oc *exutil.CLI, namespace string, podName string, cmd ...string
 	return remoteShPod(oc, namespace, podName, false, false, "", cmd...)
 }
 
+// RemoteExecPod runs cmd inside the given pod via "oc exec" instead of "oc rsh".
+//
+// "oc rsh"-captured output gets hard-truncated at 16KB (confirmed by direct experimentation,
+// see https://github.com/openshift/openshift-tests-private/pull/30147), corrupting the result
+// once a response exceeds that size. "oc exec" does not have this limit, so callers that may
+// receive large output (e.g. Prometheus query/alert responses on a busy cluster) should use this
+// instead of RemoteShPod.
+func RemoteExecPod(oc *exutil.CLI, namespace string, podName string, cmd ...string) (string, error) {
+	args := []string{"-n", namespace, podName, "--"}
+	args = append(args, cmd...)
+	return oc.AsAdmin().WithoutNamespace().Run("exec").Args(args...).Output()
+}
+
 // RemoteShPodWithChroot creates a remote shell of the pod with chroot
 func RemoteShPodWithChroot(oc *exutil.CLI, namespace string, podName string, cmd ...string) (string, error) {
 	return remoteShPod(oc, namespace, podName, false, true, "", cmd...)
