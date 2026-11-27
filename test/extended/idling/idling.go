@@ -208,6 +208,9 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 		serviceName := resources["service"][0]
 		g.By("Waiting for endpoints to be up")
 		err = exutil.WaitForEndpointsAvailable(oc, serviceName)
+		// Record what the rollout and the endpoints looked like while the
+		// namespace still exists; the assertion below ends the spec.
+		logIdlingSetupDiagnostics(context.Background(), oc, err, serviceName, resources)
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
