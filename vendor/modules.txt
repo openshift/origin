@@ -1953,6 +1953,7 @@ github.com/openshift/library-go/test/library/apiserver
 github.com/openshift/library-go/test/library/metrics
 # github.com/openshift/origin/test/shared v0.0.0 => ./test/shared
 ## explicit; go 1.26.0
+github.com/openshift/origin/test/shared/registryauth
 github.com/openshift/origin/test/shared/updateservice
 # github.com/openshift/osincli v0.0.0-20160924135400-fababb0555f2
 ## explicit
