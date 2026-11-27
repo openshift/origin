@@ -262,7 +262,8 @@ func verifyTNFCollectorEvents(ctx context.Context, stream watch.Interface, cronN
 			if !ok {
 				return fmt.Errorf("unexpected collector Job watch object %T", event.Object)
 			}
-			if event.Type == watch.Added && tnfScheduledJob(job, cronName) {
+			// The manual Job inherits the collector label from its Pod template.
+			if event.Type == watch.Added && job.Name != manualName && tnfScheduledJob(job, cronName) {
 				return fmt.Errorf("scheduled collector %s started during verification", job.Name)
 			}
 			if event.Type == watch.Deleted && job.Name == manualName {
