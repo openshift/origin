@@ -9,7 +9,7 @@ objects:
     name: "${NAME}"
     namespace: "${NAMESPACE}" 
     annotations:
-      io.kubernetes.cri-o.LinkLogs: "logging-volume"
+      link-logs.crio.io: "logging-volume"
   spec:
     containers:
     - name: httpd
