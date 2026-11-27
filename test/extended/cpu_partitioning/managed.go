@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	ocpv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -202,9 +203,9 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 })
 
 func cleanup(oc *exutil.CLI, namespace string) error {
-	ctx := context.Background()
-	delOpts := metav1.DeleteOptions{}
-	return oc.KubeClient().CoreV1().Namespaces().Delete(ctx, namespace, delOpts)
+	ctx, cancel := context.WithTimeout(context.Background(), framework.DefaultNamespaceDeletionTimeout)
+	defer cancel()
+	return deleteNamespaceAndWait(ctx, oc.KubeClient().CoreV1().Namespaces(), namespace)
 }
 
 func createNamespace(oc *exutil.CLI, name string, annotations map[string]string) error {
