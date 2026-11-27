@@ -49,6 +49,9 @@ const (
 	aggressiveMaxRetries = 10
 	// will consider a test flaky if it fails less than this many times
 	aggressiveMinFailureThreshold = 3
+	// completed additional attempts at or above this cutoff trigger an
+	// immediate duration-policy failure, even if the attempt passed.
+	aggressiveAdditionalAttemptDurationCutoff = aggressiveMaximumTestDuration * 3 / 2
 )
 
 // RetryOutcome represents the decision for a multi-retry test
@@ -58,6 +61,7 @@ const (
 	RetryOutcomeFail RetryOutcome = iota
 	RetryOutcomeFlaky
 	RetryOutcomeSkipped
+	RetryOutcomeDurationPolicyFail
 )
 
 // RetryStrategy controls both retry behavior and final outcome decisions
@@ -143,6 +147,18 @@ func (s *RetryOnceStrategy) shouldRetryTest(test *testCase) bool {
 	return false
 }
 
+// findDurationPolicyViolation returns the 1-based attempt number and duration
+// of the first additional attempt (index > 0) that equals or exceeds the
+// aggressive duration-policy cutoff. Returns 0 if no violation is found.
+func findDurationPolicyViolation(attempts []*testCase) (attemptNum int, dur time.Duration) {
+	for i, attempt := range attempts[1:] {
+		if attempt.duration >= aggressiveAdditionalAttemptDurationCutoff {
+			return i + 2, attempt.duration
+		}
+	}
+	return 0, 0
+}
+
 // AggressiveRetryStrategy implements the multiple retry behavior with fixed failure threshold
 type AggressiveRetryStrategy struct {
 	maxRetries       int
@@ -185,6 +201,13 @@ func (s *AggressiveRetryStrategy) ShouldContinue(originalFailure *testCase, allA
 		return false
 	}
 
+	// Duration policy: stop if any completed additional attempt hit the cutoff
+	if attemptNum, dur := findDurationPolicyViolation(allAttempts); attemptNum > 0 {
+		logrus.Debugf("Stopping retry: attempt %d duration %s >= cutoff %s for %q",
+			attemptNum, dur, aggressiveAdditionalAttemptDurationCutoff, originalFailure.name)
+		return false
+	}
+
 	// Count current failures to avoid unnecessary retries
 	failureCount := 0
 	for _, attempt := range allAttempts {
@@ -217,6 +240,12 @@ func (s *AggressiveRetryStrategy) ShouldContinue(originalFailure *testCase, allA
 }
 
 func (s *AggressiveRetryStrategy) DecideOutcome(attempts []*testCase) RetryOutcome {
+	// Duration policy: any additional attempt at or above the cutoff overrides
+	// all other outcome logic and produces an explicit duration-policy failure.
+	if attemptNum, _ := findDurationPolicyViolation(attempts); attemptNum > 0 {
+		return RetryOutcomeDurationPolicyFail
+	}
+
 	failureCount := 0
 	skippedCount := 0
 
@@ -337,6 +366,8 @@ func writeRetryStatistics(testAttempts map[string][]*testCase, retryStrategy Ret
 			finalOutcomeStr = "failed"
 		case RetryOutcomeSkipped:
 			finalOutcomeStr = "skipped"
+		case RetryOutcomeDurationPolicyFail:
+			finalOutcomeStr = "duration_policy_failure"
 		default:
 			finalOutcomeStr = "unknown"
 		}
