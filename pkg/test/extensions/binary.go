@@ -325,6 +325,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/k8s-tests-ext.gz",
 	},
 	{
+		imageTag:   "insights-operator",
+		binaryPath: "/usr/bin/insights-operator-tests.gz",
+	},
+	{
 		imageTag:   "keepalived-ipfailover",
 		binaryPath: "/usr/bin/ipfailover-tests-ext.gz",
 	},
