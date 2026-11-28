@@ -13,7 +13,6 @@ import (
 type ConfigV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	BackupsGetter
-	CRIOCredentialProviderConfigsGetter
 	ClusterMonitoringsGetter
 	ControllerManagersGetter
 	InsightsDataGathersGetter
@@ -27,10 +26,6 @@ type ConfigV1alpha1Client struct {
 
 func (c *ConfigV1alpha1Client) Backups() BackupInterface {
 	return newBackups(c)
-}
-
-func (c *ConfigV1alpha1Client) CRIOCredentialProviderConfigs() CRIOCredentialProviderConfigInterface {
-	return newCRIOCredentialProviderConfigs(c)
 }
 
 func (c *ConfigV1alpha1Client) ClusterMonitorings() ClusterMonitoringInterface {

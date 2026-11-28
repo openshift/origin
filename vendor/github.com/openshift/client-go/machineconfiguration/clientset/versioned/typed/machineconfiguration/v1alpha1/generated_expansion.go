@@ -2,6 +2,8 @@
 
 package v1alpha1
 
+type BGPVIPConfigExpansion interface{}
+
 type InternalReleaseImageExpansion interface{}
 
 type OSImageStreamExpansion interface{}

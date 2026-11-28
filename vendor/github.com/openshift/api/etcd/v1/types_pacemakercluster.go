@@ -14,6 +14,7 @@ const (
 	// Specifically, it aggregates the following conditions:
 	// - ClusterInServiceConditionType
 	// - ClusterNodeCountAsExpectedConditionType
+	// - ClusterFencingEnabledConditionType
 	// - NodeHealthyConditionType (for each node)
 	// When True, the cluster is healthy with reason "ClusterHealthy".
 	// When False, the cluster is unhealthy with reason "ClusterUnhealthy".
@@ -30,6 +31,16 @@ const (
 	// When True, the expected number of nodes are present with reason "AsExpected".
 	// When False, the node count is incorrect with reason "InsufficientNodes" or "ExcessiveNodes".
 	ClusterNodeCountAsExpectedConditionType = "NodeCountAsExpected"
+
+	// ClusterFencingEnabledConditionType tracks whether STONITH (fencing) is enabled in the cluster.
+	// Fencing is the mechanism that isolates failed nodes by powering them off via BMC. In Two Node
+	// OpenShift with Fencing, fencing is mandatory — without it, a network partition leaves both nodes
+	// running and data diverges. If someone runs `pcs property set stonith-enabled=false`, fencing is
+	// globally disabled and the cluster cannot recover from node failures.
+	// When True, fencing is enabled with reason "FencingEnabled". This is the normal operating state.
+	// When False, fencing is globally disabled with reason "FencingDisabled". This is a critical state.
+	// When Unknown, the fencing-enabled property has not yet been observed with reason "Pending".
+	ClusterFencingEnabledConditionType = "FencingEnabled"
 )
 
 // ClusterHealthy condition reasons
@@ -72,6 +83,23 @@ const (
 	ClusterNodeCountAsExpectedReasonExcessiveNodes = "ExcessiveNodes"
 )
 
+// ClusterFencingEnabled condition reasons
+const (
+	// ClusterFencingEnabledReasonEnabled means fencing (STONITH) is enabled in the cluster.
+	// This is the normal and expected operating state for Two Node OpenShift with Fencing.
+	ClusterFencingEnabledReasonEnabled = "FencingEnabled"
+
+	// ClusterFencingEnabledReasonDisabled means fencing (STONITH) is globally disabled in the cluster.
+	// Without fencing, the cluster cannot isolate failed nodes and etcd quorum recovery cannot happen.
+	// This is a critical state that should be investigated immediately.
+	ClusterFencingEnabledReasonDisabled = "FencingDisabled"
+
+	// ClusterFencingEnabledReasonPending means the fencing-enabled property has not yet been observed
+	// by the status collector. This is expected to be temporary, for example immediately after upgrade
+	// or before the first successful status collection.
+	ClusterFencingEnabledReasonPending = "Pending"
+)
+
 // Node-level condition types for PacemakerCluster.status.nodes[].conditions
 const (
 	// NodeHealthyConditionType tracks the overall health of a node in the pacemaker cluster.
@@ -86,6 +114,7 @@ const (
 	// - NodeFencingAvailableConditionType
 	// - NodeFencingHealthyConditionType
 	// - ResourceHealthyConditionType (for each resource in the node's resources list)
+	// - NodeAlertAgentsHealthyConditionType (when present)
 	// When True, the node is healthy with reason "NodeHealthy".
 	// When False, the node is unhealthy with reason "NodeUnhealthy".
 	NodeHealthyConditionType = "Healthy"
@@ -142,6 +171,16 @@ const (
 	// When False, one or more fencing agents are unhealthy with reason "FencingUnhealthy". Warning events
 	// should be emitted for failing agents, but the operator should not be degraded if FencingAvailable is True.
 	NodeFencingHealthyConditionType = "FencingHealthy"
+
+	// NodeAlertAgentsHealthyConditionType is an aggregate of the health of entries in the node's
+	// alertAgents list. Collectors report this condition only when the TNFObservability
+	// feature gate is enabled. Unlike the other node-level conditions, it is optional: it is absent
+	// when the feature gate is disabled, the status collector version predates alert-agent tracking,
+	// or the collector hasn't observed alert-agent status this run yet. Its absence does not fail validation.
+	// When True, all tracked alert agents are healthy with reason "AllAlertAgentsHealthy".
+	// When False, one or more tracked alert agents are unhealthy with reason "SomeAlertAgentsUnhealthy".
+	// When Unknown, the health of the tracked alert agents has not yet been determined with reason "Pending".
+	NodeAlertAgentsHealthyConditionType = "AlertAgentsHealthy"
 )
 
 // NodeHealthy condition reasons
@@ -240,6 +279,21 @@ const (
 	// Warning events should be emitted for failing agents, but the operator should not be degraded
 	// if FencingAvailable is still True.
 	NodeFencingHealthyReasonUnhealthy = "FencingUnhealthy"
+)
+
+// NodeAlertAgentsHealthy condition reasons
+const (
+	// NodeAlertAgentsHealthyReasonHealthy means all alert agents tracked for this node are healthy.
+	// This is the normal operating state.
+	NodeAlertAgentsHealthyReasonHealthy = "AllAlertAgentsHealthy"
+
+	// NodeAlertAgentsHealthyReasonUnhealthy means one or more alert agents tracked for this node are
+	// unhealthy. This is an unexpected state.
+	NodeAlertAgentsHealthyReasonUnhealthy = "SomeAlertAgentsUnhealthy"
+
+	// NodeAlertAgentsHealthyReasonPending means the health of the tracked alert agents has not yet
+	// been determined. Used only with status "Unknown".
+	NodeAlertAgentsHealthyReasonPending = "Pending"
 )
 
 // Resource-level condition types for PacemakerCluster.status.nodes[].resources[].conditions
@@ -398,6 +452,78 @@ const (
 	ResourceSchedulableReasonUnschedulable = "Unschedulable"
 )
 
+// AlertAgent-level condition types for PacemakerCluster.status.nodes[].alertAgents[].conditions
+const (
+	// AlertAgentHealthyConditionType tracks the overall health of a pacemaker alert agent.
+	// This is an aggregate of AlertAgentConfiguredConditionType and AlertAgentAvailableConditionType.
+	// When True, the alert agent is healthy with reason "AlertAgentHealthy".
+	// When False, the alert agent is unhealthy with reason "AlertAgentUnhealthy".
+	// When Unknown, health has not yet been determined because one or both underlying signals have
+	// not been observed, with reason "Pending".
+	AlertAgentHealthyConditionType = "Healthy"
+
+	// AlertAgentConfiguredConditionType tracks whether the alert agent is registered in the CIB's
+	// <alerts> section with the expected script path and event filter. This reflects a single
+	// cluster-wide CIB entry, so it has the same value on every node.
+	// When True, the agent is configured with reason "Configured". This is the normal operating state.
+	// When False, the agent is not registered with reason "NotRegistered", or registered but
+	// misconfigured with reason "Misconfigured".
+	// When Unknown, registration has not yet been observed this run with reason "Pending"; this is
+	// expected to be temporary.
+	AlertAgentConfiguredConditionType = "Configured"
+
+	// AlertAgentAvailableConditionType tracks whether the alert agent's delivery chain (script, helper
+	// script, systemd unit, sudoers entry) is present and executable on this node. These artifacts are
+	// delivered to each node independently by MCO.
+	// When True, the chain is present with reason "Available". This is the normal operating state.
+	// When False, part of the chain is missing from this node with reason "Unavailable".
+	// When Unknown, availability has not yet been observed this run with reason "Pending"; this is
+	// expected to be temporary.
+	AlertAgentAvailableConditionType = "Available"
+)
+
+// AlertAgentHealthy condition reasons
+const (
+	// AlertAgentHealthyReasonHealthy means the alert agent is healthy and operating normally.
+	AlertAgentHealthyReasonHealthy = "AlertAgentHealthy"
+
+	// AlertAgentHealthyReasonUnhealthy means the alert agent has issues that need investigation.
+	AlertAgentHealthyReasonUnhealthy = "AlertAgentUnhealthy"
+)
+
+// AlertAgentConfigured condition reasons
+const (
+	// AlertAgentConfiguredReasonConfigured means the alert agent is registered in the CIB as expected.
+	// This is the normal operating state.
+	AlertAgentConfiguredReasonConfigured = "Configured"
+
+	// AlertAgentConfiguredReasonNotRegistered means the alert agent is not registered in the CIB.
+	AlertAgentConfiguredReasonNotRegistered = "NotRegistered"
+
+	// AlertAgentConfiguredReasonMisconfigured means the alert agent is registered with an unexpected
+	// script path or event filter.
+	AlertAgentConfiguredReasonMisconfigured = "Misconfigured"
+
+	// AlertAgentConfiguredReasonPending means registration has not yet been observed this run by the
+	// status collector. Used only with status "Unknown"; expected to be temporary, e.g. after upgrade.
+	AlertAgentConfiguredReasonPending = "Pending"
+)
+
+// AlertAgentAvailable condition reasons
+const (
+	// AlertAgentAvailableReasonAvailable means the agent's delivery chain is present and executable on
+	// this node. This is the normal operating state.
+	AlertAgentAvailableReasonAvailable = "Available"
+
+	// AlertAgentAvailableReasonUnavailable means part of the agent's delivery chain is missing or not
+	// executable on this node.
+	AlertAgentAvailableReasonUnavailable = "Unavailable"
+
+	// AlertAgentAvailableReasonPending means availability has not yet been observed this run by the
+	// status collector. Used only with status "Unknown"; expected to be temporary.
+	AlertAgentAvailableReasonPending = "Pending"
+)
+
 // PacemakerNodeAddressType represents the type of a node address.
 // Currently only InternalIP is supported.
 // +kubebuilder:validation:Enum=InternalIP
@@ -447,6 +573,23 @@ const (
 	PacemakerClusterResourceNameEtcd PacemakerClusterResourceName = "Etcd"
 )
 
+// PacemakerClusterAlertAgentName represents the name of a pacemaker alert agent.
+// Valid values are "TaintAlertAgent" and "UntaintAlertAgent".
+// Unlike a pacemaker resource, an alert agent is registered in the CIB's <alerts> section rather than
+// its <resources> section: pacemaker does not start, stop, monitor, or move it.
+// +kubebuilder:validation:Enum=TaintAlertAgent;UntaintAlertAgent
+// +enum
+type PacemakerClusterAlertAgentName string
+
+// PacemakerClusterAlertAgentName values
+const (
+	// PacemakerClusterAlertAgentNameTaint is the alert agent that taints a node after it is fenced.
+	PacemakerClusterAlertAgentNameTaint PacemakerClusterAlertAgentName = "TaintAlertAgent"
+
+	// PacemakerClusterAlertAgentNameUntaint is the alert agent that removes a node's taint once it rejoins the cluster.
+	PacemakerClusterAlertAgentNameUntaint PacemakerClusterAlertAgentName = "UntaintAlertAgent"
+)
+
 // FencingMethod represents the method used by a fencing agent to isolate failed nodes.
 // Valid values are "Redfish" and "IPMI".
 // +kubebuilder:validation:Enum=Redfish;IPMI
@@ -476,7 +619,6 @@ const (
 // +kubebuilder:subresource:status
 // +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/2544
 // +openshift:file-pattern=cvoRunLevel=0000_25,operatorName=etcd,operatorOrdering=01,operatorComponent=two-node-fencing
-// +openshift:enable:FeatureGate=DualReplica
 // +kubebuilder:validation:XValidation:rule="self.metadata.name == 'cluster'",message="PacemakerCluster must be named 'cluster'"
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.status) || has(self.status)",message="status may not be removed once set"
 type PacemakerCluster struct {
@@ -502,11 +644,18 @@ type PacemakerCluster struct {
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.lastUpdated) || self.lastUpdated >= oldSelf.lastUpdated",message="lastUpdated may not be set to an earlier timestamp"
 type PacemakerClusterStatus struct {
 	// conditions represent the observations of the pacemaker cluster's current state.
-	// Known condition types are: "Healthy", "InService", "NodeCountAsExpected".
+	// Known condition types are: "Healthy", "InService", "NodeCountAsExpected", "FencingEnabled".
 	// The "Healthy" condition is an aggregate that tracks the overall health of the cluster.
 	// The "InService" condition tracks whether the cluster is in service (not in maintenance mode).
 	// The "NodeCountAsExpected" condition tracks whether the expected number of nodes are present.
-	// Each of these conditions is required, so the array must contain at least 3 items.
+	// The "FencingEnabled" condition tracks whether STONITH (fencing) is enabled in the cluster.
+	// The "Healthy", "InService", and "NodeCountAsExpected" conditions are required, so the array
+	// must contain at least 3 items. The "FencingEnabled" condition is optional and is omitted
+	// when the status collector has not yet observed the stonith-enabled property, for example
+	// immediately after an upgrade from a version that does not report it. The "FencingEnabled"
+	// condition is only reported when the TNFObservability feature gate is enabled. When the gate
+	// is enabled and the condition is present, its reason must be one of "FencingEnabled",
+	// "FencingDisabled", or "Pending".
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MinItems=3
@@ -514,6 +663,7 @@ type PacemakerClusterStatus struct {
 	// +kubebuilder:validation:XValidation:rule="self.exists(c, c.type == 'Healthy')",message="conditions must contain a condition of type Healthy"
 	// +kubebuilder:validation:XValidation:rule="self.exists(c, c.type == 'InService')",message="conditions must contain a condition of type InService"
 	// +kubebuilder:validation:XValidation:rule="self.exists(c, c.type == 'NodeCountAsExpected')",message="conditions must contain a condition of type NodeCountAsExpected"
+	// +openshift:validation:FeatureGateAwareXValidation:featureGate=TNFObservability,rule="self.all(c, c.type != 'FencingEnabled' || c.reason in ['FencingEnabled', 'FencingDisabled', 'Pending'])",message="the FencingEnabled condition reason must be one of FencingEnabled, FencingDisabled, Pending"
 	// +required
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
@@ -538,6 +688,10 @@ type PacemakerClusterStatus struct {
 
 // PacemakerClusterNodeStatus represents the status of a single node in the pacemaker cluster including
 // the node's conditions and the health of critical resources running on that node.
+// When the TNFObservability feature gate is enabled, once a status collector reports
+// alertAgents for a node, later updates may not remove it. The field remains optional to tolerate
+// collector versions that predate alert-agent tracking.
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=TNFObservability,rule="!has(oldSelf.alertAgents) || has(self.alertAgents)",message="alertAgents may not be removed once set"
 type PacemakerClusterNodeStatus struct {
 	// conditions represent the observations of the node's current state.
 	// Known condition types are: "Healthy", "Online", "InService", "Active", "Ready", "Clean", "Member",
@@ -552,6 +706,11 @@ type PacemakerClusterNodeStatus struct {
 	// The "FencingAvailable" condition tracks whether this node can be fenced by at least one healthy agent.
 	// The "FencingHealthy" condition tracks whether all fencing agents for this node are healthy.
 	// Each of these conditions is required, so the array must contain at least 9 items.
+	// An optional "AlertAgentsHealthy" condition (see NodeAlertAgentsHealthyConditionType) may also be
+	// reported when the TNFObservability feature gate is enabled; it is not one of the
+	// required 9 and its absence does not affect validation.
+	// When reported as Unknown with reason "Pending", "AlertAgentsHealthy" means the health of
+	// the tracked alert agents has not yet been determined.
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MinItems=9
@@ -619,6 +778,22 @@ type PacemakerClusterNodeStatus struct {
 	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="fencing agent names must be unique"
 	// +required
 	FencingAgents []PacemakerClusterFencingAgentStatus `json:"fencingAgents,omitempty"`
+
+	// alertAgents contains the status of pacemaker alert agents tracked for this node.
+	// Unlike resources, an alert agent is not managed by pacemaker: it is a script registered in the
+	// CIB's <alerts> section, delivered to this node independently by MCO. Valid alert agent names are
+	// "TaintAlertAgent" and "UntaintAlertAgent". Names must be unique within this array.
+	// This field is optional. When omitted, alert agent status is not reported for this node.
+	// This field is available only when the TNFObservability feature gate is enabled.
+	// When present, the array must contain exactly 2 items: one TaintAlertAgent and one UntaintAlertAgent.
+	// +openshift:enable:FeatureGate=TNFObservability
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=2
+	// +kubebuilder:validation:MaxItems=2
+	// +kubebuilder:validation:XValidation:rule="self.exists(x, x.name == 'TaintAlertAgent') && self.exists(x, x.name == 'UntaintAlertAgent')",message="alert agents must contain both TaintAlertAgent and UntaintAlertAgent"
+	// +optional
+	AlertAgents []PacemakerClusterAlertAgentStatus `json:"alertAgents,omitempty"`
 }
 
 // PacemakerClusterFencingAgentStatus represents the status of a fencing agent that can fence a node.
@@ -716,6 +891,38 @@ type PacemakerClusterResourceStatus struct {
 	// Fencing agents are tracked separately in the node's fencingAgents field.
 	// +required
 	Name PacemakerClusterResourceName `json:"name,omitempty"`
+}
+
+// PacemakerClusterAlertAgentStatus represents the status of a pacemaker alert agent tracked on a node.
+// Unlike a pacemaker resource, an alert agent is registered in the CIB's <alerts> section rather than
+// its <resources> section: pacemaker does not start, stop, monitor, or move it. Its delivery chain
+// (script, helper script, systemd unit, sudoers entry) is delivered to each node independently by MCO.
+type PacemakerClusterAlertAgentStatus struct {
+	// conditions represent the observations of the alert agent's current state.
+	// Known condition types are: "Healthy", "Configured", "Available".
+	// The "Healthy" condition is an aggregate that tracks the overall health of the alert agent.
+	// The "Configured" condition tracks whether the alert agent is registered in the CIB as expected.
+	// The "Available" condition tracks whether the agent's full delivery chain is present on this node.
+	// The "Healthy" condition may be Unknown with reason "Pending" when health has not yet been determined.
+	// Each of these conditions is required, so the array must contain exactly 3 items.
+	// A condition with reason "Pending" must have status "Unknown".
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MinItems=3
+	// +kubebuilder:validation:MaxItems=3
+	// +kubebuilder:validation:XValidation:rule="self.exists(c, c.type == 'Healthy')",message="conditions must contain a condition of type Healthy"
+	// +kubebuilder:validation:XValidation:rule="self.exists(c, c.type == 'Configured')",message="conditions must contain a condition of type Configured"
+	// +kubebuilder:validation:XValidation:rule="self.exists(c, c.type == 'Available')",message="conditions must contain a condition of type Available"
+	// +kubebuilder:validation:XValidation:rule="self.all(c, c.reason != 'Pending' || c.status == 'Unknown')",message="reason Pending is only valid when status is Unknown"
+	// +required
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// name is required and identifies the alert agent.
+	// Valid values are "TaintAlertAgent" and "UntaintAlertAgent".
+	// The TaintAlertAgent taints a node after it is fenced.
+	// The UntaintAlertAgent removes a node's taint once it rejoins the cluster.
+	// +required
+	Name PacemakerClusterAlertAgentName `json:"name,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

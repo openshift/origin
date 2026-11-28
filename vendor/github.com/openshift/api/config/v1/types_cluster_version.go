@@ -18,14 +18,15 @@ import (
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=clusterversions,scope=Cluster
-// +openshift:validation:FeatureGateAwareXValidation:featureGate="";CRDCompatibilityRequirementOperator;ClusterAPIMachineManagement,rule="has(self.spec.capabilities) && has(self.spec.capabilities.additionalEnabledCapabilities) && self.spec.capabilities.baselineCapabilitySet == 'None' && 'marketplace' in self.spec.capabilities.additionalEnabledCapabilities ? 'OperatorLifecycleManager' in self.spec.capabilities.additionalEnabledCapabilities || (has(self.status) && has(self.status.capabilities) && has(self.status.capabilities.enabledCapabilities) && 'OperatorLifecycleManager' in self.status.capabilities.enabledCapabilities) : true",message="the `marketplace` capability requires the `OperatorLifecycleManager` capability, which is neither explicitly or implicitly enabled in this cluster, please enable the `OperatorLifecycleManager` capability"
-// +openshift:validation:FeatureGateAwareXValidation:requiredFeatureGate=CRDCompatibilityRequirementOperator;ClusterAPIMachineManagement,rule="has(self.spec.capabilities) && has(self.spec.capabilities.additionalEnabledCapabilities) && 'ClusterAPI' in self.spec.capabilities.additionalEnabledCapabilities ? 'CompatibilityRequirements' in self.spec.capabilities.additionalEnabledCapabilities || (has(self.status) && has(self.status.capabilities) && has(self.status.capabilities.enabledCapabilities) && 'CompatibilityRequirements' in self.status.capabilities.enabledCapabilities) : true",message="the `ClusterAPI` capability requires the `CompatibilityRequirements` capability, which is neither explicitly or implicitly enabled in this cluster, please enable the `CompatibilityRequirements` capability"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate="";CRDCompatibilityRequirementOperator,rule="has(self.spec.capabilities) && has(self.spec.capabilities.additionalEnabledCapabilities) && self.spec.capabilities.baselineCapabilitySet == 'None' && 'marketplace' in self.spec.capabilities.additionalEnabledCapabilities ? 'OperatorLifecycleManager' in self.spec.capabilities.additionalEnabledCapabilities || (has(self.status) && has(self.status.capabilities) && has(self.status.capabilities.enabledCapabilities) && 'OperatorLifecycleManager' in self.status.capabilities.enabledCapabilities) : true",message="the `marketplace` capability requires the `OperatorLifecycleManager` capability, which is neither explicitly or implicitly enabled in this cluster, please enable the `OperatorLifecycleManager` capability"
+// +openshift:validation:FeatureGateAwareXValidation:requiredFeatureGate=CRDCompatibilityRequirementOperator;ClusterAPIOperator,rule="has(self.spec.capabilities) && has(self.spec.capabilities.additionalEnabledCapabilities) && 'ClusterAPI' in self.spec.capabilities.additionalEnabledCapabilities ? 'CompatibilityRequirements' in self.spec.capabilities.additionalEnabledCapabilities || !has(self.spec.capabilities.baselineCapabilitySet) || self.spec.capabilities.baselineCapabilitySet == 'vCurrent' || (has(self.status) && has(self.status.capabilities) && has(self.status.capabilities.enabledCapabilities) && 'CompatibilityRequirements' in self.status.capabilities.enabledCapabilities) : true",message="the `ClusterAPI` capability requires the `CompatibilityRequirements` capability, which is neither explicitly or implicitly enabled in this cluster, please enable the `CompatibilityRequirements` capability"
 // +kubebuilder:printcolumn:name=Version,JSONPath=.status.history[?(@.state=="Completed")].version,type=string
 // +kubebuilder:printcolumn:name=Available,JSONPath=.status.conditions[?(@.type=="Available")].status,type=string
 // +kubebuilder:printcolumn:name=Progressing,JSONPath=.status.conditions[?(@.type=="Progressing")].status,type=string
 // +kubebuilder:printcolumn:name=Since,JSONPath=.status.conditions[?(@.type=="Progressing")].lastTransitionTime,type=date
 // +kubebuilder:printcolumn:name=Status,JSONPath=.status.conditions[?(@.type=="Progressing")].message,type=string
 // +kubebuilder:metadata:annotations=include.release.openshift.io/self-managed-high-availability=true
+// +kubebuilder:metadata:annotations=release.openshift.io/bootstrap-required=true
 type ClusterVersion struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -304,11 +305,20 @@ const (
 	ClusterVersionArchitectureMulti ClusterVersionArchitecture = "Multi"
 )
 
+// The FeatureGateAwareEnum markers below all write the same enum field, and the
+// generator keeps same-named markers in source order and applies the last one
+// that matches, so with several gates enabled the lowest marker wins. Keep the
+// markers ordered from fewest to most capabilities, with the combined
+// requiredFeatureGate marker last, so that the enum does not silently shrink
+// when more than one of these gates is enabled.
+// This comment is deliberately detached from the doc comment below: anything in
+// that block becomes the generated schema description.
+
 // ClusterVersionCapability enumerates optional, core cluster components.
 // +openshift:validation:FeatureGateAwareEnum:featureGate="",enum=openshift-samples;baremetal;marketplace;Console;Insights;Storage;CSISnapshot;NodeTuning;MachineAPI;Build;DeploymentConfig;ImageRegistry;OperatorLifecycleManager;CloudCredential;Ingress;CloudControllerManager;OperatorLifecycleManagerV1
 // +openshift:validation:FeatureGateAwareEnum:featureGate=CRDCompatibilityRequirementOperator,enum=openshift-samples;baremetal;marketplace;Console;Insights;Storage;CSISnapshot;NodeTuning;MachineAPI;Build;DeploymentConfig;ImageRegistry;OperatorLifecycleManager;CloudCredential;Ingress;CloudControllerManager;OperatorLifecycleManagerV1;CompatibilityRequirements
-// +openshift:validation:FeatureGateAwareEnum:featureGate=ClusterAPIMachineManagement,enum=openshift-samples;baremetal;marketplace;Console;Insights;Storage;CSISnapshot;NodeTuning;MachineAPI;Build;DeploymentConfig;ImageRegistry;OperatorLifecycleManager;CloudCredential;Ingress;CloudControllerManager;OperatorLifecycleManagerV1;CompatibilityRequirements;ClusterAPI
-// +openshift:validation:FeatureGateAwareEnum:requiredFeatureGate=CRDCompatibilityRequirementOperator;ClusterAPIMachineManagement,enum=openshift-samples;baremetal;marketplace;Console;Insights;Storage;CSISnapshot;NodeTuning;MachineAPI;Build;DeploymentConfig;ImageRegistry;OperatorLifecycleManager;CloudCredential;Ingress;CloudControllerManager;OperatorLifecycleManagerV1;CompatibilityRequirements;ClusterAPI
+// +openshift:validation:FeatureGateAwareEnum:featureGate=ClusterAPIOperator,enum=openshift-samples;baremetal;marketplace;Console;Insights;Storage;CSISnapshot;NodeTuning;MachineAPI;Build;DeploymentConfig;ImageRegistry;OperatorLifecycleManager;CloudCredential;Ingress;CloudControllerManager;OperatorLifecycleManagerV1;ClusterAPI
+// +openshift:validation:FeatureGateAwareEnum:requiredFeatureGate=CRDCompatibilityRequirementOperator;ClusterAPIOperator,enum=openshift-samples;baremetal;marketplace;Console;Insights;Storage;CSISnapshot;NodeTuning;MachineAPI;Build;DeploymentConfig;ImageRegistry;OperatorLifecycleManager;CloudCredential;Ingress;CloudControllerManager;OperatorLifecycleManagerV1;CompatibilityRequirements;ClusterAPI
 type ClusterVersionCapability string
 
 const (
@@ -671,6 +681,7 @@ var ClusterVersionCapabilitySets = map[ClusterVersionCapabilitySet][]ClusterVers
 // ClusterVersionCapabilitiesSpec selects the managed set of
 // optional, core cluster components.
 // +k8s:deepcopy-gen=true
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=ClusterAPIOperator,rule="!has(self.baselineCapabilitySet) || size(self.baselineCapabilitySet) == 0 || self.baselineCapabilitySet == 'vCurrent' || (self.baselineCapabilitySet == 'None' && (!has(self.additionalEnabledCapabilities) || !('MachineAPI' in self.additionalEnabledCapabilities))) || (has(self.additionalEnabledCapabilities) && 'ClusterAPI' in self.additionalEnabledCapabilities)",message="the MachineAPI capability requires the ClusterAPI capability"
 type ClusterVersionCapabilitiesSpec struct {
 	// baselineCapabilitySet selects an initial set of
 	// optional capabilities to enable, which can be extended via
@@ -828,7 +839,6 @@ type Release struct {
 	// architecture.
 	// Valid values are 'Multi' and empty.
 	//
-	// +openshift:enable:FeatureGate=ImageStreamImportMode
 	// +optional
 	Architecture ClusterVersionArchitecture `json:"architecture,omitempty"`
 

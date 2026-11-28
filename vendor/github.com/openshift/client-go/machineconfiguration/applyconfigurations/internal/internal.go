@@ -133,6 +133,114 @@ var schemaYAML = typed.YAMLObject(`types:
     elementType:
       namedType: __untyped_deduced_
     elementRelationship: separable
+- name: com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPConfig
+  map:
+    fields:
+    - name: apiVersion
+      type:
+        scalar: string
+    - name: kind
+      type:
+        scalar: string
+    - name: metadata
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+      default: {}
+    - name: spec
+      type:
+        namedType: com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPConfigSpec
+      default: {}
+    - name: status
+      type:
+        namedType: com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPConfigStatus
+      default: {}
+- name: com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPConfigSpec
+  map:
+    fields:
+    - name: communities
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: associative
+    - name: defaultPeers
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPPeer
+          elementRelationship: associative
+          keys:
+          - peerAddress
+    - name: hostOverrides
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPHostPeers
+          elementRelationship: associative
+          keys:
+          - hostname
+    - name: localASN
+      type:
+        scalar: numeric
+- name: com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPConfigStatus
+  map:
+    fields:
+    - name: conditions
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
+          elementRelationship: associative
+          keys:
+          - type
+- name: com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPHostPeers
+  map:
+    fields:
+    - name: hostname
+      type:
+        scalar: string
+    - name: peers
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPPeer
+          elementRelationship: associative
+          keys:
+          - peerAddress
+- name: com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPPasswordSecret
+  map:
+    fields:
+    - name: name
+      type:
+        scalar: string
+- name: com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPPeer
+  map:
+    fields:
+    - name: failureDetection
+      type:
+        scalar: string
+    - name: holdTimeSeconds
+      type:
+        scalar: numeric
+    - name: keepaliveTimeSeconds
+      type:
+        scalar: numeric
+    - name: passwordSecret
+      type:
+        namedType: com.github.openshift.api.machineconfiguration.v1alpha1.BGPVIPPasswordSecret
+      default: {}
+    - name: peerASN
+      type:
+        scalar: numeric
+    - name: peerAddress
+      type:
+        scalar: string
+    - name: peerReachability
+      type:
+        scalar: string
+    - name: port
+      type:
+        scalar: numeric
 - name: com.github.openshift.api.machineconfiguration.v1alpha1.InternalReleaseImage
   map:
     fields:

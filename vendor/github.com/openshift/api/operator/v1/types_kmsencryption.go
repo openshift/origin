@@ -15,6 +15,7 @@ const (
 	KMSPluginHealthStatusError KMSPluginHealthStatus = "Error"
 )
 
+// +kubebuilder:validation:XValidation:rule="self.status != 'Healthy' || has(self.remoteKeyID)",message="remoteKeyID is required when status is Healthy"
 type KMSPluginHealthReport struct {
 
 	// nodeName is the name of the node this instance of the plugin runs on.
@@ -47,9 +48,12 @@ type KMSPluginHealthReport struct {
 	// +required
 	// KeyId string `json:"keyId,omitempty"`
 
-	// status contains a health indicator for the respective KMS plugin
-	// The field can have three states: healthy, unhealthy, error.
-	// With error and unhealthy containing additional information in Detail.
+	// status contains a health indicator for the respective KMS plugin.
+	// status is required and must be one of Healthy, Unhealthy or Error.
+	// When set to Healthy, the plugin responded successfully to the KMS v2 Status call and remoteKeyID is set.
+	// When set to Unhealthy, the plugin responded but reported that it is not healthy.
+	// When set to Error, the Status call failed or returned no response, for example because the plugin was unreachable.
+	// Unhealthy and Error may include additional information in detail.
 	// +required
 	Status KMSPluginHealthStatus `json:"status,omitempty"`
 
@@ -59,10 +63,14 @@ type KMSPluginHealthReport struct {
 
 	// remoteKeyID refers to the remote key identifier from KMS v2 StatusResponse.key_id.
 	// This is not a cryptographic key, but a unique representation of the KEK.
-	// The value must be between 1 and 1024 characters.
+	// When omitted, no remote key identifier is available. This is expected
+	// when status is Unhealthy or Error, for example when the plugin reports
+	// that it is not healthy or could not be reached.
+	// When status is Healthy, remoteKeyID is required.
+	// When set, the value must be between 1 and 1024 characters.
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
-	// +required
+	// +optional
 	RemoteKeyID string `json:"remoteKeyID,omitempty"`
 
 	// --- TOMBSTONE ---

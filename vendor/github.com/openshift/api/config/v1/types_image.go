@@ -97,7 +97,6 @@ type ImageSpec struct {
 	// the manifest list and all its sub-manifests will be imported. When empty, the behaviour will be
 	// decided based on the payload type advertised by the ClusterVersion status, i.e single arch payload
 	// implies the import mode is Legacy and multi payload implies PreserveOriginal.
-	// +openshift:enable:FeatureGate=ImageStreamImportMode
 	// +optional
 	ImageStreamImportMode ImportModeType `json:"imageStreamImportMode"`
 }
@@ -128,7 +127,6 @@ type ImageStatus struct {
 	// on either the spec value or if no spec value is specified, the image registry operator would look
 	// at the ClusterVersion status to determine the payload type and set the import mode accordingly,
 	// i.e single arch payload implies the import mode is Legacy and multi payload implies PreserveOriginal.
-	// +openshift:enable:FeatureGate=ImageStreamImportMode
 	// +optional
 	ImageStreamImportMode ImportModeType `json:"imageStreamImportMode,omitempty"`
 }

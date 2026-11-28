@@ -53,6 +53,13 @@ type InfrastructureStatusApplyConfiguration struct {
 	// and the operators should not configure the operand for highly-available operation
 	// NOTE: External topology mode is not applicable for this field.
 	InfrastructureTopology *configv1.TopologyMode `json:"infrastructureTopology,omitempty"`
+	// topologyTransitionStatus reports evaluations of supported topology transitions
+	// and the status of a requested transition, if any.
+	// It is optional and is omitted until the topology controller reports transition status.
+	// A transition is requested through spec.controlPlaneTopology. The controller
+	// reports completion only after both topologies reach that transition's target
+	// and post-transition checks pass; reaching the target topology alone is not completion.
+	TopologyTransitionStatus *TopologyTransitionStatusApplyConfiguration `json:"topologyTransitionStatus,omitempty"`
 	// cpuPartitioning expresses if CPU partitioning is a currently enabled feature in the cluster.
 	// CPU Partitioning means that this cluster can support partitioning workloads to specific CPU Sets.
 	// Valid values are "None" and "AllNodes". When omitted, the default value is "None".
@@ -129,6 +136,14 @@ func (b *InfrastructureStatusApplyConfiguration) WithControlPlaneTopology(value 
 // If called multiple times, the InfrastructureTopology field is set to the value of the last call.
 func (b *InfrastructureStatusApplyConfiguration) WithInfrastructureTopology(value configv1.TopologyMode) *InfrastructureStatusApplyConfiguration {
 	b.InfrastructureTopology = &value
+	return b
+}
+
+// WithTopologyTransitionStatus sets the TopologyTransitionStatus field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the TopologyTransitionStatus field is set to the value of the last call.
+func (b *InfrastructureStatusApplyConfiguration) WithTopologyTransitionStatus(value *TopologyTransitionStatusApplyConfiguration) *InfrastructureStatusApplyConfiguration {
+	b.TopologyTransitionStatus = value
 	return b
 }
 

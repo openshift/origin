@@ -124,7 +124,7 @@ linters:
         # PacemakerCluster intentionally marks Conditions as required with XValidation rules
         # to enforce specific condition types are always present.
         path: etcd/v1/types_pacemakercluster.go
-        text: "conditions: Conditions field in (PacemakerClusterStatus|PacemakerClusterNodeStatus|PacemakerClusterFencingAgentStatus|PacemakerClusterResourceStatus) is missing the following markers: optional"
+        text: "conditions: Conditions field in (PacemakerClusterStatus|PacemakerClusterNodeStatus|PacemakerClusterFencingAgentStatus|PacemakerClusterResourceStatus|PacemakerClusterAlertAgentStatus) is missing the following markers: optional"
       - linters:
         - kubeapilinter
         # ConsoleSpec.Ingress is a legacy optional value struct. Requiring properties would

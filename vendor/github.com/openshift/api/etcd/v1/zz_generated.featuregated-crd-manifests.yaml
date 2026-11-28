@@ -5,7 +5,7 @@ pacemakerclusters.etcd.openshift.io:
   Capability: ""
   Category: ""
   FeatureGates:
-  - DualReplica
+  - TNFObservability
   FilenameOperatorName: etcd
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_25"
@@ -17,7 +17,6 @@ pacemakerclusters.etcd.openshift.io:
   PrinterColumns: []
   Scope: Cluster
   ShortNames: null
-  TopLevelFeatureGates:
-  - DualReplica
+  TopLevelFeatureGates: []
   Version: v1
 

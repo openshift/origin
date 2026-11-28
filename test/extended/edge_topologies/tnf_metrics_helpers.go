@@ -433,6 +433,10 @@ func (runner *tnfPCSRunner) run(ctx context.Context, node string, args ...string
 }
 
 func (runner *tnfPCSRunner) output(ctx context.Context, node string, args ...string) (output string, result error) {
+	return runner.hostOutput(ctx, node, append([]string{"pcs"}, args...)...)
+}
+
+func (runner *tnfPCSRunner) hostOutput(ctx context.Context, node string, args ...string) (output string, result error) {
 	if err := runner.cleanup(ctx); err != nil {
 		return "", fmt.Errorf("previous debug command has not been cleaned up: %w", err)
 	}
@@ -466,7 +470,7 @@ func (runner *tnfPCSRunner) output(ctx context.Context, node string, args ...str
 	if err := waitForTNFDefaultServiceAccount(commandCtx, runner.serviceAccounts(ns.Name)); err != nil {
 		return "", fmt.Errorf("wait for default ServiceAccount in TNF debug namespace %s: %w", ns.Name, err)
 	}
-	ocArgs := []string{"debug", "-q", "node/" + node, "--preserve-pod", "--to-namespace=" + ns.Name, "--", "chroot", "/host", "pcs"}
+	ocArgs := []string{"debug", "-q", "node/" + node, "--preserve-pod", "--to-namespace=" + ns.Name, "--", "chroot", "/host"}
 	ocArgs = append(ocArgs, args...)
 	output, err = runTNFOC(commandCtx, runner.oc, ocArgs...)
 	return output, err
