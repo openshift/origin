@@ -9,6 +9,7 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 
+	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -84,6 +85,13 @@ func (w *auditLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig 
 		return err
 	case extensions.IsROSACluster(infra.Status.PlatformStatus):
 		w.apiLoadBalancerSkipReason = "not applicable to ROSA"
+	case infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type == configv1.ExternalPlatformType:
+		_, _, platformName := exutil.GetExternalPlatformProviderNameWithCCM(infra)
+		// AWS NLB takes longer than expected time to propagate health, crossing the expected shutdown/startup behaviour,
+		// impacting in the readiness of this test.
+		if strings.EqualFold(platformName, "aws") {
+			w.apiLoadBalancerSkipReason = "test not supported by platform type External using AWS as provider caused by NLB health check propagation delays. See also: https://redhat.atlassian.net/browse/OCPBUGS-86789"
+		}
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
